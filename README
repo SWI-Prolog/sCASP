@@ -1,0 +1,10 @@
+TCLP(disunification) = TCLP(\=)
+===============================
+
+Contraint solver based on s(ASP) 1.0.7 from University of Texas in
+Dallas: <https://sourceforge.net/projects/sasp-system/> by [Kyle
+Marple](kmarple1@hotmail.com).
+
+TCLP(\=) proyect:
+<https://github.com/Xuaco/TCLP_disunification>
+by [Joaquin Arias](joaquin.arias@imdea.org).
