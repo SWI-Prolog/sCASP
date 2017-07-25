@@ -1,12 +1,12 @@
-:- module(constructive_negation,_).
+:- module(clp_disequality_rt,_).
 
 
 :- use_package(attr).
 :- use_module(library(sets)).
 :- use_module(library(terms_check)).
+:- use_package(assertions).
+:- dynamic disunify/2.
 
-:- use_module(test).
-test :- run_test.
 
 :- op(700, xfx, [(.\=.),(.=.)]).
 
@@ -88,12 +88,14 @@ test :- run_test.
 .\=.(A,B) :-
 	neg_var(A,NegListA),
 	ground(B), !,
+	assert(disunify(A,B)),
 	insert(NegListA,B,NegList),
 	update(A,NegList).
 
 .\=.(B,A) :-
 	neg_var(A,NegListA),
 	ground(B), !,
+	assert(disunify(A,B)),
 	insert(NegListA,B,NegList),
 	update(A,NegList).
 

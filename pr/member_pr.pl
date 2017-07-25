@@ -1,0 +1,13 @@
+pr_rule(member(X,[X|T]),[]).
+pr_rule(member(X,[Y|T]),[X\=Y,member(X,T)]).
+pr_rule(not(o_member1(X,_Z0,T)),[_Z0\=[X|T]]).
+pr_rule(not(o_member1(X,_Z0)),[forall(T,not(o_member1(X,_Z0,T)))]).
+pr_rule(not(o_member2(X,_Z0,Y,T)),[_Z0\=[Y|T]]).
+pr_rule(not(o_member2(X,_Z0,Y,T)),[_Z0=[Y|T],X=Y]).
+pr_rule(not(o_member2(X,_Z0,Y,T)),[_Z0=[Y|T],X\=Y,not(member(X,T))]).
+pr_rule(not(o_member2(X,_Z0)),[forall(Y,forall(T,not(o_member2(X,_Z0,Y,T))))]).
+pr_rule(not(member(_X0,_X1)),[not(o_member1(_X0,_X1)),not(o_member2(_X0,_X1))]).
+pr_rule(not(o_false),[]).
+pr_rule(not(o_false),[]).
+pr_rule(o_nmr_check,[]).
+pr_rule(add_to_query,[o_nmr_check]).

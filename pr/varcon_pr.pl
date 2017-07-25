@@ -1,0 +1,14 @@
+pr_rule(p(X),[X\=Y,q(Y)]).
+pr_rule(q(X),[X\=Y,p(X)]).
+pr_rule(not(o_q1(X,Y)),[X=Y]).
+pr_rule(not(o_q1(X,Y)),[X\=Y,not(p(X))]).
+pr_rule(not(o_q1(X)),[forall(Y,not(o_q1(X,Y)))]).
+pr_rule(not(q(_X0)),[not(o_q1(_X0))]).
+pr_rule(not(o_p1(X,Y)),[X=Y]).
+pr_rule(not(o_p1(X,Y)),[X\=Y,not(q(Y))]).
+pr_rule(not(o_p1(X)),[forall(Y,not(o_p1(X,Y)))]).
+pr_rule(not(p(_X0)),[not(o_p1(_X0))]).
+pr_rule(not(o_false),[]).
+pr_rule(not(o_false),[]).
+pr_rule(o_nmr_check,[]).
+pr_rule(add_to_query,[o_nmr_check]).
