@@ -225,7 +225,16 @@ add(A,Value) :-
 	).
 
 
-attr_unify_hook(neg(A),B) :- not_unify(B,A).
+attr_unify_hook(neg(A),B) :-
+	(
+	    not_unify(B,A) ->
+	    true
+	;
+	    print('Fail unification between:'),
+	    print(A),print(' and '), print(B),nl,
+	    fail
+	).
+
 attribute_goals(X) --> 
 	[.\=.(X, G)],
 	 {get_attr_local(X,neg(G))}.

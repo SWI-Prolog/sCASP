@@ -28,7 +28,8 @@ attr_portray_hook(Att, A) :- format(" ~w  .is  ~w ", [A, Att]).
 
 
 %% TCLP interface %%
-call_domain_projection(_X, _).% :- print(X),nl.
+%call_domain_projection(X, _) :- nl,print(call_domain(X)),nl.
+call_domain_projection(_, _).
 call_entail(_, _, _).
 call_store_projection(_, _, _).
 
@@ -41,7 +42,9 @@ answer_check_entail(_, [-(_, N1)], [-(_, N2)], 1,  _) :- N1 >= N2.
 answer_check_entail(_, [-(_, N1)], [-(_, N2)], -1, _) :- N1 < N2.
 answer_store_projection(_, St, St).
 
-apply_answer([],  []).
-apply_answer([X|Xs], [D|Ds]) :- D \= ok, X <~ D, apply_answer(Xs,Ds).
-apply_answer([_X|Xs], [ok|Ds]) :- apply_answer(Xs,Ds).
+%apply_answer(Var,Ans) :- print(apply(Var,'\t',Ans)),nl,apply_answer_(Var,Ans).
+apply_answer(Var,Ans) :- apply_answer_(Var,Ans).
+apply_answer_([],  []).
+apply_answer_([X|Xs], [D|Ds]) :- D \= ok, X <~ D, apply_answer_(Xs,Ds).
+apply_answer_([_X|Xs], [ok|Ds]) :- apply_answer_(Xs,Ds).
 %% TCLP interface %%
