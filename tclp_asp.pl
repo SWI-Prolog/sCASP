@@ -47,6 +47,7 @@ print_model_([X, Y|Xs]) :-
 	print_model_([Y|Xs]).
 
 
+
 query([], Att) :-
 	Att <~ -([], 0).
 query([X|Xs], Att) :-
@@ -57,21 +58,25 @@ query([X|Xs], Att) :-
 query(X, Att) :-
 	pr_rule(X, Body),
 	query(Body, Att).
-query(A .\=. B, Att) :-
+query(X, Att) :-
+	\+ pr_rule(X,_),
+	X \= [], X \= [_|_],
+	q_exec(X),
+	Att <~ -([],0).
+
+q_exec(A .\=. B) :- 
 	(
 	    call(A .\=. B) ->
 	    true
 	;
 	    print('OK: Disequality fails checking:  '), print(A .\=. B), nl, fail
-	),
-	Att <~ -([], 0).
-query(X, Att) :-
+	).
+q_exec(X) :-
 	X \= .\=.(_, _),
-	X \= [],
-	X \= [_|_],
-	\+ pr_rule(X, _),
-	call(X),
-	Att <~ -([], 0).
+	call(X).
+
+
+
 
 
 query2([]).
