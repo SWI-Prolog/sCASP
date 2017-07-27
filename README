@@ -8,3 +8,56 @@ Marple](kmarple1@hotmail.com).
 TCLP(asp) project:
 <https://github.com/Xuaco/TCLP_asp>
 by [Joaquin Arias](joaquin.arias@imdea.org).
+
+
+
+
+Example path(1,4)
+----------------
+
+It is a nice example where the use of tabling returns the minimal
+model despite the fact that some results may are obtained using a
+larger stack_call:
+
+PROGRAM:
+	pr_rule(path(A, B), [edge(A, Z), path(Z, B)]).
+	pr_rule(path(A, B), [edge(A, B)]).
+	
+	pr_rule(edge(2, 1), []).
+	pr_rule(edge(1, 2), []).
+	pr_rule(edge(1, 1), []).
+	pr_rule(edge(2, 4), []).
+	
+
+
+QUERY:
+	?- ?? [path(X,Y)].
+	{ [path(2,2),edge(2,1),path(1,2),edge(1,2)] }
+	{ path(2,2) , edge(2,1) , path(1,2) , edge(1,2) }
+	X = 2,
+	Y = 2 ? ;
+	{ [path(2,4),edge(2,1),path(1,4),edge(1,2),path(2,4),edge(2,4)] }
+	{ path(1,4) , edge(1,2) , path(2,4) , edge(2,4) }
+	X = 1,
+	Y = 4 ? ;
+	{ [path(2,1),edge(2,1)] }
+	{ path(2,1) , edge(2,1) }
+	X = 2,
+	Y = 1 ? ;
+	{ [path(1,2),edge(1,2)] }
+	{ path(1,2) , edge(1,2) }
+	X = 1,
+	Y = 2 ? ;
+	{ [path(1,1),edge(1,1)] }
+	{ path(1,1) , edge(1,1) }
+	X = 1,
+	Y = 1 ? ;
+	{ [path(2,4),edge(2,4)] }
+	{ path(2,4) , edge(2,4) }
+	X = 2,
+	Y = 4 ? ;
+	no
+	?-
+
+NOTE that the model of path(2,4) is the minimal model although the
+stack_call of path(1,4) is also a valid model for this solution...
