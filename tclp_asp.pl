@@ -34,7 +34,9 @@
 :- use_package(tabling).
 :- active_tclp.
 :- table query/2.
-:- table query_stack/4.
+:- table query_stack_predicate/4.
+:- table query_tabled/4.
+%:- table query_stack/4.
 :- table query2/1.
 
 %% simple interpreter only compute the justification but is not able
@@ -47,10 +49,11 @@
 %% call_stack in each iteration to check co-induction...
 ??(A) :-
 	AttI <~ s([],0),
-	query_stack(A, AttI, AttO, AttJ),
+	query_tabled(A, AttI, AttO, AttJ),
 	print_stack(AttO),nl,
 	print_model(AttJ),nl.
-
+query_tabled(A, AttI, AttO, AttJ) :-
+	query_stack(A, AttI, AttO, AttJ).
 
 %% Main predicate to compute the model and its justification.
 query([], Att) :-
@@ -75,27 +78,87 @@ query_goal(X, Att) :-
 %% call_stack in each iteration.
 query_stack([], AttI, AttI, AttJ) :-
 	AttJ <~ -([],0).
-query_stack([X|Xs], AttI, AttO, AttJ) :-
+query_stack([X|Xs], AttI, AttO, AttJ) :- 
  	AttI ~> s(I,NI),
-%% 	format('Calling ~w \t with stack = ~w', [X, I]), nl,
-	NI1 is NI + 1,
-	AttI1 <~ s([X|I],NI1),
-	query_stack_goal(X, AttI1, AttO1, AttJx), AttJx ~> -(JX,NX),
+%	format('Calling ~w \t with stack = ~w', [X, I]), nl,
+	check_CHS(X,I,Check), %% Check condition for coinductive success
+	(
+	    Check == 1, %% coinduction success <- cycles containing
+			%% even loops may succeed
+	    AttO1 <~ s([chs(X)|I],NI),
+	    -(JX, NX) = -([], 0),
+	    AddX = chs
+	;
+	    Check == 0, %% coinduction does not success or fails <-
+			%% the execution continues inductively
+	    NI1 is NI + 1,
+	    AttI1 <~ s([X|I],NI1),
+	    query_stack(X, AttI1, AttO1, AttJx), AttJx ~> -(JX,NX),
+	    AddX = X
+	;
+	    Check == -1, %% coinduction fails <- the negation of a
+			 %% call unifies with a call in the call stack
+	    fail
+	),
 	query_stack(Xs, AttO1, AttO, AttJxs), AttJxs ~> -(JXs, NXs),
 	N is 1 + NX + NXs,
-	AttJ <~ -([X,JX|JXs],N).
-
-%% It is not tabled to execute the sub-goals and produce the
-%% side-effects
-query_stack_goal(X,  AttI, AttO, AttJ) :-
+	AttJ <~ -([AddX,JX|JXs],N).
+query_stack(X, AttI, AttO, AttJ) :-
+	X \= [], X \= [_|_],
 	predicate(X),
+	query_stack_predicate(X, AttI, AttO, AttJ).
+query_stack(X, AttI, AttO, AttJ) :-
+	X \= [], X \= [_|_],
+	\+ predicate(X),
+	query_stack_goal(X, AttI, AttO, AttJ).
+
+
+%% TABLED to avoid loops and repeated answers
+query_stack_predicate(X,  AttI, AttO, AttJ) :-
 	pr_rule(X, Body), 
 	query_stack(Body, AttI, AttO, AttJ).
+%% It is not tabled to execute the sub-goals and produce the
+%% side-effects
 query_stack_goal(X, AttI, AttI, AttJ) :-
-	\+ predicate(X),
-	X \= [], X \= [_|_],
 	q_exec(X),
 	AttJ <~ -([],0).
+
+%% check_CHS checks conditions for coinductive success or failure
+%% coinduction success <- cycles containing even loops may succeed
+check_CHS(X, I, 1) :-
+	predicate(X),
+	even_loop(X,0,I),!.
+%% coinduction fails <- the negation of a call unifies with a call in
+%% the call stack
+check_CHS(X, I, -1) :-
+	predicate(X),
+	\+ \+ in_stack(X,I),!.
+%% coinduction does not success or fails <- the execution continues
+%% inductively
+check_CHS(_X,_I,0) :- true.
+
+%% check if the negation is in the stack -> coinductive failure
+in_stack(X,[NegX|_]) :-
+	(
+	    X == not(NegX)
+	;
+	    not(X) = NegX
+	), !.
+in_stack(X,[_|Is]) :-
+	in_stack(X, Is).
+
+%% check if it is a even loop -> coinductive success
+even_loop(X, N, [X|_]) :- N > 0, 0 is mod(N,2).
+even_loop(X,N,[I|Is]) :-
+	X \= I,
+	I = not(_),
+	N1 is N + 1,
+	even_loop(X, N1, Is).
+even_loop(X,N,[I|Is]) :-
+	X \= I,
+	I \= not(_),
+	even_loop(X, N, Is).
+
 
 
 %% Check if the goal X is a user defined predicate
@@ -107,7 +170,9 @@ predicate(X) :-
 	length(ArgR,N).
 
 %% Execute the non user define predicates using Prolog
-q_exec(A .\=. B) :-
+
+%% q_exec(true) :- !.
+q_exec(A .\=. B) :- !,
 	(
 	    call(A .\=. B) ->
 %%	    print('OK'),nl,
@@ -207,4 +272,4 @@ pr_rule(edge(2, 4), []).
 
 :- include('pr/birds2_pr.pl').
 %:- include('pr/pos_loop_simple_pr.pl').
-%:- include('pr/pq_loop_pr.pl').
+:- include('pr/pq_loop_pr.pl').

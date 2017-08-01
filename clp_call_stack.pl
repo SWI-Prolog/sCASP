@@ -35,11 +35,13 @@ answer_domain_projection_([X|Xs], [D|Ds]) :-
 answer_domain_projection_([X|Xs], [ok|Ds]) :-
 	\+ X ~> _, answer_domain_projection_(Xs, Ds).
 
-answer_check_entail(_, [],       [],        1, _).
-answer_check_entail(_, [D1|D1s], [_D2|D2s], R, _) :-
-	D1 \= -(_, _), answer_check_entail(_, D1s, D2s, R, _).
-answer_check_entail(_, [-(_, N1)], [-(_, N2)], 1,  _) :- N1 >= N2.
-answer_check_entail(_, [-(_, N1)], [-(_, N2)], -1, _) :- N1 < N2.
+answer_check_entail(_, D1, D2, R, _) :-
+	answer_check_entail_(_, D1, D2, R, _).
+answer_check_entail_(_, [],       [],        1, _).
+answer_check_entail_(_, [D1|D1s], [_D2|D2s], R, _) :-
+	D1 \= -(_, _), answer_check_entail_(_, D1s, D2s, R, _).
+answer_check_entail_(_, [-(_, N1)], [-(_, N2)], 1,  _) :- N1 >= N2.
+answer_check_entail_(_, [-(_, N1)], [-(_, N2)], -1, _) :- N1 < N2.
 
 answer_store_projection(_, St, St).
 
