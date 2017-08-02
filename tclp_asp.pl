@@ -35,7 +35,6 @@
 :- active_tclp.
 :- table query/2.
 :- table query_stack_predicate/4.
-:- table query_tabled/4.
 %:- table query_stack/4.
 :- table query2/1.
 
@@ -49,11 +48,9 @@
 %% call_stack in each iteration to check co-induction...
 ??(A) :-
 	AttI <~ s([],0),
-	query_tabled(A, AttI, AttO, AttJ),
+	query_stack(A, AttI, AttO, AttJ),
 	print_stack(AttO),nl,
 	print_model(AttJ),nl.
-query_tabled(A, AttI, AttO, AttJ) :-
-	query_stack(A, AttI, AttO, AttJ).
 
 %% Main predicate to compute the model and its justification.
 query([], Att) :-
@@ -93,7 +90,7 @@ query_stack([X|Xs], AttI, AttO, AttJ) :-
 			%% the execution continues inductively
 	    NI1 is NI + 1,
 	    AttI1 <~ s([X|I],NI1),
-	    query_stack(X, AttI1, AttO1, AttJx), AttJx ~> -(JX,NX),
+	    query_stack(X, AttI1, AttO1, AttJx), AttJx ~> -([X|JX],NX),
 	    AddX = X
 	;
 	    Check == -1, %% coinduction fails <- the negation of a
@@ -114,20 +111,21 @@ query_stack(X, AttI, AttO, AttJ) :-
 
 
 %% TABLED to avoid loops and repeated answers
-query_stack_predicate(X,  AttI, AttO, AttJ) :-
+query_stack_predicate(X,  AttI, AttO, XAttJ) :-
 	pr_rule(X, Body), 
-	query_stack(Body, AttI, AttO, AttJ).
+	query_stack(Body, AttI, AttO, AttJ), AttJ ~> -(JX,NX),
+	XAttJ <~ -([X|JX],NX).
 %% It is not tabled to execute the sub-goals and produce the
 %% side-effects
 query_stack_goal(X, AttI, AttI, AttJ) :-
 	q_exec(X),
-	AttJ <~ -([],0).
+	AttJ <~ -([X],0).
 
 %% check_CHS checks conditions for coinductive success or failure
 %% coinduction success <- cycles containing even loops may succeed
 check_CHS(X, I, 1) :-
 	predicate(X),
-	even_loop(X,0,I),!.
+	\+ \+ even_loop(X,0,I),!.
 %% coinduction fails <- the negation of a call unifies with a call in
 %% the call stack
 check_CHS(X, I, -1) :-
@@ -142,20 +140,20 @@ in_stack(X,[NegX|_]) :-
 	(
 	    X == not(NegX)
 	;
-	    not(X) = NegX
+	    not(X) == NegX
 	), !.
 in_stack(X,[_|Is]) :-
 	in_stack(X, Is).
 
 %% check if it is a even loop -> coinductive success
-even_loop(X, N, [X|_]) :- N > 0, 0 is mod(N,2).
+even_loop(X, N, [I|_]) :- X == I, N > 0, 0 is mod(N,2).
 even_loop(X,N,[I|Is]) :-
-	X \= I,
+	X \== I,
 	I = not(_),
 	N1 is N + 1,
 	even_loop(X, N1, Is).
 even_loop(X,N,[I|Is]) :-
-	X \= I,
+	X \== I,
 	I \= not(_),
 	even_loop(X, N, Is).
 
@@ -164,10 +162,13 @@ even_loop(X,N,[I|Is]) :-
 %% Check if the goal X is a user defined predicate
 predicate(X) :-
 	X =.. [Name|ArgX],
-	pr_rule(R,_),
-	R =.. [Name|ArgR],
 	length(ArgX,N),
-	length(ArgR,N).
+	predicate_(Name,N).
+:- table predicate_/2.
+predicate_(Name,N) :-
+	length(ArgR,N),
+	R =.. [Name|ArgR],
+	pr_rule(R,_).
 
 %% Execute the non user define predicates using Prolog
 
@@ -268,6 +269,9 @@ pr_rule(edge(2, 1), []).
 pr_rule(edge(1, 2), []).
 pr_rule(edge(1, 1), []).
 pr_rule(edge(2, 4), []).
+
+pr_rule(k(X), [s(X)]).
+pr_rule(s(_), []).
 
 
 :- include('pr/birds2_pr.pl').
