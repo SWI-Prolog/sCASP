@@ -14,7 +14,7 @@ pr_rule(not(o_moven1(N,Ti,To,A,B,C,N1,T2,T3)),[N>1,N1 is N-1,moven(N1,Ti,T2,A,C,
 pr_rule(not(o_moven1(N,Ti,To,A,B,C,N1,T2,T3)),[N>1,N1 is N-1,moven(N1,Ti,T2,A,C,B),T3 is T2+1,not(move(T3,A,B))]).
 pr_rule(not(o_moven1(N,Ti,To,A,B,C,N1,T2,T3)),[N>1,N1 is N-1,moven(N1,Ti,T2,A,C,B),T3 is T2+1,move(T3,A,B),not(moven(N1,T3,To,C,B,A))]).
 pr_rule(not(o_moven1(N,Ti,To,A,B,C)),[forall(N1,forall(T2,forall(T3,not(o_moven1(N,Ti,To,A,B,C,N1,T2,T3)))))]).
-pr_rule(not(o_moven2(_X0,Ti,To,A,B,_V1)),[_X0\=1]).
+pr_rule(not(o_moven2(_X0,Ti,To,A,B,_V1)),[_X0 .\=. 1]).
 pr_rule(not(o_moven2(_X0,Ti,To,A,B,_V1)),[_X0=1,not(To is Ti+1)]).
 pr_rule(not(o_moven2(_X0,Ti,To,A,B,_V1)),[_X0=1,To is Ti+1,not(move(To,A,B))]).
 pr_rule(not(moven(_X0,_X1,_X2,_X3,_X4,_X5)),[not(o_moven1(_X0,_X1,_X2,_X3,_X4,_X5)),not(o_moven2(_X0,_X1,_X2,_X3,_X4,_X5))]).

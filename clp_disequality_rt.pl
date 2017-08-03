@@ -212,6 +212,13 @@ neg_var(A,List) :-
 	    List = [],
 	    put_attr_local(A,neg(List))
 	).
+unbound(A) :-
+	(
+	    get_attr_local(A,neg(List)), true ->
+	    List == []
+	;
+	    true
+	).
 non_var(A) :- \+ var(A).
 clean(A) :- del_attr_local(A).
 update(A,List) :- put_attr_local(A,neg(List)).
@@ -230,8 +237,8 @@ attr_unify_hook(neg(A),B) :-
 	    not_unify(B,A) ->
 	    true
 	;
-	    print('Fail unification between:'),
-	    print(A),print(' and '), print(B),nl,
+	    print('Fail unification between:  '),
+	    print(B),print('  and the neg list '), print(A),nl,
 	    fail
 	).
 

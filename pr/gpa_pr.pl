@@ -7,13 +7,13 @@ pr_rule(-highGPA(john),[]).
 pr_rule(not(o_interview1(X)),[eligible(X)]).
 pr_rule(not(o_interview1(X)),[not(eligible(X)),-eligible(X)]).
 pr_rule(not(interview(_X0)),[not(o_interview1(_X0))]).
-pr_rule(not(o_c_highGPA1(_X0)),[_X0\=john]).
+pr_rule(not(o_c_highGPA1(_X0)),[_X0 .\=. john]).
 pr_rule(not(-highGPA(_X0)),[not(o_c_highGPA1(_X0))]).
 pr_rule(not(-special(_X0)),[]).
 pr_rule(not(o_c_eligible1(X)),[not(-special(X))]).
 pr_rule(not(o_c_eligible1(X)),[-special(X),not(-highGPA(X))]).
 pr_rule(not(-eligible(_X0)),[not(o_c_eligible1(_X0))]).
-pr_rule(not(o_fairGPA1(_X0)),[_X0\=john]).
+pr_rule(not(o_fairGPA1(_X0)),[_X0 .\=. john]).
 pr_rule(not(fairGPA(_X0)),[not(o_fairGPA1(_X0))]).
 pr_rule(not(special(_X0)),[]).
 pr_rule(not(highGPA(_X0)),[]).
