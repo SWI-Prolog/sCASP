@@ -237,8 +237,8 @@ attr_unify_hook(neg(A),B) :-
 	    not_unify(B,A) ->
 	    true
 	;
-	    print('Fail unification between:  '),
-	    print(B),print('  and the neg list '), print(A),nl,
+	    % print('Fail unification between:  '),
+	    % print(B),print('  and the neg list '), print(A),nl,
 	    fail
 	).
 

@@ -47,8 +47,12 @@
 %% this interpreter is based in the previous one and accumulate the
 %% call_stack in each iteration to check co-induction...
 ??(A) :-
+	\+ list(A), !, %% Allows to make a singleton query
+	??([A]).
+??(A) :-
 	AttI <~ s([], 0),
-	query_stack(A, AttI, AttO, AttJ),
+	append(A, [add_to_query], Query),
+	query_stack(Query, AttI, AttO, AttJ),
 	print_stack(AttO), nl,
 	print_model(AttJ), nl.
 
@@ -77,7 +81,7 @@ query_stack([], AttI, AttI, AttJ) :-
 	AttJ <~ -([], 0).
 query_stack([X|Xs], AttI, AttO, AttJ) :-
 	AttI ~> s(I, NI),
-	%	format('Calling ~w \t with stack = ~w', [X, I]), nl,
+%format('Calling ~w \t with stack = ~w', [X, I]), nl,
 	check_CHS(X, I, Check), %% Check condition for coinductive success
 	(
 	    Check == 1, %% coinduction success <- cycles containing
@@ -200,7 +204,7 @@ q_exec(A .\=. B) :- !,
 	    %	    print('OK'),nl,
 	    true
 	;
-	    print('Note: Disequality fails checking:  '), print(A .\=. B), nl,
+%	    print('Note: Disequality fails checking:  '), print(A .\=. B), nl,
 	    fail).
 q_exec(X) :-
 	call(X).
@@ -325,11 +329,20 @@ query3(X,  I, O) :-
 % pr_rule(s(_), []).
 
 
-%:- include('pr/birds2_pr.pl').
-%:- include('pr/pos_loop_simple_pr.pl').
-%:- include('pr/pq_loop_pr.pl').
-%:- include('pr/forall_pr.pl').
-%:- include('pr/loopvar_pr.pl').
-%:- include('pr/gpa_pr.pl'). 
-:- include('pr/hanoi_pr.pl').
-%:- include('pr/hamcycle_pr.pl'). 
+
+%% Here there are some programs to check TCLP(asp)
+:- push_prolog_flag(quiet,error).
+%:- include('pr/birds2_pr.pl').                      %% ?? flies(X).
+%:- include('pr/pos_loop_simple_pr.pl').             %% ?? p(X). %% the expected result is 'no'
+%:- include('pr/pq_loop_pr.pl').                     %% ?? p(X).
+%:- include('pr/forall_pr.pl').                      %% ?? not_p.
+%:- include('pr/loopvar_pr.pl').                     %% ?? [p(X), r(Y)].
+%:- include('pr/gpa_pr.pl').                         %% ?? interview(john).
+%:- include('pr/hanoi_pr.pl').                       %% ?? hanoi(3,T).
+:- include('pr/hamcycle_pr.pl').                    %% ?? chosen(1,2).
+:- pop_prolog_flag(quiet).
+
+
+
+
+%% in progress :- include('pr/twomodelshamiltonian_pr.pl').
