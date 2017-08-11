@@ -1,7 +1,7 @@
 
 
 compile_tclp_asp:
-	@echo 'Nothing to be done: is OK'
+	ciaoc -x -o hanoi tclp_asp.pl
 
 
 clean:

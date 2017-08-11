@@ -110,14 +110,9 @@
 %% particular case for lists (they are also struct)
 .\=.([A|As],[B|Bs]) :- true, !,
 	(
-	    length(As,N1), length(Bs,N2), N1 \= N2 ->
-	    true
+	    A .\=. B
 	;
-	    (
-		A .\=. B
-	    ;
-		As .\=. Bs
-	    )
+	    As .\=. Bs
 	).
 
 .\=.(A,B) :-
@@ -188,6 +183,11 @@ entail(A,B) :-
 entail(A,B) :-
 	subsumes_term(A,B).
 
+
+%%%%%%%%%
+entail_neg_list(L1, L2) :-
+	ord_subset(L1, L2).
+
 %%%%%%%%%%%%%%%%%%%
 %% Join operator %%
 %%%%%%%%%%%%%%%%%%%
@@ -230,8 +230,11 @@ add(A,Value) :-
 	;
 	    put_attr_local(A,neg([Value]))
 	).
+dump_neg_list(A,List) :-
+	get_attr_local(A,neg(List)).
 
 
+:- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
 attr_unify_hook(neg(A),B) :-
 	(
 	    not_unify(B,A) ->
