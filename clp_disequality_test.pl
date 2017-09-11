@@ -1,4 +1,4 @@
-:- module(test_clp_disequality,_).
+:- module(clp_disequality_test,_).
 
 
 :- use_package(.(clp_disequality)).

@@ -230,7 +230,7 @@ add(A,Value) :-
 	;
 	    put_attr_local(A,neg([Value]))
 	).
-dump_neg_list(A,List) :-
+dump_neg_list(A,neg(List)) :-
 	get_attr_local(A,neg(List)).
 
 

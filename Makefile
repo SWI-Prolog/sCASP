@@ -1,8 +1,10 @@
 
 
 compile_tclp_asp:
-	ciaoc -x -o hanoi tclp_asp.pl
+	ciaoc -x -o tclp_asp tclp_asp.pl
 
+main:
+	ciaoc -x -o parser_tasp parser_tasp.pl
 
 clean:
 	@ciao clean-tree .
