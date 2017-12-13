@@ -1,0 +1,1742 @@
+<!doctype html>
+ <html>
+ <head>
+ <meta charset="utf-8">
+ <title>c(ASP) Justification</title>
+ <link href="css/jquery.treemenu.css" rel="stylesheet" type="text/css">
+ <link href="css/tree.css" rel="stylesheet" type="text/css">
+ 
+ <link rel="icon" href="logo.ico">
+ 
+ </head>
+ 
+ <body style="font-size:15px;background: #ECECEC; margin:80px; color:#333;">
+ 
+<h3>Query</h3>
+<b><font color=blue>?-</font> chosen(1,2).</b>
+<br><br>
+{ chosen(0,1), chosen(1,2), chosen(2,0), edge(0,1), edge(1,2), edge(2,0), other(0,0), other(0,2), other(1,0), other(1,1), other(2,1), other(2,2), reachable(0), reachable(1), reachable(2), vertex(0), vertex(1), vertex(2), not chosen(0,0), not chosen(0,2), not chosen(0,W<sub>200&nbsp;</sub><sub>225&nbsp;</sub>) ( W<sub>200&nbsp;</sub><sub>225&nbsp;</sub> \= 1 ), not chosen(1,0), not chosen(1,1), not chosen(1,W<sub>280&nbsp;</sub><sub>305&nbsp;</sub>) ( W<sub>280&nbsp;</sub><sub>305&nbsp;</sub> \= 2 ), not chosen(2,1), not chosen(2,2), not chosen(2,W<sub>360&nbsp;</sub><sub>385&nbsp;</sub>) ( W<sub>360&nbsp;</sub><sub>385&nbsp;</sub> \= 0 ), not chosen(U<sub>155&nbsp;</sub><sub>192&nbsp;</sub>,W<sub>156&nbsp;</sub><sub>193&nbsp;</sub>) ( U<sub>155&nbsp;</sub><sub>192&nbsp;</sub> \= 0, U<sub>155&nbsp;</sub><sub>192&nbsp;</sub> \= 1, U<sub>155&nbsp;</sub><sub>192&nbsp;</sub> \= 2 ), not chosen(V<sub>231&nbsp;</sub><sub>255&nbsp;</sub>,1) ( V<sub>231&nbsp;</sub><sub>255&nbsp;</sub> \= 0, V<sub>231&nbsp;</sub><sub>255&nbsp;</sub> \= 1, V<sub>231&nbsp;</sub><sub>255&nbsp;</sub> \= 2 ), not chosen(V<sub>311&nbsp;</sub><sub>335&nbsp;</sub>,2) ( V<sub>311&nbsp;</sub><sub>335&nbsp;</sub> \= 0, V<sub>311&nbsp;</sub><sub>335&nbsp;</sub> \= 1, V<sub>311&nbsp;</sub><sub>335&nbsp;</sub> \= 2 ), not chosen(V<sub>391&nbsp;</sub><sub>415&nbsp;</sub>,0) ( V<sub>391&nbsp;</sub><sub>415&nbsp;</sub> \= 0, V<sub>391&nbsp;</sub><sub>415&nbsp;</sub> \= 1, V<sub>391&nbsp;</sub><sub>415&nbsp;</sub> \= 2 ), not edge(0,0), not edge(0,2), not edge(0,V<sub>207&nbsp;</sub><sub>223&nbsp;</sub>) ( V<sub>207&nbsp;</sub><sub>223&nbsp;</sub> \= 1 ), not edge(1,0), not edge(1,1), not edge(1,V<sub>287&nbsp;</sub><sub>303&nbsp;</sub>) ( V<sub>287&nbsp;</sub><sub>303&nbsp;</sub> \= 2 ), not edge(2,1), not edge(2,2), not edge(2,V<sub>367&nbsp;</sub><sub>383&nbsp;</sub>) ( V<sub>367&nbsp;</sub><sub>383&nbsp;</sub> \= 0 ), not edge(U<sub>164&nbsp;</sub><sub>188&nbsp;</sub>,V<sub>165&nbsp;</sub><sub>189&nbsp;</sub>) ( U<sub>164&nbsp;</sub><sub>188&nbsp;</sub> \= 0, U<sub>164&nbsp;</sub><sub>188&nbsp;</sub> \= 1, U<sub>164&nbsp;</sub><sub>188&nbsp;</sub> \= 2 ), not edge(U<sub>236&nbsp;</sub><sub>253&nbsp;</sub>,1) ( U<sub>236&nbsp;</sub><sub>253&nbsp;</sub> \= 0, U<sub>236&nbsp;</sub><sub>253&nbsp;</sub> \= 1, U<sub>236&nbsp;</sub><sub>253&nbsp;</sub> \= 2 ), not edge(U<sub>316&nbsp;</sub><sub>333&nbsp;</sub>,2) ( U<sub>316&nbsp;</sub><sub>333&nbsp;</sub> \= 0, U<sub>316&nbsp;</sub><sub>333&nbsp;</sub> \= 1, U<sub>316&nbsp;</sub><sub>333&nbsp;</sub> \= 2 ), not edge(U<sub>396&nbsp;</sub><sub>413&nbsp;</sub>,0) ( U<sub>396&nbsp;</sub><sub>413&nbsp;</sub> \= 0, U<sub>396&nbsp;</sub><sub>413&nbsp;</sub> \= 1, U<sub>396&nbsp;</sub><sub>413&nbsp;</sub> \= 2 ), not edge(U<sub>446&nbsp;</sub><sub>470&nbsp;</sub>,V<sub>447&nbsp;</sub><sub>471&nbsp;</sub>) ( U<sub>446&nbsp;</sub><sub>470&nbsp;</sub> \= 0, U<sub>446&nbsp;</sub><sub>470&nbsp;</sub> \= 1, U<sub>446&nbsp;</sub><sub>470&nbsp;</sub> \= 2, V<sub>447&nbsp;</sub><sub>471&nbsp;</sub> \= 0, V<sub>447&nbsp;</sub><sub>471&nbsp;</sub> \= 1, V<sub>447&nbsp;</sub><sub>471&nbsp;</sub> \= 2 ), not other(0,1), not other(1,2), not other(2,0), not vertex(W<sub>10&nbsp;</sub><sub>22&nbsp;</sub>) ( W<sub>10&nbsp;</sub><sub>22&nbsp;</sub> \= 0, W<sub>10&nbsp;</sub><sub>22&nbsp;</sub> \= 1, W<sub>10&nbsp;</sub><sub>22&nbsp;</sub> \= 2 ) }
+<br><br>
+
+<br><br>
+<h3> Justification </h3>
+ <ul class="tree">
+  <li> chosen(1,2) 	<font color=green size=-1> &emsp;  chosen(U<sub>0&nbsp;</sub>,V<sub>1&nbsp;</sub>) :- edge(U<sub>0&nbsp;</sub>,V<sub>1&nbsp;</sub>), &nbsp; &nbsp;not(other(U<sub>0&nbsp;</sub>,V<sub>1&nbsp;</sub>)).</font>
+    <ul> 
+      <li> edge(1,2) 	<font color=green size=-1> &emsp;  edge(1,2) :- true.</font></li>
+      <li> not(other(1,2)) 	<font color=green size=-1> &emsp;  not(other(_V<sub>2&nbsp;</sub>,_V<sub>3&nbsp;</sub>)) :- not(o_other1(_V<sub>2&nbsp;</sub>,_V<sub>3&nbsp;</sub>)).</font>
+        <ul> 
+          <li> not(o_other1(1,2)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>4&nbsp;</sub>,V<sub>5&nbsp;</sub>)) :- forall(W<sub>6&nbsp;</sub>,not(o_other1(U<sub>4&nbsp;</sub>,V<sub>5&nbsp;</sub>,W<sub>6&nbsp;</sub>))).</font>
+            <ul> 
+              <li> forall(W<sub>6&nbsp;</sub>,not(o_other1(1,2,W<sub>6&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o_other1(1,2,W<sub>6&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>8&nbsp;</sub>,V<sub>9&nbsp;</sub>,W<sub>10&nbsp;</sub>)) :- vertex(U<sub>8&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>9&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>10&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> vertex(1) 	<font color=green size=-1> &emsp;  vertex(1) :- true.</font></li>
+                      <li> vertex(2) 	<font color=green size=-1> &emsp;  vertex(2) :- true.</font></li>
+                      <li> not(vertex(W<sub>10&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(vertex(_V<sub>12&nbsp;</sub>)) :- not(o_vertex1(_V<sub>12&nbsp;</sub>)), &nbsp; &nbsp;not(o_vertex2(_V<sub>12&nbsp;</sub>)), &nbsp; &nbsp;not(o_vertex3(_V<sub>12&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o_vertex1(_V<sub>12&nbsp;</sub>)), ( [_V<sub>12&nbsp;</sub>-[1,2]] ) 	<font color=green size=-1> &emsp;  not(o_vertex1(_V<sub>14&nbsp;</sub>)) :- _V<sub>14&nbsp;</sub>\=0.</font>
+                            <ul> 
+                              <li> _V<sub>14&nbsp;</sub>\=0, ( [_V<sub>14&nbsp;</sub>-[1,2]] )</li>
+                            </ul>
+                          </li>
+                          <li> not(o_vertex2(_V<sub>12&nbsp;</sub>)), ( [_V<sub>12&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_vertex2(_V<sub>17&nbsp;</sub>)) :- _V<sub>17&nbsp;</sub>\=1.</font>
+                            <ul> 
+                              <li> _V<sub>17&nbsp;</sub>\=1, ( [_V<sub>17&nbsp;</sub>-[0,1,2]] )</li>
+                            </ul>
+                          </li>
+                          <li> not(o_vertex3(_V<sub>12&nbsp;</sub>)), ( [_V<sub>12&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_vertex3(_V<sub>20&nbsp;</sub>)) :- _V<sub>20&nbsp;</sub>\=2.</font>
+                            <ul> 
+                              <li> _V<sub>20&nbsp;</sub>\=2, ( [_V<sub>20&nbsp;</sub>-[0,1,2]] )</li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_other1(1,2,0))
+                    <ul> 
+                      <li> not(o_other1(1,2,0)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>24&nbsp;</sub>,V<sub>25&nbsp;</sub>,W<sub>26&nbsp;</sub>)) :- vertex(U<sub>24&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>25&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>26&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>24&nbsp;</sub>,W<sub>26&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> vertex(0) 	<font color=green size=-1> &emsp;  vertex(0) :- true.</font></li>
+                          <li> not(edge(1,0)) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>27&nbsp;</sub>,_V<sub>28&nbsp;</sub>)) :- not(o_edge1(_V<sub>27&nbsp;</sub>,_V<sub>28&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>27&nbsp;</sub>,_V<sub>28&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>27&nbsp;</sub>,_V<sub>28&nbsp;</sub>)).</font>
+                            <ul> 
+                              <li> not(o_edge1(1,0)) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>29&nbsp;</sub>,_V<sub>30&nbsp;</sub>)) :- _V<sub>29&nbsp;</sub>\=0.</font>
+                                <ul> 
+                                  <li> 1\=0</li>
+                                </ul>
+                              </li>
+                              <li> not(o_edge2(1,0)) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>31&nbsp;</sub>,_V<sub>32&nbsp;</sub>)) :- _V<sub>31&nbsp;</sub>=1, &nbsp; &nbsp;_V<sub>32&nbsp;</sub>\=2.</font>
+                                <ul> 
+                                  <li> 1=1</li>
+                                  <li> 0\=2</li>
+                                </ul>
+                              </li>
+                              <li> not(o_edge3(1,0)) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>33&nbsp;</sub>,_V<sub>34&nbsp;</sub>)) :- _V<sub>33&nbsp;</sub>\=2.</font>
+                                <ul> 
+                                  <li> 1\=2</li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_other1(1,2,1))
+                    <ul> 
+                      <li> not(o_other1(1,2,1)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>35&nbsp;</sub>,V<sub>36&nbsp;</sub>,W<sub>37&nbsp;</sub>)) :- vertex(U<sub>35&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>36&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>37&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>35&nbsp;</sub>,W<sub>37&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> not(edge(1,1)) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>38&nbsp;</sub>,_V<sub>39&nbsp;</sub>)) :- not(o_edge1(_V<sub>38&nbsp;</sub>,_V<sub>39&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>38&nbsp;</sub>,_V<sub>39&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>38&nbsp;</sub>,_V<sub>39&nbsp;</sub>)).</font>
+                            <ul> 
+                              <li> not(o_edge1(1,1)) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>40&nbsp;</sub>,_V<sub>41&nbsp;</sub>)) :- _V<sub>40&nbsp;</sub>\=0.</font>
+                                <ul> 
+                                  <li> 1\=0</li>
+                                </ul>
+                              </li>
+                              <li> not(o_edge2(1,1)) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>42&nbsp;</sub>,_V<sub>43&nbsp;</sub>)) :- _V<sub>42&nbsp;</sub>=1, &nbsp; &nbsp;_V<sub>43&nbsp;</sub>\=2.</font>
+                                <ul> 
+                                  <li> 1=1</li>
+                                  <li> 1\=2</li>
+                                </ul>
+                              </li>
+                              <li> not(o_edge3(1,1)) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>44&nbsp;</sub>,_V<sub>45&nbsp;</sub>)) :- _V<sub>44&nbsp;</sub>\=2.</font>
+                                <ul> 
+                                  <li> 1\=2</li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_other1(1,2,2))
+                    <ul> 
+                      <li> not(o_other1(1,2,2)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>46&nbsp;</sub>,V<sub>47&nbsp;</sub>,W<sub>48&nbsp;</sub>)) :- vertex(U<sub>46&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>47&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>48&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>46&nbsp;</sub>,W<sub>48&nbsp;</sub>), &nbsp; &nbsp;V<sub>47&nbsp;</sub>=W<sub>48&nbsp;</sub>.</font>
+                        <ul> 
+                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> edge(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> 2=2</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li> o_nmr_check 	<font color=green size=-1> &emsp;  o_nmr_check :- not(o_chk1), &nbsp; &nbsp;not(o_chk2), &nbsp; &nbsp;forall(_V<sub>50&nbsp;</sub>,forall(_V<sub>51&nbsp;</sub>,not(o_chk3(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>)))), &nbsp; &nbsp;forall(_V<sub>50&nbsp;</sub>,forall(_V<sub>51&nbsp;</sub>,not(o_chk4(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>)))).</font>
+    <ul> 
+      <li> not(o_chk1) 	<font color=green size=-1> &emsp;  not(o_chk1) :- not(o__chk11).</font>
+        <ul> 
+          <li> not(o__chk11) 	<font color=green size=-1> &emsp;  not(o__chk11) :- forall(U<sub>52&nbsp;</sub>,not(o__chk11(U<sub>52&nbsp;</sub>))).</font>
+            <ul> 
+              <li> forall(U<sub>52&nbsp;</sub>,not(o__chk11(U<sub>52&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o__chk11(U<sub>52&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk11(U<sub>54&nbsp;</sub>)) :- not(vertex(U<sub>54&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(vertex(U<sub>54&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [U<sub>54&nbsp;</sub>-[0,1,2]] )</li>
+                    </ul>
+                  </li>
+                  <li> not(o__chk11(0))
+                    <ul> 
+                      <li> not(o__chk11(0)) 	<font color=green size=-1> &emsp;  not(o__chk11(U<sub>56&nbsp;</sub>)) :- vertex(U<sub>56&nbsp;</sub>), &nbsp; &nbsp;reachable(U<sub>56&nbsp;</sub>).</font>
+                        <ul> 
+                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> reachable(0) 	<font color=green size=-1> &emsp;  reachable(0) :- chosen(V<sub>57&nbsp;</sub>,0).</font>
+                            <ul> 
+                              <li> chosen(V<sub>57&nbsp;</sub>,0) 	<font color=green size=-1> &emsp;  chosen(U<sub>59&nbsp;</sub>,V<sub>60&nbsp;</sub>) :- edge(U<sub>59&nbsp;</sub>,V<sub>60&nbsp;</sub>), &nbsp; &nbsp;not(other(U<sub>59&nbsp;</sub>,V<sub>60&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> edge(U<sub>59&nbsp;</sub>,0) 	<font color=green size=-1> &emsp;  edge(2,0) :- true.</font></li>
+                                  <li> not(other(2,0)) 	<font color=green size=-1> &emsp;  not(other(_V<sub>62&nbsp;</sub>,_V<sub>63&nbsp;</sub>)) :- not(o_other1(_V<sub>62&nbsp;</sub>,_V<sub>63&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> not(o_other1(2,0)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>64&nbsp;</sub>,V<sub>65&nbsp;</sub>)) :- forall(W<sub>66&nbsp;</sub>,not(o_other1(U<sub>64&nbsp;</sub>,V<sub>65&nbsp;</sub>,W<sub>66&nbsp;</sub>))).</font>
+                                        <ul> 
+                                          <li> forall(W<sub>66&nbsp;</sub>,not(o_other1(2,0,W<sub>66&nbsp;</sub>)))
+                                            <ul> 
+                                              <li> not(o_other1(2,0,W<sub>66&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>68&nbsp;</sub>,V<sub>69&nbsp;</sub>,W<sub>70&nbsp;</sub>)) :- vertex(U<sub>68&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>69&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>70&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                                  <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                  <li> not(vertex(W<sub>70&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>70&nbsp;</sub>-[0,1,2]] )</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_other1(2,0,0))
+                                                <ul> 
+                                                  <li> not(o_other1(2,0,0)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>72&nbsp;</sub>,V<sub>73&nbsp;</sub>,W<sub>74&nbsp;</sub>)) :- vertex(U<sub>72&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>73&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>74&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>72&nbsp;</sub>,W<sub>74&nbsp;</sub>), &nbsp; &nbsp;V<sub>73&nbsp;</sub>=W<sub>74&nbsp;</sub>.</font>
+                                                    <ul> 
+                                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> edge(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> 0=0</li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_other1(2,0,1))
+                                                <ul> 
+                                                  <li> not(o_other1(2,0,1)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>75&nbsp;</sub>,V<sub>76&nbsp;</sub>,W<sub>77&nbsp;</sub>)) :- vertex(U<sub>75&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>76&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>77&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>75&nbsp;</sub>,W<sub>77&nbsp;</sub>)).</font>
+                                                    <ul> 
+                                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> not(edge(2,1)) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>78&nbsp;</sub>,_V<sub>79&nbsp;</sub>)) :- not(o_edge1(_V<sub>78&nbsp;</sub>,_V<sub>79&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>78&nbsp;</sub>,_V<sub>79&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>78&nbsp;</sub>,_V<sub>79&nbsp;</sub>)).</font>
+                                                        <ul> 
+                                                          <li> not(o_edge1(2,1)) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>80&nbsp;</sub>,_V<sub>81&nbsp;</sub>)) :- _V<sub>80&nbsp;</sub>\=0.</font>
+                                                            <ul> 
+                                                              <li> 2\=0</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge2(2,1)) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>82&nbsp;</sub>,_V<sub>83&nbsp;</sub>)) :- _V<sub>82&nbsp;</sub>\=1.</font>
+                                                            <ul> 
+                                                              <li> 2\=1</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge3(2,1)) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>84&nbsp;</sub>,_V<sub>85&nbsp;</sub>)) :- _V<sub>84&nbsp;</sub>=2, &nbsp; &nbsp;_V<sub>85&nbsp;</sub>\=0.</font>
+                                                            <ul> 
+                                                              <li> 2=2</li>
+                                                              <li> 1\=0</li>
+                                                            </ul>
+                                                          </li>
+                                                        </ul>
+                                                      </li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_other1(2,0,2))
+                                                <ul> 
+                                                  <li> not(o_other1(2,0,2)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>86&nbsp;</sub>,V<sub>87&nbsp;</sub>,W<sub>88&nbsp;</sub>)) :- vertex(U<sub>86&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>87&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>88&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>86&nbsp;</sub>,W<sub>88&nbsp;</sub>)).</font>
+                                                    <ul> 
+                                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> not(edge(2,2)) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>89&nbsp;</sub>,_V<sub>90&nbsp;</sub>)) :- not(o_edge1(_V<sub>89&nbsp;</sub>,_V<sub>90&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>89&nbsp;</sub>,_V<sub>90&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>89&nbsp;</sub>,_V<sub>90&nbsp;</sub>)).</font>
+                                                        <ul> 
+                                                          <li> not(o_edge1(2,2)) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>91&nbsp;</sub>,_V<sub>92&nbsp;</sub>)) :- _V<sub>91&nbsp;</sub>\=0.</font>
+                                                            <ul> 
+                                                              <li> 2\=0</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge2(2,2)) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>93&nbsp;</sub>,_V<sub>94&nbsp;</sub>)) :- _V<sub>93&nbsp;</sub>\=1.</font>
+                                                            <ul> 
+                                                              <li> 2\=1</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge3(2,2)) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>95&nbsp;</sub>,_V<sub>96&nbsp;</sub>)) :- _V<sub>95&nbsp;</sub>=2, &nbsp; &nbsp;_V<sub>96&nbsp;</sub>\=0.</font>
+                                                            <ul> 
+                                                              <li> 2=2</li>
+                                                              <li> 2\=0</li>
+                                                            </ul>
+                                                          </li>
+                                                        </ul>
+                                                      </li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o__chk11(1))
+                    <ul> 
+                      <li> not(o__chk11(1)) 	<font color=green size=-1> &emsp;  not(o__chk11(U<sub>98&nbsp;</sub>)) :- vertex(U<sub>98&nbsp;</sub>), &nbsp; &nbsp;reachable(U<sub>98&nbsp;</sub>).</font>
+                        <ul> 
+                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> reachable(1) 	<font color=green size=-1> &emsp;  reachable(V<sub>99&nbsp;</sub>) :- chosen(U<sub>100&nbsp;</sub>,V<sub>99&nbsp;</sub>), &nbsp; &nbsp;reachable(U<sub>100&nbsp;</sub>).</font>
+                            <ul> 
+                              <li> chosen(U<sub>100&nbsp;</sub>,1) 	<font color=green size=-1> &emsp;  chosen(U<sub>102&nbsp;</sub>,V<sub>103&nbsp;</sub>) :- edge(U<sub>102&nbsp;</sub>,V<sub>103&nbsp;</sub>), &nbsp; &nbsp;not(other(U<sub>102&nbsp;</sub>,V<sub>103&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> edge(U<sub>102&nbsp;</sub>,1) 	<font color=green size=-1> &emsp;  edge(0,1) :- true.</font></li>
+                                  <li> not(other(0,1)) 	<font color=green size=-1> &emsp;  not(other(_V<sub>105&nbsp;</sub>,_V<sub>106&nbsp;</sub>)) :- not(o_other1(_V<sub>105&nbsp;</sub>,_V<sub>106&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> not(o_other1(0,1)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>107&nbsp;</sub>,V<sub>108&nbsp;</sub>)) :- forall(W<sub>109&nbsp;</sub>,not(o_other1(U<sub>107&nbsp;</sub>,V<sub>108&nbsp;</sub>,W<sub>109&nbsp;</sub>))).</font>
+                                        <ul> 
+                                          <li> forall(W<sub>109&nbsp;</sub>,not(o_other1(0,1,W<sub>109&nbsp;</sub>)))
+                                            <ul> 
+                                              <li> not(o_other1(0,1,W<sub>109&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>111&nbsp;</sub>,V<sub>112&nbsp;</sub>,W<sub>113&nbsp;</sub>)) :- vertex(U<sub>111&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>112&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>113&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                  <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                                  <li> not(vertex(W<sub>113&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>113&nbsp;</sub>-[0,1,2]] )</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_other1(0,1,0))
+                                                <ul> 
+                                                  <li> not(o_other1(0,1,0)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>115&nbsp;</sub>,V<sub>116&nbsp;</sub>,W<sub>117&nbsp;</sub>)) :- vertex(U<sub>115&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>116&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>117&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>115&nbsp;</sub>,W<sub>117&nbsp;</sub>)).</font>
+                                                    <ul> 
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> not(edge(0,0)) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>118&nbsp;</sub>,_V<sub>119&nbsp;</sub>)) :- not(o_edge1(_V<sub>118&nbsp;</sub>,_V<sub>119&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>118&nbsp;</sub>,_V<sub>119&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>118&nbsp;</sub>,_V<sub>119&nbsp;</sub>)).</font>
+                                                        <ul> 
+                                                          <li> not(o_edge1(0,0)) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>120&nbsp;</sub>,_V<sub>121&nbsp;</sub>)) :- _V<sub>120&nbsp;</sub>=0, &nbsp; &nbsp;_V<sub>121&nbsp;</sub>\=1.</font>
+                                                            <ul> 
+                                                              <li> 0=0</li>
+                                                              <li> 0\=1</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge2(0,0)) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>122&nbsp;</sub>,_V<sub>123&nbsp;</sub>)) :- _V<sub>122&nbsp;</sub>\=1.</font>
+                                                            <ul> 
+                                                              <li> 0\=1</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge3(0,0)) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>124&nbsp;</sub>,_V<sub>125&nbsp;</sub>)) :- _V<sub>124&nbsp;</sub>\=2.</font>
+                                                            <ul> 
+                                                              <li> 0\=2</li>
+                                                            </ul>
+                                                          </li>
+                                                        </ul>
+                                                      </li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_other1(0,1,1))
+                                                <ul> 
+                                                  <li> not(o_other1(0,1,1)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>126&nbsp;</sub>,V<sub>127&nbsp;</sub>,W<sub>128&nbsp;</sub>)) :- vertex(U<sub>126&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>127&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>128&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>126&nbsp;</sub>,W<sub>128&nbsp;</sub>), &nbsp; &nbsp;V<sub>127&nbsp;</sub>=W<sub>128&nbsp;</sub>.</font>
+                                                    <ul> 
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> edge(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> 1=1</li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_other1(0,1,2))
+                                                <ul> 
+                                                  <li> not(o_other1(0,1,2)) 	<font color=green size=-1> &emsp;  not(o_other1(U<sub>129&nbsp;</sub>,V<sub>130&nbsp;</sub>,W<sub>131&nbsp;</sub>)) :- vertex(U<sub>129&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>130&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>131&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>129&nbsp;</sub>,W<sub>131&nbsp;</sub>)).</font>
+                                                    <ul> 
+                                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                                      <li> not(edge(0,2)) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>132&nbsp;</sub>,_V<sub>133&nbsp;</sub>)) :- not(o_edge1(_V<sub>132&nbsp;</sub>,_V<sub>133&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>132&nbsp;</sub>,_V<sub>133&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>132&nbsp;</sub>,_V<sub>133&nbsp;</sub>)).</font>
+                                                        <ul> 
+                                                          <li> not(o_edge1(0,2)) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>134&nbsp;</sub>,_V<sub>135&nbsp;</sub>)) :- _V<sub>134&nbsp;</sub>=0, &nbsp; &nbsp;_V<sub>135&nbsp;</sub>\=1.</font>
+                                                            <ul> 
+                                                              <li> 0=0</li>
+                                                              <li> 2\=1</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge2(0,2)) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>136&nbsp;</sub>,_V<sub>137&nbsp;</sub>)) :- _V<sub>136&nbsp;</sub>\=1.</font>
+                                                            <ul> 
+                                                              <li> 0\=1</li>
+                                                            </ul>
+                                                          </li>
+                                                          <li> not(o_edge3(0,2)) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>138&nbsp;</sub>,_V<sub>139&nbsp;</sub>)) :- _V<sub>138&nbsp;</sub>\=2.</font>
+                                                            <ul> 
+                                                              <li> 0\=2</li>
+                                                            </ul>
+                                                          </li>
+                                                        </ul>
+                                                      </li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                              <li> reachable(0) <font color=green> &emsp; &#10003; </font>  </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o__chk11(2))
+                    <ul> 
+                      <li> not(o__chk11(2)) 	<font color=green size=-1> &emsp;  not(o__chk11(U<sub>141&nbsp;</sub>)) :- vertex(U<sub>141&nbsp;</sub>), &nbsp; &nbsp;reachable(U<sub>141&nbsp;</sub>).</font>
+                        <ul> 
+                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                          <li> reachable(2) 	<font color=green size=-1> &emsp;  reachable(V<sub>142&nbsp;</sub>) :- chosen(U<sub>143&nbsp;</sub>,V<sub>142&nbsp;</sub>), &nbsp; &nbsp;reachable(U<sub>143&nbsp;</sub>).</font>
+                            <ul> 
+                              <li> chosen(U<sub>143&nbsp;</sub>,2) 	<font color=green size=-1> &emsp;  chosen(U<sub>145&nbsp;</sub>,V<sub>146&nbsp;</sub>) :- edge(U<sub>145&nbsp;</sub>,V<sub>146&nbsp;</sub>), &nbsp; &nbsp;not(other(U<sub>145&nbsp;</sub>,V<sub>146&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> edge(U<sub>145&nbsp;</sub>,2) 	<font color=green size=-1> &emsp;  edge(1,2) :- true.</font></li>
+                                  <li> not(other(1,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                </ul>
+                              </li>
+                              <li> reachable(1) <font color=green> &emsp; &#10003; </font>  </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li> not(o_chk2) 	<font color=green size=-1> &emsp;  not(o_chk2) :- not(o__chk21).</font>
+        <ul> 
+          <li> not(o__chk21) 	<font color=green size=-1> &emsp;  not(o__chk21) :- forall(U<sub>149&nbsp;</sub>,forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(U<sub>149&nbsp;</sub>,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))).</font>
+            <ul> 
+              <li> forall(U<sub>149&nbsp;</sub>,forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(U<sub>149&nbsp;</sub>,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)))))
+                <ul> 
+                  <li> forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(U<sub>149&nbsp;</sub>,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))
+                    <ul> 
+                      <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(U<sub>149&nbsp;</sub>,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)))
+                        <ul> 
+                          <li> not(o__chk21(U<sub>149&nbsp;</sub>,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>155&nbsp;</sub>,W<sub>156&nbsp;</sub>,V<sub>157&nbsp;</sub>)) :- not(chosen(U<sub>155&nbsp;</sub>,W<sub>156&nbsp;</sub>)).</font>
+                            <ul> 
+                              <li> not(chosen(U<sub>155&nbsp;</sub>,W<sub>156&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>160&nbsp;</sub>,_V<sub>161&nbsp;</sub>)) :- not(o_chosen1(_V<sub>160&nbsp;</sub>,_V<sub>161&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> not(o_chosen1(_V<sub>160&nbsp;</sub>,_V<sub>161&nbsp;</sub>)), ( [_V<sub>160&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>164&nbsp;</sub>,V<sub>165&nbsp;</sub>)) :- not(edge(U<sub>164&nbsp;</sub>,V<sub>165&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> not(edge(U<sub>164&nbsp;</sub>,V<sub>165&nbsp;</sub>)), ( [U<sub>164&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>168&nbsp;</sub>,_V<sub>169&nbsp;</sub>)) :- not(o_edge1(_V<sub>168&nbsp;</sub>,_V<sub>169&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>168&nbsp;</sub>,_V<sub>169&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>168&nbsp;</sub>,_V<sub>169&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> not(o_edge1(_V<sub>168&nbsp;</sub>,_V<sub>169&nbsp;</sub>)), ( [_V<sub>168&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>172&nbsp;</sub>,_V<sub>173&nbsp;</sub>)) :- _V<sub>172&nbsp;</sub>\=0.</font>
+                                            <ul> 
+                                              <li> _V<sub>172&nbsp;</sub>\=0, ( [_V<sub>172&nbsp;</sub>-[0,1,2]] )</li>
+                                            </ul>
+                                          </li>
+                                          <li> not(o_edge2(_V<sub>168&nbsp;</sub>,_V<sub>169&nbsp;</sub>)), ( [_V<sub>168&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>178&nbsp;</sub>,_V<sub>179&nbsp;</sub>)) :- _V<sub>178&nbsp;</sub>\=1.</font>
+                                            <ul> 
+                                              <li> _V<sub>178&nbsp;</sub>\=1, ( [_V<sub>178&nbsp;</sub>-[0,1,2]] )</li>
+                                            </ul>
+                                          </li>
+                                          <li> not(o_edge3(_V<sub>168&nbsp;</sub>,_V<sub>169&nbsp;</sub>)), ( [_V<sub>168&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>184&nbsp;</sub>,_V<sub>185&nbsp;</sub>)) :- _V<sub>184&nbsp;</sub>\=2.</font>
+                                            <ul> 
+                                              <li> _V<sub>184&nbsp;</sub>\=2, ( [_V<sub>184&nbsp;</sub>-[0,1,2]] )</li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(0,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))
+                    <ul> 
+                      <li> forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(0,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))
+                        <ul> 
+                          <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(0,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)))
+                            <ul> 
+                              <li> not(o__chk21(0,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>199&nbsp;</sub>,W<sub>200&nbsp;</sub>,V<sub>201&nbsp;</sub>)) :- not(chosen(U<sub>199&nbsp;</sub>,W<sub>200&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> not(chosen(0,W<sub>200&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>203&nbsp;</sub>,_V<sub>204&nbsp;</sub>)) :- not(o_chosen1(_V<sub>203&nbsp;</sub>,_V<sub>204&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> not(o_chosen1(0,_V<sub>204&nbsp;</sub>)), ( [_V<sub>204&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>206&nbsp;</sub>,V<sub>207&nbsp;</sub>)) :- not(edge(U<sub>206&nbsp;</sub>,V<sub>207&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> not(edge(0,V<sub>207&nbsp;</sub>)), ( [V<sub>207&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>209&nbsp;</sub>,_V<sub>210&nbsp;</sub>)) :- not(o_edge1(_V<sub>209&nbsp;</sub>,_V<sub>210&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>209&nbsp;</sub>,_V<sub>210&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>209&nbsp;</sub>,_V<sub>210&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_edge1(0,_V<sub>210&nbsp;</sub>)), ( [_V<sub>210&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>212&nbsp;</sub>,_V<sub>213&nbsp;</sub>)) :- _V<sub>212&nbsp;</sub>=0, &nbsp; &nbsp;_V<sub>213&nbsp;</sub>\=1.</font>
+                                                <ul> 
+                                                  <li> 0=0</li>
+                                                  <li> _V<sub>213&nbsp;</sub>\=1, ( [_V<sub>213&nbsp;</sub>-[1]] )</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_edge2(0,_V<sub>210&nbsp;</sub>)), ( [_V<sub>210&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>216&nbsp;</sub>,_V<sub>217&nbsp;</sub>)) :- _V<sub>216&nbsp;</sub>\=1.</font>
+                                                <ul> 
+                                                  <li> 0\=1</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_edge3(0,_V<sub>210&nbsp;</sub>)), ( [_V<sub>210&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>220&nbsp;</sub>,_V<sub>221&nbsp;</sub>)) :- _V<sub>220&nbsp;</sub>\=2.</font>
+                                                <ul> 
+                                                  <li> 0\=2</li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                          <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(0,1,V<sub>151&nbsp;</sub>)))
+                            <ul> 
+                              <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(0,1,V<sub>151&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk21(0,1,V<sub>151&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>229&nbsp;</sub>,W<sub>230&nbsp;</sub>,V<sub>231&nbsp;</sub>)) :- chosen(U<sub>229&nbsp;</sub>,W<sub>230&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>231&nbsp;</sub>,W<sub>230&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(chosen(V<sub>231&nbsp;</sub>,1)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>233&nbsp;</sub>,_V<sub>234&nbsp;</sub>)) :- not(o_chosen1(_V<sub>233&nbsp;</sub>,_V<sub>234&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> not(o_chosen1(_V<sub>233&nbsp;</sub>,1)), ( [_V<sub>233&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>236&nbsp;</sub>,V<sub>237&nbsp;</sub>)) :- not(edge(U<sub>236&nbsp;</sub>,V<sub>237&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(edge(U<sub>236&nbsp;</sub>,1)), ( [U<sub>236&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>239&nbsp;</sub>,_V<sub>240&nbsp;</sub>)) :- not(o_edge1(_V<sub>239&nbsp;</sub>,_V<sub>240&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>239&nbsp;</sub>,_V<sub>240&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>239&nbsp;</sub>,_V<sub>240&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(o_edge1(_V<sub>239&nbsp;</sub>,1)), ( [_V<sub>239&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>242&nbsp;</sub>,_V<sub>243&nbsp;</sub>)) :- _V<sub>242&nbsp;</sub>\=0.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>242&nbsp;</sub>\=0, ( [_V<sub>242&nbsp;</sub>-[0]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                  <li> not(o_edge2(_V<sub>239&nbsp;</sub>,1)), ( [_V<sub>239&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>246&nbsp;</sub>,_V<sub>247&nbsp;</sub>)) :- _V<sub>246&nbsp;</sub>\=1.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>246&nbsp;</sub>\=1, ( [_V<sub>246&nbsp;</sub>-[0]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                  <li> not(o_edge3(_V<sub>239&nbsp;</sub>,1)), ( [_V<sub>239&nbsp;</sub>-[0,1]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>250&nbsp;</sub>,_V<sub>251&nbsp;</sub>)) :- _V<sub>250&nbsp;</sub>\=2.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>250&nbsp;</sub>\=2, ( [_V<sub>250&nbsp;</sub>-[0,1]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(0,1,0))
+                                    <ul> 
+                                      <li> not(o__chk21(0,1,0)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>257&nbsp;</sub>,W<sub>258&nbsp;</sub>,V<sub>259&nbsp;</sub>)) :- chosen(U<sub>257&nbsp;</sub>,W<sub>258&nbsp;</sub>), &nbsp; &nbsp;chosen(V<sub>259&nbsp;</sub>,W<sub>258&nbsp;</sub>), &nbsp; &nbsp;U<sub>257&nbsp;</sub>=V<sub>259&nbsp;</sub>.</font>
+                                        <ul> 
+                                          <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 0=0</li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(0,1,1))
+                                    <ul> 
+                                      <li> not(o__chk21(0,1,1)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>260&nbsp;</sub>,W<sub>261&nbsp;</sub>,V<sub>262&nbsp;</sub>)) :- chosen(U<sub>260&nbsp;</sub>,W<sub>261&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>262&nbsp;</sub>,W<sub>261&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(chosen(1,1)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>263&nbsp;</sub>,_V<sub>264&nbsp;</sub>)) :- not(o_chosen1(_V<sub>263&nbsp;</sub>,_V<sub>264&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_chosen1(1,1)) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>265&nbsp;</sub>,V<sub>266&nbsp;</sub>)) :- not(edge(U<sub>265&nbsp;</sub>,V<sub>266&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(edge(1,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(0,1,2))
+                                    <ul> 
+                                      <li> not(o__chk21(0,1,2)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>267&nbsp;</sub>,W<sub>268&nbsp;</sub>,V<sub>269&nbsp;</sub>)) :- chosen(U<sub>267&nbsp;</sub>,W<sub>268&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>269&nbsp;</sub>,W<sub>268&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(chosen(2,1)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>270&nbsp;</sub>,_V<sub>271&nbsp;</sub>)) :- not(o_chosen1(_V<sub>270&nbsp;</sub>,_V<sub>271&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_chosen1(2,1)) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>272&nbsp;</sub>,V<sub>273&nbsp;</sub>)) :- not(edge(U<sub>272&nbsp;</sub>,V<sub>273&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(edge(2,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(1,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))
+                    <ul> 
+                      <li> forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(1,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))
+                        <ul> 
+                          <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(1,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)))
+                            <ul> 
+                              <li> not(o__chk21(1,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>279&nbsp;</sub>,W<sub>280&nbsp;</sub>,V<sub>281&nbsp;</sub>)) :- not(chosen(U<sub>279&nbsp;</sub>,W<sub>280&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> not(chosen(1,W<sub>280&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>283&nbsp;</sub>,_V<sub>284&nbsp;</sub>)) :- not(o_chosen1(_V<sub>283&nbsp;</sub>,_V<sub>284&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> not(o_chosen1(1,_V<sub>284&nbsp;</sub>)), ( [_V<sub>284&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>286&nbsp;</sub>,V<sub>287&nbsp;</sub>)) :- not(edge(U<sub>286&nbsp;</sub>,V<sub>287&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> not(edge(1,V<sub>287&nbsp;</sub>)), ( [V<sub>287&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>289&nbsp;</sub>,_V<sub>290&nbsp;</sub>)) :- not(o_edge1(_V<sub>289&nbsp;</sub>,_V<sub>290&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>289&nbsp;</sub>,_V<sub>290&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>289&nbsp;</sub>,_V<sub>290&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_edge1(1,_V<sub>290&nbsp;</sub>)), ( [_V<sub>290&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>292&nbsp;</sub>,_V<sub>293&nbsp;</sub>)) :- _V<sub>292&nbsp;</sub>\=0.</font>
+                                                <ul> 
+                                                  <li> 1\=0</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_edge2(1,_V<sub>290&nbsp;</sub>)), ( [_V<sub>290&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>296&nbsp;</sub>,_V<sub>297&nbsp;</sub>)) :- _V<sub>296&nbsp;</sub>=1, &nbsp; &nbsp;_V<sub>297&nbsp;</sub>\=2.</font>
+                                                <ul> 
+                                                  <li> 1=1</li>
+                                                  <li> _V<sub>297&nbsp;</sub>\=2, ( [_V<sub>297&nbsp;</sub>-[2]] )</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_edge3(1,_V<sub>290&nbsp;</sub>)), ( [_V<sub>290&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>300&nbsp;</sub>,_V<sub>301&nbsp;</sub>)) :- _V<sub>300&nbsp;</sub>\=2.</font>
+                                                <ul> 
+                                                  <li> 1\=2</li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                          <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(1,2,V<sub>151&nbsp;</sub>)))
+                            <ul> 
+                              <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(1,2,V<sub>151&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk21(1,2,V<sub>151&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>309&nbsp;</sub>,W<sub>310&nbsp;</sub>,V<sub>311&nbsp;</sub>)) :- chosen(U<sub>309&nbsp;</sub>,W<sub>310&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>311&nbsp;</sub>,W<sub>310&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(chosen(V<sub>311&nbsp;</sub>,2)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>313&nbsp;</sub>,_V<sub>314&nbsp;</sub>)) :- not(o_chosen1(_V<sub>313&nbsp;</sub>,_V<sub>314&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> not(o_chosen1(_V<sub>313&nbsp;</sub>,2)), ( [_V<sub>313&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>316&nbsp;</sub>,V<sub>317&nbsp;</sub>)) :- not(edge(U<sub>316&nbsp;</sub>,V<sub>317&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(edge(U<sub>316&nbsp;</sub>,2)), ( [U<sub>316&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>319&nbsp;</sub>,_V<sub>320&nbsp;</sub>)) :- not(o_edge1(_V<sub>319&nbsp;</sub>,_V<sub>320&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>319&nbsp;</sub>,_V<sub>320&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>319&nbsp;</sub>,_V<sub>320&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(o_edge1(_V<sub>319&nbsp;</sub>,2)), ( [_V<sub>319&nbsp;</sub>-[1]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>322&nbsp;</sub>,_V<sub>323&nbsp;</sub>)) :- _V<sub>322&nbsp;</sub>\=0.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>322&nbsp;</sub>\=0, ( [_V<sub>322&nbsp;</sub>-[1]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                  <li> not(o_edge2(_V<sub>319&nbsp;</sub>,2)), ( [_V<sub>319&nbsp;</sub>-[0,1]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>326&nbsp;</sub>,_V<sub>327&nbsp;</sub>)) :- _V<sub>326&nbsp;</sub>\=1.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>326&nbsp;</sub>\=1, ( [_V<sub>326&nbsp;</sub>-[0,1]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                  <li> not(o_edge3(_V<sub>319&nbsp;</sub>,2)), ( [_V<sub>319&nbsp;</sub>-[0,1]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>330&nbsp;</sub>,_V<sub>331&nbsp;</sub>)) :- _V<sub>330&nbsp;</sub>\=2.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>330&nbsp;</sub>\=2, ( [_V<sub>330&nbsp;</sub>-[0,1]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(1,2,0))
+                                    <ul> 
+                                      <li> not(o__chk21(1,2,0)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>337&nbsp;</sub>,W<sub>338&nbsp;</sub>,V<sub>339&nbsp;</sub>)) :- chosen(U<sub>337&nbsp;</sub>,W<sub>338&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>339&nbsp;</sub>,W<sub>338&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(chosen(0,2)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>340&nbsp;</sub>,_V<sub>341&nbsp;</sub>)) :- not(o_chosen1(_V<sub>340&nbsp;</sub>,_V<sub>341&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_chosen1(0,2)) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>342&nbsp;</sub>,V<sub>343&nbsp;</sub>)) :- not(edge(U<sub>342&nbsp;</sub>,V<sub>343&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(edge(0,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(1,2,1))
+                                    <ul> 
+                                      <li> not(o__chk21(1,2,1)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>344&nbsp;</sub>,W<sub>345&nbsp;</sub>,V<sub>346&nbsp;</sub>)) :- chosen(U<sub>344&nbsp;</sub>,W<sub>345&nbsp;</sub>), &nbsp; &nbsp;chosen(V<sub>346&nbsp;</sub>,W<sub>345&nbsp;</sub>), &nbsp; &nbsp;U<sub>344&nbsp;</sub>=V<sub>346&nbsp;</sub>.</font>
+                                        <ul> 
+                                          <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 1=1</li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(1,2,2))
+                                    <ul> 
+                                      <li> not(o__chk21(1,2,2)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>347&nbsp;</sub>,W<sub>348&nbsp;</sub>,V<sub>349&nbsp;</sub>)) :- chosen(U<sub>347&nbsp;</sub>,W<sub>348&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>349&nbsp;</sub>,W<sub>348&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(chosen(2,2)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>350&nbsp;</sub>,_V<sub>351&nbsp;</sub>)) :- not(o_chosen1(_V<sub>350&nbsp;</sub>,_V<sub>351&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_chosen1(2,2)) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>352&nbsp;</sub>,V<sub>353&nbsp;</sub>)) :- not(edge(U<sub>352&nbsp;</sub>,V<sub>353&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(edge(2,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(2,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))
+                    <ul> 
+                      <li> forall(W<sub>150&nbsp;</sub>,forall(V<sub>151&nbsp;</sub>,not(o__chk21(2,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>))))
+                        <ul> 
+                          <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(2,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)))
+                            <ul> 
+                              <li> not(o__chk21(2,W<sub>150&nbsp;</sub>,V<sub>151&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>359&nbsp;</sub>,W<sub>360&nbsp;</sub>,V<sub>361&nbsp;</sub>)) :- not(chosen(U<sub>359&nbsp;</sub>,W<sub>360&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> not(chosen(2,W<sub>360&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>363&nbsp;</sub>,_V<sub>364&nbsp;</sub>)) :- not(o_chosen1(_V<sub>363&nbsp;</sub>,_V<sub>364&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> not(o_chosen1(2,_V<sub>364&nbsp;</sub>)), ( [_V<sub>364&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>366&nbsp;</sub>,V<sub>367&nbsp;</sub>)) :- not(edge(U<sub>366&nbsp;</sub>,V<sub>367&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> not(edge(2,V<sub>367&nbsp;</sub>)), ( [V<sub>367&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>369&nbsp;</sub>,_V<sub>370&nbsp;</sub>)) :- not(o_edge1(_V<sub>369&nbsp;</sub>,_V<sub>370&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>369&nbsp;</sub>,_V<sub>370&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>369&nbsp;</sub>,_V<sub>370&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_edge1(2,_V<sub>370&nbsp;</sub>)), ( [_V<sub>370&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>372&nbsp;</sub>,_V<sub>373&nbsp;</sub>)) :- _V<sub>372&nbsp;</sub>\=0.</font>
+                                                <ul> 
+                                                  <li> 2\=0</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_edge2(2,_V<sub>370&nbsp;</sub>)), ( [_V<sub>370&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>376&nbsp;</sub>,_V<sub>377&nbsp;</sub>)) :- _V<sub>376&nbsp;</sub>\=1.</font>
+                                                <ul> 
+                                                  <li> 2\=1</li>
+                                                </ul>
+                                              </li>
+                                              <li> not(o_edge3(2,_V<sub>370&nbsp;</sub>)), ( [_V<sub>370&nbsp;</sub>-[0]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>380&nbsp;</sub>,_V<sub>381&nbsp;</sub>)) :- _V<sub>380&nbsp;</sub>=2, &nbsp; &nbsp;_V<sub>381&nbsp;</sub>\=0.</font>
+                                                <ul> 
+                                                  <li> 2=2</li>
+                                                  <li> _V<sub>381&nbsp;</sub>\=0, ( [_V<sub>381&nbsp;</sub>-[0]] )</li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                          <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(2,0,V<sub>151&nbsp;</sub>)))
+                            <ul> 
+                              <li> forall(V<sub>151&nbsp;</sub>,not(o__chk21(2,0,V<sub>151&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk21(2,0,V<sub>151&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>389&nbsp;</sub>,W<sub>390&nbsp;</sub>,V<sub>391&nbsp;</sub>)) :- chosen(U<sub>389&nbsp;</sub>,W<sub>390&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>391&nbsp;</sub>,W<sub>390&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(chosen(V<sub>391&nbsp;</sub>,0)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>393&nbsp;</sub>,_V<sub>394&nbsp;</sub>)) :- not(o_chosen1(_V<sub>393&nbsp;</sub>,_V<sub>394&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> not(o_chosen1(_V<sub>393&nbsp;</sub>,0)), ( [_V<sub>393&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>396&nbsp;</sub>,V<sub>397&nbsp;</sub>)) :- not(edge(U<sub>396&nbsp;</sub>,V<sub>397&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(edge(U<sub>396&nbsp;</sub>,0)), ( [U<sub>396&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>399&nbsp;</sub>,_V<sub>400&nbsp;</sub>)) :- not(o_edge1(_V<sub>399&nbsp;</sub>,_V<sub>400&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>399&nbsp;</sub>,_V<sub>400&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>399&nbsp;</sub>,_V<sub>400&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(o_edge1(_V<sub>399&nbsp;</sub>,0)), ( [_V<sub>399&nbsp;</sub>-[2]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>402&nbsp;</sub>,_V<sub>403&nbsp;</sub>)) :- _V<sub>402&nbsp;</sub>\=0.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>402&nbsp;</sub>\=0, ( [_V<sub>402&nbsp;</sub>-[2]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                  <li> not(o_edge2(_V<sub>399&nbsp;</sub>,0)), ( [_V<sub>399&nbsp;</sub>-[0,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>406&nbsp;</sub>,_V<sub>407&nbsp;</sub>)) :- _V<sub>406&nbsp;</sub>\=1.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>406&nbsp;</sub>\=1, ( [_V<sub>406&nbsp;</sub>-[0,2]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                  <li> not(o_edge3(_V<sub>399&nbsp;</sub>,0)), ( [_V<sub>399&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>410&nbsp;</sub>,_V<sub>411&nbsp;</sub>)) :- _V<sub>410&nbsp;</sub>\=2.</font>
+                                                    <ul> 
+                                                      <li> _V<sub>410&nbsp;</sub>\=2, ( [_V<sub>410&nbsp;</sub>-[0,1,2]] )</li>
+                                                    </ul>
+                                                  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(2,0,0))
+                                    <ul> 
+                                      <li> not(o__chk21(2,0,0)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>417&nbsp;</sub>,W<sub>418&nbsp;</sub>,V<sub>419&nbsp;</sub>)) :- chosen(U<sub>417&nbsp;</sub>,W<sub>418&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>419&nbsp;</sub>,W<sub>418&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(chosen(0,0)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>420&nbsp;</sub>,_V<sub>421&nbsp;</sub>)) :- not(o_chosen1(_V<sub>420&nbsp;</sub>,_V<sub>421&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_chosen1(0,0)) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>422&nbsp;</sub>,V<sub>423&nbsp;</sub>)) :- not(edge(U<sub>422&nbsp;</sub>,V<sub>423&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(edge(0,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(2,0,1))
+                                    <ul> 
+                                      <li> not(o__chk21(2,0,1)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>424&nbsp;</sub>,W<sub>425&nbsp;</sub>,V<sub>426&nbsp;</sub>)) :- chosen(U<sub>424&nbsp;</sub>,W<sub>425&nbsp;</sub>), &nbsp; &nbsp;not(chosen(V<sub>426&nbsp;</sub>,W<sub>425&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(chosen(1,0)) 	<font color=green size=-1> &emsp;  not(chosen(_V<sub>427&nbsp;</sub>,_V<sub>428&nbsp;</sub>)) :- not(o_chosen1(_V<sub>427&nbsp;</sub>,_V<sub>428&nbsp;</sub>)).</font>
+                                            <ul> 
+                                              <li> not(o_chosen1(1,0)) 	<font color=green size=-1> &emsp;  not(o_chosen1(U<sub>429&nbsp;</sub>,V<sub>430&nbsp;</sub>)) :- not(edge(U<sub>429&nbsp;</sub>,V<sub>430&nbsp;</sub>)).</font>
+                                                <ul> 
+                                                  <li> not(edge(1,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                                </ul>
+                                              </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk21(2,0,2))
+                                    <ul> 
+                                      <li> not(o__chk21(2,0,2)) 	<font color=green size=-1> &emsp;  not(o__chk21(U<sub>431&nbsp;</sub>,W<sub>432&nbsp;</sub>,V<sub>433&nbsp;</sub>)) :- chosen(U<sub>431&nbsp;</sub>,W<sub>432&nbsp;</sub>), &nbsp; &nbsp;chosen(V<sub>433&nbsp;</sub>,W<sub>432&nbsp;</sub>), &nbsp; &nbsp;U<sub>431&nbsp;</sub>=V<sub>433&nbsp;</sub>.</font>
+                                        <ul> 
+                                          <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 2=2</li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li> forall(_V<sub>50&nbsp;</sub>,forall(_V<sub>51&nbsp;</sub>,not(o_chk3(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>))))
+        <ul> 
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk3(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> not(o_chk3(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>442&nbsp;</sub>,_V<sub>443&nbsp;</sub>)) :- not(o__chk31(_V<sub>442&nbsp;</sub>,_V<sub>443&nbsp;</sub>)).</font>
+                <ul> 
+                  <li> not(o__chk31(_V<sub>442&nbsp;</sub>,_V<sub>443&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>446&nbsp;</sub>,V<sub>447&nbsp;</sub>)) :- not(edge(U<sub>446&nbsp;</sub>,V<sub>447&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(edge(U<sub>446&nbsp;</sub>,V<sub>447&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(edge(_V<sub>450&nbsp;</sub>,_V<sub>451&nbsp;</sub>)) :- not(o_edge1(_V<sub>450&nbsp;</sub>,_V<sub>451&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge2(_V<sub>450&nbsp;</sub>,_V<sub>451&nbsp;</sub>)), &nbsp; &nbsp;not(o_edge3(_V<sub>450&nbsp;</sub>,_V<sub>451&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o_edge1(_V<sub>450&nbsp;</sub>,_V<sub>451&nbsp;</sub>)), ( [_V<sub>451&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge1(_V<sub>454&nbsp;</sub>,_V<sub>455&nbsp;</sub>)) :- _V<sub>454&nbsp;</sub>\=0.</font>
+                            <ul> 
+                              <li> _V<sub>454&nbsp;</sub>\=0</li>
+                            </ul>
+                          </li>
+                          <li> not(o_edge2(_V<sub>450&nbsp;</sub>,_V<sub>451&nbsp;</sub>)), ( [_V<sub>450&nbsp;</sub>-[0],_V<sub>451&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge2(_V<sub>460&nbsp;</sub>,_V<sub>461&nbsp;</sub>)) :- _V<sub>460&nbsp;</sub>\=1.</font>
+                            <ul> 
+                              <li> _V<sub>460&nbsp;</sub>\=1, ( [_V<sub>460&nbsp;</sub>-[0]] )</li>
+                            </ul>
+                          </li>
+                          <li> not(o_edge3(_V<sub>450&nbsp;</sub>,_V<sub>451&nbsp;</sub>)), ( [_V<sub>450&nbsp;</sub>-[0,1],_V<sub>451&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_edge3(_V<sub>466&nbsp;</sub>,_V<sub>467&nbsp;</sub>)) :- _V<sub>466&nbsp;</sub>\=2.</font>
+                            <ul> 
+                              <li> _V<sub>466&nbsp;</sub>\=2, ( [_V<sub>466&nbsp;</sub>-[0,1]] )</li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+              <li> not(o_chk3(_V<sub>50&nbsp;</sub>,0)), ( [_V<sub>50&nbsp;</sub>-[0,1,2]] )
+                <ul> 
+                  <li> not(o_chk3(_V<sub>50&nbsp;</sub>,0)), ( [_V<sub>50&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>477&nbsp;</sub>,_V<sub>478&nbsp;</sub>)) :- not(o__chk31(_V<sub>477&nbsp;</sub>,_V<sub>478&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk31(_V<sub>477&nbsp;</sub>,0)), ( [_V<sub>477&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>480&nbsp;</sub>,V<sub>481&nbsp;</sub>)) :- not(edge(U<sub>480&nbsp;</sub>,V<sub>481&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(edge(U<sub>480&nbsp;</sub>,0)), ( [U<sub>480&nbsp;</sub>-[0,1,2]] ) <font color=green> &emsp; &#10003; </font>  , ( [U<sub>480&nbsp;</sub>-[0,1,2]] )</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+              <li> not(o_chk3(_V<sub>50&nbsp;</sub>,1)), ( [_V<sub>50&nbsp;</sub>-[0,1,2]] )
+                <ul> 
+                  <li> not(o_chk3(_V<sub>50&nbsp;</sub>,1)), ( [_V<sub>50&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>485&nbsp;</sub>,_V<sub>486&nbsp;</sub>)) :- not(o__chk31(_V<sub>485&nbsp;</sub>,_V<sub>486&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk31(_V<sub>485&nbsp;</sub>,1)), ( [_V<sub>485&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>488&nbsp;</sub>,V<sub>489&nbsp;</sub>)) :- not(edge(U<sub>488&nbsp;</sub>,V<sub>489&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(edge(U<sub>488&nbsp;</sub>,1)), ( [U<sub>488&nbsp;</sub>-[0,1,2]] ) <font color=green> &emsp; &#10003; </font>  , ( [U<sub>488&nbsp;</sub>-[0,1,2]] )</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+              <li> not(o_chk3(_V<sub>50&nbsp;</sub>,2)), ( [_V<sub>50&nbsp;</sub>-[0,1,2]] )
+                <ul> 
+                  <li> not(o_chk3(_V<sub>50&nbsp;</sub>,2)), ( [_V<sub>50&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>493&nbsp;</sub>,_V<sub>494&nbsp;</sub>)) :- not(o__chk31(_V<sub>493&nbsp;</sub>,_V<sub>494&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk31(_V<sub>493&nbsp;</sub>,2)), ( [_V<sub>493&nbsp;</sub>-[0,1,2]] ) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>496&nbsp;</sub>,V<sub>497&nbsp;</sub>)) :- not(edge(U<sub>496&nbsp;</sub>,V<sub>497&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(edge(U<sub>496&nbsp;</sub>,2)), ( [U<sub>496&nbsp;</sub>-[0,1,2]] ) <font color=green> &emsp; &#10003; </font>  , ( [U<sub>496&nbsp;</sub>-[0,1,2]] )</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk3(0,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk3(0,_V<sub>51&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o_chk3(0,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>503&nbsp;</sub>,_V<sub>504&nbsp;</sub>)) :- not(o__chk31(_V<sub>503&nbsp;</sub>,_V<sub>504&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk31(0,_V<sub>504&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>506&nbsp;</sub>,V<sub>507&nbsp;</sub>)) :- not(edge(U<sub>506&nbsp;</sub>,V<sub>507&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(edge(0,V<sub>507&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [V<sub>507&nbsp;</sub>-[1]] )</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk3(0,1))
+                    <ul> 
+                      <li> not(o_chk3(0,1)) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>510&nbsp;</sub>,_V<sub>511&nbsp;</sub>)) :- not(o__chk31(_V<sub>510&nbsp;</sub>,_V<sub>511&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk31(0,1)) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>512&nbsp;</sub>,V<sub>513&nbsp;</sub>)) :- edge(U<sub>512&nbsp;</sub>,V<sub>513&nbsp;</sub>), &nbsp; &nbsp;not(other(U<sub>512&nbsp;</sub>,V<sub>513&nbsp;</sub>)), &nbsp; &nbsp;chosen(U<sub>512&nbsp;</sub>,V<sub>513&nbsp;</sub>).</font>
+                            <ul> 
+                              <li> edge(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                              <li> not(other(0,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                              <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk3(1,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk3(1,_V<sub>51&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o_chk3(1,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>516&nbsp;</sub>,_V<sub>517&nbsp;</sub>)) :- not(o__chk31(_V<sub>516&nbsp;</sub>,_V<sub>517&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk31(1,_V<sub>517&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>519&nbsp;</sub>,V<sub>520&nbsp;</sub>)) :- not(edge(U<sub>519&nbsp;</sub>,V<sub>520&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(edge(1,V<sub>520&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [V<sub>520&nbsp;</sub>-[2]] )</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk3(1,2))
+                    <ul> 
+                      <li> not(o_chk3(1,2)) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>523&nbsp;</sub>,_V<sub>524&nbsp;</sub>)) :- not(o__chk31(_V<sub>523&nbsp;</sub>,_V<sub>524&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk31(1,2)) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>525&nbsp;</sub>,V<sub>526&nbsp;</sub>)) :- edge(U<sub>525&nbsp;</sub>,V<sub>526&nbsp;</sub>), &nbsp; &nbsp;not(other(U<sub>525&nbsp;</sub>,V<sub>526&nbsp;</sub>)), &nbsp; &nbsp;chosen(U<sub>525&nbsp;</sub>,V<sub>526&nbsp;</sub>).</font>
+                            <ul> 
+                              <li> edge(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                              <li> not(other(1,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                              <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk3(2,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk3(2,_V<sub>51&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o_chk3(2,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>529&nbsp;</sub>,_V<sub>530&nbsp;</sub>)) :- not(o__chk31(_V<sub>529&nbsp;</sub>,_V<sub>530&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk31(2,_V<sub>530&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>532&nbsp;</sub>,V<sub>533&nbsp;</sub>)) :- not(edge(U<sub>532&nbsp;</sub>,V<sub>533&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(edge(2,V<sub>533&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [V<sub>533&nbsp;</sub>-[0]] )</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk3(2,0))
+                    <ul> 
+                      <li> not(o_chk3(2,0)) 	<font color=green size=-1> &emsp;  not(o_chk3(_V<sub>536&nbsp;</sub>,_V<sub>537&nbsp;</sub>)) :- not(o__chk31(_V<sub>536&nbsp;</sub>,_V<sub>537&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk31(2,0)) 	<font color=green size=-1> &emsp;  not(o__chk31(U<sub>538&nbsp;</sub>,V<sub>539&nbsp;</sub>)) :- edge(U<sub>538&nbsp;</sub>,V<sub>539&nbsp;</sub>), &nbsp; &nbsp;not(other(U<sub>538&nbsp;</sub>,V<sub>539&nbsp;</sub>)), &nbsp; &nbsp;chosen(U<sub>538&nbsp;</sub>,V<sub>539&nbsp;</sub>).</font>
+                            <ul> 
+                              <li> edge(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                              <li> not(other(2,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                              <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li> forall(_V<sub>50&nbsp;</sub>,forall(_V<sub>51&nbsp;</sub>,not(o_chk4(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>))))
+        <ul> 
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk4(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> not(o_chk4(_V<sub>50&nbsp;</sub>,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>545&nbsp;</sub>,_V<sub>546&nbsp;</sub>)) :- not(o__chk41(_V<sub>545&nbsp;</sub>,_V<sub>546&nbsp;</sub>)).</font>
+                <ul> 
+                  <li> not(o__chk41(_V<sub>545&nbsp;</sub>,_V<sub>546&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>549&nbsp;</sub>,V<sub>550&nbsp;</sub>)) :- forall(W<sub>551&nbsp;</sub>,not(o__chk41(U<sub>549&nbsp;</sub>,V<sub>550&nbsp;</sub>,W<sub>551&nbsp;</sub>))).</font>
+                    <ul> 
+                      <li> forall(W<sub>551&nbsp;</sub>,not(o__chk41(U<sub>549&nbsp;</sub>,V<sub>550&nbsp;</sub>,W<sub>551&nbsp;</sub>)))
+                        <ul> 
+                          <li> not(o__chk41(U<sub>549&nbsp;</sub>,V<sub>550&nbsp;</sub>,W<sub>551&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>555&nbsp;</sub>,V<sub>556&nbsp;</sub>,W<sub>557&nbsp;</sub>)) :- not(vertex(U<sub>555&nbsp;</sub>)).</font>
+                            <ul> 
+                              <li> not(vertex(U<sub>555&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [U<sub>555&nbsp;</sub>-[0,1,2]] )</li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk4(0,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk4(0,_V<sub>51&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o_chk4(0,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>566&nbsp;</sub>,_V<sub>567&nbsp;</sub>)) :- not(o__chk41(_V<sub>566&nbsp;</sub>,_V<sub>567&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk41(0,_V<sub>567&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>569&nbsp;</sub>,V<sub>570&nbsp;</sub>)) :- forall(W<sub>571&nbsp;</sub>,not(o__chk41(U<sub>569&nbsp;</sub>,V<sub>570&nbsp;</sub>,W<sub>571&nbsp;</sub>))).</font>
+                        <ul> 
+                          <li> forall(W<sub>571&nbsp;</sub>,not(o__chk41(0,V<sub>570&nbsp;</sub>,W<sub>571&nbsp;</sub>)))
+                            <ul> 
+                              <li> not(o__chk41(0,V<sub>570&nbsp;</sub>,W<sub>571&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>574&nbsp;</sub>,V<sub>575&nbsp;</sub>,W<sub>576&nbsp;</sub>)) :- vertex(U<sub>574&nbsp;</sub>), &nbsp; &nbsp;not(vertex(V<sub>575&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                  <li> not(vertex(V<sub>575&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [V<sub>575&nbsp;</sub>-[0,1,2]] )</li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(0,0))
+                    <ul> 
+                      <li> not(o_chk4(0,0)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>581&nbsp;</sub>,_V<sub>582&nbsp;</sub>)) :- not(o__chk41(_V<sub>581&nbsp;</sub>,_V<sub>582&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(0,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>583&nbsp;</sub>,V<sub>584&nbsp;</sub>)) :- forall(W<sub>585&nbsp;</sub>,not(o__chk41(U<sub>583&nbsp;</sub>,V<sub>584&nbsp;</sub>,W<sub>585&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>585&nbsp;</sub>,not(o__chk41(0,0,W<sub>585&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(0,0,W<sub>585&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>587&nbsp;</sub>,V<sub>588&nbsp;</sub>,W<sub>589&nbsp;</sub>)) :- vertex(U<sub>587&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>588&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>589&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>589&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>589&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,0,0))
+                                    <ul> 
+                                      <li> not(o__chk41(0,0,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>591&nbsp;</sub>,V<sub>592&nbsp;</sub>,W<sub>593&nbsp;</sub>)) :- vertex(U<sub>591&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>592&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>593&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>591&nbsp;</sub>,W<sub>593&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(0,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,0,1))
+                                    <ul> 
+                                      <li> not(o__chk41(0,0,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>594&nbsp;</sub>,V<sub>595&nbsp;</sub>,W<sub>596&nbsp;</sub>)) :- vertex(U<sub>594&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>595&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>596&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>594&nbsp;</sub>,W<sub>596&nbsp;</sub>), &nbsp; &nbsp;V<sub>595&nbsp;</sub>\=W<sub>596&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>594&nbsp;</sub>,W<sub>596&nbsp;</sub>), &nbsp; &nbsp;other(U<sub>594&nbsp;</sub>,V<sub>595&nbsp;</sub>).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 0\=1</li>
+                                          <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> other(0,0) 	<font color=green size=-1> &emsp;  other(U<sub>597&nbsp;</sub>,V<sub>598&nbsp;</sub>) :- vertex(U<sub>597&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>598&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>599&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>597&nbsp;</sub>,W<sub>599&nbsp;</sub>), &nbsp; &nbsp;V<sub>598&nbsp;</sub>\=W<sub>599&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>597&nbsp;</sub>,W<sub>599&nbsp;</sub>).</font>
+                                            <ul> 
+                                              <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(W<sub>599&nbsp;</sub>) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> edge(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> 0\=1</li>
+                                              <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,0,2))
+                                    <ul> 
+                                      <li> not(o__chk41(0,0,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>601&nbsp;</sub>,V<sub>602&nbsp;</sub>,W<sub>603&nbsp;</sub>)) :- vertex(U<sub>601&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>602&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>603&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>601&nbsp;</sub>,W<sub>603&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(0,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(0,1))
+                    <ul> 
+                      <li> not(o_chk4(0,1)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>605&nbsp;</sub>,_V<sub>606&nbsp;</sub>)) :- not(o__chk41(_V<sub>605&nbsp;</sub>,_V<sub>606&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(0,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>607&nbsp;</sub>,V<sub>608&nbsp;</sub>)) :- forall(W<sub>609&nbsp;</sub>,not(o__chk41(U<sub>607&nbsp;</sub>,V<sub>608&nbsp;</sub>,W<sub>609&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>609&nbsp;</sub>,not(o__chk41(0,1,W<sub>609&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(0,1,W<sub>609&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>611&nbsp;</sub>,V<sub>612&nbsp;</sub>,W<sub>613&nbsp;</sub>)) :- vertex(U<sub>611&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>612&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>613&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>613&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>613&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,1,0))
+                                    <ul> 
+                                      <li> not(o__chk41(0,1,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>615&nbsp;</sub>,V<sub>616&nbsp;</sub>,W<sub>617&nbsp;</sub>)) :- vertex(U<sub>615&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>616&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>617&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>615&nbsp;</sub>,W<sub>617&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(0,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,1,1))
+                                    <ul> 
+                                      <li> not(o__chk41(0,1,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>618&nbsp;</sub>,V<sub>619&nbsp;</sub>,W<sub>620&nbsp;</sub>)) :- vertex(U<sub>618&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>619&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>620&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>618&nbsp;</sub>,W<sub>620&nbsp;</sub>), &nbsp; &nbsp;V<sub>619&nbsp;</sub>=W<sub>620&nbsp;</sub>.</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 1=1</li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,1,2))
+                                    <ul> 
+                                      <li> not(o__chk41(0,1,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>621&nbsp;</sub>,V<sub>622&nbsp;</sub>,W<sub>623&nbsp;</sub>)) :- vertex(U<sub>621&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>622&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>623&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>621&nbsp;</sub>,W<sub>623&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(0,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(0,2))
+                    <ul> 
+                      <li> not(o_chk4(0,2)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>625&nbsp;</sub>,_V<sub>626&nbsp;</sub>)) :- not(o__chk41(_V<sub>625&nbsp;</sub>,_V<sub>626&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(0,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>627&nbsp;</sub>,V<sub>628&nbsp;</sub>)) :- forall(W<sub>629&nbsp;</sub>,not(o__chk41(U<sub>627&nbsp;</sub>,V<sub>628&nbsp;</sub>,W<sub>629&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>629&nbsp;</sub>,not(o__chk41(0,2,W<sub>629&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(0,2,W<sub>629&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>631&nbsp;</sub>,V<sub>632&nbsp;</sub>,W<sub>633&nbsp;</sub>)) :- vertex(U<sub>631&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>632&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>633&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>633&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>633&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,2,0))
+                                    <ul> 
+                                      <li> not(o__chk41(0,2,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>635&nbsp;</sub>,V<sub>636&nbsp;</sub>,W<sub>637&nbsp;</sub>)) :- vertex(U<sub>635&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>636&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>637&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>635&nbsp;</sub>,W<sub>637&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(0,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,2,1))
+                                    <ul> 
+                                      <li> not(o__chk41(0,2,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>638&nbsp;</sub>,V<sub>639&nbsp;</sub>,W<sub>640&nbsp;</sub>)) :- vertex(U<sub>638&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>639&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>640&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>638&nbsp;</sub>,W<sub>640&nbsp;</sub>), &nbsp; &nbsp;V<sub>639&nbsp;</sub>\=W<sub>640&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>638&nbsp;</sub>,W<sub>640&nbsp;</sub>), &nbsp; &nbsp;other(U<sub>638&nbsp;</sub>,V<sub>639&nbsp;</sub>).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 2\=1</li>
+                                          <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> other(0,2) 	<font color=green size=-1> &emsp;  other(U<sub>641&nbsp;</sub>,V<sub>642&nbsp;</sub>) :- vertex(U<sub>641&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>642&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>643&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>641&nbsp;</sub>,W<sub>643&nbsp;</sub>), &nbsp; &nbsp;V<sub>642&nbsp;</sub>\=W<sub>643&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>641&nbsp;</sub>,W<sub>643&nbsp;</sub>).</font>
+                                            <ul> 
+                                              <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(W<sub>643&nbsp;</sub>) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> edge(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> 2\=1</li>
+                                              <li> chosen(0,1) <font color=green> &emsp; &#10003; </font>  </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(0,2,2))
+                                    <ul> 
+                                      <li> not(o__chk41(0,2,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>645&nbsp;</sub>,V<sub>646&nbsp;</sub>,W<sub>647&nbsp;</sub>)) :- vertex(U<sub>645&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>646&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>647&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>645&nbsp;</sub>,W<sub>647&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(0,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk4(1,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk4(1,_V<sub>51&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o_chk4(1,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>651&nbsp;</sub>,_V<sub>652&nbsp;</sub>)) :- not(o__chk41(_V<sub>651&nbsp;</sub>,_V<sub>652&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk41(1,_V<sub>652&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>654&nbsp;</sub>,V<sub>655&nbsp;</sub>)) :- forall(W<sub>656&nbsp;</sub>,not(o__chk41(U<sub>654&nbsp;</sub>,V<sub>655&nbsp;</sub>,W<sub>656&nbsp;</sub>))).</font>
+                        <ul> 
+                          <li> forall(W<sub>656&nbsp;</sub>,not(o__chk41(1,V<sub>655&nbsp;</sub>,W<sub>656&nbsp;</sub>)))
+                            <ul> 
+                              <li> not(o__chk41(1,V<sub>655&nbsp;</sub>,W<sub>656&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>659&nbsp;</sub>,V<sub>660&nbsp;</sub>,W<sub>661&nbsp;</sub>)) :- vertex(U<sub>659&nbsp;</sub>), &nbsp; &nbsp;not(vertex(V<sub>660&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                  <li> not(vertex(V<sub>660&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [V<sub>660&nbsp;</sub>-[0,1,2]] )</li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(1,0))
+                    <ul> 
+                      <li> not(o_chk4(1,0)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>666&nbsp;</sub>,_V<sub>667&nbsp;</sub>)) :- not(o__chk41(_V<sub>666&nbsp;</sub>,_V<sub>667&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(1,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>668&nbsp;</sub>,V<sub>669&nbsp;</sub>)) :- forall(W<sub>670&nbsp;</sub>,not(o__chk41(U<sub>668&nbsp;</sub>,V<sub>669&nbsp;</sub>,W<sub>670&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>670&nbsp;</sub>,not(o__chk41(1,0,W<sub>670&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(1,0,W<sub>670&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>672&nbsp;</sub>,V<sub>673&nbsp;</sub>,W<sub>674&nbsp;</sub>)) :- vertex(U<sub>672&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>673&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>674&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>674&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>674&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,0,0))
+                                    <ul> 
+                                      <li> not(o__chk41(1,0,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>676&nbsp;</sub>,V<sub>677&nbsp;</sub>,W<sub>678&nbsp;</sub>)) :- vertex(U<sub>676&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>677&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>678&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>676&nbsp;</sub>,W<sub>678&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(1,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,0,1))
+                                    <ul> 
+                                      <li> not(o__chk41(1,0,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>679&nbsp;</sub>,V<sub>680&nbsp;</sub>,W<sub>681&nbsp;</sub>)) :- vertex(U<sub>679&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>680&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>681&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>679&nbsp;</sub>,W<sub>681&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(1,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,0,2))
+                                    <ul> 
+                                      <li> not(o__chk41(1,0,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>682&nbsp;</sub>,V<sub>683&nbsp;</sub>,W<sub>684&nbsp;</sub>)) :- vertex(U<sub>682&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>683&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>684&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>682&nbsp;</sub>,W<sub>684&nbsp;</sub>), &nbsp; &nbsp;V<sub>683&nbsp;</sub>\=W<sub>684&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>682&nbsp;</sub>,W<sub>684&nbsp;</sub>), &nbsp; &nbsp;other(U<sub>682&nbsp;</sub>,V<sub>683&nbsp;</sub>).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 0\=2</li>
+                                          <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> other(1,0) 	<font color=green size=-1> &emsp;  other(U<sub>685&nbsp;</sub>,V<sub>686&nbsp;</sub>) :- vertex(U<sub>685&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>686&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>687&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>685&nbsp;</sub>,W<sub>687&nbsp;</sub>), &nbsp; &nbsp;V<sub>686&nbsp;</sub>\=W<sub>687&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>685&nbsp;</sub>,W<sub>687&nbsp;</sub>).</font>
+                                            <ul> 
+                                              <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(W<sub>687&nbsp;</sub>) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> edge(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> 0\=2</li>
+                                              <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(1,1))
+                    <ul> 
+                      <li> not(o_chk4(1,1)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>690&nbsp;</sub>,_V<sub>691&nbsp;</sub>)) :- not(o__chk41(_V<sub>690&nbsp;</sub>,_V<sub>691&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(1,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>692&nbsp;</sub>,V<sub>693&nbsp;</sub>)) :- forall(W<sub>694&nbsp;</sub>,not(o__chk41(U<sub>692&nbsp;</sub>,V<sub>693&nbsp;</sub>,W<sub>694&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>694&nbsp;</sub>,not(o__chk41(1,1,W<sub>694&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(1,1,W<sub>694&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>696&nbsp;</sub>,V<sub>697&nbsp;</sub>,W<sub>698&nbsp;</sub>)) :- vertex(U<sub>696&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>697&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>698&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>698&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>698&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,1,0))
+                                    <ul> 
+                                      <li> not(o__chk41(1,1,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>700&nbsp;</sub>,V<sub>701&nbsp;</sub>,W<sub>702&nbsp;</sub>)) :- vertex(U<sub>700&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>701&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>702&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>700&nbsp;</sub>,W<sub>702&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(1,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,1,1))
+                                    <ul> 
+                                      <li> not(o__chk41(1,1,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>703&nbsp;</sub>,V<sub>704&nbsp;</sub>,W<sub>705&nbsp;</sub>)) :- vertex(U<sub>703&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>704&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>705&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>703&nbsp;</sub>,W<sub>705&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(1,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,1,2))
+                                    <ul> 
+                                      <li> not(o__chk41(1,1,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>706&nbsp;</sub>,V<sub>707&nbsp;</sub>,W<sub>708&nbsp;</sub>)) :- vertex(U<sub>706&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>707&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>708&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>706&nbsp;</sub>,W<sub>708&nbsp;</sub>), &nbsp; &nbsp;V<sub>707&nbsp;</sub>\=W<sub>708&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>706&nbsp;</sub>,W<sub>708&nbsp;</sub>), &nbsp; &nbsp;other(U<sub>706&nbsp;</sub>,V<sub>707&nbsp;</sub>).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 1\=2</li>
+                                          <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> other(1,1) 	<font color=green size=-1> &emsp;  other(U<sub>709&nbsp;</sub>,V<sub>710&nbsp;</sub>) :- vertex(U<sub>709&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>710&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>711&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>709&nbsp;</sub>,W<sub>711&nbsp;</sub>), &nbsp; &nbsp;V<sub>710&nbsp;</sub>\=W<sub>711&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>709&nbsp;</sub>,W<sub>711&nbsp;</sub>).</font>
+                                            <ul> 
+                                              <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(W<sub>711&nbsp;</sub>) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> edge(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> 1\=2</li>
+                                              <li> chosen(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(1,2))
+                    <ul> 
+                      <li> not(o_chk4(1,2)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>714&nbsp;</sub>,_V<sub>715&nbsp;</sub>)) :- not(o__chk41(_V<sub>714&nbsp;</sub>,_V<sub>715&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(1,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>716&nbsp;</sub>,V<sub>717&nbsp;</sub>)) :- forall(W<sub>718&nbsp;</sub>,not(o__chk41(U<sub>716&nbsp;</sub>,V<sub>717&nbsp;</sub>,W<sub>718&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>718&nbsp;</sub>,not(o__chk41(1,2,W<sub>718&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(1,2,W<sub>718&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>720&nbsp;</sub>,V<sub>721&nbsp;</sub>,W<sub>722&nbsp;</sub>)) :- vertex(U<sub>720&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>721&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>722&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>722&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>722&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,2,0))
+                                    <ul> 
+                                      <li> not(o__chk41(1,2,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>724&nbsp;</sub>,V<sub>725&nbsp;</sub>,W<sub>726&nbsp;</sub>)) :- vertex(U<sub>724&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>725&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>726&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>724&nbsp;</sub>,W<sub>726&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(1,0)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,2,1))
+                                    <ul> 
+                                      <li> not(o__chk41(1,2,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>727&nbsp;</sub>,V<sub>728&nbsp;</sub>,W<sub>729&nbsp;</sub>)) :- vertex(U<sub>727&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>728&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>729&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>727&nbsp;</sub>,W<sub>729&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(1,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(1,2,2))
+                                    <ul> 
+                                      <li> not(o__chk41(1,2,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>730&nbsp;</sub>,V<sub>731&nbsp;</sub>,W<sub>732&nbsp;</sub>)) :- vertex(U<sub>730&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>731&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>732&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>730&nbsp;</sub>,W<sub>732&nbsp;</sub>), &nbsp; &nbsp;V<sub>731&nbsp;</sub>=W<sub>732&nbsp;</sub>.</font>
+                                        <ul> 
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(1,2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 2=2</li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk4(2,_V<sub>51&nbsp;</sub>)))
+            <ul> 
+              <li> forall(_V<sub>51&nbsp;</sub>,not(o_chk4(2,_V<sub>51&nbsp;</sub>)))
+                <ul> 
+                  <li> not(o_chk4(2,_V<sub>51&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>736&nbsp;</sub>,_V<sub>737&nbsp;</sub>)) :- not(o__chk41(_V<sub>736&nbsp;</sub>,_V<sub>737&nbsp;</sub>)).</font>
+                    <ul> 
+                      <li> not(o__chk41(2,_V<sub>737&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>739&nbsp;</sub>,V<sub>740&nbsp;</sub>)) :- forall(W<sub>741&nbsp;</sub>,not(o__chk41(U<sub>739&nbsp;</sub>,V<sub>740&nbsp;</sub>,W<sub>741&nbsp;</sub>))).</font>
+                        <ul> 
+                          <li> forall(W<sub>741&nbsp;</sub>,not(o__chk41(2,V<sub>740&nbsp;</sub>,W<sub>741&nbsp;</sub>)))
+                            <ul> 
+                              <li> not(o__chk41(2,V<sub>740&nbsp;</sub>,W<sub>741&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>744&nbsp;</sub>,V<sub>745&nbsp;</sub>,W<sub>746&nbsp;</sub>)) :- vertex(U<sub>744&nbsp;</sub>), &nbsp; &nbsp;not(vertex(V<sub>745&nbsp;</sub>)).</font>
+                                <ul> 
+                                  <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                  <li> not(vertex(V<sub>745&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [V<sub>745&nbsp;</sub>-[0,1,2]] )</li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(2,0))
+                    <ul> 
+                      <li> not(o_chk4(2,0)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>751&nbsp;</sub>,_V<sub>752&nbsp;</sub>)) :- not(o__chk41(_V<sub>751&nbsp;</sub>,_V<sub>752&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(2,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>753&nbsp;</sub>,V<sub>754&nbsp;</sub>)) :- forall(W<sub>755&nbsp;</sub>,not(o__chk41(U<sub>753&nbsp;</sub>,V<sub>754&nbsp;</sub>,W<sub>755&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>755&nbsp;</sub>,not(o__chk41(2,0,W<sub>755&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(2,0,W<sub>755&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>757&nbsp;</sub>,V<sub>758&nbsp;</sub>,W<sub>759&nbsp;</sub>)) :- vertex(U<sub>757&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>758&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>759&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>759&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>759&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,0,0))
+                                    <ul> 
+                                      <li> not(o__chk41(2,0,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>761&nbsp;</sub>,V<sub>762&nbsp;</sub>,W<sub>763&nbsp;</sub>)) :- vertex(U<sub>761&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>762&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>763&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>761&nbsp;</sub>,W<sub>763&nbsp;</sub>), &nbsp; &nbsp;V<sub>762&nbsp;</sub>=W<sub>763&nbsp;</sub>.</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 0=0</li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,0,1))
+                                    <ul> 
+                                      <li> not(o__chk41(2,0,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>764&nbsp;</sub>,V<sub>765&nbsp;</sub>,W<sub>766&nbsp;</sub>)) :- vertex(U<sub>764&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>765&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>766&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>764&nbsp;</sub>,W<sub>766&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(2,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,0,2))
+                                    <ul> 
+                                      <li> not(o__chk41(2,0,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>767&nbsp;</sub>,V<sub>768&nbsp;</sub>,W<sub>769&nbsp;</sub>)) :- vertex(U<sub>767&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>768&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>769&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>767&nbsp;</sub>,W<sub>769&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(2,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(2,1))
+                    <ul> 
+                      <li> not(o_chk4(2,1)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>771&nbsp;</sub>,_V<sub>772&nbsp;</sub>)) :- not(o__chk41(_V<sub>771&nbsp;</sub>,_V<sub>772&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(2,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>773&nbsp;</sub>,V<sub>774&nbsp;</sub>)) :- forall(W<sub>775&nbsp;</sub>,not(o__chk41(U<sub>773&nbsp;</sub>,V<sub>774&nbsp;</sub>,W<sub>775&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>775&nbsp;</sub>,not(o__chk41(2,1,W<sub>775&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(2,1,W<sub>775&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>777&nbsp;</sub>,V<sub>778&nbsp;</sub>,W<sub>779&nbsp;</sub>)) :- vertex(U<sub>777&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>778&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>779&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>779&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>779&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,1,0))
+                                    <ul> 
+                                      <li> not(o__chk41(2,1,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>781&nbsp;</sub>,V<sub>782&nbsp;</sub>,W<sub>783&nbsp;</sub>)) :- vertex(U<sub>781&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>782&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>783&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>781&nbsp;</sub>,W<sub>783&nbsp;</sub>), &nbsp; &nbsp;V<sub>782&nbsp;</sub>\=W<sub>783&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>781&nbsp;</sub>,W<sub>783&nbsp;</sub>), &nbsp; &nbsp;other(U<sub>781&nbsp;</sub>,V<sub>782&nbsp;</sub>).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 1\=0</li>
+                                          <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> other(2,1) 	<font color=green size=-1> &emsp;  other(U<sub>784&nbsp;</sub>,V<sub>785&nbsp;</sub>) :- vertex(U<sub>784&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>785&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>786&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>784&nbsp;</sub>,W<sub>786&nbsp;</sub>), &nbsp; &nbsp;V<sub>785&nbsp;</sub>\=W<sub>786&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>784&nbsp;</sub>,W<sub>786&nbsp;</sub>).</font>
+                                            <ul> 
+                                              <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(W<sub>786&nbsp;</sub>) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> edge(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> 1\=0</li>
+                                              <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,1,1))
+                                    <ul> 
+                                      <li> not(o__chk41(2,1,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>788&nbsp;</sub>,V<sub>789&nbsp;</sub>,W<sub>790&nbsp;</sub>)) :- vertex(U<sub>788&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>789&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>790&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>788&nbsp;</sub>,W<sub>790&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(2,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,1,2))
+                                    <ul> 
+                                      <li> not(o__chk41(2,1,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>791&nbsp;</sub>,V<sub>792&nbsp;</sub>,W<sub>793&nbsp;</sub>)) :- vertex(U<sub>791&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>792&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>793&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>791&nbsp;</sub>,W<sub>793&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(2,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                  <li> not(o_chk4(2,2))
+                    <ul> 
+                      <li> not(o_chk4(2,2)) 	<font color=green size=-1> &emsp;  not(o_chk4(_V<sub>795&nbsp;</sub>,_V<sub>796&nbsp;</sub>)) :- not(o__chk41(_V<sub>795&nbsp;</sub>,_V<sub>796&nbsp;</sub>)).</font>
+                        <ul> 
+                          <li> not(o__chk41(2,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>797&nbsp;</sub>,V<sub>798&nbsp;</sub>)) :- forall(W<sub>799&nbsp;</sub>,not(o__chk41(U<sub>797&nbsp;</sub>,V<sub>798&nbsp;</sub>,W<sub>799&nbsp;</sub>))).</font>
+                            <ul> 
+                              <li> forall(W<sub>799&nbsp;</sub>,not(o__chk41(2,2,W<sub>799&nbsp;</sub>)))
+                                <ul> 
+                                  <li> not(o__chk41(2,2,W<sub>799&nbsp;</sub>)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>801&nbsp;</sub>,V<sub>802&nbsp;</sub>,W<sub>803&nbsp;</sub>)) :- vertex(U<sub>801&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>802&nbsp;</sub>), &nbsp; &nbsp;not(vertex(W<sub>803&nbsp;</sub>)).</font>
+                                    <ul> 
+                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                      <li> not(vertex(W<sub>803&nbsp;</sub>)) <font color=green> &emsp; &#10003; </font>  , ( [W<sub>803&nbsp;</sub>-[0,1,2]] )</li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,2,0))
+                                    <ul> 
+                                      <li> not(o__chk41(2,2,0)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>805&nbsp;</sub>,V<sub>806&nbsp;</sub>,W<sub>807&nbsp;</sub>)) :- vertex(U<sub>805&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>806&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>807&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>805&nbsp;</sub>,W<sub>807&nbsp;</sub>), &nbsp; &nbsp;V<sub>806&nbsp;</sub>\=W<sub>807&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>805&nbsp;</sub>,W<sub>807&nbsp;</sub>), &nbsp; &nbsp;other(U<sub>805&nbsp;</sub>,V<sub>806&nbsp;</sub>).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> edge(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> 2\=0</li>
+                                          <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> other(2,2) 	<font color=green size=-1> &emsp;  other(U<sub>808&nbsp;</sub>,V<sub>809&nbsp;</sub>) :- vertex(U<sub>808&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>809&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>810&nbsp;</sub>), &nbsp; &nbsp;edge(U<sub>808&nbsp;</sub>,W<sub>810&nbsp;</sub>), &nbsp; &nbsp;V<sub>809&nbsp;</sub>\=W<sub>810&nbsp;</sub>, &nbsp; &nbsp;chosen(U<sub>808&nbsp;</sub>,W<sub>810&nbsp;</sub>).</font>
+                                            <ul> 
+                                              <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> vertex(W<sub>810&nbsp;</sub>) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> edge(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                              <li> 2\=0</li>
+                                              <li> chosen(2,0) <font color=green> &emsp; &#10003; </font>  </li>
+                                            </ul>
+                                          </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,2,1))
+                                    <ul> 
+                                      <li> not(o__chk41(2,2,1)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>812&nbsp;</sub>,V<sub>813&nbsp;</sub>,W<sub>814&nbsp;</sub>)) :- vertex(U<sub>812&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>813&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>814&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>812&nbsp;</sub>,W<sub>814&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(1) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(2,1)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                  <li> not(o__chk41(2,2,2))
+                                    <ul> 
+                                      <li> not(o__chk41(2,2,2)) 	<font color=green size=-1> &emsp;  not(o__chk41(U<sub>815&nbsp;</sub>,V<sub>816&nbsp;</sub>,W<sub>817&nbsp;</sub>)) :- vertex(U<sub>815&nbsp;</sub>), &nbsp; &nbsp;vertex(V<sub>816&nbsp;</sub>), &nbsp; &nbsp;vertex(W<sub>817&nbsp;</sub>), &nbsp; &nbsp;not(edge(U<sub>815&nbsp;</sub>,W<sub>817&nbsp;</sub>)).</font>
+                                        <ul> 
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> vertex(2) <font color=green> &emsp; &#10003; </font>  </li>
+                                          <li> not(edge(2,2)) <font color=green> &emsp; &#10003; </font>  </li>
+                                        </ul>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+ <script src="js/jquery-1.11.2.js"></script>
+ <script src="js/jquery.treemenu.js"></script>
+ 
+ <script>
+ $(function(){
+        $(".tree").treemenu({delay:100}).openActive();
+    });
+ </script>
+ 
+ </body>
+ </html>

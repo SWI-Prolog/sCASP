@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <style>
+    @import url(https://netdna.bootstrapcdn.com/font-awesome/2.0/css/font-awesome.css);
+    body{
+    background: #ECECEC;
+    margin:0px ;
+    color:#333;
+    font-size:22px
+    }
+    label.button{
+    font-size:16px;
+    background: #ECECEC;
+    border-radius: 15px;
+    display: block;
+    font-family: arial;
+    font-weight: bold;
+    color:#7f7f7f;
+    text-align: center;
+    text-decoration: none;
+    text-shadow:0px 1px 0px #fff;
+    border:1px solid #a7a7a7;
+    width: 145px;
+    margin:0px auto;
+    margin-top:25px;                
+    cursor: pointer;
+    box-shadow: 0px 2px 1px white inset, 0px -2px 8px white, 0px 2px 5px rgba(0, 0, 0, 0.1), 0px 8px 10px rgba(0, 0, 0, 0.1);
+    -webkit-transition:box-shadow 0.5s;
+    }
+    label.button i{
+    float: right;
+    margin-top: 2px;
+    }
+    label.button:hover{
+    box-shadow: 0px 2px 1px white inset, 0px -2px 20px white, 0px 2px 5px rgba(0, 0, 0, 0.1), 0px 8px 10px rgba(0, 0, 0, 0.1);
+    }
+    label.button:active{
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5) inset, 0px -2px 20px white, 0px 1px 5px rgba(0, 0, 0, 0.1), 0px 2px 10px rgba(0, 0, 0, 0.1);
+    background:-webkit-linear-gradient(top, #d1d1d1 0%,#ECECEC 100%);
+    }
+    td{
+    }
+  </style>
+  
+ <link rel="icon" href="favicon.ico">
+   
+  
+  <body>
+
+
+    <br>
+
+    <center>
+      <div>
+	<table width="100%">
+	  <tr><td width="40%" valign="top">
+	      <center>
+		<table>
+		  <!-- <form target="_blank" action="submit.php" method="post" enctype="multipart/form-data" onsubmit="window.open(this.href,this.target,'width=1000,height=400,top=100,left=100,toolbar=no,location=no,status=no,menubar=no');return true;"> -->
+		  <form  id="form1" target="_blank"  method="post" enctype="multipart/form-data" >
+		    <tr> <td width="75px">
+			Program: <br /><br />
+		      </td><td>
+	     		<input type="hidden" name="MAX_FILE_SIZE" value="2000000" />
+			<label href="#" class="button" style="padding: 3px 5px;">
+ 			  <input type="file" name="program" id="program"
+				 style="display:none"/>
+			  Choose file
+			</label>
+			
+			<br /> <br />
+		    </td></tr>
+		    <tr><td>
+			Query: <br />
+			<font size=-2>E.g.: &emsp;<b>?- p(X).</b></font>
+		      </td><td>
+			<input type="text" name="query"  size="30"/><br />
+			<br />
+		    </td></tr>
+		    <tr><td>
+		      </td> <td>
+			
+			<br><br><br>
+			<label class="button" style="padding:20px 10px">
+			  <input type="submit" value="Submit" style="display:none" />
+			  Submit
+			</label>
+		    </td></tr>
+		    
+		  </form>
+		  
+		</table>
+		
+	    </td><td  width="60%" valign="top">
+	      
+	      <div id="filename" style="font-color: gray; ">&nbsp;</div>
+	      <br />
+	      <div id="area" style="width:80%; height:400px; overflow-y: scroll; border: 1px solid gray; font-size: 60%; font-family: Arial; white-space:
+				    pre-wrap;"></div>
+	      
+	</td></tr></table>
+      </div>
+      
+
+      <script type="text/javascript">
+	function readSingleFile(evt) {
+	
+	var f = evt.target.files[0]; 
+	
+	if (f) {
+	var r = new FileReader();
+	r.onload = function(e) { 
+	var contents = e.target.result;
+	contents = contents.replace(
+	/(%.*?\n)|(\b[A-Z][A-Za-z0-9]*\b)|("[^"]*"|'[^']*')|(^[a-z\-_][A-Za-z0-9_]*)|(^:-.*?\.)|(:-)|(\?\-)/gm,
+	function(FOUND,a,b,c,d,e,f,g) {
+	if (a) return "<font color=darkred>" + a + "</font>";          <!-- %% comments -->
+	if (b) return "<font color=brown>" + b + "</font>";            <!-- variables -->
+	if (c) return "<font color=gray>" + c + "</font>";             <!-- "' '" -->
+	if (d) return "<font color=dodgerblue>" + d + "</font>";       <!-- function -->
+	if (e) return "<font color=darkblue>" + e + "</font>";         <!-- :- [...]. -->
+	if (f) return "<font color=darkorange>" + f + "</font>";       <!-- :- -->
+	if (g) return "<font color=darkblue><b>" + g + "</b></font>";  <!-- ?- -->
+	}
+	);
+	document.getElementById('area').innerHTML=  contents;
+	document.getElementById('filename').innerHTML= "Program: <b>" + f.name + "</b>";
+	}
+	r.readAsText(f);
+	
+	} else { 
+	alert("Failed to load file");
+	}
+	}
+	
+	document.getElementById('program').addEventListener('change', readSingleFile, false);
+      </script>
+        
+      <script type="text/javascript">
+      	if (window.navigator.userAgent.indexOf("Mac")            != -1)
+      	document.getElementById('form1').action ="submit_mac.php";
+      	else if  (window.navigator.userAgent.indexOf("Linux")            != -1)
+      	document.getElementById('form1').action ="submit_linux.php";
+      	else
+      	document.getElementById('form1').action ="submit_windows.php";
+      </script>
+    
+      
+  </body>
+</html
+  
