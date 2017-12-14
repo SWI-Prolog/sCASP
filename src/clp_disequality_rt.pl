@@ -1,5 +1,25 @@
 :- module(clp_disequality_rt,_).
 
+%% ------------------------------------------------------------- %%
+:- use_package(assertions).
+:- doc(title, "Constraint solver for disequalities").
+:- doc(author, "Joaquin Arias").
+:- doc(filetype, module).
+
+:- doc(module, "
+
+This module contains the code of the constraint solver for
+disequalities following the description of the constructive
+unification / disunification from the paper @bf{Computing Stable Models
+of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
+
+@pred{.=./2} is the predicate used for equality.
+
+@pred{.\=./2} is the predicate used for disequality.
+
+").
+
+%% ------------------------------------------------------------- %%
 
 :- use_package(attr).
 :- use_module(library(sets)).
@@ -7,8 +27,10 @@
 :- use_package(assertions).
 :- dynamic disunify/2.
 
-
 :- op(700, xfx, [(.\=.),(.=.)]).
+
+%% ------------------------------------------------------------- %%
+:- doc(section, "Main predicates").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Constructive Unification %%
@@ -236,8 +258,8 @@ entail_neg_list(L1, L2) :-
 % 	add(Join,NegListJoin).
 
 
-	
-
+%% ------------------------------------------------------------- %%
+:- doc(section, "Auxiliar predicates").
 	
 %% Auxiliar predicates %%
 neg_var(A,List) :-
@@ -291,8 +313,7 @@ attr_portray_hook(neg(List), Var) :-
 	format(" ~w  .\\=. ~w ",[Var,List]).
 %% Auxiliar predicates %%
 
-
-
+%% ------------------------------------------------------------- %%
  
 %% Not needed %%
 insert_more_general([A|As],B,[A|As]) :-

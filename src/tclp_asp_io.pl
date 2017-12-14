@@ -1,16 +1,34 @@
 :- module(tclp_asp_io, _).
 
 
+%% ------------------------------------------------------------- %%
+:- use_package(assertions).
+:- doc(title, "Module for input / output predicates").
+:- doc(author, "Joaquin Arias").
+:- doc(filetype, module).
 
+:- doc(module, "
 
-:- use_module(.(casp/output)).
-:- reexport(.(casp/output), [
+This module contains the code used to load, parser, translate and
+print the program and results of the evaluation. It uses the
+implementation of s(ASP) by @em{Marple} ported to CIAO by @em{Joaquin
+Arias} in the folder @file{./src/casp/}.
+
+").
+
+%% ------------------------------------------------------------- %%
+
+:- use_module('casp/output').
+:- reexport('casp/output', [
 	pr_rule/2,
 	pr_query/1,
 	pr_user_predicate/1,
 	pr_table_predicate/1
 			    ]).
-:- use_module(.(casp/main)).
+:- use_module('casp/main').
+
+%% ------------------------------------------------------------- %%
+
 :- dynamic loaded_file/1.
 load_program(X) :-
 	retractall(loaded_file(_)),

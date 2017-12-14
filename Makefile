@@ -1,9 +1,23 @@
+.PHONY: clean lpdoc_clean
 
 
 compile_tclp_asp:
 	ciaoc -x -o tclp_asp src/tclp_asp.pl
 
-clean:
+
+clean: lpdoc_clean
+	@$(MAKE) lpdoc_clean
 	@-ciao clean-tree .
 	@-find . -name "*~" -type f -delete
-	@rm tclp_asp
+	@rm -fr tclp_asp
+
+lpdoc:
+	@cd doc;\
+	lpdoc -t html SETTINGS.pl >/dev/null 2>&1;\
+	lpdoc --view -t html SETTINGS.pl;\
+	cd ..;
+
+lpdoc_clean:
+	@cd doc;\
+	lpdoc --realclean SETTINGS.pl;\
+	cd ..;

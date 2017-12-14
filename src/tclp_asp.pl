@@ -1,34 +1,70 @@
 :- module(tclp_asp, _).
 
+%% ------------------------------------------------------------- %%
+:- use_package(assertions).
+:- doc(title, "Meta interpreter under stable model semantics").
+:- doc(author, "Joaquin Arias").
+:- doc(filetype, module).
 
-:- op(700, fx,  [not,(?=), (??)]). %% Query shortcuts.
+:- doc(module, "
 
+This module contains the main functionality of @apl{tclp_asp}.
+
+@pred{load/1} is the predicate used to load the constraint logic
+program.
+
+@pred{solve/4} is the predicate used to evaluate the query of a
+program under the stable model semantic.
+
+").
+
+%% ------------------------------------------------------------- %%
 :- use_module(tclp_asp_io).
 :- reexport(tclp_asp_io, [
-		pr_rule/2,
-		pr_query/1,
-		pr_user_predicate/1,
-		pr_table_predicate/1,
-		write_program/0
-			     ]).
+	pr_rule/2,
+	pr_query/1,
+	pr_user_predicate/1,
+	pr_table_predicate/1,
+	write_program/0
+			 ]).
 
+:- use_module(clp_call_stack).
+:- op(700, xfx, ['~>', '<~']).
+:- reexport(clp_call_stack, [
+	'~>'/2,
+	'<~'/2
+			    ]).
 
-:- use_module(clp_clpq).
-%:- use_package(clpfd).
-:- use_package(clpq).
-
-:- use_module(.(clp_call_stack)).
-:- reexport(clp_call_stack, [(~>)/2, (<~)/2]).
-:- op(700, xfx, [(~>), (<~)]).
 :- use_module(clp_disequality_rt).
 :- op(700, xfx, [(.\=.),(.=.)]).
 
+:- use_module(clp_clpq).
+
+%:- use_package(clpfd).
+%:- use_package(clpq).
 :- use_module(library(formulae)).
+%:- use_module(library(read)).
+%:- use_module(library(format)).
+%:- use_module(library(dynamic)).
+
+:- op(700, fx,  [not,(?=), (??)]).
+
+%% ------------------------------------------------------------- %%
+:- doc(section, "Main predicates").
 
 % :- use_package(tabling).  
 % :- active_tclp.
 % :- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
 
+:- pred load(Files) : list(Files) #"Loads a list of files".
+
+load(X) :-
+%	abolish_all_tables,
+	load_program(X),
+	true.
+
+:- pred main(Args) : list(Args) #"Used when calling from command line
+by passing the command line options and the input files".
 
 main(Args) :-
 	print_on,
@@ -50,19 +86,24 @@ main(_).
 
 main_loop :-
 	print('\n?- '),
-	catch(read(R),_,main_loop),
+	catch(read(R),_,fail_main_loop),
 	conj_to_list(R,Q),
 	(
 	    member(exit, Q) ->
-	    nl,nl,halt
+	    halt
 	;
 	    (
 		main_solve(Q) ->
-		main_loop
+		nl, main_loop
 	    ;
+		print('\nfalse'),
 		main_loop
 	    )
 	).
+
+fail_main_loop :-
+	print('\nno'),
+	main_loop.
 
 main_solve(Q) :-
 	current_option(answers,Number),
@@ -91,18 +132,14 @@ main_solve(Q) :-
 	).
 	
 
-
-load(X) :-
-%	abolish_all_tables,
-	load_program(X),
-	true.
+:- pred run_defined_query #"Used from the interactive mode to run
+the defined query".
 
 run_defined_query :-
 	defined_query(A),
 	solve_query(A),
 	print(A),
 	allways_ask_for_more_models,nl,nl.
-
 
 defined_query(_) :-
 	pr_query([not(o_false)]), !,
@@ -112,10 +149,15 @@ defined_query(Q) :-
 	pr_query(Q),
 	format('\nDefault query:\n\t?- ~w.\n',Q).
 
+%% ------------------------------------------------------------- %%
+:- doc(section, "Top Level Predicates").
 
 check_calls :- 	set(check_calls,on).
 pos_loops :- 	set(pos_loops,on).
 print_on :- 	set(print,on).
+
+:- pred ??(Query) : list(Query) #"Shorcut predicate to ask queries in
+the top-level. It calls solve_query/1".
 
 ?? Q :- solve_query(Q).
 
@@ -129,6 +171,14 @@ solve_query(A) :-
 	print_model(Model),nl,nl,
 	ask_for_more_models.
 
+%% ------------------------------------------------------------- %%
+:- doc(section, "Predicates to solve the query").
+
+:- pred solve(Goals, StackIn, StackOut, Model) #"Solve the list of
+sub-goals @var{Goal} where @var{StackIn} is the list of goals already
+visited and returns in @var{StackOut} the list of goals visited to
+prove the sub-goals and in @var{Model} the model with support the
+sub-goals".
 
 solve([], StackIn, [[]|StackIn], []).
 solve([Goal|Goals], StackIn, StackOut, Model) :-
@@ -144,6 +194,11 @@ solve([Goal|Goals], StackIn, StackOut, Model) :-
 	    Model = [JGoal|JGoals]
 	).
 
+:- pred check_goal(Goal, StackIn, StackOut, Model) #"Call
+@pred{check_CHS/3} to check the sub-goal @var{Goal} against the list
+of goals already visited @var{StackIn} to determine if it is a
+coinductive success, a coinductive failure, an already proved
+sub-goal, or if it has to be evaluated".
 
 check_goal(Goal, StackIn, StackOut, Model) :-
 	check_CHS(Goal, StackIn, Check),  %% Check condition for coinductive success
@@ -167,6 +222,11 @@ check_goal(Goal, StackIn, StackOut, Model) :-
 	),
 	Model = [AddGoal|JGoal].
 
+:- pred solve_goal(Goal, StackIn, StackOut, GoalModel) #"Solve a
+simple sub-goal @var{Goal} where @var{StackIn} is the list of goals
+already visited and returns in @var{StackOut} the list of goals
+visited to prove the sub-goals and in @var{Model} the model with
+support the sub-goals".
 
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
 	Goal = forall(_,_), 
@@ -193,6 +253,11 @@ solve_goal(Goal, StackIn, [[],Goal|StackOut], Model) :-
 	Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_,_)), \+ predicate(Goal),
 	\+ table_predicate(Goal),
 	solve_goal_builtin(Goal, StackIn, StackOut, Model).
+
+:- pred solve_goal_forall(forall(Var,Goal), StackIn, StackOut,
+GoalModel) #"Solve a sub-goal of the form @var{forall(Var,Goal)} and
+success if @var{Var} success in all its domain for the goal
+@var{Goal}. It calls @pred{solve/4}".
 
 solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	my_copy_term(Var,Goal,NewVar,NewGoal),
@@ -255,6 +320,11 @@ exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
 	exec_with_neg_list(Var, Goal, Vs, NewStackMid, StackOut, Models),
 	append(ModelMid,Models,Model).
 
+:- pred solve_goal_table_predicate(Goal, AttStackIn, AttStackOut,
+AttModel) #"Used to evaluate predicates under tabling. This predicates
+should be defined in the program using the directive @em{#table
+pred/n.}".
+
 %% TABLED to avoid loops and repeated answers
 solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel) :-
 	pr_rule(Goal, Body),
@@ -264,10 +334,16 @@ solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel) :-
 	AttModel <~ model([Goal|Model]).
 %% TABLED to avoid loops and repeated answers
 
+:- pred solve_goal_predicate(Goal, StackIn, StackOut, GoalModel)
+#"Used to evaluate a user predicate".
+
 solve_goal_predicate(Goal, StackIn, StackOut, GoalModel) :-
 	pr_rule(Goal, Body),
 	solve(Body, StackIn, StackOut, BodyModel),
 	GoalModel = [Goal|BodyModel].
+
+:- pred solve_goal_builtin(Goal, StackIn, StackOut, AttModel) #"Used
+to evaluate builtin predicates predicate".
 
 solve_goal_builtin(builtin(Goal), StackIn, StackIn, Model) :- !,
 	exec_goal(Goal),
@@ -275,7 +351,7 @@ solve_goal_builtin(builtin(Goal), StackIn, StackIn, Model) :- !,
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
 	Goal =.. [Op|_],
 	member(Op,[.=., .<>., .<., .>., .>=., .=<.]), !,
-	exec_goal(clpq_meta(Goal)),
+	exec_goal(apply_clpq_constraints(Goal)),
 	Model = [Goal].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :- 
 	exec_goal(Goal),
@@ -291,7 +367,10 @@ exec_goal(Goal) :-
 	if_user_option(check_calls, format('ok   goal ~p \n', [Goal])).
 
 
-%% check_CHS checks conditions for coinductive success or failure
+:- pred check_CHS(Goal, StackIn, Result) #"Checks the @var{StackIn}
+and returns in @var{Result} if the goal @var{Goal} is a coinductive
+success, a coinductive failure or an already proved goal. Otherwise it
+is constraint against its negation atoms already visited".
 
 %% inmediate success if the goal has already been proved.
 check_CHS(Goal, I, 2) :-
@@ -425,7 +504,11 @@ type_loop_(Goal, 0, N, [S|Ss], Type) :-
 	S \= not(_),
 	type_loop_(Goal, 0, N, Ss,Type).
 
+%% ------------------------------------------------------------- %%
+:- doc(section, "Auxiliar Predicates").
 
+:- pred predicate(Goal) #"Success if @var(Goal) is a user
+predicate".
 
 %% Check if the goal Goal is a user defined predicate
 predicate(builtin(_)) :- !, fail.
@@ -436,7 +519,10 @@ predicate(Goal) :-
 	length(Args,La),
 	pr_user_predicate(Name/La), !.
 %% predicate(-_Goal) :- !. %% NOTE that -goal is translated as '-goal' 
-	
+
+:- pred table_predicate(Goal) #"Success if @var(Goal) is defined as
+a tabled predicate with the directive @em{table pred/n.}".
+
 %%%% table_predicate(add_to_query).
 table_predicate(Goal) :-
 	Goal =.. [Name|Args],
@@ -450,7 +536,10 @@ shown_predicate(Goal) :-
 	Goal \= not(_),
 	predicate(Goal).
 
-
+:- pred my_copy_term(Var, Term, NewVar, NewTerm) #"Its behaviour is
+similar to @pred{copy_term/2}. It returns in @var{NewTerm} a copy of
+the term @var{Term} but it only replaces with a fresh variable
+@var{NewVar} the occurrences of @var{Var}".
 
 %! my_copy_term(Var, Term, NewVar, NewTerm)
 my_copy_term(Var, V, NewVar, NewVar) :- var(V), V == Var, !.
@@ -468,13 +557,13 @@ my_copy_list(Var,[T|Ts],NewVar,[NewT|NewTs]) :-
 
 
 
-:- use_package(attr).
-%% Attributes predicates %%
-:- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
-attr_unify_hook(rules(Att), B) :- get_attr_local(B, rules(AttB)), Att = AttB.
-attr_unify_hook(neg(A), B) :- not_unify(B,A).
-attribute_goals(X) --> [X ~> G], {get_attr_local(X, rules(G))}.
-attribute_goals(X) --> [X .\=. G], {get_attr_local(X, neg(G))}.
-attr_portray_hook(rules(Att), A) :- format(" ~w  .is ~w ", [A, Att]).
-attr_portray_hook(neg(Att),   A) :- format(" ~w  .\\=. ~w ", [A, Att]).
-%% Attributes predicates %%
+% :- use_package(attr).
+% %% Attributes predicates %%
+% :- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
+% attr_unify_hook(rules(Att), B) :- get_attr_local(B, rules(AttB)), Att = AttB.
+% attr_unify_hook(neg(A), B) :- not_unify(B,A).
+% attribute_goals(X) --> [X ~> G], {get_attr_local(X, rules(G))}.
+% attribute_goals(X) --> [X .\=. G], {get_attr_local(X, neg(G))}.
+% attr_portray_hook(rules(Att), A) :- format(" ~w  .is ~w ", [A, Att]).
+% attr_portray_hook(neg(Att),   A) :- format(" ~w  .\\=. ~w ", [A, Att]).
+% %% Attributes predicates %%

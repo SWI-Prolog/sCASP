@@ -1,10 +1,33 @@
 :- module(clp_clpq,_).
 
 
+%% ------------------------------------------------------------- %%
+:- use_package(assertions).
+:- doc(title, "Extension of the constraint solver CLP(Q)").
+:- doc(author, "Joaquin Arias").
+:- doc(filetype, module).
+
+:- doc(module, "
+
+This module inport the constraint solve package for CLP(Q) and extend
+its functionalities (among others) with:
+
+ @pred{dual_clpq/2} provide the dual of a constraint store in run-time
+to evaluate the @pred{forall/4} predicate.
+
+ @pred{prety_print/1} used by @pred{portray_attribute/2} to print the
+constraints of a variable.
+
+").
+
+%% ------------------------------------------------------------- %%
+
 :- use_module(engine(attributes)).
 
 :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
 :- use_package(clpq).
+
+%% ------------------------------------------------------------- %%
 
 is_clpq_var(X) :-
 	get_attribute(X,A),
