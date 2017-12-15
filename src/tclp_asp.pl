@@ -1,4 +1,20 @@
-:- module(tclp_asp, _).
+:- module(tclp_asp, [
+	load/1,
+	main/1,
+	run_defined_query/0,
+	'??'/1,
+	solve/4,
+	check_goal/4,
+	solve_goal/4,
+	solve_goal_forall/4,
+	solve_goal_table_predicate/4,
+	solve_goal_predicate/4,
+	solve_goal_builtin/4,
+	check_CHS/3,
+	predicate/1,
+	table_predicate/1,
+	my_copy_term/4	
+		    ]).
 
 %% ------------------------------------------------------------- %%
 :- use_package(assertions).
@@ -115,7 +131,7 @@ main_solve(Q) :-
 	increase_counter,
 	answer_counter(Counter),
 	format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
-	if_user_option(print,print_output(StackOut, Model)),
+	if_user_option(print,print_output(StackOut)),
 	print_model(Model),nl,
 	print(Q),
 	(
@@ -152,6 +168,10 @@ defined_query(Q) :-
 %% ------------------------------------------------------------- %%
 :- doc(section, "Top Level Predicates").
 
+:- pred check_calls/0 #"Turn on the flag @var{check_calls}".
+:- pred pos_loops/0 #"Turn on the flag @var{pos_loops}".
+:- pred print_on/0 #"Turn on the flag @var{print}".
+
 check_calls :- 	set(check_calls,on).
 pos_loops :- 	set(pos_loops,on).
 print_on :- 	set(print,on).
@@ -167,7 +187,7 @@ solve_query(A) :-
 	solve(Query, [], StackOut, Model),
 	statistics(runtime, [_|T]),
 	format('\nsolve_run_time = ~w ms\n\n',T),
-	if_user_option(print,print_output(StackOut, Model)),
+	if_user_option(print,print_output(StackOut)),
 	print_model(Model),nl,nl,
 	ask_for_more_models.
 

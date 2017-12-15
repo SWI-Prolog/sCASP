@@ -1,4 +1,22 @@
-:- module(tclp_asp_io, _).
+:- module(tclp_asp_io, [
+	load_program/1,
+	write_program/0,
+	process_query/2,
+	ask_for_more_models/0,
+	allways_ask_for_more_models/0,
+	init_counter/0,
+	increase_counter/0,
+	print_output/1,
+	print_model/1,
+	print_check_calls_calling/2,
+	if_user_option/2,
+	set/2,
+	parse_args/3,
+	current_option/2,
+	counter/2,
+	set_options/1,
+	answer_counter/1
+	]).
 
 
 %% ------------------------------------------------------------- %%
@@ -29,6 +47,9 @@ Arias} in the folder @file{./src/casp/}.
 
 %% ------------------------------------------------------------- %%
 
+:- pred load_program(Files) : list(Files) #"Call c(asp) to generate
+and assert the translation of the progam (with dual and nmr_check)".
+
 :- dynamic loaded_file/1.
 load_program(X) :-
 	retractall(loaded_file(_)),
@@ -41,11 +62,20 @@ load_program(X) :-
 	main(['-g'| Files]),
 	assert(loaded_file(Files)).
 
+:- pred write_program/0 #"Call c(asp) to print the source code of the
+translation of the programs already loaded by @pred(load_program/1)".
+
 write_program :-
 	loaded_file(Files),
 	main(['-d0'|Files]).
 
 :- dynamic cont/0.
+
+:- pred process_query(Q, Query) #"Initialize internal flags to allows
+the generation of multiples models in the interaction and top-level
+mode (even when the query is ground). Returns in @var{Query} a list
+with the sub_goals in @var{Q} and @em{add_to_query} with run the
+nmr_check".
 
 process_query(A,Query) :-
 	(
@@ -57,6 +87,9 @@ process_query(A,Query) :-
 	),
 	append(As, [add_to_query], Query).
 
+:- pred ask_for_more_models/0 #"Ask if the user want to generate more
+models (interactive and top-level mode)".
+
 ask_for_more_models :-
 	(
 	    cont, print('next ? '), get_char(R),true, R \= '\n' ->
@@ -65,6 +98,9 @@ ask_for_more_models :-
 	;
 	    true
 	).
+
+:- pred ask_for_more_models/0 #"Ask if the user want to generate more
+models (execution from console)".
 
 allways_ask_for_more_models :-
 	(
@@ -76,22 +112,32 @@ allways_ask_for_more_models :-
 	    true
 	).
 
+:- pred init_counter/0 #"Reset the value of answer_counter to 0".
+
 :- dynamic answer_counter/1.
 init_counter :-
 	retractall(answer_counter(_)),
 	assert(answer_counter(0)).
+
+:- pred increase_counter/0 #"Add 1 to the current value of
+answer_counter".
+
 increase_counter :-
 	answer_counter(N),
 	N1 is N + 1,
 	retractall(answer_counter(N)),
 	assert(answer_counter(N1)).
 
+:- pred print_output(StackOut) #"Print the justification tree using
+@var{StackOut}, the final call stack".
 
 %% Print output predicates to presaent the results of the query
-print_output(StackOut, _Model) :-
+print_output(StackOut) :-
 	print_stack(StackOut), nl,
-%	print_j(Model, 3), nl,
 	true.
+
+:- pred print_model(Model) #"Print the partial model of the program
+using @var{Model}".
 
 %% The model is obtained from the justification tree.
 print_model([F|J]) :-
@@ -174,6 +220,10 @@ query3(X,  I, O) :-
 
 
 
+:- pred print_check_calls_calling(Goal, StackIn) #"Auxiliar predicate
+to print @var{StackIn} the current stack and @var{Goal}. This
+predicate is executed when the flag @var{check_calls} is
+@em{on}. NOTE: use check_calls/0 to activate the flag".
 
 print_check_calls_calling(Goal,I) :-
 	reverse([('¿'+Goal+'?')|I],RI),
@@ -246,15 +296,18 @@ set_user_option('-j') :- set(print, on).
 set_user_option('--justification') :- set(print, on).
 set_user_option('-d0') :- set(write_program, on).
 
+:- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
+#"If the flag @var{Name} is on them the call @var{Call} is executed".
 
-
-if_user_option(Name,Then) :-
+if_user_option(Name,Call) :-
 	(
 	    current_option(Name,on) ->
-	    call(Then)
+	    call(Call)
 	;
 	    true
 	).
+
+:- pred set(Option, Value) #"Used to set-up the user options".
 
 set(Option, Value) :-
 	retractall(current_option(Option, _)),
@@ -280,6 +333,10 @@ help :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parse arguments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- pred parse_args(Args, Options, Sources) #"Select from the list of
+arguments in @var{Args} which are the user-options, @var{Options} and
+which are the program files, @var{Sources}".
 
 parse_args([],[],[]).
 parse_args([O | Args], [O | Os], Ss) :-
