@@ -1,8 +1,8 @@
-:- module(tclp_asp_man, [], [assertions]).
+:- module(scasp_man, [], [assertions]).
 
 :- doc(filetype, application).
 
-:- doc(title, "TCLP(ASP)").
+:- doc(title, "s(CASP)").
 
 :- doc(subtitle, "A stable model semantic solver for constraint logic programs"
 	).
@@ -11,14 +11,14 @@
 :- doc(copyright, "").
 
 :- doc(summary, " 
-@apl{TCLP(ASP)} is a bundle for the Ciao System which allows the
+@apl{s(CASP)} is a bundle for the Ciao System which allows the
 evaluation of constraint logic programs under the stable model
 semantics. Its implementation is based on s(ASP) by [Kyle
 Marple](@email{kmarple1@@hotmail.com}) from the University of Texas at Dallas.
 ").
 
 :- doc(module, " 
-@apl{TCLP(ASP)} is a bundle for the Ciao System which allows the
+@apl{s(CASP)} is a bundle for the Ciao System which allows the
 evaluation of constraint logic programs under the stable model
 semantics. Its implementation is based on s(ASP) by [Kyle
 Marple](@email{kmarple1@@hotmail.com}) from the University of Texas at Dallas.
@@ -31,7 +31,7 @@ This document is divided in two parts:
 @begin{itemize}
 @item @bf{Part I - User's Manual}. It explains the setup and usage of
 this bundle.
-TCLP(ASP) Usage details how to use this bundle and its
+s(CASP) Usage details how to use this bundle and its
 options. Also, several execution examples are shown.
 
 @item @bf{Part II - Reference Manual}. It details the Bundle

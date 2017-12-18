@@ -8,7 +8,7 @@
 
 :- doc(module, "
 
-This manual details structure of the @apl{TCLP(ASP)} bundle and the
+This manual details structure of the @apl{s(CASP)} bundle and the
 documentation of all modules involved.
 
 ").

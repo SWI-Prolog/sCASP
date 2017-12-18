@@ -20,7 +20,7 @@ Requirements
 You can automatically fetch, build, and install this bundle using:
 
 @begin{verbatim}
-ciao get ciao-lang.org/tclp_asp
+ciao get ciao-lang.org/scasp
 @end{verbatim}
 
 This command stores the source and generates the binaries in the Ciao
@@ -41,7 +41,7 @@ export PATH=$CIAOPATH/build/bin:$PATH
 For installing this bundle it is recommended to define `CIAOPATH`
 (E.g., `~/ciao`) and clone this repository in your workspace.
 
-	git clone ssh://gitolite@ciao-lang.org/tclp_asp
+	git clone ssh://gitolite@ciao-lang.org/scasp
 
 Remember to update registered bundles after cloning
 

@@ -11,10 +11,10 @@
 @section{Help}
 
 @begin{verbatim}
-Usage: tclp_asp [options] InputFile(s)
+Usage: scasp [options] InputFile(s)
 @end{verbatim}
 
-TCLP(ASP) computes stable models of ungrounded normal logic programs.
+s(CASP) computes stable models of ungrounded normal logic programs.
 Command-line switches are case-sensitive!
 
 @begin{verbatim}
@@ -34,30 +34,30 @@ Command-line switches are case-sensitive!
 
 To obtain one model of the program (i.e. test.pl)
 @begin{verbatim}
-   $ ./tclp_asp test.pl
+   $ ./scasp test.pl
    Answer: 1
    { q(?Var6), not p(?Var6) }
 @end{verbatim}
 
 To obtain all the models (answers) of test.pl
 @begin{verbatim}
-   $ ./tclp_asp -s0 test.pl
+   $ ./scasp -s0 test.pl
 @end{verbatim}
 
 To obtain 5 answers of test.pl
 @begin{verbatim}
-   $ ./tclp_asp -s5 test.pl
+   $ ./scasp -s5 test.pl
 @end{verbatim}
 
 To print the 'translation' of the code (with duals predicates and
 check-rules)
 @begin{verbatim}
-   $ ./tclp_asp -d0 test.pl
+   $ ./scasp -d0 test.pl
 @end{verbatim}
 
-To use tclp_asp with its iterative mode:
+To use scasp with its iterative mode:
 @begin{verbatim}
-   $ ./tclp_asp -i test.pl
+   $ ./scasp -i test.pl
    ?- p(X).
    { p(?Var6), not q(?Var6) } ? ;
 

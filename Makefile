@@ -1,15 +1,15 @@
 .PHONY: clean lpdoc_clean
 
 
-compile_tclp_asp:
-	ciaoc -x -o tclp_asp src/tclp_asp.pl
+compile_scasp:
+	ciaoc -x -o scasp src/scasp.pl
 
 
 clean: lpdoc_clean
 	@$(MAKE) lpdoc_clean
 	@-ciao clean-tree .
 	@-find . -name "*~" -type f -delete
-	@rm -fr tclp_asp
+	@rm -fr scasp
 
 lpdoc:
 	@cd doc;\

@@ -1,4 +1,5 @@
-:- bundle(tclp_asp).
+
+:- bundle(scasp).
 
 depends([
     core,
@@ -6,10 +7,10 @@ depends([
 ]).
 
 alias_paths([
-    tclp_asp = 'src'
+    scasp = 'src'
 ]).
 
 lib('src').
 
-manual('tclp_asp', [main='doc/SETTINGS.pl']).
+manual('scasp', [main='doc/SETTINGS.pl']).
 

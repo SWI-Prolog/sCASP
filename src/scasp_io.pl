@@ -1,4 +1,4 @@
-:- module(tclp_asp_io, [
+:- module(scasp_io, [
 	load_program/1,
 	write_program/0,
 	process_query/2,
@@ -30,24 +30,24 @@
 This module contains the code used to load, parser, translate and
 print the program and results of the evaluation. It uses the
 implementation of s(ASP) by @em{Marple} ported to CIAO by @em{Joaquin
-Arias} in the folder @file{./src/casp/}.
+Arias} in the folder @file{./src/sasp/}.
 
 ").
 
 %% ------------------------------------------------------------- %%
 
-:- use_module('casp/output').
-:- reexport('casp/output', [
+:- use_module('sasp/output').
+:- reexport('sasp/output', [
 	pr_rule/2,
 	pr_query/1,
 	pr_user_predicate/1,
 	pr_table_predicate/1
 			    ]).
-:- use_module('casp/main').
+:- use_module('sasp/main').
 
 %% ------------------------------------------------------------- %%
 
-:- pred load_program(Files) : list(Files) #"Call c(asp) to generate
+:- pred load_program(Files) : list(Files) #"Call s(ASP) to generate
 and assert the translation of the progam (with dual and nmr_check)".
 
 :- dynamic loaded_file/1.
@@ -314,8 +314,8 @@ set(Option, Value) :-
 	assert(current_option(Option,Value)).
 
 help :-
-        display('Usage: TCLP(asp) [options] InputFile(s)\n\n'),
-        display('TCLP(asp) computes stable models of ungrounded normal logic programs.\n'),
+        display('Usage: scasp [options] InputFile(s)\n\n'),
+        display('s(CASP) computes stable models of ungrounded normal logic programs.\n'),
         display('Command-line switches are case-sensitive!\n\n'),
         display(' General Options:\n\n'),
         display('  -h, -?, --help        Print this help message and terminate.\n'),

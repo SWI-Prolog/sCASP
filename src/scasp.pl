@@ -1,4 +1,4 @@
-:- module(tclp_asp, [
+:- module(scasp, [
 	load/1,
 	main/1,
 	run_defined_query/0,
@@ -13,7 +13,10 @@
 	check_CHS/3,
 	predicate/1,
 	table_predicate/1,
-	my_copy_term/4	
+	my_copy_term/4,
+	check_calls/0,
+	pos_loops/0,
+	print_on/0
 		    ]).
 
 %% ------------------------------------------------------------- %%
@@ -24,7 +27,7 @@
 
 :- doc(module, "
 
-This module contains the main functionality of @apl{tclp_asp}.
+This module contains the main functionality of @apl{scasp}.
 
 @pred{load/1} is the predicate used to load the constraint logic
 program.
@@ -35,8 +38,8 @@ program under the stable model semantic.
 ").
 
 %% ------------------------------------------------------------- %%
-:- use_module(tclp_asp_io).
-:- reexport(tclp_asp_io, [
+:- use_module(scasp_io).
+:- reexport(scasp_io, [
 	pr_rule/2,
 	pr_query/1,
 	pr_user_predicate/1,

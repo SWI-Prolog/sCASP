@@ -1,6 +1,6 @@
 :- module(_, [], [lpdoclib(doccfg)]).
 
-%! \title Configuration for TCLP(ASP) manual
+%! \title Configuration for s(CASP) manual
 %  \author Joaquin Arias
 
 :- include(ciao_docsrc(common/'LPDOCCOMMON')).
@@ -10,17 +10,17 @@ filepath := '.'.
 
 filepath := ~ciaofilepath_common.
 
-output_name := tclp_asp.
+output_name := scasp.
 
 doc_structure :=
-	'tclp_asp_man' -[
+	'scasp_man' -[
 	    'user_part' -[
 		'user_installation',
 		'user_usage'
 	    ],
 	    'reference_part' -[
-				  'tclp_asp',
-				  'tclp_asp_io',
+				  'scasp',
+				  'scasp_io',
 				  'clp_call_stack',
 				  'clp_disequality_rt',
 				  'clp_clpq'
