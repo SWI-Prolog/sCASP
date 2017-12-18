@@ -163,8 +163,13 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 
 loop_list_disunification([],[]).
 loop_list_disunification([A|As],[B|Bs]) :-
-	loop_var_disunification(A,B),
-	loop_list_disunification(As,Bs).
+	(
+	    loop_var_disunification(A,B),
+	    loop_list_disunification(As,Bs)
+	;
+	    A == B,
+	    loop_list_disunification(As,Bs)
+	).
 
 loop_var_disunification(A,B) :-
 	neg_var(A,ListA),
@@ -311,6 +316,16 @@ attribute_goals(X) -->
 	 {get_attr_local(X,neg(G))}.
 attr_portray_hook(neg(List), Var) :-
 	format(" ~w  .\\=. ~w ",[Var,List]).
+
+:- multifile portray_attribute/2.
+portray_attribute(att(_,false,att(clp_disequality_rt,neg(List),_)),Var) :-
+	(
+	    List == [] ->
+	    display(Var)
+	;
+	    format("{ ~w  .\\=. ~w }",[Var,List])
+	).
+	
 %% Auxiliar predicates %%
 
 %% ------------------------------------------------------------- %%

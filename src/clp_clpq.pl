@@ -92,3 +92,5 @@ prety_print([C]) :- prety_print_(C).
 prety_print([C1,C2|Cs]) :- prety_print_(C1), display(', '), prety_print([C2|Cs]).
 prety_print_(C) :- C =.. [Op,A,B], display(A), display(' '), display(Op), display(' '), display(B).
 
+
+

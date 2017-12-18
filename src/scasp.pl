@@ -225,25 +225,28 @@ sub-goal, or if it has to be evaluated".
 
 check_goal(Goal, StackIn, StackOut, Model) :-
 	check_CHS(Goal, StackIn, Check),  %% Check condition for coinductive success
-	(
-	    Check == 1, %% coinduction success <- cycles containing even loops may succeed
-	    StackOut = [[],chs(Goal)|StackIn],
-	    JGoal = [],
-	    AddGoal = chs(Goal)
-	;
-	    Check == 2, %% already proved in the stack
-	    StackOut = [[],proved(Goal)|StackIn],
-	    JGoal = [],
-	    AddGoal = proved(Goal)
-	;
-	    Check == 0, %% coinduction does neither success nor fails <- the execution continues inductively
-	    solve_goal(Goal, StackIn, StackOut, Modelx), Modelx = [Goal|JGoal],
-	    AddGoal = Goal
-	;
-	    Check == -1, %% coinduction fails <- the negation of a call unifies with a call in the call stack
-	    fail
-	),
+	check_goal_(Check, Goal, StackIn, StackOut, Model).
+
+%% coinduction success <- cycles containing even loops may succeed
+check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
+	StackOut = [[],chs(Goal)|StackIn],
+	JGoal = [],
+	AddGoal = chs(Goal),
 	Model = [AddGoal|JGoal].
+%% already proved in the stack
+check_goal_(proved, Goal, StackIn, StackOut, Model) :-
+	StackOut = [[],proved(Goal)|StackIn],
+	JGoal = [],
+	AddGoal = proved(Goal),
+	Model = [AddGoal|JGoal].
+%% coinduction does neither success nor fails <- the execution continues inductively
+check_goal_(cont, Goal, StackIn, StackOut, Model) :-
+	solve_goal(Goal, StackIn, StackOut, Modelx), Modelx = [Goal|JGoal],
+	AddGoal = Goal,
+	Model = [AddGoal|JGoal].
+%% coinduction fails <- the negation of a call unifies with a call in the call stack
+check_goal_(co_failure, _Goal, _StackIn, _StackOut, _Model) :-
+	fail.
 
 :- pred solve_goal(Goal, StackIn, StackOut, GoalModel) #"Solve a
 simple sub-goal @var{Goal} where @var{StackIn} is the list of goals
@@ -396,23 +399,23 @@ success, a coinductive failure or an already proved goal. Otherwise it
 is constraint against its negation atoms already visited".
 
 %% inmediate success if the goal has already been proved.
-check_CHS(Goal, I, 2) :-
+check_CHS(Goal, I, proved) :-
 	predicate(Goal),
 	ground(Goal),
 	\+ \+ proved_in_stack(Goal, I), !.
 %% coinduction success <- cycles containing even loops may succeed
-check_CHS(Goal, I, 1) :-
+check_CHS(Goal, I, co_success) :-
 	predicate(Goal),
 	\+ \+ type_loop(Goal, I, even), !.
 %% coinduction fails <- the goal is entailed by its negation in the
 %% call stack
-check_CHS(Goal, I, -1) :-
+check_CHS(Goal, I, co_failure) :-
 	predicate(Goal),
 	\+ \+ neg_in_stack(Goal, I), !,
 	if_user_option(check_calls, format('Negation of the goal in the stack, failling (Goal = ~w)\n',[Goal])).
 %% coinduction fails <- cycles containing positive loops can be solve
 %% using tabling
-check_CHS(Goal, I, -1) :-
+check_CHS(Goal, I, co_failure) :-
 	predicate(Goal),
 	\+ table_predicate(Goal),
 	\+ \+ type_loop(Goal, I, pos), !,
@@ -420,16 +423,13 @@ check_CHS(Goal, I, -1) :-
 	if_user_option(pos_loops, format('Warning positive loop failling (Goal = ~w)\n',[Goal])).
 %% coinduction does not success or fails <- the execution continues
 %% inductively
-check_CHS(Goal, I, 0) :-
+check_CHS(Goal, I, cont) :-
 	predicate(Goal),
-	if_user_option(check_calls, format('Enter ground_neg_in_stack for ~p\n',[Goal])),
-	ground_neg_in_stack(Goal, I), 
-	if_user_option(check_calls, format('\tThere exit the negation of ~p\n\n',[Goal])).
-check_CHS(Goal, I, 0) :-
+	ground_neg_in_stack(Goal, I).
+check_CHS(Goal, I, cont) :-
 	predicate(Goal),
-	\+ ground_neg_in_stack(Goal,I),
-	true.
-check_CHS(Goal, _I, 0) :-
+	\+ ground_neg_in_stack(Goal, I).
+check_CHS(Goal, _I, cont) :-
 	\+ predicate(Goal),
 	true.
 
@@ -445,9 +445,10 @@ neg_in_stack(Goal, [_|Ss]) :-
 
 %% ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
+	if_user_option(check_calls, format('Enter ground_neg_in_stack for ~p\n',[Goal])),
 	ground_neg_in_stack_(Goal, S, 0, -1, Flag),
 	Flag == found,
-	if_user_option(check_calls, format('\tGoal unified with its negation in the stack\n',[Goal])).
+	if_user_option(check_calls, format('\tThere exit the negation of ~p\n\n',[Goal])).
 	
 ground_neg_in_stack_(_,[],_,_, _Flag) :- !.
 ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
