@@ -1,8 +1,0 @@
-/* For treemenu.js */
-.treemenu li { list-style: none; }
-.treemenu .toggler { cursor: pointer; }
-.treemenu .toggler:before { display: inline-block; margin-right: 2pt; }
-li.tree-empty > .toggler { opacity: 0.3; cursor: default; }
-li.tree-empty > .toggler:before { content: "o"; }
-li.tree-closed > .toggler:before { content: "+"; }
-li.tree-opened > .toggler:before { content: "\2212"; }
