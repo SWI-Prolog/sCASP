@@ -41,7 +41,6 @@ dump_rules([X|Xs], Ns, Ds) :-
 	\+ get_attr_local(X, rules(_)),
 	dump_rules(Xs, Ns, Ds).
 
-
 %% Attributes predicates %%
 :- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
 attr_unify_hook(rules(Att), B) :- get_attr_local(B, rules(AttB)), Att = AttB.
