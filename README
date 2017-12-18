@@ -1,3 +1,107 @@
+s(CASP) Internal Documentation
+++++++++++++++++++++++++++++++
 
-THIS repositorie has been moved to https://gitlab.software.imdea.org/joaquin.arias/sCASP
+Introduction
+============
+
+s(CASP), by [Joaquin Arias](joaquin.arias@imdea.org), is based 
+on s(ASP). s(CASP) allows left recursion and constraints. Visit
+https://gitlab.software.imdea.org/joaquin.arias/sCASP for the 
+s(CASP) source code.
+
+s(ASP) is an implementation of the stable model semantics of logic
+programming by [Kyle Marple](kmarple1@hotmail.com). Unlike similar
+systems, it does not employ any form of grounding. This allows s(ASP)
+to execute programs that are not finitely groundable, including those
+which make use of lists and terms. Work on s(ASP) is supported by the
+National Science Foundation under Grant No. 1423419 visit
+https://sourceforge.net/projects/sasp-system/ for the s(ASP) source
+code.
+
+
+Installation of s(CASP) 
+=======================
+
+To run s(CASP) you need CIAO Prolog with TCLP working in your computer.
+       %% ask [Joaquin Arias](joaquin.arias@imdea.org) %%
+
+
+Then compile the s(CASP) source code (from the directiory src) using:
+
+For Mac-OS / Linux
+------------------
+
+ciaoc -x -o scasp scasp.pl
+
+
+it generates an executable file named scasp which you can place
+wherever you want...
+
+For Windows
+-----------
+
+ciaoc-1.14 -o scasp scasp.pl
+
+it generates an executable file named scasp (it is recommended to
+execute it from .\src\).
+
+
+Usage of s(CASP)
+================
+
+Usage: scasp [options] InputFile(s)
+
+s(CASP) computes stable models of ungrounded normal logic programs.
+Command-line switches are case-sensitive!
+
+ General Options:
+
+  -h, -?, --help        Print this help message and terminate.
+  -i, --interactive     Run in user / interactive mode.
+  -a, --auto            Run in automatic mode (no user interaction).
+  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.
+  -v, --verbose         Enable verbose progress messages.
+  -j, --justification   Print proof tree for each solution.
+  -d0                   Print the program translated (with duals and nmr_check).
+
+Examples of use
+---------------
+
+To obtain one model of the program (i.e. test.pl)
+   $ ./scasp test.pl
+   Answer: 1
+   { q(X), not p(X) }
+   $
+
+To obtain all the models (answers) of test.pl
+   $ ./scasp -s0 test.pl
+
+To obtain 5 answers of test.pl
+   $ ./scasp -s5 test.pl
+
+To print the "translation" of the code (with duals predicates and
+check-rules)
+   $ ./scasp -d0 test.pl
+
+To use scasp with its iterative mode:
+   $ ./scasp -i test.pl
+   ?- p(X).
+   { p(X), not q(X) } ? 
+
+   false.
+   ?- q(X).
+   { q(X), not p(X) } ? ;
+
+   false.
+   ?- halt.
+   $
+
+The example program test.pl is:
+   p(X) :- not q(X).
+   q(X) :- not p(X).
+
+   ?- q(X).
+
+Note that the program include the query in order to be use without
+iterative mode...
 
