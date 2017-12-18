@@ -1,13 +1,13 @@
 s(CASP) Internal Documentation
-+++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++
 
 Introduction
 ============
 
-s(CASP) is a new implementation of s(ASP) by [Joaquin
-Arias](joaquin.arias@imdea.org). s(CASP) allows left recursion and
-constraints (initily only CLP(Q)). Visit
-https://github.com/Xuaco/scasp for the s(CASP) source code.
+s(CASP), by [Joaquin Arias](joaquin.arias@imdea.org), is based 
+on s(ASP). s(CASP) allows left recursion and constraints. Visit
+https://gitlab.software.imdea.org/joaquin.arias/sCASP for the 
+s(CASP) source code.
 
 s(ASP) is an implementation of the stable model semantics of logic
 programming by [Kyle Marple](kmarple1@hotmail.com). Unlike similar
@@ -20,7 +20,7 @@ code.
 
 
 Installation of s(CASP) 
-=========================
+=======================
 
 To run s(CASP) you need CIAO Prolog with TCLP working in your computer.
        %% ask [Joaquin Arias](joaquin.arias@imdea.org) %%
@@ -47,11 +47,11 @@ execute it from .\src\).
 
 
 Usage of s(CASP)
-=================
+================
 
-Usage: TCLP(asp) [options] InputFile(s)
+Usage: scasp [options] InputFile(s)
 
-TCLP(asp) computes stable models of ungrounded normal logic programs.
+s(CASP) computes stable models of ungrounded normal logic programs.
 Command-line switches are case-sensitive!
 
  General Options:
@@ -70,7 +70,7 @@ Examples of use
 To obtain one model of the program (i.e. test.pl)
    $ ./scasp test.pl
    Answer: 1
-   { q(?Var6), not p(?Var6) }
+   { q(X), not p(X) }
    $
 
 To obtain all the models (answers) of test.pl
@@ -86,11 +86,11 @@ check-rules)
 To use scasp with its iterative mode:
    $ ./scasp -i test.pl
    ?- p(X).
-   { p(?Var6), not q(?Var6) } ? 
+   { p(X), not q(X) } ? 
 
    false.
    ?- q(X).
-   { q(?Var6), not p(?Var6) } ? ;
+   { q(X), not p(X) } ? ;
 
    false.
    ?- halt.
