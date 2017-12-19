@@ -36,14 +36,14 @@ Arias} in the folder @file{./src/sasp/}.
 
 %% ------------------------------------------------------------- %%
 
-:- use_module('sasp/output').
-:- reexport('sasp/output', [
+:- use_module(.(sasp/output)).
+:- reexport(.(sasp/output), [
 	pr_rule/2,
 	pr_query/1,
 	pr_user_predicate/1,
 	pr_table_predicate/1
-			    ]).
-:- use_module('sasp/main').
+				]).
+:- use_module(.(sasp/main)).
 
 %% ------------------------------------------------------------- %%
 
@@ -51,6 +51,9 @@ Arias} in the folder @file{./src/sasp/}.
 and assert the translation of the progam (with dual and nmr_check)".
 
 :- dynamic loaded_file/1.
+load_program([]) :-
+	display('ERROR: No imput file specified!'),nl,nl,
+	help. %% halt.
 load_program(X) :-
 	retractall(loaded_file(_)),
 	(
@@ -277,7 +280,8 @@ set_user_options([O | Os]) :-
 	    set_user_option(O) ->
 	    set_user_options(Os)
 	;
-	    format('Error: the option ~w is not supported!\n\n',[O]),
+	    format('ERROR: The option ~w is not supported!\n\n',[O]),
+	    help,
 	    fail
 	).
 

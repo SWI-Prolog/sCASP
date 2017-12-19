@@ -50,6 +50,7 @@ interactive mode.
 
 %! help
 % Print usage information.
+help :- !, fail.
 help :-
 	%        current_prolog_flag(argv, [Prog | _]),
 	Prog = casp,

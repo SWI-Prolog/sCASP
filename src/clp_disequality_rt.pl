@@ -161,35 +161,34 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 	A \= B.
 
 
-loop_list_disunification([],[]).
-loop_list_disunification([A|As],[B|Bs]) :-
+%%loop_list_disequality([],[]).
+loop_list_disequality([A|As],[B|Bs]) :-
 	(
-	    loop_var_disunification(A,B),
-	    loop_list_disunification(As,Bs)
+	    loop_var_disequality(A,B)
 	;
-	    A == B,
-	    loop_list_disunification(As,Bs)
+	    A .=. B,
+	    loop_list_disequality(As,Bs)
 	).
 
-loop_var_disunification(A,B) :-
+loop_var_disequality(A,B) :-
 	neg_var(A,ListA),
 	neg_var(B,ListB),
 	ListA == [],
 	ListB \== [],
-	loop_var_disunification_(A,ListB).
-loop_var_disunification(A,B) :-
-	neg_var(B,ListB),
+	loop_var_disequality_(A,ListB).
+loop_var_disequality(B,A) :-
 	neg_var(A,ListA),
-	ListB == [],
-	ListA \== [],
-	loop_var_disunification_(B,ListA).
-loop_var_disunification(A,B) :-
+	neg_var(B,ListB),
+	ListA == [],
+	ListB \== [],
+	loop_var_disequality_(A,ListB).
+loop_var_disequality(A,B) :-
 	A .\=. B.
 
-loop_var_disunification_(A,[NegB|_]) :-
+loop_var_disequality_(A,[NegB|_]) :-
 	A .=. NegB.
-loop_var_disunification_(A, [_|NegBs]) :-
-	loop_var_disunification_(A, NegBs).
+loop_var_disequality_(A, [_|NegBs]) :-
+	loop_var_disequality_(A, NegBs).
 
 
 

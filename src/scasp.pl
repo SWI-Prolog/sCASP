@@ -1,6 +1,6 @@
 :- module(scasp, [
-	load/1,
 	main/1,
+	load/1,
 	run_defined_query/0,
 	'??'/1,
 	solve/4,
@@ -447,29 +447,41 @@ neg_in_stack(Goal, [_|Ss]) :-
 ground_neg_in_stack(Goal, S) :-
 	if_user_option(check_calls, format('Enter ground_neg_in_stack for ~p\n',[Goal])),
 	ground_neg_in_stack_(Goal, S, 0, -1, Flag),
-	Flag == found,
+	( Flag == found_dis ; Flag == found_clpq ),
 	if_user_option(check_calls, format('\tThere exit the negation of ~p\n\n',[Goal])).
 	
 ground_neg_in_stack_(_,[],_,_, _Flag) :- !.
 ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
 	NewInter is Intervening - 1,
 	ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter, Flag).
-ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
+ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, Flag) :-
 	Intervening =< MaxInter,
 	Goal =.. [Name|ArgGoal],
 	NegGoal =.. [Name|ArgNegGoal], !,
-	loop_list_disunification(ArgGoal, ArgNegGoal), 
+	(
+	    Flag = found_dis,
+	    loop_list_disequality(ArgGoal, ArgNegGoal)
+	;
+	    Flag = found_clpq,
+	    loop_list_clpq(ArgGoal, ArgNegGoal)
+	),
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
-	ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
-ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
+	ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
+ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, Flag) :-
 	Intervening =< MaxInter,
 	Goal =.. [Name|ArgGoal],
 	NegGoal =.. [Name|ArgNegGoal], !, 
-	loop_list_disunification(ArgGoal, ArgNegGoal),
+	(
+	    Flag = found_dis,
+	    loop_list_disequality(ArgGoal, ArgNegGoal)
+	;
+	    Flag = found_clpq,
+	    loop_list_clpq(ArgGoal, ArgNegGoal)
+	),
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
-	ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
+	ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, Flag).
 ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,	
@@ -531,7 +543,7 @@ type_loop_(Goal, 0, N, [S|Ss], Type) :-
 %% ------------------------------------------------------------- %%
 :- doc(section, "Auxiliar Predicates").
 
-:- pred predicate(Goal) #"Success if @var(Goal) is a user
+:- pred predicate(Goal) #"Success if @var{Goal} is a user
 predicate".
 
 %% Check if the goal Goal is a user defined predicate
@@ -544,7 +556,7 @@ predicate(Goal) :-
 	pr_user_predicate(Name/La), !.
 %% predicate(-_Goal) :- !. %% NOTE that -goal is translated as '-goal' 
 
-:- pred table_predicate(Goal) #"Success if @var(Goal) is defined as
+:- pred table_predicate(Goal) #"Success if @var{Goal} is defined as
 a tabled predicate with the directive @em{table pred/n.}".
 
 %%%% table_predicate(add_to_query).

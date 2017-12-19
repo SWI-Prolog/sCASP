@@ -62,6 +62,30 @@ dual_clpq_(A .=. B, A .>. B).
 dual_clpq_(A .=. B, A .<. B).
 
 
+
+%%loop_list_clpq([],[]).
+loop_list_clpq([A|As],[B|Bs]) :-
+	(
+	    loop_list_clpq_(A,B)
+	;
+	    A = B,
+	    loop_list_clpq(As,Bs)
+	).
+
+loop_list_clpq_(A,B) :-
+	is_clpq_var(A),
+	\+ is_clpq_var(B),
+	dump_clpq_var([A], [B], Const),
+	dual_clpq(Const, Dual),
+	apply_clpq_constraints(Dual).
+loop_list_clpq_(B,A) :-
+	is_clpq_var(A),
+	\+ is_clpq_var(B), !,
+	dump_clpq_var([A], [B], Const),
+	dual_clpq(Const, Dual),
+	apply_clpq_constraints(Dual).
+
+
 % Success if StoreA >= StoreB
 entails(VarA, (VarB,StoreB)) :-
 	dump_clpq_var(VarA, VarB, StoreA),
@@ -83,14 +107,16 @@ portray_attribute(_,A) :-
 	    display(A)
 	;
 	    display('{ '),
-	    prety_print(Constraints),
+	    display(A), display(' '),
+	    display(Constraints),
+%	    prety_print(Constraints),
 	    display(' }')
 	).
 
 prety_print([]).
 prety_print([C]) :- prety_print_(C).
 prety_print([C1,C2|Cs]) :- prety_print_(C1), display(', '), prety_print([C2|Cs]).
-prety_print_(C) :- C =.. [Op,A,B], display(A), display(' '), display(Op), display(' '), display(B).
-
-
+prety_print_(nonzero(Var)) :- display(nonzero(Var)), !.
+prety_print_(C) :- struct(C), C =.. [Op,A,B], prety_print_(A), display(' '), display(Op), display(' '), prety_print_(B), !.
+prety_print_(A) :- display(A).
 
