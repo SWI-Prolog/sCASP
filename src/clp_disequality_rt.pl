@@ -92,20 +92,27 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% Constructive disunification %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-.\=.(A,B) :- true,
+.\=.(A,B) :- 
 	ground(A),
 	ground(B), !,
 	A \= B.
 
-%% - in accordance with the restrictions given in Section 3.1.5,
-%% constructive disunification of two non ground variables will
-%% produce an error
+:- use_module(clp_clpq).
 .\=.(A,B) :-
-	\+ ground(A),
-	\+ ground(B), !,
-	send_silent_signal(error),
-%	format('ERROR: disunification expect at least one argument to be ground, got:\n~p\n~p\n',[A,B]'),
-	fail.
+	is_clpq_var(A), !,
+	disequality_clpq(A,B).
+.\=.(A,B) :-
+	is_clpq_var(B), !,
+	disequality_clpq(B,A).
+% .\=.(A,B) :-
+% 	var(A),
+% 	num(B),
+% 	disequality_clpq(A,B).
+% .\=.(A,B) :-
+% 	var(B),
+% 	num(A),
+% 	disequality_clpq(B,A).
+
 	    
 %% - Constructive disunification of a negatively constrained variable
 %% and a non- variable value will always succeed, adding the
@@ -124,6 +131,19 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 	insert(NegListA,B,NegList),
 	update(A,NegList).
 
+
+%% - in accordance with the restrictions given in Section 3.1.5,
+%% constructive disunification of two non ground variables will
+%% produce an error
+.\=.(A,B) :-
+	var(A), var(B),
+	\+ ground(A),
+	\+ ground(B), !,
+	send_silent_signal(error),
+%	format('ERROR: disunification expect at least one argument to be ground, got:\n~p\n~p\n',[A,B]),
+	fail.
+
+
 %% - Constructive disunification of two compound terms is performed by
 %% first test- ing functors and arities. If either of these does not
 %% match, the operation succeeds deterministically. Otherwise, the
@@ -133,7 +153,11 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% tested upon backtracking.
 
 %% particular case for lists (they are also struct)
-.\=.([A|As],[B|Bs]) :- true, !,
+.\=.(ListA, ListB) :-
+	\+ var(ListA),
+	\+ var(ListB),
+	ListA = [A|As],
+	ListB = [B|Bs], !,
 	(
 	    %	    print(disequality(A,.\=.,B)),nl,
 	    A .\=. B
@@ -143,6 +167,8 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 	).
 
 .\=.(A,B) :-
+	\+ var(A),
+	\+ var(B),
 	struct(A),
 	struct(B), !,
 	A =.. [NameA | As],
@@ -154,14 +180,19 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 	    As .\=. Bs
 	).
 
+
+% .\=.(A,B) :-
+% 	print('vars'),
+% 	disequality_clpq(A,B).
+
 %% - In cases where neither argument contains a negatively constrained
 %% variable, the result is identical to that of traditional
 %% disunification.
 .\=.(A,B) :-
+	\+ var(A), \+ var(B),
 	A \= B.
 
 
-%%loop_list_disequality([],[]).
 loop_list_disequality([A|As],[B|Bs]) :-
 	(
 	    loop_var_disequality(A,B)
@@ -197,6 +228,18 @@ not_unify(A, [X|Xs]) :-
 	A .\=. X,
 	not_unify(A,Xs).
 
+
+
+:- use_module(clp_clpq).
+loop_list([A|As],[B|Bs]) :-
+	(
+	    loop_var_disequality(A,B)
+	;
+	%     loop_var_clpq(A,B)
+	% ;
+	    A .=. B,
+	    loop_list(As,Bs)
+	).
 
 
 %%%%%%%%%%%%%%%%%%%%%%

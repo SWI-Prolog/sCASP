@@ -21,3 +21,7 @@ lpdoc_clean:
 	@cd doc;\
 	lpdoc --realclean SETTINGS.pl;\
 	cd ..;
+
+# github:
+# 	git remote origin 'https://github.com/Xuaco/sCASP'
+# 	git 

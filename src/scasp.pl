@@ -79,6 +79,7 @@ program under the stable model semantic.
 
 load(X) :-
 %	abolish_all_tables,
+	clear_flags,
 	load_program(X),
 	true.
 
@@ -175,6 +176,10 @@ defined_query(Q) :-
 :- pred pos_loops/0 #"Turn on the flag @var{pos_loops}".
 :- pred print_on/0 #"Turn on the flag @var{print}".
 
+clear_flags :-
+	set(check_calls,off),
+	set(pos_loops,off),
+	set(print,off).
 check_calls :- 	set(check_calls,on).
 pos_loops :- 	set(pos_loops,on).
 print_on :- 	set(print,on).
@@ -289,6 +294,7 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	my_copy_term(Var,Goal,NewVar,NewGoal),
 	my_copy_term(Var,Goal,NewVar2,NewGoal2),
 	solve([NewGoal], StackIn, [[]|StackMid], ModelMid),
+	if_user_option(check_calls, format('\tSuccess solve ~p\n\t\t for the ~p\n',[NewGoal,forall(Var,Goal)])),
 	check_unbound(NewVar, List), !,
 	(
 	    List == [] ->
@@ -296,9 +302,10 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	    Model = ModelMid
 	;
 	    List = 'clpq'(NewVar3,Constraints) ->
-	    dual_clpq(Constraints, ConDual),
-	    if_user_option(check_calls, format('Executing ~p with clpq Constraint = ~p\n', [Goal, ConDual])),
-	    exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3,[]),'dual'(NewVar3,ConDual), StackMid, StackOut, ModelList),
+	    findall('dual'(NewVar3,ConDual), dual_clpq(Constraints, ConDual), DualList),
+%	    dual_clpq(Constraints, ConDual),
+	    if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, DualList])),
+	    exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3,[]), DualList, StackMid, StackOut, ModelList),
 	    append(ModelMid, ModelList, Model)
 	;
 	    if_user_option(check_calls, format('Executing ~p with clp_disequeality list = ~p\n', [Goal, List])),
@@ -316,25 +323,42 @@ check_unbound(Var, 'clpq'(NewVar,Constraints)) :-
 check_unbound(Var, []) :-
 	var(Var), !.
 
-exec_with_clpq_constraints(Var, Goal, 'entry'(ConVar, ConEntry),'dual'(ConVar, ConDual), StackIn, StackOut, Model) :-
-	my_copy_term(Var, [Goal, StackIn], NewVar, [NewGoal,NewStackIn]),
+exec_with_clpq_constraints(_, _, _, [], StackIn, StackIn, []).
+exec_with_clpq_constraints(Var, Goal, 'entry'(ConVar, ConEntry),['dual'(ConVar, ConDual)|Duals], StackIn, StackOut, Model) :-
+	my_copy_term(Var, [Goal, StackIn], Var01, [Goal01,StackIn01]),
 	append(ConEntry, ConDual, Con),
-	my_copy_term(ConVar, Con, NewConVar, NewCon),
-	NewVar = ConVar,
-	apply_clpq_constraints(Con),
-	if_user_option(check_calls, format('Executing ~p with clpq_constrains ~p\n',[NewGoal,Con])),
-	solve([NewGoal], NewStackIn, [[]|NewStackMid], ModelMid),
-	if_user_option(check_calls, format('Success executing ~p with constrains ~p\n',[NewGoal,Con])),
+	my_copy_term(ConVar, Con, ConVar01, Con01),
+	my_copy_term(Var, Goal, Var02, Goal02),
+	my_copy_term(ConVar, ConEntry, ConVar02, ConEntry02),
+	Var01 = ConVar,
 	(
-	    entails(NewVar, (NewConVar, NewCon)) ->
-	    StackOut = NewStackMid,
-	    Model = ModelMid
+	    apply_clpq_constraints(Con) ->
+	    if_user_option(check_calls, format('Executing ~p with clpq_constrains ~p\n',[Goal01, Con])),
+	    solve([Goal01], StackIn01, [[]|StackOut01], Model01),
+	    if_user_option(check_calls, format('Success executing ~p with constrains ~p\n',[Goal01, Con])),
+	    if_user_option(check_calls, format('Check entails Var = ~p with const ~p and ~p\n',[Var01, ConVar01, Con01])),
+	    (
+		entails([Var01], ([ConVar01], Con01)) ->
+		if_user_option(check_calls, format('\tOK\n',[])),
+		StackOut02 = StackOut01,
+		Model03 = Model01
+	    ;
+		if_user_option(check_calls, format('\tFail\n',[])),
+		dump_clpq_var([Var01], [ConVar01], ExitCon),
+		findall('dual'(ConVar01, ConDual01), dual_clpq(ExitCon, ConDual01), DualList),
+		%		dual_clpq(ExitCon, ConDual01),
+		if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, DualList])),
+		exec_with_clpq_constraints(Var, Goal, 'entry'(ConVar01, Con01), DualList, StackOut01, StackOut02, Model02),
+		append(Model01, Model02, Model03)
+	    )
 	;
-	    dump_clpq_var([NewVar], [NewConVar], ExitCon),
-	    dual_clpq(ExitCon, NewConDual),
-	    exec_with_clpq_constraints(Var, Goal, 'entry'(NewConVar, NewCon),'dual'(NewConVar, NewConDual), NewStackMid, StackOut, Models),
-	    append(ModelMid,Models,Model)
-	).
+	    if_user_option(check_calls, format('Skip execution of an already checked constraint ~p (it is inconsitent with ~p)\n',[ConDual, ConEntry])),
+	    StackOut02 = StackIn01,
+	    Model03 = []
+	),
+	if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, Duals])),
+	exec_with_clpq_constraints(Var02, Goal02, 'entry'(ConVar02, ConEntry02), Duals, StackOut02, StackOut, Model04),
+	append(Model03, Model04, Model).
 
 exec_with_neg_list(_,   _,    [],         StackIn, StackIn, []).
 exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
@@ -424,14 +448,13 @@ check_CHS(Goal, I, co_failure) :-
 %% coinduction does not success or fails <- the execution continues
 %% inductively
 check_CHS(Goal, I, cont) :-
-	predicate(Goal),
-	ground_neg_in_stack(Goal, I).
-check_CHS(Goal, I, cont) :-
-	predicate(Goal),
-	\+ ground_neg_in_stack(Goal, I).
-check_CHS(Goal, _I, cont) :-
-	\+ predicate(Goal),
-	true.
+	if(
+	      (
+		  predicate(Goal),
+		  ground_neg_in_stack(Goal, I)
+	      ),
+	      true,true
+	  ).
 
 %% check if the negation is in the stack -> coinductive failure
 neg_in_stack(Goal, [NegGoal|_]) :-
@@ -446,42 +469,62 @@ neg_in_stack(Goal, [_|Ss]) :-
 %% ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
 	if_user_option(check_calls, format('Enter ground_neg_in_stack for ~p\n',[Goal])),
-	ground_neg_in_stack_(Goal, S, 0, -1, Flag),
-	( Flag == found_dis ; Flag == found_clpq ),
+	ground_neg_in_stack_(Goal, S, 0, 0, Flag),
+	Flag == found,
+%	( Flag == found_dis ; Flag == found_clpq ),
 	if_user_option(check_calls, format('\tThere exit the negation of ~p\n\n',[Goal])).
 	
 ground_neg_in_stack_(_,[],_,_, _Flag) :- !.
 ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
 	NewInter is Intervening - 1,
 	ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter, Flag).
-ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, Flag) :-
+ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
+	%	Intervening =< MaxInter,
 	Intervening =< MaxInter,
 	Goal =.. [Name|ArgGoal],
 	NegGoal =.. [Name|ArgNegGoal], !,
-	(
-	    Flag = found_dis,
-	    loop_list_disequality(ArgGoal, ArgNegGoal)
-	;
-	    Flag = found_clpq,
-	    loop_list_clpq(ArgGoal, ArgNegGoal)
-	),
+	if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[Goal,chs(not(NegGoal))])),
+	loop_list(ArgGoal, ArgNegGoal),
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
-	ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
-ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, Flag) :-
+	ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
+ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
 	Intervening =< MaxInter,
 	Goal =.. [Name|ArgGoal],
 	NegGoal =.. [Name|ArgNegGoal], !, 
-	(
-	    Flag = found_dis,
-	    loop_list_disequality(ArgGoal, ArgNegGoal)
-	;
-	    Flag = found_clpq,
-	    loop_list_clpq(ArgGoal, ArgNegGoal)
-	),
+	if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),chs(NegGoal)])),
+	loop_list(ArgGoal, ArgNegGoal),
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
-	ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, Flag).
+	ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
+% ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, Flag) :-
+% 	Intervening =< MaxInter,
+% 	Goal =.. [Name|ArgGoal],
+% 	NegGoal =.. [Name|ArgNegGoal], !,
+% 	(
+% 	    Flag = found_dis,
+% 	    loop_list_disequality(ArgGoal, ArgNegGoal)
+% 	;
+% 	    Flag = found_clpq,
+% 	    loop_list_clpq(ArgGoal, ArgNegGoal)
+% 	),
+% 	max(MaxInter, Intervening, NewMaxInter),
+% 	NewInter is Intervening + 1,
+% 	ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
+% ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, Flag) :-
+% 	Intervening =< MaxInter,
+% 	Goal =.. [Name|ArgGoal],
+% 	NegGoal =.. [Name|ArgNegGoal], !, 
+% 	(
+% 	    Flag = found_dis,
+% 	    loop_list_disequality(ArgGoal, ArgNegGoal)
+% 	;
+% 	    Flag = found_clpq,
+% 	    loop_list_clpq(ArgGoal, ArgNegGoal)
+% 	),
+% 	max(MaxInter, Intervening, NewMaxInter),
+% 	NewInter is Intervening + 1,
+% 	ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, Flag).
 ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,	

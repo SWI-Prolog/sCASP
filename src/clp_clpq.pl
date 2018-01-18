@@ -30,6 +30,7 @@ constraints of a variable.
 %% ------------------------------------------------------------- %%
 
 is_clpq_var(X) :-
+	var(X),
 	get_attribute(X,A),
 	A \= att(_,_,_).
 
@@ -50,7 +51,7 @@ dual_clpq([Init, Next|Is], Dual) :-
 	    dual_clpq([Init], Dual)
 	;
 	    dual_clpq([Next|Is], NextDual),
-	    Dual = [Init, NextDual]
+	    Dual = [Init| NextDual]
 	).
 dual_clpq_(A .<. B, A .>=. B).
 dual_clpq_(A .=<. B, A .>. B).
@@ -62,28 +63,50 @@ dual_clpq_(A .=. B, A .>. B).
 dual_clpq_(A .=. B, A .<. B).
 
 
-
-%%loop_list_clpq([],[]).
-loop_list_clpq([A|As],[B|Bs]) :-
+disequality_clpq(A,B) :-
+	\+ is_clpq_var(B), !,
 	(
-	    loop_list_clpq_(A,B)
+	    apply_clpq_constraints([A .>. B])
 	;
-	    A = B,
-	    loop_list_clpq(As,Bs)
+	    apply_clpq_constraints([A .<. B])
 	).
 
-loop_list_clpq_(A,B) :-
-	is_clpq_var(A),
-	\+ is_clpq_var(B),
-	dump_clpq_var([A], [B], Const),
-	dual_clpq(Const, Dual),
-	apply_clpq_constraints(Dual).
-loop_list_clpq_(B,A) :-
-	is_clpq_var(A),
-	\+ is_clpq_var(B), !,
-	dump_clpq_var([A], [B], Const),
-	dual_clpq(Const, Dual),
-	apply_clpq_constraints(Dual).
+% disequality_clpq(A,B) :-
+% 	\+ is_clpq_var(B), !,
+% 	(
+% 	    apply_clpq_constraints([A .>. B])
+% 	;
+% 	    apply_clpq_constraints([A .<. B])
+% 	).
+
+% loop_list_clpq([A|As],[B|Bs]) :-
+% 	(
+% 	    loop_var_clpq(A,B)
+% 	;
+% 	    A = B,
+% 	    loop_list_clpq(As,Bs)
+% 	).
+
+% loop_var_clpq(A,B) :-
+% 	is_clpq_var(A),
+% 	\+ is_clpq_var(B), !,
+% 	display(a),nl,
+% 	dump_clpq_var([A], [B], Const),
+% 	dual_clpq(Const, Dual),
+% 	apply_clpq_constraints(Dual).
+% loop_var_clpq(B,A) :-
+% 	is_clpq_var(A),
+% 	\+ is_clpq_var(B), !,
+% 	display(b),nl,
+% 	dump_clpq_var([A], [B], Const),
+% 	dual_clpq(Const, Dual),
+% 	apply_clpq_constraints(Dual).
+% loop_var_clpq(A,B) :-
+% 	is_clpq_var(A),
+% 	is_clpq_var(B), !,
+% 	display(c),nl,
+% 	apply_clpq_constraints([A .<>. B]).
+
 
 
 % Success if StoreA >= StoreB
