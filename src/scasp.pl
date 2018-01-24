@@ -81,6 +81,7 @@ load(X) :-
 %	abolish_all_tables,
 	clear_flags,
 	load_program(X),
+	pos_loops,
 	true.
 
 :- pred main(Args) : list(Args) #"Used when calling from command line
@@ -130,7 +131,7 @@ main_solve(Q) :-
 	init_counter,
 	process_query(Q,Query),
 	statistics(runtime,_),
-	solve(Query, [], StackOut, Model),
+	if(solve(Query, [], StackOut, Model),nl,(print('\nfalse\n\n'),fail)),
 	statistics(runtime, [_|[T]]),
 	increase_counter,
 	answer_counter(Counter),
@@ -442,9 +443,11 @@ check_CHS(Goal, I, co_failure) :-
 check_CHS(Goal, I, co_failure) :-
 	predicate(Goal),
 	\+ table_predicate(Goal),
-	\+ \+ type_loop(Goal, I, pos), !,
-	if_user_option(check_calls, format('Positive loop, failling (Goal = ~w)\n',[Goal])),
-	if_user_option(pos_loops, format('Warning positive loop failling (Goal = ~w)\n',[Goal])).
+	\+ \+ (
+		  type_loop(Goal, I, pos(S)),
+		  if_user_option(check_calls, format('Positive loop, failling (Goal = ~w)\n',[Goal])),
+		  if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w = ~w)\n',[Goal,S]))
+	      ), !.
 %% coinduction does not success or fails <- the execution continues
 %% inductively
 check_CHS(Goal, I, cont) :-
@@ -570,7 +573,7 @@ type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
 	Iv < 0,
 	NewIv is Iv + 1,
 	type_loop_(Goal, NewIv, N, Ss, Type).
-type_loop_(Goal, 0, N, [S|_],pos) :- Goal = S, N = 0.
+type_loop_(Goal, 0, N, [S|_],pos(S)) :- \+ \+ Goal = S, N = 0.
 type_loop_(not(Goal), 0, N, [not(S)|_],even) :- Goal == S, !, N > 0, 1 is mod(N, 2).
 type_loop_(Goal, 0, N, [S|_],even) :- Goal == S, N > 0, 0 is mod(N, 2).
 type_loop_(Goal, 0, N, [S|Ss],Type) :-
@@ -646,3 +649,4 @@ my_copy_list(Var,[T|Ts],NewVar,[NewT|NewTs]) :-
 % attr_portray_hook(rules(Att), A) :- format(" ~w  .is ~w ", [A, Att]).
 % attr_portray_hook(neg(Att),   A) :- format(" ~w  .\\=. ~w ", [A, Att]).
 % %% Attributes predicates %%
+

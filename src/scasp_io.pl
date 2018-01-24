@@ -84,11 +84,17 @@ process_query(A,Query) :-
 	(
 	    list(A) -> As = A ; As = [A]
 	),
+	(
+	    As = [not(_)|_] ->
+	    Bs = [true|As]
+	;
+	    Bs = As
+	),
 	retractall(cont),
 	(
-	    ground(As) -> assert(cont) ; true
+	    ground(Bs) -> assert(cont) ; true
 	),
-	append(As, [add_to_query], Query).
+	append(Bs, [add_to_query], Query).
 
 :- pred ask_for_more_models/0 #"Ask if the user want to generate more
 models (interactive and top-level mode)".
