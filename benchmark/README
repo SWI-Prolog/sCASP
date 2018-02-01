@@ -1,0 +1,9 @@
+Towers of hanoi example in ASP from https://github.com/potassco/clingo
+
+
+use:
+
+make asp
+make scasp
+
+to run the benchmarks

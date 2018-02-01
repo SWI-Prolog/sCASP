@@ -1216,7 +1216,7 @@ varatm(X) :- atom(X), atom_codes(X, [C|_]), varc(C).
 
 varc(C) :- C >= 0'A, C =< 0'Z, !.
 varc(0'_).
-varc(0'-) :- display(hi),nl.
+%%varc(0'-) :- display(hi),nl.
 
 revars([],[],_).
 revars([X|Xs],[Y|Ys],Dic) :- revar_(X,Y,Dic), revars(Xs, Ys, Dic).

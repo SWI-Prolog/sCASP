@@ -92,7 +92,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% Constructive disunification %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-.\=.(A,B) :- 
+.\=.(A,B) :-
 	ground(A),
 	ground(B), !,
 	A \= B.
@@ -153,34 +153,49 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% tested upon backtracking.
 
 %% particular case for lists (they are also struct)
-.\=.(ListA, ListB) :-
-	\+ var(ListA),
-	\+ var(ListB),
-	ListA = [A|As],
-	ListB = [B|Bs], !,
-	(
-	    %	    print(disequality(A,.\=.,B)),nl,
-	    A .\=. B
-	;
-	    %	    print(disequality(As,.\=.,Bs)),nl,
-	    As .\=. Bs
-	).
+% .\=.([],[]) :- !, fail.
+% .\=.(ListA, ListB) :-
+% 	\+ var(ListA),
+% 	\+ var(ListB),
+% 	ListA = [A|As],
+% 	ListB = [B|Bs], !,
+% 	format('disequality ~p \= ~p\n',[ListA,ListB]),	
+% 	(
+% 	    format('\tdisequality ~p \= ~p\n',[A,B]),
+% 	    A .\=. B
+% 	;
+% 	    format('\tdisequality ~p \= ~p\n',[A,B]),
+% 	    As .\=. Bs
+% 	).
+
+% .\=.(A,B) :-
+% 	\+ var(A),
+% 	\+ var(B),
+% 	struct(A),
+% 	struct(B), !,
+% 	A =.. [NameA | As],
+% 	B =.. [NameB | Bs],
+% 	(
+% 	    NameA \= NameB ->
+% 	    true
+% 	;
+% 	    As .\=. Bs
+% 	).
 
 .\=.(A,B) :-
 	\+ var(A),
-	\+ var(B),
+	\+ var(B), 
 	struct(A),
 	struct(B), !,
-	A =.. [NameA | As],
-	B =.. [NameB | Bs],
+%	format('check_dual(~p \= ~p)\n',[A,B]),
 	(
-	    NameA \= NameB ->
-	    true
+	    unifiable(A,B,Unifier) ->
+%	    format('check_dual(~p)\n',[Unifier]),
+	    check_dual(Unifier)
 	;
-	    As .\=. Bs
+	    true
 	).
-
-
+	
 % .\=.(A,B) :-
 % 	print('vars'),
 % 	disequality_clpq(A,B).
@@ -192,6 +207,10 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 	\+ var(A), \+ var(B),
 	A \= B.
 
+check_dual([A=B|_]) :-
+	A .\=. B.
+check_dual([_|Ds]) :-
+	check_dual(Ds).
 
 loop_list_disequality([A|As],[B|Bs]) :-
 	(
@@ -321,6 +340,7 @@ neg_var(A,List) :-
 get_neg_var(A,List) :-
 	get_attr_local(A,neg(List)).
 unbound(A) :-
+	var(A),
 	(
 	    get_attr_local(A,neg(List)), true ->
 	    List == []
@@ -357,7 +377,7 @@ attribute_goals(X) -->
 	[.\=.(X, G)],
 	 {get_attr_local(X,neg(G))}.
 attr_portray_hook(neg(List), Var) :-
-	format(" ~w  .\\=. ~w ",[Var,List]).
+	format("~w.\\=.~w",[Var,List]).
 
 :- multifile portray_attribute/2.
 portray_attribute(att(_,false,att(clp_disequality_rt,neg(List),_)),Var) :-
@@ -365,7 +385,7 @@ portray_attribute(att(_,false,att(clp_disequality_rt,neg(List),_)),Var) :-
 	    List == [] ->
 	    display(Var)
 	;
-	    format("{ ~w  .\\=. ~w }",[Var,List])
+	    format(" {~w.\\=.~w} ",[Var,List])
 	).
 	
 %% Auxiliar predicates %%

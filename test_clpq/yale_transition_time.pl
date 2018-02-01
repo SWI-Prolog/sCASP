@@ -15,17 +15,16 @@ do(load,Step) :- not do(shoot,Step), not do(wait,Step).
 do(shoot,Step) :- not do(wait,Step), not do(load,Step).
 do(wait,Step) :- not do(load,Step), not do(shoot,Step).
 
-holds(0,0,State,[]) :-
+holds(0,State,[]) :-
 	init(State).
-holds(Step1, Time1, FinalState, [a(Action,Time1)|As]) :-
+holds(Time1, FinalState, [a(Action,Time1)|As]) :-
 	Time1 .>. 0,
 	Time1 .=. Time + Duration,
-	do(Action, Step),
+	do(Action, Time1),
 %	action(Action),
 	duration(Action, Duration),
 	transition(Action, PrevState, FinalState),
-	holds(Step, Time, PrevState, As),
-	Step1 is Step + 1.
+	holds(Time, PrevState, As).
 
 init(state(unloaded, 0)).
 
@@ -38,5 +37,6 @@ transition(shoot, state(loaded, PrevArmed), state(unloaded, 0)) :-
 	PrevArmed .>. 35.
 transition(shoot, state(unloaded, _), state(unloaded, 0)).
 
+:- T .<. 10, do(shoot,T).
 
 ?- holds(Step, Time, [dead,_], Actions).

@@ -46,9 +46,9 @@ dump_rules([X|Xs], Ns, Ds) :-
 attr_unify_hook(rules(Att), B) :- get_attr_local(B, rules(AttB)), Att = AttB.
 attr_unify_hook(neg(A), B) :- not_unify(B,A).
 attribute_goals(X) --> [X ~> G], {get_attr_local(X, rules(G))}.
-attribute_goals(X) --> [X .\=. G], {get_attr_local(X, neg(G))}.
+attribute_goals(X) --> [X.\=.G], {get_attr_local(X, neg(G))}.
 attr_portray_hook(rules(Att), A) :- format(" ~w  .is ~w ", [A, Att]).
-attr_portray_hook(neg(Att),   A) :- format(" ~w  .\\=. ~w ", [A, Att]).
+attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 %% Attributes predicates %%
 
 

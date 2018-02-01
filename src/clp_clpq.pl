@@ -56,7 +56,7 @@ dual_clpq([Init, Next|Is], Dual) :-
 dual_clpq_(A .<. B, A .>=. B).
 dual_clpq_(A .=<. B, A .>. B).
 dual_clpq_(A .>. B, A .=<. B).
-dual_clpq_(A .>=. B, A .>. B).
+dual_clpq_(A .>=. B, A .<. B).
 dual_clpq_(A .<>. B, A .=. B).
 %dual_clpq_(A .=. B, A .<>. B).
 dual_clpq_(A .=. B, A .>. B).
@@ -123,17 +123,28 @@ store_entails(StoreA, StoreB) :-
 
 
 :- multifile portray_attribute/2.
+% portray_attribute(_,A) :-
+% 	clpqr_dump_constraints(A, A, Constraints),
+% 	(
+% 	    Constraints == [] ->
+% 	    display(A)
+% 	;
+% 	    display('{ '),
+% 	    display(A), display(' '),
+% 	    display(Constraints),
+% %	    prety_print(Constraints),
+% 	    display(' }')
+% 	).
+
 portray_attribute(_,A) :-
 	clpqr_dump_constraints(A, A, Constraints),
 	(
 	    Constraints == [] ->
 	    display(A)
 	;
-	    display('{ '),
-	    display(A), display(' '),
-	    display(Constraints),
-%	    prety_print(Constraints),
-	    display(' }')
+	    display(' {'),
+	    prety_print(Constraints),
+	    display('} ')
 	).
 
 	
@@ -141,6 +152,6 @@ prety_print([]).
 prety_print([C]) :- prety_print_(C).
 prety_print([C1,C2|Cs]) :- prety_print_(C1), display(', '), prety_print([C2|Cs]).
 prety_print_(nonzero(Var)) :- display(nonzero(Var)), !.
-prety_print_(C) :- struct(C), C =.. [Op,A,B], prety_print_(A), display(' '), display(Op), display(' '), prety_print_(B), !.
+prety_print_(C) :- struct(C), C =.. [Op,A,B], prety_print_(A), display(''), display(Op), display(''), prety_print_(B), !.
 prety_print_(A) :- display(A).
 

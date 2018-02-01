@@ -79,9 +79,9 @@ program under the stable model semantic.
 
 load(X) :-
 %	abolish_all_tables,
-	clear_flags,
+%	clear_flags,
 	load_program(X),
-	pos_loops,
+%	pos_loops,
 	true.
 
 :- pred main(Args) : list(Args) #"Used when calling from command line
@@ -156,10 +156,13 @@ main_solve(Q) :-
 :- pred run_defined_query #"Used from the interactive mode to run
 the defined query".
 
+:- use_module(library(write)).
+:- use_module(library(terms_check)).
+
 run_defined_query :-
 	defined_query(A),
 	solve_query(A),
-	print(A),
+	print_prett(A),
 	allways_ask_for_more_models,nl,nl.
 
 defined_query(_) :-
@@ -296,7 +299,7 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	my_copy_term(Var,Goal,NewVar2,NewGoal2),
 	solve([NewGoal], StackIn, [[]|StackMid], ModelMid),
 	if_user_option(check_calls, format('\tSuccess solve ~p\n\t\t for the ~p\n',[NewGoal,forall(Var,Goal)])),
-	check_unbound(NewVar, List), !,
+	check_unbound(NewVar, List),
 	(
 	    List == [] ->
 	    StackOut = StackMid,
@@ -304,13 +307,14 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	;
 	    List = 'clpq'(NewVar3,Constraints) ->
 	    findall('dual'(NewVar3,ConDual), dual_clpq(Constraints, ConDual), DualList),
-%	    dual_clpq(Constraints, ConDual),
+	    %	    dual_clpq(Constraints, ConDual),
 	    if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, DualList])),
-	    exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3,[]), DualList, StackMid, StackOut, ModelList),
+	    exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3,[]), DualList, StackMid, StackOut, ModelList), !,
 	    append(ModelMid, ModelList, Model)
 	;
+	    !,
 	    if_user_option(check_calls, format('Executing ~p with clp_disequeality list = ~p\n', [Goal, List])),
-	    exec_with_neg_list(NewVar2, NewGoal2, List, StackMid, StackOut, ModelList),
+	    exec_with_neg_list(NewVar2, NewGoal2, List, StackMid, StackOut, ModelList), 
 	    append(ModelMid, ModelList, Model)
 	).
 
@@ -444,10 +448,18 @@ check_CHS(Goal, I, co_failure) :-
 	predicate(Goal),
 	\+ table_predicate(Goal),
 	\+ \+ (
-		  type_loop(Goal, I, pos(S)),
-		  if_user_option(check_calls, format('Positive loop, failling (Goal = ~w)\n',[Goal])),
-		  if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w = ~w)\n',[Goal,S]))
+		  type_loop(Goal, I, fail_pos(S)),
+		  if_user_option(check_calls, format('Positive loop, failling (Goal == ~w)\n',[Goal])),
+		  if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w == ~w)\n',[Goal,S]))
 	      ), !.
+check_CHS(Goal, I, _cont) :-
+	predicate(Goal),
+	\+ table_predicate(Goal),
+	\+ \+ (
+		  type_loop(Goal, I, pos(S)),
+		  if_user_option(check_calls, format('Positive loop, continuing (Goal = ~w)\n',[Goal])),
+		  if_user_option(pos_loops, format('\nNote: positive loop continuing (Goal ~w = ~w)\n',[Goal,S]))
+	      ), fail.
 %% coinduction does not success or fails <- the execution continues
 %% inductively
 check_CHS(Goal, I, cont) :-
@@ -573,9 +585,16 @@ type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
 	Iv < 0,
 	NewIv is Iv + 1,
 	type_loop_(Goal, NewIv, N, Ss, Type).
-type_loop_(Goal, 0, N, [S|_],pos(S)) :- \+ \+ Goal = S, N = 0.
-type_loop_(not(Goal), 0, N, [not(S)|_],even) :- Goal == S, !, N > 0, 1 is mod(N, 2).
-type_loop_(Goal, 0, N, [S|_],even) :- Goal == S, N > 0, 0 is mod(N, 2).
+
+type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal == S.
+type_loop_(Goal, 0, 0, [S|_],pos(S)) :-  \+ \+ Goal = S.
+% type_loop_(not(Goal), 0, 2, [not(S)|_],fail_pos(not(S))) :- \+ \+ Goal == S.
+% type_loop_(not(Goal), 0, 2, [not(S)|_],pos(not(S))) :- \+ \+ Goal = S.
+% type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(not(S))) :- Goal == S, N > 0, 0 is mod(N, 2).
+
+type_loop_(not(Goal), 0, N, [not(S)|_],even) :- Goal == S, N > 0, 1 is mod(N, 2).
+type_loop_(Goal, 0, N, [S|_],even) :- Goal \= not(_), Goal == S, N > 0, 0 is mod(N, 2).
+
 type_loop_(Goal, 0, N, [S|Ss],Type) :-
 	Goal \== S,
 	S = not(_),
@@ -650,3 +669,16 @@ my_copy_list(Var,[T|Ts],NewVar,[NewT|NewTs]) :-
 % attr_portray_hook(neg(Att),   A) :- format(" ~w  .\\=. ~w ", [A, Att]).
 % %% Attributes predicates %%
 
+
+
+
+
+% :- use_module(library(dict)).
+% :- use_module(library(terms_vars)).
+% print_prett(X) :-
+% 	print(X),nl,
+% 	term_variables(X,List),
+% 	dic_lookup(Dic,List,List2),
+% 	print(a(List,List2)),nl.
+
+print_prett(X) :- print(X).

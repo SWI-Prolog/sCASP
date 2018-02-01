@@ -36,3 +36,5 @@ transition(shoot, state(_, loaded, PrevArmed), state(dead, unloaded, 0)) :-
 	PrevArmed .=<. 35.
 transition(shoot, state(Turkey, loaded, PrevArmed), state(Turkey, unloaded, 0)) :-
 	PrevArmed .>. 35.
+
+
