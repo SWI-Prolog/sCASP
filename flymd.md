@@ -63,7 +63,7 @@ Example:
 * To obtain one model of the program (i.e. test.pl)
 
 ```
-$ ./scasp test.pl
+$ ./scasp test.plfLyMd-mAkEr
 Answer: 1
 { q(X), not p(X) }
 $
