@@ -103,6 +103,7 @@ ask_for_more_models :-
 	(
 	    cont, print('next ? '), get_char(R),true, R \= '\n' ->
 	    get_char(_),
+	    statistics(runtime,_),
 	    fail
 	;
 	    true
@@ -116,6 +117,7 @@ allways_ask_for_more_models :-
 	    print(' ? '), get_char(R),true, R \= '\n' ->
 	    get_char(_),
 	    nl,
+	    statistics(runtime,_),
 	    fail
 	;
 	    true

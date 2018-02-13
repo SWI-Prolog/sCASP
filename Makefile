@@ -9,6 +9,8 @@ clean: lpdoc_clean
 	@$(MAKE) lpdoc_clean
 	@-ciao clean-tree .
 	@-find . -name "*~" -type f -delete
+	@-find . -name "flymd.html" -type f -delete
+	@-find . -name "flymd.md" -type f -delete
 	@rm -fr scasp
 
 lpdoc:

@@ -14,6 +14,7 @@
 	predicate/1,
 	table_predicate/1,
 	my_copy_term/4,
+	clear_flags/0,
 	check_calls/0,
 	pos_loops/0,
 	print_on/0
@@ -59,12 +60,7 @@ program under the stable model semantic.
 
 :- use_module(clp_clpq).
 
-%:- use_package(clpfd).
-%:- use_package(clpq).
 :- use_module(library(formulae)).
-%:- use_module(library(read)).
-%:- use_module(library(format)).
-%:- use_module(library(dynamic)).
 
 :- op(700, fx,  [not,(?=), (??)]).
 
@@ -79,9 +75,7 @@ program under the stable model semantic.
 
 load(X) :-
 %	abolish_all_tables,
-%	clear_flags,
 	load_program(X),
-%	pos_loops,
 	true.
 
 :- pred main(Args) : list(Args) #"Used when calling from command line
@@ -145,10 +139,12 @@ main_solve(Q) :-
 	;
 	    Number = 0,
 	    nl,nl,
+	    statistics(runtime,_),
 	    fail
 	;
 	    Number > 0,
 	    nl,nl,
+	    statistics(runtime,_),
 	    Counter = Number
 	).
 	
@@ -162,7 +158,7 @@ the defined query".
 run_defined_query :-
 	defined_query(A),
 	solve_query(A),
-	print_prett(A),
+	print(A),
 	allways_ask_for_more_models,nl,nl.
 
 defined_query(_) :-
@@ -194,11 +190,15 @@ the top-level. It calls solve_query/1".
 ?? Q :- solve_query(Q).
 
 solve_query(A) :-
+	init_counter,
 	process_query(A,Query),
 	statistics(runtime,_),
 	solve(Query, [], StackOut, Model),
 	statistics(runtime, [_|T]),
-	format('\nsolve_run_time = ~w ms\n\n',T),
+	increase_counter,
+	answer_counter(Counter),
+	format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
+%	format('\nsolve_run_time = ~w ms\n\n',T),
 	if_user_option(print,print_output(StackOut)),
 	print_model(Model),nl,nl,
 	ask_for_more_models.
@@ -512,34 +512,6 @@ ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found)
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
 	ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
-% ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, Flag) :-
-% 	Intervening =< MaxInter,
-% 	Goal =.. [Name|ArgGoal],
-% 	NegGoal =.. [Name|ArgNegGoal], !,
-% 	(
-% 	    Flag = found_dis,
-% 	    loop_list_disequality(ArgGoal, ArgNegGoal)
-% 	;
-% 	    Flag = found_clpq,
-% 	    loop_list_clpq(ArgGoal, ArgNegGoal)
-% 	),
-% 	max(MaxInter, Intervening, NewMaxInter),
-% 	NewInter is Intervening + 1,
-% 	ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
-% ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, Flag) :-
-% 	Intervening =< MaxInter,
-% 	Goal =.. [Name|ArgGoal],
-% 	NegGoal =.. [Name|ArgNegGoal], !, 
-% 	(
-% 	    Flag = found_dis,
-% 	    loop_list_disequality(ArgGoal, ArgNegGoal)
-% 	;
-% 	    Flag = found_clpq,
-% 	    loop_list_clpq(ArgGoal, ArgNegGoal)
-% 	),
-% 	max(MaxInter, Intervening, NewMaxInter),
-% 	NewInter is Intervening + 1,
-% 	ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, Flag).
 ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,	
@@ -588,9 +560,6 @@ type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
 
 type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal == S.
 type_loop_(Goal, 0, 0, [S|_],pos(S)) :-  \+ \+ Goal = S.
-% type_loop_(not(Goal), 0, 2, [not(S)|_],fail_pos(not(S))) :- \+ \+ Goal == S.
-% type_loop_(not(Goal), 0, 2, [not(S)|_],pos(not(S))) :- \+ \+ Goal = S.
-% type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(not(S))) :- Goal == S, N > 0, 0 is mod(N, 2).
 
 type_loop_(not(Goal), 0, N, [not(S)|_],even) :- Goal == S, N > 0, 1 is mod(N, 2).
 type_loop_(Goal, 0, N, [S|_],even) :- Goal \= not(_), Goal == S, N > 0, 0 is mod(N, 2).
@@ -657,28 +626,3 @@ my_copy_list(Var,[T|Ts],NewVar,[NewT|NewTs]) :-
 	my_copy_list(Var, Ts, NewVar,NewTs).
 
 
-
-% :- use_package(attr).
-% %% Attributes predicates %%
-% :- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
-% attr_unify_hook(rules(Att), B) :- get_attr_local(B, rules(AttB)), Att = AttB.
-% attr_unify_hook(neg(A), B) :- not_unify(B,A).
-% attribute_goals(X) --> [X ~> G], {get_attr_local(X, rules(G))}.
-% attribute_goals(X) --> [X .\=. G], {get_attr_local(X, neg(G))}.
-% attr_portray_hook(rules(Att), A) :- format(" ~w  .is ~w ", [A, Att]).
-% attr_portray_hook(neg(Att),   A) :- format(" ~w  .\\=. ~w ", [A, Att]).
-% %% Attributes predicates %%
-
-
-
-
-
-% :- use_module(library(dict)).
-% :- use_module(library(terms_vars)).
-% print_prett(X) :-
-% 	print(X),nl,
-% 	term_variables(X,List),
-% 	dic_lookup(Dic,List,List2),
-% 	print(a(List,List2)),nl.
-
-print_prett(X) :- print(X).

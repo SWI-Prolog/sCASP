@@ -1,19 +1,14 @@
-:- module(weight_seq_tclp,_).
+%% s(CASP) weight_seq_scasp.pl
 
-:- use_package(tabling).
-:- use_package(t_clpq).
-:- table weightAux/5.
+#include('select_instance.asp').
 
-:- include('select_instance.pl').
-
-test(T,W) :-
-	abolish_all_tables,
-	statistics(runtime,_), query([_,_,W]), statistics(runtime, [_|T]).
+?- query(Solution).
 
 query([InnerTree, Color, W]) :-
 	max_total_weight(MaxW),
 	W .=<. MaxW,
-	weight_seq_tclp:num(Lenght),
+	%	weight_seq_clp:num(Lenght),
+	num(Lenght),
 	create(0, Lenght, L),
 	permutation(L, List),
 	weight(List, InnerTree, Color, W).
@@ -24,13 +19,13 @@ weight([L1, L2|Tree], [innerLeftRight(1, L1, L2)|InnerTree], [innerColor(1, Colo
 	colorWeight(W1, L2, Color, WNode),
 	weightAux(1, [WNode|Tree], InnerTree, ColorTree, WMid).
 
- weightAux(N, [W1, L2|Tree], [innerLeftRight(N1, N, L2)|InnerTree], [innerColor(N1,Color, WNode)|ColorTree], Weight) :-
+weightAux(N, [W1, L2|Tree], [innerLeftRight(N1, N, L2)|InnerTree], [innerColor(N1,Color, WNode)|ColorTree], Weight) :-
 	N1 is N + 1,
 	colorWeight(W1, L2, Color, WNode),
 	weightAux(N1, [WNode|Tree], InnerTree, ColorTree, WMid),
 	Weight is WNode + WMid.
 
-weightAux(_, [_Weight], [], [], 0).
+weightAux(_, [Weight], [], [], 0).
 
 
 colorWeight(W1, L2, Color, W) :-
@@ -38,18 +33,17 @@ colorWeight(W1, L2, Color, W) :-
 	G is W2 + C2,
 	R is W1 + W2,
 	B is W1 + C2,
-	(
-	    G .=<. R, G .=<. B ->
-	    Color = green,
-	    W = G
-	;
-	    R .=<. B ->
-	    Color = red,
-	    W = R
-	;
-	    Color = blue,
-	    W = B
-	).
+	choose(G,R,B,Color,W).
+
+choose(G,R,B,green,G) :-
+	G .=<. R, G .=<. B.
+choose(G,R,B,red,R) :-
+	R .=<. B,
+	not choose(G,R,B,green,G).
+choose(G,R,B,blue,B) :-
+	not choose(G,R,B,red,R),
+	not choose(G,R,B,green,G).
+
 
 permutation([], []).
 
