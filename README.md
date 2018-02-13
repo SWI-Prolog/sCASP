@@ -90,11 +90,11 @@ $ ./scasp -d0 test.pl
 $ ./scasp -i test.pl
 ?- p(X).
 { p(X), not q(X) } ? 
-
+ 
 false.
 ?- q(X).
 { q(X), not p(X) } ? ;
-
+ 
 false.
 ?- halt.
 ```
@@ -103,7 +103,7 @@ false.
 ```
 p(X) :- not q(X).
 q(X) :- not p(X).
-
+ 
 ?- q(X).
 ```
    
