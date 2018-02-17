@@ -14,6 +14,7 @@
 			pr_query/1,
 			pr_user_predicate/1,
 			pr_table_predicate/1,
+			pr_show_predicate/1,
 %			refunct/3,
                         print_abducibles/2
                      ]).
@@ -1120,17 +1121,14 @@ print_var(B) :- !,
 
 
 
-:- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1, pr_table_predicate/1.
+:- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1, pr_table_predicate/1, pr_show_predicate/1.
 
 %! generate_pr_rules/0
 generate_pr_rules(Sources) :-
 	retractall(pr_query(_)), retractall(pr_rule(_,_)), retractall(pr_user_predicate(_)),
 	retractall(pr_table_predicate(_)),
+	retractall(pr_show_predicate(_)),
 	format('\nLoading files: ~w\n',Sources),
-	% get_dir_name_ext(Source, _Dir, Name, _Ext),
-	% atom_concat(Name, '_pr.pl',File),
-	% format('\nBEGIN pr_rules GENERATION in file: ~w\n',File),
- 	% open_output_file(Stream,File,Current),
 	findall(R, (defined_rule(_, H, B), rule(R, H, B)), Rs),
 	new_var_struct(V),
 	format_term_list(Rs,Rs2,_,V),
@@ -1149,14 +1147,23 @@ generate_pr_rules(Sources) :-
 	    true
 	),
 	(
-	    table(Table),
-	    format_term_list(Table, Table2, _, V),
-	    assert_pr_table(Table2) ->
+	    findall(T, table(T), Ts),
+	    format_term_list(Ts, Ts2, _, V),
+	    assert_pr_table(Ts2) ->
 	    true
 	;
 	    true
 	),
 	retractall(table(_)),
+	(
+	    findall(S, show(S), Ss),
+	    format_term_list(Ss, Ss2, _, V),
+	    assert_pr_show(Ss2) ->
+	    true
+	;
+	    true
+	),
+	retractall(show(_)),
 	assert_pr_rules(Rs2),
 	assert_pr_rules([-('add_to_query', NMR2)]),
 	% close_output_file(Stream, Current),
@@ -1164,11 +1171,26 @@ generate_pr_rules(Sources) :-
 	true.
 
 assert_pr_table([]).
+assert_pr_table([[T|Ts]|Tss]) :-
+	assert_pr_table([T|Ts]),
+	assert_pr_table(Tss).
 assert_pr_table([T|Ts]) :-
 	assert(pr_table_predicate(T)),
 	% print(pr_table_predicate(T)),
 	% print('.'),nl,
 	assert_pr_table(Ts).
+
+assert_pr_show([]).
+assert_pr_show([[T|Ts]|Tss]) :-
+	assert_pr_show([T|Ts]),
+	assert_pr_show(Tss).
+assert_pr_show([Name/Arity|Ts]) :-
+	length(Args,Arity),
+	T =.. [Name|Args],
+	assert(pr_show_predicate(T)),
+	% print(pr_show_predicate(T)),
+	% print('.'),nl,
+	assert_pr_show(Ts).
 
 assert_pr_rules([]).
 assert_pr_rules([-(Head, Body)|Rs]) :-
