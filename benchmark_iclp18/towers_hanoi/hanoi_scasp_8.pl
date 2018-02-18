@@ -2,26 +2,24 @@
 
 % Move N disks in T moves.
 hanoi(N, T) :-
-        moven(N, 0, T, a, b, c).
+        move_(N, 0, T, a, b, c).
 
-% Move N disks from peg A to peg B using peg C.
-moven(N, Ti, To, A, B, C) :-
-        N .>. 1,
-        N1 .=. N - 1,
-        T3 .=. T2 + 1,
-        moven(N1, Ti, T2, A, C, B),
-        move(A, B, T3),
-        moven(N1, T3, To, C, B, A).
-moven(1, Ti, To, A, B, _) :-
-        To .=. Ti + 1,
-        move(A, B, To).
+% Move N disks from peg Pi to peg Pf using peg Paux.
+move_(N,Ti,Tf,Pi,Pf,Paux) :-
+    N.>.1,
+    N1.=.N - 1,
+    move_(N1,Ti,T1,Pi,Paux,Pf),
+    move_(1,T1,T2,Pi,Pf,Paux),
+    move_(N1,T2,Tf,Paux,Pf,Pi).
+move_(1,Ti,Tf,Pi,Pf,_) :-
+    Tf.=.Ti + 1,
+    move(Pi,Pf,Tf).
 
-% move T: move disk from P1 to P2.
+% move T: move disk from Pi to Pf.
 % any move may or may not be selected.
-move(P1, P2, T) :-
-        not negmove(P1, P2, T).
-
-negmove(P1, P2, T) :-
-        not move(P1, P2, T).
+move(Pi,Pf,T):- not negmove(Pi,Pf,T).
+negmove(Pi,Pf,T):- not move(Pi,Pf,T).
 
 ?- hanoi(8, T).
+
+#show move/3.

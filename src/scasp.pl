@@ -45,6 +45,7 @@ program under the stable model semantic.
 	pr_query/1,
 	pr_user_predicate/1,
 	pr_table_predicate/1,
+	pr_show_predicate/1,
 	write_program/0
 			 ]).
 

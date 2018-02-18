@@ -111,9 +111,13 @@ process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
 	absolute_file_name(X, X2, [relative_to(C)]), % resolve relative to current file
         !, % include directive
         process_directives(T, C, Si, So, Fsi, Fso).
-:- dynamic table/1.
+:- dynamic table/1, show/1.
 process_directives([table(X) | T], C, Si, So, Fsi, Fso) :-
 	assertz(table(X)),
+        !, % include directive
+        process_directives(T, C, Si, So, Fsi, Fso).
+process_directives([show(X) | T], C, Si, So, Fsi, Fso) :-
+	assertz(show(X)),
         !, % include directive
         process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([abducible(X) | T], C, Si, So, Fsi, Fso) :-

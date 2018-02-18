@@ -336,12 +336,12 @@ keyword(is).
 keyword(compute).
 keyword(include).
 keyword(table).
+keyword(show).
 keyword(abducible).
 keyword('_abducible').
 keyword(hide).
 keyword('_false').
 keyword('_nmr_check').
-%keyword('show').
 % clpfd
 keyword(in).
 

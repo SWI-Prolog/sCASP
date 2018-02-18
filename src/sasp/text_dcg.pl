@@ -189,6 +189,10 @@ directive2(table(Xo)) -->
 	[('table', _)],
 	  body(Xo),
 	  terminal('.').
+directive2(show(Xo)) -->
+	[('show', _)],
+	  body(Xo),
+	  terminal('.').
 directive2(X) -->
         [('compute', _)],
         compute(X).

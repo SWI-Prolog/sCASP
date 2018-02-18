@@ -41,7 +41,8 @@ Arias} in the folder @file{./src/sasp/}.
 	pr_rule/2,
 	pr_query/1,
 	pr_user_predicate/1,
-	pr_table_predicate/1
+	pr_table_predicate/1,
+	pr_show_predicate/1
 				]).
 :- use_module(.(sasp/main)).
 
@@ -163,18 +164,24 @@ print_model_([X|Xs]) :-
 	print_model_(X), !,
 	print_model_(Xs).
 print_model_([X]) :- !,
-	( X \= proved(_) ->
+	( print_literal(X) ->
 	  print(X)
 	; true
 	).
 print_model_([X, Y|Xs]) :-
-	( X \= proved(_) ->
+	( print_literal(X) ->
 	  print(' , '),
 	  print(X)
 	; true
 	),
 	print_model_([Y|Xs]).
-
+print_literal(X) :-
+	(
+	    pr_show_predicate(_) ->
+	    pr_show_predicate(X)
+	;
+	    X \= proved(_)
+	).
 
 print_j(Justification,I) :-
 	print_model(Justification),
