@@ -78,10 +78,11 @@ write_program :-
 :- pred process_query(Q, Query) #"Initialize internal flags to allows
 the generation of multiples models in the interaction and top-level
 mode (even when the query is ground). Returns in @var{Query} a list
-with the sub_goals in @var{Q} and @em{add_to_query} with run the
+with the sub_goals in @var{Q} and @em{nmr_check} with run the
 nmr_check".
 
-process_query(A,Query) :-
+process_query(Q,Query) :-
+	revar(Q,A),
 	(
 	    list(A) -> As = A ; As = [A]
 	),

@@ -1,5 +1,4 @@
 :- module(output, [
-	ratatom/2,
                         format_term/4,
                         format_term_list/4,
                         print_chs/3,
@@ -16,6 +15,7 @@
 			pr_user_predicate/1,
 			pr_table_predicate/1,
 			pr_show_predicate/1,
+			revar/2,
 %			refunct/3,
                         print_abducibles/2
                      ]).
@@ -1230,7 +1230,7 @@ revar(X,Y) :- revar_(X,Y,_Dic).
 
 revar_(X,Y,_Dic) :- var(X), !, Y=X.
 revar_(X,Y,Dic) :- varatm(X), !, dic_lookup(Dic,X,Y).
-revar_(X,Y,_Dic) :- ratatom(X,Y), !.
+revar_(X,Y,_Dic) :- special_atom(X,Y), !.
 revar_(X,Y,Dic) :-
 	X=..[F|As],
 	revars(As,Bs,Dic),
@@ -1238,7 +1238,11 @@ revar_(X,Y,Dic) :-
 
 varatm(X) :- atom(X), atom_codes(X, [C|_]), varc(C).
 
-ratatom(X,'rat'(A,B)) :-
+special_atom(X,'rat'(A,B)) :-
+	X =.. [/,A,B],
+	num(A),
+	num(B), nl,!.
+special_atom(X,'rat'(A,B)) :-
 	atom(X),
 	atom_codes(X, Codes),
 	member(47, Codes),

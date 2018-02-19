@@ -594,7 +594,7 @@ predicate(Goal) :-
 :- pred table_predicate(Goal) #"Success if @var{Goal} is defined as
 a tabled predicate with the directive @em{table pred/n.}".
 
-%%%% table_predicate(add_to_query).
+
 table_predicate(Goal) :-
 	Goal =.. [Name|Args],
 	length(Args,La),
