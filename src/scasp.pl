@@ -422,10 +422,8 @@ exec_goal(A \= B) :- !,
 	.\=.(A, B),
 	if_user_option(check_calls, format('ok   ~p \\= ~p\n', [A,B])).
 exec_goal(Goal) :-
-	display(hi(Goal)),
 	if_user_option(check_calls, format('exec goal ~p \n',[Goal])),
 	catch(call(Goal),_,fail),
-	display(exit(Goal)),
 	if_user_option(check_calls, format('ok   goal ~p \n', [Goal])).
 
 capture_rational(G, A/B) :- ground(G), G=rat(A,B),!.

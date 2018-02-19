@@ -1238,16 +1238,11 @@ revar_(X,Y,Dic) :-
 
 varatm(X) :- atom(X), atom_codes(X, [C|_]), varc(C).
 
-special_atom(X,'rat'(A,B)) :-
-	X =.. [/,A,B],
-	num(A),
-	num(B), nl,!.
+special_atom(A/B,'rat'(A,B)) :- num(A),	num(B),!.
 special_atom(X,'rat'(A,B)) :-
 	atom(X),
 	atom_codes(X, Codes),
-	member(47, Codes),
-	append(C_A,[47],Cs),
-	append(Cs,C_B,Codes),
+	append(C_A, [0'/ | C_B], Codes),
 	number_codes(A,C_A),
 	number_codes(B,C_B).
 
