@@ -479,6 +479,9 @@ asp_term(X) -->
 asp_term(X) -->
         [(float(X), _)],
         !.
+asp_term(X) -->
+        [(rat(X), _)],
+        !.
 asp_term(V) -->
         [('_', _)], % replace underscore with unique variable
         {replace_underscore(V)},
@@ -824,6 +827,7 @@ syntax_msg(X, Msg) :-
 visible_token(id(X), X).
 visible_token(int(X), X).
 visible_token(float(X), X).
+visible_token(rat(X), X).
 visible_token(var(X), X).
 visible_token(str(X), X).
 visible_token(T, T).

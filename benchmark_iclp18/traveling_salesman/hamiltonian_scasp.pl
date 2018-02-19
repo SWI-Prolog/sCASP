@@ -35,9 +35,9 @@ node(b).
 node(c).
 node(d).
 
-distance(b, c, 3).
+distance(b, c, 3/2).
 distance(c, d, L) :-
-	L .>. 10, L .<. 13.
+	L .>. 8, L .<. 10.
 distance(d, a, 1).
 distance(a, b, 1).
 distance(c, a, 1).

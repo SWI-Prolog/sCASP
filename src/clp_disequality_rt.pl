@@ -120,14 +120,14 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 .\=.(A,B) :-
 	neg_var(A,NegListA),
 	ground(B), !,
-	assert(disunify(A,B)),
+%	assert(disunify(A,B)),
 	insert(NegListA,B,NegList),
 	update(A,NegList).
 
 .\=.(B,A) :-
 	neg_var(A,NegListA),
 	ground(B), !,
-	assert(disunify(A,B)),
+%	assert(disunify(A,B)),
 	insert(NegListA,B,NegList),
 	update(A,NegList).
 

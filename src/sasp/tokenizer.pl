@@ -390,6 +390,13 @@ number2(float(X), Y) -->
         digits(Cs),
         {append(Y, ['.', C | Cs], Cs3)},
         {c_name(X, Cs3)}.
+number2(rat(X), Y) -->
+        [('/', _), (C, _)],
+        {char_type(C, digit)},
+        !, % rational '/'
+        digits(Cs),
+        {append(Y, ['/', C | Cs], Cs3)},
+        {c_name(X, Cs3)}.
 number2(int(X), Y) -->
         [], % integer
         !,

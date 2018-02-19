@@ -152,6 +152,7 @@ prety_print([]).
 prety_print([C]) :- prety_print_(C).
 prety_print([C1,C2|Cs]) :- prety_print_(C1), display(', '), prety_print([C2|Cs]).
 prety_print_(nonzero(Var)) :- display(nonzero(Var)), !.
+prety_print_(R) :- struct(R), R =.. [rat,A,B], display(A),!, display(/), display(B).
 prety_print_(C) :- struct(C), C =.. [Op,A,B], prety_print_(A), display(''), display(Op), display(''), prety_print_(B), !.
 prety_print_(A) :- display(A).
 
