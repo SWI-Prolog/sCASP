@@ -401,6 +401,10 @@ solve_goal_predicate(Goal, StackIn, StackOut, GoalModel) :-
 :- pred solve_goal_builtin(Goal, StackIn, StackOut, AttModel) #"Used
 to evaluate builtin predicates predicate".
 
+solve_goal_builtin(is(X,Exp), StackIn, StackIn, Model) :- 
+	capture_rational(Exp,CaptExp), !, %% If it fails later the call(Goal) will also fail...
+	exec_goal(is(X,CaptExp)),
+	Model = [is(X,Exp)].  %% the Model should 'Start' with the Goal
 solve_goal_builtin(builtin(Goal), StackIn, StackIn, Model) :- !,
 	exec_goal(Goal),
 	Model = [builtin(Goal)].
@@ -418,10 +422,19 @@ exec_goal(A \= B) :- !,
 	.\=.(A, B),
 	if_user_option(check_calls, format('ok   ~p \\= ~p\n', [A,B])).
 exec_goal(Goal) :-
+	display(hi(Goal)),
 	if_user_option(check_calls, format('exec goal ~p \n',[Goal])),
 	catch(call(Goal),_,fail),
+	display(exit(Goal)),
 	if_user_option(check_calls, format('ok   goal ~p \n', [Goal])).
 
+capture_rational(G, A/B) :- ground(G), G=rat(A,B),!.
+capture_rational(St, NSt) :-
+	St =.. [Op,A,B], !,
+	capture_rational(A,Na),
+	capture_rational(B,Nb),
+	NSt =.. [Op,Na,Nb].
+capture_rational(A, A) :- ground(A).
 
 :- pred check_CHS(Goal, StackIn, Result) #"Checks the @var{StackIn}
 and returns in @var{Result} if the goal @var{Goal} is a coinductive
