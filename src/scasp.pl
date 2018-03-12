@@ -410,12 +410,24 @@ solve_goal_builtin(builtin(Goal), StackIn, StackIn, Model) :- !,
 	Model = [builtin(Goal)].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
 	Goal =.. [Op|_],
-	member(Op,[.=., .<>., .<., .>., .>=., .=<.]), !,
+	clp_builtin(Op), !,
 	exec_goal(apply_clpq_constraints(Goal)),
 	Model = [Goal].
-solve_goal_builtin(Goal, StackIn, StackIn, Model) :- 
+solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
+	Goal =.. [Op|_],
+	prolog_builtin(Op), !,
 	exec_goal(Goal),
 	Model = [Goal].
+%% The predicate is not defined as user_predicates neither builtin
+solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
+	if_user_option(check_calls,
+	format('The predicate ~p is not user_defined / builtin\n',[Goal])),
+	(
+	    Goal = not(_) ->
+	    Model = [Goal]     %% the negation of a not defined predicate success.
+	;
+	    fail               %% a not defined predicate allways fails.
+	).
 
 exec_goal(A \= B) :- !,
 	if_user_option(check_calls, format('exec ~p \\= ~p\n',[A,B])),
@@ -600,6 +612,7 @@ predicate(Goal) :-
 	Goal =.. [Name|Args],
 	length(Args,La),
 	pr_user_predicate(Name/La), !.
+
 %% predicate(-_Goal) :- !. %% NOTE that -goal is translated as '-goal' 
 
 :- pred table_predicate(Goal) #"Success if @var{Goal} is defined as
@@ -617,6 +630,27 @@ table_predicate(not(Goal)) :-
 shown_predicate(Goal) :-
 	Goal \= not(_),
 	predicate(Goal).
+
+
+:- pred prolog_builtin(Goal) #"Success if @var{Goal} is a builtin
+	prolog predicate".
+
+prolog_builtin(=).
+prolog_builtin(\=).
+prolog_builtin(<).
+prolog_builtin(>).
+prolog_builtin(>=).
+prolog_builtin(=<).
+
+:- pred clp_builtin(Goal) #"Success if @var{Goal} is a builtin
+	constraint predicate".
+
+clp_builtin(.=.).
+clp_builtin(.<>.).
+clp_builtin(.<.).
+clp_builtin(.>.).
+clp_builtin(.>=.).
+clp_builtin(.=<.).
 
 :- pred my_copy_term(Var, Term, NewVar, NewTerm) #"Its behaviour is
 similar to @pred{copy_term/2}. It returns in @var{NewTerm} a copy of

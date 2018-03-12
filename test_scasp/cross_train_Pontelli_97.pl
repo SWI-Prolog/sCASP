@@ -9,8 +9,8 @@
 %this code. Please do not distribute without authors'
 %permission.
 
-%:- use_package(clpr).
-%:- push_prolog_flag(quiet, on).
+:- use_package(clpr).
+:- push_prolog_flag(quiet, on).
 
 train(s0, approach, s1, T1, T2, T3) :-
 	T3 .=. T1.

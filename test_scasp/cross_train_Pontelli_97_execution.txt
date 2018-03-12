@@ -1,0 +1,20 @@
+Ciao 1.16.0-alpha.3 (2017-08-23 15:19:45 -0500) [DARWINi686]
+?- ensure_loaded('/Users/joaquin/Documents/Imdea/ASP/sCASP/test_scasp/cross_train_Pontelli_97.pl').
+
+yes
+?- findrange(M,N,X).
+
+X = [approach,lower,down,inn,out,exit,raise,up,approach],
+M.>.N,
+M.>.1.0,
+N.<.7.0,
+N.>.0 ? 
+
+yes
+?- downmorethan10.
+
+no
+?- downbeforein(X).
+
+no
+?- 
