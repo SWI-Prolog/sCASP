@@ -635,6 +635,8 @@ shown_predicate(Goal) :-
 :- pred prolog_builtin(Goal) #"Success if @var{Goal} is a builtin
 	prolog predicate".
 
+prolog_builtin(true).
+prolog_builtin(fail).
 prolog_builtin(=).
 prolog_builtin(\=).
 prolog_builtin(<).
