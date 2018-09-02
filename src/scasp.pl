@@ -2,6 +2,7 @@
 	main/1,
 	load/1,
 	run_defined_query/0,
+	'?'/1,
 	'??'/1,
 	solve/4,
 	check_goal/4,
@@ -46,6 +47,7 @@ program under the stable model semantic.
 	pr_user_predicate/1,
 	pr_table_predicate/1,
 	pr_show_predicate/1,
+	set/2,
 	write_program/0
 			 ]).
 
@@ -63,7 +65,7 @@ program under the stable model semantic.
 
 :- use_module(library(formulae)).
 
-:- op(700, fx,  [not,(?=), (??)]).
+:- op(700, fx,  [not,(?=), (??), (?)]).
 
 %% ------------------------------------------------------------- %%
 :- doc(section, "Main predicates").
@@ -186,9 +188,17 @@ pos_loops :- 	set(pos_loops,on).
 print_on :- 	set(print,on).
 
 :- pred ??(Query) : list(Query) #"Shorcut predicate to ask queries in
+the top-level returning also the justification tree. It calls solve_query/1".
+:- pred ?(Query) : list(Query) #"Shorcut predicate to ask queries in
 the top-level. It calls solve_query/1".
 
-?? Q :- solve_query(Q).
+?? Q :-
+	set(print,on),
+	solve_query(Q).
+
+? Q :-
+	set(print,off),
+	solve_query(Q).
 
 solve_query(A) :-
 	init_counter,
@@ -198,7 +208,7 @@ solve_query(A) :-
 	statistics(runtime, [_|T]),
 	increase_counter,
 	answer_counter(Counter),
-	format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
+	format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),nl,
 %	format('\nsolve_run_time = ~w ms\n\n',T),
 	if_user_option(print,print_output(StackOut)),
 	print_model(Model),nl,nl,
@@ -496,12 +506,23 @@ check_CHS(Goal, I, cont) :-
 	  ).
 
 %% check if the negation is in the stack -> coinductive failure
-neg_in_stack(Goal, [NegGoal|_]) :-
-	(
-	    not(Goal) == NegGoal
-	;
-	    Goal == not(NegGoal)
-	), !.
+%% extended to check if the negation in the stack entails the current call -> failure
+neg_in_stack(not(Goal), [NegGoal|_]) :-
+	Goal == NegGoal, !.
+neg_in_stack(Goal, [not(NegGoal)|_]) :-
+	Goal == NegGoal, !.
+neg_in_stack(not(Goal), [NegGoal|_]) :-
+	Goal =.. [Name|ArgGoal],
+	NegGoal =.. [Name|NegArgGoal],
+	if_user_option(check_calls, format('\t\tCheck if not(~p) entails (is more particular than) ~p\n',[Goal,NegGoal])),
+	entail_list(ArgGoal, NegArgGoal), !,
+	if_user_option(check_calls, format('\t\tOK\n',[])).
+neg_in_stack(Goal, [not(NegGoal)|_]) :-
+	Goal =.. [Name|ArgGoal],
+	NegGoal =.. [Name|NegArgGoal],
+	if_user_option(check_calls, format('\t\tCheck if ~p entails (is more particular than) not(~p)\n',[Goal,NegGoal])),
+	entail_list(ArgGoal, NegArgGoal), !,
+	if_user_option(check_calls, format('\t\tOK\n',[])).
 neg_in_stack(Goal, [_|Ss]) :-
 	neg_in_stack(Goal, Ss).
 
@@ -518,20 +539,24 @@ ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
 	NewInter is Intervening - 1,
 	ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter, Flag).
 ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
+%ground_neg_in_stack_(Goal, [not(NegGoal)|Ss], Intervening, MaxInter, found) :-
 	%	Intervening =< MaxInter,
 	Intervening =< MaxInter,
 	Goal =.. [Name|ArgGoal],
 	NegGoal =.. [Name|ArgNegGoal], !,
 	if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[Goal,chs(not(NegGoal))])),
+	%		if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[Goal,not(NegGoal)])),
 	loop_list(ArgGoal, ArgNegGoal),
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
 	ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
-ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
+%ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
+ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
 	Intervening =< MaxInter,
 	Goal =.. [Name|ArgGoal],
 	NegGoal =.. [Name|ArgNegGoal], !, 
 	if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),chs(NegGoal)])),
+	%		if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
 	loop_list(ArgGoal, ArgNegGoal),
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
@@ -557,6 +582,27 @@ proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
 	max(MaxInter, Intervening, NewMaxInter),
 	NewInter is Intervening + 1,
 	proved_in_stack_(Goal, Ss, NewInter, NewMaxInter).
+
+% %% neg_proved_in_stack
+% neg_proved_in_stack(Goal, S) :-
+% 	neg_proved_in_stack_(Goal, S, 0, -1),
+% 	if_user_option(check_calls, format('\tThe negation of ~p is already in the stack\n',[Goal])).
+% neg_proved_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :- 
+% 	NewInter is Intervening - 1,
+% 	neg_proved_in_stack_(Goal, Ss, NewInter, MaxInter).
+% neg_proved_in_stack_(Goal, [not(S)|_], Intervening, MaxInter) :-
+% 	S \= [],
+% 	Goal == S, !,
+% 	Intervening =< MaxInter.
+% neg_proved_in_stack_(not(Goal), [S|_], Intervening, MaxInter) :-
+% 	S \= [],
+% 	Goal == S, !,
+% 	Intervening =< MaxInter.
+% neg_proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
+% 	S \= [],
+% 	max(MaxInter, Intervening, NewMaxInter),
+% 	NewInter is Intervening + 1,
+% 	neg_proved_in_stack_(Goal, Ss, NewInter, NewMaxInter).
 
 max(A,B,A) :-
 	A >= B.
@@ -643,6 +689,7 @@ prolog_builtin(<).
 prolog_builtin(>).
 prolog_builtin(>=).
 prolog_builtin(=<).
+
 
 :- pred clp_builtin(Goal) #"Success if @var{Goal} is a builtin
 	constraint predicate".

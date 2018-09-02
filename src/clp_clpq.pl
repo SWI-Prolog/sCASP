@@ -120,6 +120,15 @@ store_entails(StoreA, StoreB) :-
 	clpq_meta(StoreB),
 	clpq_entailed(StoreA).
 
+% Success if B >= A
+entail_list(A,B) :-
+	dump_clpq_var(A,X,StoreA),
+	StoreA \= [],
+	dump_clpq_var(B,X,StoreB),
+	StoreB \= [],
+	clpq_meta(StoreA),
+	clpq_entailed(StoreB).
+
 
 
 :- multifile portray_attribute/2.

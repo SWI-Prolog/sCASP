@@ -20,6 +20,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 ").
 
 %% ------------------------------------------------------------- %%
+:- use_module(scasp_io).
 
 :- use_package(attr).
 :- use_module(library(sets)).
@@ -233,6 +234,7 @@ loop_var_disequality(B,A) :-
 	ListB \== [],
 	loop_var_disequality_(A,ListB).
 loop_var_disequality(A,B) :-
+	if_user_option(check_calls, format('\t\tLoop_var_disequality( ~p , ~p )\n',[A,B])),
 	A .\=. B.
 
 loop_var_disequality_(A,[NegB|_]) :-

@@ -158,7 +158,7 @@ print_model([F|J]) :-
 	print('{ '),
 	print(F),
 	print_model_(J),
-	print(' }'), nl.
+	print(' }').
 
 print_model_([]) :- !.
 print_model_([X|Xs]) :-

@@ -46,3 +46,5 @@ distance(d, b, 1).
 
 
 ?- travel_path(b, D, Cycle).
+
+#show travel_path/3, cycle_dist/3.
