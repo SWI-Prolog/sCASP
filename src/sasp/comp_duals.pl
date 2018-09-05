@@ -212,7 +212,7 @@ dual_goal(.<>.(A, B), .=.(A,B)).
 dual_goal(.>.(A, B), .=<.(A,B)).
 dual_goal(.<.(A, B), .>=.(A,B)).
 dual_goal(.>=.(A, B), .<.(A,B)).
-dual_goal(.=<.(A, B), .>=.(A,B)).
+dual_goal(.=<.(A, B), .>.(A,B)).
 
 dual_goal(=\=(A, B), =:=(A,B)).
 dual_goal(=:=(A, B), =\=(A,B)).
