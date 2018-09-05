@@ -34,6 +34,12 @@ is_clpq_var(X) :-
 	get_attribute(X,A),
 	A \= att(_,_,_).
 
+apply_clpq_constraints(A .<>. B) :- !,
+	(
+	    clpq_meta(A .<. B)
+	;
+	    clpq_meta(A .>. B)
+	).
 apply_clpq_constraints(Constraints) :-
 	clpq_meta(Constraints).
 
