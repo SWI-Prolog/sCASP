@@ -152,13 +152,12 @@ print_output(StackOut) :-
 :- pred print_model(Model) #"Print the partial model of the program
 using @var{Model}".
 
-%% The model is obtained from the justification tree.
-print_model([F|J]) :-
+%% The model is obtained from the model. TODO: use the StackOut.
+print_model(Model) :-
 	nl,
-	print('{ '),
-	print(F),
-	print_model_(J),
-	print(' }').
+	print('{  '),
+	print_model_(Model),
+	print('}'), nl.
 
 print_model_([]) :- !.
 print_model_([X|Xs]) :-
@@ -171,12 +170,17 @@ print_model_([X]) :- !,
 	).
 print_model_([X, Y|Xs]) :-
 	( print_literal(X) ->
-	  print(' , '),
-	  print(X)
+	  print(X),
+	  print('  ')
 	; true
 	),
 	print_model_([Y|Xs]).
+
+print_literal(not(X)) :- print_literal(X).
 print_literal(X) :-
+	X \= 'add_to_query',
+	X \= 'o_nmr_check',
+	X \= chs(_),
 	(
 	    pr_show_predicate(_) ->
 	    pr_show_predicate(X)

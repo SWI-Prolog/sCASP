@@ -673,6 +673,9 @@ table_predicate(not(Goal)) :-
 	Goal =.. [Name|Args],
 	length(Args,La),
 	pr_table_predicate(Name/La).
+
+shown_predicate(not(Goal)) :-
+	predicate(Goal).
 shown_predicate(Goal) :-
 	Goal \= not(_),
 	predicate(Goal).
