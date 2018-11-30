@@ -3,6 +3,7 @@
 The `s(CASP)` system is a top-down interpreter for ASP programs with
 constraints.
 
+This work was presented at ICLP'18 ([Arias et al. 2018](https://www.cambridge.org/core/journals/theory-and-practice-of-logic-programming/article/constraint-answer-set-programming-without-grounding/55A678C618EF54487777F021D89B3FE7)), also available [here](https://arxiv.org/abs/1804.11162).
 
 
 ## Introduction
