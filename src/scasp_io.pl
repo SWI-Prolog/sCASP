@@ -152,29 +152,32 @@ print_output(StackOut) :-
 :- pred print_model(Model) #"Print the partial model of the program
 using @var{Model}".
 
-%% The model is obtained from the model. TODO: use the StackOut.
+%% The model is obtained from the model.
+% TODO: use the StackOut instead of the model.
 print_model(Model) :-
 	nl,
 	print('{  '),
-	print_model_(Model),
-	print('}'), nl.
+	select_printable_literals(Model,Printable),
+	print_model_(Printable),
+	print('  }'), nl.
 
-print_model_([]) :- !.
-print_model_([X|Xs]) :-
-	print_model_(X), !,
-	print_model_(Xs).
-print_model_([X]) :- !,
-	( print_literal(X) ->
-	  print(X)
-	; true
-	).
-print_model_([X, Y|Xs]) :-
-	( print_literal(X) ->
-	  print(X),
-	  print('  ')
-	; true
-	),
-	print_model_([Y|Xs]).
+select_printable_literals([],[]) :- !.
+select_printable_literals([X|Xs],NSs) :-
+	select_printable_literals(X,S), !,
+	select_printable_literals(Xs,Ss),
+	append(S,Ss,NSs).
+select_printable_literals(X,[X]) :-
+	print_literal(X), !.
+select_printable_literals(_,[]).
+
+
+print_model_([]).
+print_model_([Last]) :- 
+	print(Last).
+print_model_([First,Second|Rest]) :-
+	print(First),
+	print(' ,  '),
+	print_model_([Second|Rest]).
 
 print_literal(not(X)) :- print_literal(X).
 print_literal(X) :-

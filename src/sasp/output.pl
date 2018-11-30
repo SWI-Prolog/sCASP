@@ -60,6 +60,7 @@ that may be used for warning and error output.
 :-set_prolog_flag(multi_arity_warnings,off).
 
 :- use_module(library(lists)).
+:- use_module(engine(basic_props)).
 :- use_module(rbtrees).
 %:- use_module(library(writef)).
 :- use_module(ciao_auxiliar).

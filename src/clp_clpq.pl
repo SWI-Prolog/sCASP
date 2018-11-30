@@ -43,6 +43,7 @@ apply_clpq_constraints(A .<>. B) :- !,
 apply_clpq_constraints(Constraints) :-
 	clpq_meta(Constraints).
 
+:- use_module(library(terms_vars)).
 dump_clpq_var([Ground],[NewVar],Constraints) :-
 	ground(Ground),
 	Constraints = [NewVar .=. Ground].
@@ -50,13 +51,20 @@ dump_clpq_var(Var,NewVar,Constraints) :-
 	\+ ground(Var),
 	clpqr_dump_constraints([Var],[NewVar],Constraints).
 
-dual_clpq([Unique], [Dual]) :-
-	dual_clpq_(Unique, Dual).
-dual_clpq([Init, Next|Is], Dual) :-
+dual_clpq(Var, [Unique], [Dual]) :-
+	varset(Unique,Set),
 	(
-	    dual_clpq([Init], Dual)
+	    member_var(Set,Var),
+	    dual_clpq_(Unique, Dual) ->
+	    true	
 	;
-	    dual_clpq([Next|Is], NextDual),
+	    Dual = []
+	).
+dual_clpq(Var, [Init, Next|Is], Dual) :-
+	(
+	    dual_clpq(Var, [Init], Dual)
+	;
+	    dual_clpq(Var, [Next|Is], NextDual),
 	    Dual = [Init| NextDual]
 	).
 dual_clpq_(A .<. B, A .>=. B).
@@ -116,7 +124,7 @@ disequality_clpq(A,B) :-
 
 
 % Success if StoreA >= StoreB
-entails(VarA, (VarB,StoreB)) :-
+entails(VarA, (VarB,StoreB)) :- !,
 	dump_clpq_var(VarA, VarB, StoreA),
 	clpq_meta(StoreB),
 	clpq_entailed(StoreA).
