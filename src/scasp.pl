@@ -634,6 +634,8 @@ type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
 	type_loop_(Goal, NewIv, N, Ss, Type).
 
 type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal == S.
+type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ variant(Goal, S).
+%type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal = S.
 type_loop_(Goal, 0, 0, [S|_],pos(S)) :-  \+ \+ Goal = S.
 
 type_loop_(not(Goal), 0, N, [not(S)|_],even) :- Goal == S, N > 0, 1 is mod(N, 2).
