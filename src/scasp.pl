@@ -305,24 +305,22 @@ GoalModel) #"Solve a sub-goal of the form @var{forall(Var,Goal)} and
 success if @var{Var} success in all its domain for the goal
 @var{Goal}. It calls @pred{solve/4}".
 
-:- use_module(library(terms_vars)).
 solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
-	varset(Goal,SSet),
-	delete(SSet,Var,Set),
 	my_copy_term(Var,Goal,NewVar,NewGoal),
 	my_copy_term(Var,Goal,NewVar2,NewGoal2),
 	solve([NewGoal], StackIn, [[]|StackMid], ModelMid),
 	if_user_option(check_calls, format('\tSuccess solve ~p\n\t\t for the ~p\n',[NewGoal,forall(Var,Goal)])),
-	check_unbound(NewVar, Set, List),
+	check_unbound(NewVar, List),
 	(
 	    List == [] ->
 	    StackOut = StackMid,
 	    Model = ModelMid
 	;
 	    List = 'clpq'(NewVar3,Constraints) ->
-	    findall('dual'([NewVar3|Set],ConDual), dual_clpq(NewVar3, Constraints, ConDual), DualList),
+	    findall('dual'(NewVar3,ConDual), dual_clpq(Constraints, ConDual), DualList),
+	    %	    dual_clpq(Constraints, ConDual),
 	    if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, DualList])),
-	    exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'([NewVar3|Set],[]), DualList, StackMid, StackOut, ModelList), !,
+	    exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3,[]), DualList, StackMid, StackOut, ModelList), !,
 	    append(ModelMid, ModelList, Model)
 	;
 	    !,
@@ -331,23 +329,19 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	    append(ModelMid, ModelList, Model)
 	).
 
-check_unbound(Var, _, _) :-
+check_unbound(Var, _) :-
 	ground(Var), !, fail.
-check_unbound(Var, _, List) :-
+check_unbound(Var, List) :-
 	get_neg_var(Var, List), !.
-check_unbound(Var, Set, 'clpq'(NewVar,Constraints)) :-
-	dump_clpq_var([Var|Set],[NewVar|Set],Constraints),
-	Constraints \== [],
-	varset(Constraints, CSet),
-	member_var(CSet,NewVar), !.
-check_unbound(Var, _, []) :-
+check_unbound(Var, 'clpq'(NewVar,Constraints)) :-
+	dump_clpq_var([Var],[NewVar],Constraints),
+	Constraints \== [], !.
+check_unbound(Var, []) :-
 	var(Var), !.
 
 exec_with_clpq_constraints(_, _, _, [], StackIn, StackIn, []).
-exec_with_clpq_constraints(Var, Goal, 'entry'([ConVar|S], ConEntry),['dual'([ConVar|S], ConDual)|Duals], StackIn, StackOut, Model) :-
-	my_copy_term(Var, [Goal, StackIn], Var01, [Goal01, StackIn01]),
-	varset(Goal01,SSet01),  %% note that Set01 == Set - these variables do not change with my_copy_term/4
-	delete(SSet01,Var01,Set01),
+exec_with_clpq_constraints(Var, Goal, 'entry'(ConVar, ConEntry),['dual'(ConVar, ConDual)|Duals], StackIn, StackOut, Model) :-
+	my_copy_term(Var, [Goal, StackIn], Var01, [Goal01,StackIn01]),
 	append(ConEntry, ConDual, Con),
 	my_copy_term(ConVar, Con, ConVar01, Con01),
 	my_copy_term(Var, Goal, Var02, Goal02),
@@ -360,16 +354,17 @@ exec_with_clpq_constraints(Var, Goal, 'entry'([ConVar|S], ConEntry),['dual'([Con
 	    if_user_option(check_calls, format('Success executing ~p with constrains ~p\n',[Goal01, Con])),
 	    if_user_option(check_calls, format('Check entails Var = ~p with const ~p and ~p\n',[Var01, ConVar01, Con01])),
 	    (
-		entails([Var01|Set01], ([ConVar01|Set01], Con01)) ->
+		entails([Var01], ([ConVar01], Con01)) ->
 		if_user_option(check_calls, format('\tOK\n',[])),
 		StackOut02 = StackOut01,
 		Model03 = Model01
 	    ;
 		if_user_option(check_calls, format('\tFail\n',[])),
-		dump_clpq_var([Var01|Set01], [ConVar01|Set01], ExitCon),
-		findall('dual'([ConVar01|Set01], ConDual01), dual_clpq(ConVar01, ExitCon, ConDual01), DualList),
-		if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, [DualList]])),
-		exec_with_clpq_constraints(Var, Goal, 'entry'([ConVar01|Set01], Con01), DualList, StackOut01, StackOut02, Model02),
+		dump_clpq_var([Var01], [ConVar01], ExitCon),
+		findall('dual'(ConVar01, ConDual01), dual_clpq(ExitCon, ConDual01), DualList),
+		%		dual_clpq(ExitCon, ConDual01),
+		if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, DualList])),
+		exec_with_clpq_constraints(Var, Goal, 'entry'(ConVar01, Con01), DualList, StackOut01, StackOut02, Model02),
 		append(Model01, Model02, Model03)
 	    )
 	;
@@ -378,7 +373,7 @@ exec_with_clpq_constraints(Var, Goal, 'entry'([ConVar|S], ConEntry),['dual'([Con
 	    Model03 = []
 	),
 	if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, Duals])),
-	exec_with_clpq_constraints(Var02, Goal02, 'entry'([ConVar02|Set01], ConEntry02), Duals, StackOut02, StackOut, Model04),
+	exec_with_clpq_constraints(Var02, Goal02, 'entry'(ConVar02, ConEntry02), Duals, StackOut02, StackOut, Model04),
 	append(Model03, Model04, Model).
 
 exec_with_neg_list(_,   _,    [],         StackIn, StackIn, []).
