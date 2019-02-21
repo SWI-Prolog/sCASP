@@ -36,20 +36,21 @@ Arias} in the folder @file{./src/sasp/}.
 
 %% ------------------------------------------------------------- %%
 
-:- use_module(.(sasp/output)).
-:- reexport(.(sasp/output), [
+:- use_module('./sasp/output').
+:- reexport('./sasp/output', [
 	pr_rule/2,
 	pr_query/1,
 	pr_user_predicate/1,
 	pr_table_predicate/1,
 	pr_show_predicate/1
 				]).
-:- use_module(.(sasp/main)).
+:- use_module('./sasp/main').
 
 %% ------------------------------------------------------------- %%
 
-:- pred load_program(Files) : list(Files) #"Call s(ASP) to generate
-and assert the translation of the progam (with dual and nmr_check)".
+:- pred load_program(Files) : list(Files) #"Call s(aso) to generate
+	and assert the translation of the progam (with dual and
+	nmr_check)".
 
 :- dynamic loaded_file/1.
 load_program([]) :-
@@ -67,7 +68,7 @@ load_program(X) :-
 	assert(loaded_file(Files)).
 
 :- pred write_program/0 #"Call c(asp) to print the source code of the
-translation of the programs already loaded by @pred(load_program/1)".
+translation of the programs already loaded by @pred{load_program/1}".
 
 write_program :-
 	loaded_file(Files),
