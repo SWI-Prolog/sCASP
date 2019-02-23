@@ -69,15 +69,14 @@ To use scasp with its iterative mode:
    ?- halt.
 @end{verbatim}
 
-The example program @file{test.pl} is:
+The example program @file{test.pl} (include the query in order to be use without
+iterative mode) is:
+
 @begin{verbatim}
    p(X) :- not q(X).
    q(X) :- not p(X).
 
    ?- q(X).
 @end{verbatim}
-
-Note that the program include the query in order to be use without
-iterative mode...
 
 ").

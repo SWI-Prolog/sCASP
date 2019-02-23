@@ -11,7 +11,7 @@
 @section{Quick installation}
 Requirements
 @begin{enumerate}
-@item Ciao with TCLP (ask @email{joaquin.arias@@imdea.org})
+@item Ciao (visit @href{http://ciao-lang.org})
 @end{enumerate}
 
 @section{Build and installation}
@@ -20,7 +20,7 @@ Requirements
 You can automatically fetch, build, and install this bundle using:
 
 @begin{verbatim}
-ciao get ciao-lang.org/scasp
+ciao get gitlab.software.imdea.org/joaquin.arias/sCASP
 @end{verbatim}
 
 This command stores the source and generates the binaries in the Ciao
@@ -38,13 +38,22 @@ export PATH=$CIAOPATH/build/bin:$PATH
 
 @section{Installation for developers}
 
-For installing this bundle it is recommended to define `CIAOPATH`
-(E.g., `~/ciao`) and clone this repository in your workspace.
+For installing s(CASP) independently from CIAO clone this repository
+wherever you want (e.g., ~/devel/).
 
-	git clone ssh://gitolite@ciao-lang.org/scasp
+	cd ~/devel
+	git clone git@gitlab.software.imdea.org:joaquin.arias/sCASP.git
 
-Remember to update registered bundles after cloning
+Compile it using the Makefile.
 
-	ciao rescan-bundles ~/ciao
+	cd scasp
+	make compile_scasp
+
+To call a binary without specifying its full path it is recommended to
+include this directory in your `PATH`:
+
+@begin{verbatim}
+export PATH=~/devel/scasp:$PATH
+@end{verbatim}
 
 ").

@@ -1,7 +1,7 @@
 :- bundle(sCASP).
 
 depends([
-	core,
+	core
 	]).
 
 alias_paths([
