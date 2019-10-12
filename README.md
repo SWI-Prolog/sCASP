@@ -21,7 +21,7 @@ lists and terms.
 ## Installation of s(CASP) 
 
 To run / compile `s(CASP)` you need
-[`CIAO Prolog`](https://github.com/ciao-lang/ciao) working in your
+[`Ciao Prolog`](https://github.com/ciao-lang/ciao) working in your
 computer.
 
 ### For Mac-OS / Linux
@@ -114,13 +114,18 @@ q(X) :- not p(X).
 __NOTE:__ that the program can include the query in order to be use without
 iterative mode...
 
-## Benchmarks
+## Examples & Benchmarks 
+
+### Examples
+
+There are some examples, most of them from the distribution of s(ASP),
+availables [here](examples/).
 
 ### Towers of Hanoi
 
 `s(CASP)` vs `Clingo` _standard_ vs `Clingo` _incremental_.
 
-See files [here](benchmark_iclp18/towers_hanoi/README.md).
+See files [here](examples/benchmark_iclp18/towers_hanoi/README.md).
 
 ### Stream data reasoning
 
@@ -136,7 +141,7 @@ sources are equally reliable, them we have (at least) two different
 models: one where `q(a)` is __true__ and another where `p(X)` is __true__ (also
 for _X=a_).
 
-See files [here](benchmark_iclp18/stream_data_reasoning/README.md).
+See files [here](examples/benchmark_iclp18/stream_data_reasoning/README.md).
 
 ### Traveling salesman
 
@@ -155,7 +160,7 @@ whose code is non-trivial.
 We will show that also in this problem, where the `ASP` solution is more
 compact than that of `CLP(FD)`, `s(CASP) `is more expressive.
 
-See file [here](benchmark_iclp18/traveling_salesman/README.md)
+See file [here](examples/benchmark_iclp18/traveling_salesman/README.md)
 
 
 ### Yale shooting scenario
@@ -173,4 +178,4 @@ for an executable plan such that:
 * considering that we are not allowed to shoot in the first 35
 minutes.
 
-See file [here](benchmark_iclp18/yale_shooting_scenario/README.md)
+See file [here](examples/benchmark_iclp18/yale_shooting_scenario/README.md)
