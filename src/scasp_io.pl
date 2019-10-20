@@ -7,6 +7,7 @@
 	init_counter/0,
 	increase_counter/0,
 	print_output/1,
+	print_all_output/1,
 	print_model/1,
 	print_check_calls_calling/2,
 	if_user_option/2,
@@ -150,6 +151,14 @@ print_output(StackOut) :-
 	print_stack(StackOut), nl,
 	true.
 
+:- pred print_all_output(StackOut) #"Print the justification tree using
+@var{StackOut}, the final call stack".
+
+%% Print output predicates to presaent the results of the query
+print_all_output(StackOut) :-
+	print_all_stack(StackOut), nl,
+	true.
+
 :- pred print_model(Model) #"Print the partial model of the program
 using @var{Model}".
 
@@ -217,10 +226,14 @@ print_j_([A,ProofA|B],I):-
 print_stack(Stack) :-
 	reverse(Stack, RStack),
 	nl,
+	nl,nl,
+	print(RStack),nl.
+	% print_s(RStack).
+
+print_all_stack(Stack) :-
+	reverse(Stack, RStack),
+	nl,
 	print_s(RStack).
-	% print('{ '),
-	% print(RStack),
-	% print(' }'), nl.
 
 
 
@@ -256,9 +269,11 @@ print_check_calls_calling(Goal,I) :-
 	reverse([('¿'+Goal+'?')|I],RI),
 	format('\n---------------------Calling ~p-------------',[Goal]),
 	print_s(RI).
-print_s(Stack) :-
-	print_s_(Stack,5,5).
-print_s_([],_,_) :- display('.'),nl.
+
+print_s(Stack) :- print_s_(Stack,5,5).
+
+print_s_([],_,_) :-
+	display('.'), nl.
 print_s_([[]|As],I,I0) :- !,
 	I1 is I - 4,
 	print_s_(As,I1,I0).
@@ -280,8 +295,6 @@ print_s_([A|As],I,I0) :- !,
 	nl,tab(I),print(A),	
 	I1 is I + 4,
 	print_s_(As,I1,I).
-
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -320,8 +333,9 @@ set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),se
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option('-v') :- set(check_calls, on).
 set_user_option('--verbose') :- set(check_calls, on).
-set_user_option('-j') :- set(print, on).
-set_user_option('--justification') :- set(print, on).
+set_user_option('-j') :- set(print_all, on).
+set_user_option('-j0') :- set(print_all, on).
+set_user_option('--justification') :- set(print_all, on).
 set_user_option('-d0') :- set(write_program, on).
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))

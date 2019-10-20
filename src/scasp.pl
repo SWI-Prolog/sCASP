@@ -134,6 +134,7 @@ main_solve(Q) :-
 	answer_counter(Counter),
 	format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
 	if_user_option(print,print_output(StackOut)),
+	if_user_option(print_all,print_all_output(StackOut)),
 	print_model(Model),nl,
 	print(Q),
 	(
@@ -178,14 +179,17 @@ defined_query(Q) :-
 :- pred check_calls/0 #"Turn on the flag @var{check_calls}".
 :- pred pos_loops/0 #"Turn on the flag @var{pos_loops}".
 :- pred print_on/0 #"Turn on the flag @var{print}".
+:- pred print_all_on/0 #"Turn on the flag @var{print_all}".
 
 clear_flags :-
 	set(check_calls,off),
 	set(pos_loops,off),
-	set(print,off).
+	set(print,off),
+	set(print_all,off).
 check_calls :- 	set(check_calls,on).
 pos_loops :- 	set(pos_loops,on).
 print_on :- 	set(print,on).
+print_all_on :- set(print_all,on).
 
 :- pred ??(Query) : list(Query) #"Shorcut predicate to ask queries in
 the top-level returning also the justification tree. It calls solve_query/1".
@@ -211,6 +215,7 @@ solve_query(A) :-
 	format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),nl,
 %	format('\nsolve_run_time = ~w ms\n\n',T),
 	if_user_option(print,print_output(StackOut)),
+	if_user_option(print_all,print_all_output(StackOut)),
 	print_model(Model),nl,nl,
 	ask_for_more_models.
 
@@ -312,6 +317,10 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	if_user_option(check_calls, format('\tSuccess solve ~p\n\t\t for the ~p\n',[NewGoal,forall(Var,Goal)])),
 	check_unbound(NewVar, List),
 	(
+	    List == ground ->
+	    if_user_option(check_calls, format('The var ~p is grounded so try with other clause\n', [NewVar])),
+	    fail
+	;
 	    List == [] ->
 	    StackOut = StackMid,
 	    Model = ModelMid
@@ -324,13 +333,13 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
 	    append(ModelMid, ModelList, Model)
 	;
 	    !,
-	    if_user_option(check_calls, format('Executing ~p with clp_disequeality list = ~p\n', [Goal, List])),
+	    if_user_option(check_calls, format('Executing ~p with clp_disequality list = ~p\n', [Goal, List])),
 	    exec_with_neg_list(NewVar2, NewGoal2, List, StackMid, StackOut, ModelList), 
 	    append(ModelMid, ModelList, Model)
 	).
 
-check_unbound(Var, _) :-
-	ground(Var), !, fail.
+check_unbound(Var, ground) :-
+	ground(Var), !.
 check_unbound(Var, List) :-
 	get_neg_var(Var, List), !.
 check_unbound(Var, 'clpq'(NewVar,Constraints)) :-

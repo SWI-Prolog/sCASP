@@ -140,7 +140,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 	var(A), var(B),
 	\+ ground(A),
 	\+ ground(B), !,
-	send_silent_signal(error),
+%	send_silent_signal(error),
 %	format('ERROR: disunification expect at least one argument to be ground, got:\n~p\n~p\n',[A,B]),
 	fail.
 
