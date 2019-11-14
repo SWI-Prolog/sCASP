@@ -114,7 +114,7 @@ q(X) :- not p(X).
 __NOTE:__ that the program can include the query in order to be use without
 iterative mode...
 
-## Examples & Benchmarks 
+## Examples & Benchmarks & Event Calculus
 
 ### Examples
 
@@ -165,7 +165,7 @@ See file [here](examples/benchmark_iclp18/traveling_salesman/README.md)
 
 ### Yale shooting scenario
 
-Lets us compare the expressiveness of `s(CASP)` vs `ASP` + constraints
+Let us compare the expressiveness of `s(CASP)` vs `ASP` + constraints
 using the spoiling Yale shooting scenario
 ([Janhunen et al. 2017](https://arxiv.org/pdf/1707.04053.pdf)).
 
@@ -179,3 +179,14 @@ for an executable plan such that:
 minutes.
 
 See file [here](examples/benchmark_iclp18/yale_shooting_scenario/README.md)
+
+## Event Calculus
+
+Let us use s(CASP) to implement Event Calculus, a more complex
+application, with several scenarios.
+
+In this [folder](examples/benchmark_EventCalculus/README.md) you will
+find the benchmark and instruction to
+reproduce the evaluation and example presented in the paper
+__"Modelling and Reasoning in Event Calculus using Goal-Directed Constraint Answer Set Programming"__.
+
