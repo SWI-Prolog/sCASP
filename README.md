@@ -185,7 +185,7 @@ See file [here](examples/benchmark_iclp18/yale_shooting_scenario/README.md)
 Let us use s(CASP) to implement Event Calculus, a more complex
 application, with several scenarios.
 
-In this [folder](examples/benchmark_EventCalculus/README.md) you will
+In this [folder](examples/benchmark_EventCalculus/) you will
 find the benchmark and instruction to
 reproduce the evaluation and example presented in the paper
 __"Modelling and Reasoning in Event Calculus using Goal-Directed Constraint Answer Set Programming"__.
