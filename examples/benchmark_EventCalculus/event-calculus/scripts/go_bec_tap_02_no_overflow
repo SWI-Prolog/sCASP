@@ -1,0 +1,27 @@
+#!/bin/bash
+
+
+run_query() {
+	    echo -e '\n\n----------\t QUERY: ' $1 ' \t\t--------------'
+	    echo "$@" > query.pl	
+	    scasp -n1 ../example-tap/bec_tap_02_no_overflow.pl query.pl
+}
+
+
+
+if [ "$#" == 0 ]; then
+
+    echo -e '\t\t\t\t*** BEC - BENCHMARK - bec_tap_02_no_overflow'
+    run_query "?- holdsAt(level(7),T).   % -> T = 12s "
+    run_query "?- holdsAt(level(12),T).  % -> no      "
+    run_query "?- holdsAt(spilling,T).   % -> no      "
+    run_query "?- holdsAt(leak(L),13).   % -> no      "
+    run_query "?- holdsAt(leak(L),16).   % -> no      "
+
+
+
+else
+    run_query $@
+
+fi
+

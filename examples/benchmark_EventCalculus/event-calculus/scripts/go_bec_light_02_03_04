@@ -1,0 +1,42 @@
+#!/bin/bash
+
+
+run_query_a() {
+	    echo -e '\n\n----------\t QUERY: ' $1 ' \t\t--------------'
+	    echo "$@" > query.pl	
+	    scasp -n0 ../example-light/bec_light_02.pl query.pl
+}
+run_query_b() {
+	    echo -e '\n\n----------\t QUERY: ' $1 ' \t\t--------------'
+	    echo "$@" > query.pl	
+	    scasp -n0 ../example-light/bec_light_03_inconsistent.pl query.pl
+}
+run_query_c() {
+	    echo -e '\n\n----------\t QUERY: ' $1 ' \t\t--------------'
+	    echo "$@" > query.pl	
+	    scasp -n0 ../example-light/bec_light_04_theinconsistencedonothappens.pl query.pl
+}
+
+
+
+if [ "$#" == 0 ]; then
+
+    echo -e '\t\t\t\t*** BEC - BENCHMARK - bec_light_02.pl'
+    run_query_a "?- holdsAt(light_green,5).  % success	"
+    run_query_a "?- holdsAt(light_on,3).     % success	"
+
+    echo -e '\t\t\t\t*** BEC - BENCHMARK - bec_light_03_inconsistent.pl'
+    run_query_b "?- holdsAt(light_green,5).  % no	"
+    run_query_b "?- holdsAt(light_on,3).     % no	"
+
+    echo -e '\t\t\t\t*** BEC - BENCHMARK - bec_light_04_theinconsistencedonothappens.pl'
+    run_query_c "?- holdsAt(light_red,3).    % success	"
+    run_query_c "?- holdsAt(light_on,3).     % success	"
+
+
+
+else
+    run_query $@
+
+fi
+

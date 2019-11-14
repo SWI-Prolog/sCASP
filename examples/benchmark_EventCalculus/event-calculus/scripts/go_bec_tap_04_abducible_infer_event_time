@@ -1,0 +1,30 @@
+#!/bin/bash
+
+
+run_query() {
+	    echo -e '\n\n----------\t QUERY: ' $1 ' \t\t--------------'
+	    echo "$@" > query.pl	
+	    scasp -n0 ../example-tap/bec_tap_04_abducible_infer_event_time.pl query.pl
+}
+
+
+
+if [ "$#" == 0 ]; then
+
+    echo -e '\t\t\t\t*** BEC - BENCHMARK - bec_tap_04_abducible_infer_event_time'
+    run_query "?- holdsAt(level(7),T).   % -> T = 12s / 12s "
+    run_query "?- holdsAt(level(12),T).  % -> no      / 17s "
+    run_query "?- holdsAt(spilling,T).   % -> T > 15s (not happens(tapOff,5<U<15) / T > 21s (not happens(tapOff,5<U<15)  "
+    run_query "?- holdsAt(leak(L),13).   % -> no   / no   "
+    run_query "?- holdsAt(leak(L),16).   % -> L = 1 (not happens(tapOff,5<U<15)  "
+    run_query "?- holdsAt(spilling,17).   % -> yes  (not happens(tapOff,5<U<15)  / no  "
+    run_query "?- holdsAt(level(H),19), max_level(Max).   %  -> \t H=14 Max=16 (not happens(tapOff,5<U<15) /\n\t\t\t\t\t\t\t\t\t H=overlimit Max=10 (not happens(tapOff,5<U<15)"
+
+
+
+
+else
+    run_query $@
+
+fi
+

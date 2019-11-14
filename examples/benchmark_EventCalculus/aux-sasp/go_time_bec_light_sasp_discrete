@@ -1,0 +1,32 @@
+#!/bin/bash
+
+
+run_query_5() {
+	    echo -e '\n\n----------\t QUERY: ' $1 ' \t\t--------------'
+	    echo "$@" > query.pl	
+	    time sasp -s1 bec_light_sasp_discrete_0.5.pl query.pl
+}
+
+run_query_25() {
+	    echo -e '\n\n----------\t QUERY: ' $1 ' \t\t--------------'
+	    echo "$@" > query.pl	
+	    time sasp -s1 bec_light_sasp_discrete_0.25.pl query.pl
+}
+
+
+
+if [ "$#" == 0 ]; then
+
+    echo -e '\n\t\t\t\t*** BEC_discrete (step-wise = 0.5) - BENCHMARK - using sasp'
+    run_query_5 "?- holdsAt(light_on, 2.0).               % success  "
+    run_query_5 "?- -holdsAt(light_on, 5.0).               % success  "
+    run_query_5 "?- holdsAt(light_red, 2.0).              % success  "
+    run_query_5 "?- holdsAt(light_green, 3.0).            % success  "
+    echo -e '\n\t\t\t\t*** BEC_discrete (step-wise = 0.25) - BENCHMARK - using sasp'
+    run_query_25 "?- holdsAt(light_red, 2.25).     % success  "
+
+else
+    run_query $@
+
+fi
+
