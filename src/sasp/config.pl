@@ -1,8 +1,8 @@
 :- module(config,
-        [
-                default_option/2,
-                stack_size/1
-        ]).
+    [
+            default_option/2,
+            stack_size/1
+    ]).
 
 /** <module> Default options for compiler.
 

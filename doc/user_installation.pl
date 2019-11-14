@@ -41,13 +41,13 @@ export PATH=$CIAOPATH/build/bin:$PATH
 For installing s(CASP) independently from CIAO clone this repository
 wherever you want (e.g., ~/devel/).
 
-	cd ~/devel
-	git clone git@gitlab.software.imdea.org:joaquin.arias/sCASP.git
+    cd ~/devel
+    git clone git@gitlab.software.imdea.org:joaquin.arias/sCASP.git
 
 Compile it using the Makefile.
 
-	cd scasp
-	make compile_scasp
+    cd scasp
+    make compile_scasp
 
 To call a binary without specifying its full path it is recommended to
 include this directory in your `PATH`:

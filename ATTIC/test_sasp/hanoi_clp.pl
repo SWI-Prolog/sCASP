@@ -55,6 +55,6 @@ move(N,X,Y,Z,Steps) :-
     move(M,Z,Y,X,S3).
 
 % q(S,T) :-
-% 	statistics(runtime,_), move(15,l,r,c,S), statistics(runtime, [_|T]).
+%       statistics(runtime,_), move(15,l,r,c,S), statistics(runtime, [_|T]).
 
 % ?- hanoi(4, T).

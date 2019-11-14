@@ -3,13 +3,13 @@
 
 
 valid_stream(P,Data) :- 
-	stream(P,Data), 
-	not cancelled(P, Data).
+    stream(P,Data), 
+    not cancelled(P, Data).
 cancelled(P, Data) :-
-	stream(P,Data),
-	stream(P1, Data1),
-	P1 > P,
-	incompt(Data, Data1).
+    stream(P,Data),
+    stream(P1, Data1),
+    P1 > P,
+    incompt(Data, Data1).
 
 incompt(p(X), q(X)) :- stream(_,p(X)).
 incompt(q(X), p(X)) :- stream(_,q(X)).
@@ -37,4 +37,4 @@ stream(8,h(1..10)).
 
 
 #show valid_stream/2.
-	
+    

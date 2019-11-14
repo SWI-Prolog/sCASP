@@ -1,104 +1,104 @@
 :- module(ciao_auxiliar, [
-	absolute_file_name/3,
-	get_dir_name_ext/4,
-	get_single_char/1,
-	
-	writef/1,
-	writef/2,
-	swritef/2,
-	swritef/3,
+    absolute_file_name/3,
+    get_dir_name_ext/4,
+    get_single_char/1,
+    
+    writef/1,
+    writef/2,
+    swritef/2,
+    swritef/3,
 
-	max/3,
+    max/3,
 
-	nb_setval/2,
-	b_getval/2,
-	b_setval/2,
+    nb_setval/2,
+    b_getval/2,
+    b_setval/2,
 
-	c_name/2,
-	char_type/2
-			 ]).
+    c_name/2,
+    char_type/2
+                     ]).
 
 
 :- set_prolog_flag(multi_arity_warnings,off).
 
 
 absolute_file_name(File, Abs, [relative_to(Rel)]) :-
-	get_dir_name_ext(Rel, Dir, _, _),
-	atom_concat(Dir, File, FFile),
-	absolute_file_name(FFile, Abs).
+    get_dir_name_ext(Rel, Dir, _, _),
+    atom_concat(Dir, File, FFile),
+    absolute_file_name(FFile, Abs).
 
 get_dir_name_ext(File, Dir, Name, Ext) :-
-	atom_codes(File,CFile),
-	reverse(CFile, RF),
-	get_dir_name_ext_(RF,RD,RN,RE),
-	(
-	    RN == [] ->
-	    Ext = '',
-	    reverse(RE,CName), atom_codes(Name, CName)
-	;
-	    reverse(RE, CExt), atom_codes(Ext, CExt),
-	    reverse(RN, CName), atom_codes(Name, CName)
-	),
-	reverse(RD, CDir), atom_codes(Dir, CDir).
+    atom_codes(File,CFile),
+    reverse(CFile, RF),
+    get_dir_name_ext_(RF,RD,RN,RE),
+    (
+        RN == [] ->
+        Ext = '',
+        reverse(RE,CName), atom_codes(Name, CName)
+    ;
+        reverse(RE, CExt), atom_codes(Ext, CExt),
+        reverse(RN, CName), atom_codes(Name, CName)
+    ),
+    reverse(RD, CDir), atom_codes(Dir, CDir).
 
 get_dir_name_ext_([X|Xs], Dir, Name, [X|Es]) :-
-	X \== 47,
-	X \== 46,
-	get_dir_name_ext_(Xs, Dir, Name, Es).
+    X \== 47,
+    X \== 46,
+    get_dir_name_ext_(Xs, Dir, Name, Es).
 get_dir_name_ext_([X|Rest],Dir,Name,[46]) :-
-	X \== 47,
-	X == 46,
-	get_dir_name_ext__(Rest,Dir,Name).
+    X \== 47,
+    X == 46,
+    get_dir_name_ext__(Rest,Dir,Name).
 get_dir_name_ext_([X|Rest],[X|Rest],[],[]) :-
-	X == 47.
+    X == 47.
 get_dir_name_ext_([],[],[],[]).
 
 
 get_dir_name_ext__([],[],[]).
 get_dir_name_ext__([X|Xs],Dir,[X|N]) :-
-	X \== 47,
-	get_dir_name_ext__(Xs, Dir, N).
+    X \== 47,
+    get_dir_name_ext__(Xs, Dir, N).
 get_dir_name_ext__([X|Xs],[X|Xs],[]) :-
-	X == 47.
+    X == 47.
 
 
 
 
 get_single_char(X) :-
-	get_char(X),
-	(
-	    X \= '\n' ->
-	    get_char(_)
-	;
-	    true
-	).
+    get_char(X),
+    (
+        X \= '\n' ->
+        get_char(_)
+    ;
+        true
+    ).
 
 
 writef(X) :-
-	display(X).
+    display(X).
 writef(X,Y) :-
-	format(X,Y).
+    format(X,Y).
 
 
 swritef(Msg, Msg).
 swritef(Msg, A, B) :-
-	sformat(S, A, B),
-	atom_codes(Msg, S).
+    sformat(S, A, B),
+    atom_codes(Msg, S).
 
 
 
 c_name(Name, X) :- !,
-	c_code_list(X, C),
-	name(Name,C).
+    c_code_list(X, C),
+    name(Name,C).
 c_code_list([],[]).
 c_code_list([X|Xs],[C|Cs]) :-
-	char_code(X,C),
-	c_code_list(Xs,Cs).
+    char_code(X,C),
+    c_code_list(Xs,Cs).
 
 
 
 max(X,Y,X) :-
-	X >= Y, !.
+    X >= Y, !.
 max(_,Y,Y).
 
 
@@ -108,19 +108,19 @@ b_getval(X,Y) :- get_global(X,Y).
 :- use_package(library(assertions)).
 :- data set/2.
 set_global(N, T) :- 
-        nonvar(N),
-        (retract_fact(set(N, _)) -> true ; true),
-        asserta_fact(set(N, T)).
+    nonvar(N),
+    (retract_fact(set(N, _)) -> true ; true),
+    asserta_fact(set(N, T)).
 get_global(N, T) :-
-        nonvar(N),
-        current_fact(set(N, T1)), !,
-        T = T1.
+    nonvar(N),
+    current_fact(set(N, T1)), !,
+    T = T1.
 
 
-char_type(-1, end_of_file) :- !.	
+char_type(-1, end_of_file) :- !.        
 char_type(X,Type) :-
-	char_code(X,C),
-	code_type(C,Type).
+    char_code(X,C),
+    code_type(C,Type).
 
 code_type(10,newline).
 code_type(9,space).
@@ -633,4 +633,4 @@ code_type(254,lower).
 code_type(255,lower).
 
 
-	
+    

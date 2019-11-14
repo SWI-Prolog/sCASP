@@ -1,12 +1,12 @@
 :- module(options, [
-                        user_option/1,
-                        user_option/2,
-                        set_default_options/0,
-                        set_user_option/1,
-                        set_user_option/2,
-                        option_cleanup/0,
-                        set_stack_sizes/0
-                     ]).
+                    user_option/1,
+                    user_option/2,
+                    set_default_options/0,
+                    set_user_option/1,
+                    set_user_option/2,
+                    option_cleanup/0,
+                    set_stack_sizes/0
+                 ]).
 
 /** <module> Assertion, retraction and testing of options.
 
@@ -63,15 +63,15 @@ Predicates related to managing options that alter runtime behavior.
 % @param Mode An atom identifying the option.
 % @param Value The value for the option.
 :- dynamic
-        user_option/1,
-        user_option/2.
+    user_option/1,
+    user_option/2.
 
 %! set_default_options
 % Get a list of all config:default_option/2 facts and set the options
 % accordingly.
 set_default_options :-
-        findall(-(X, Y), default_option(X, Y), Defaults),
-        set_default_options2(Defaults).
+    findall(-(X, Y), default_option(X, Y), Defaults),
+    set_default_options2(Defaults).
 
 %! set_default_options2(+Options:list)
 % For each option / flag pair, call set_user_option/2 after checking that no
@@ -79,16 +79,16 @@ set_default_options :-
 %
 % @param Options List of options to set.
 set_default_options2([X | T]) :-
-        X = -(A, B),
-        \+user_option(A, _), % not overridden by user
-        set_user_option(A, B),
-        !,
-        set_default_options2(T).
+    X = -(A, B),
+    \+user_option(A, _), % not overridden by user
+    set_user_option(A, B),
+    !,
+    set_default_options2(T).
 set_default_options2([X | T]) :-
-        X = -(A, _),
-        user_option(A, _), % overridden by user
-        !,
-        set_default_options2(T).
+    X = -(A, _),
+    user_option(A, _), % overridden by user
+    !,
+    set_default_options2(T).
 set_default_options2([]).
 
 %! set_user_option(+Mode:atom) is det
@@ -96,7 +96,7 @@ set_default_options2([]).
 %
 % @param Mode The option specified by the user.
 set_user_option(Mode) :-
-        assertz(user_option(Mode)).
+    assertz(user_option(Mode)).
 
 %! set_user_option(+Mode:atom, +Value:compound)
 % Assert an option with a given value.
@@ -104,16 +104,16 @@ set_user_option(Mode) :-
 % @param Mode The option to assert.
 % @param Value The value for the option.
 set_user_option(M, X) :-
-        retractall(user_option(M, _)),
-        assertz(user_option(M, X)),
-        !.
+    retractall(user_option(M, _)),
+    assertz(user_option(M, X)),
+    !.
 
 %! option_cleanup
 % Cleanup (retract) all user_option/1 and user_option/2 assertions.
 option_cleanup :-
-        retractall(user_option(_, _)),
-        retractall(user_option(_)),
-        !.
+    retractall(user_option(_, _)),
+    retractall(user_option(_)),
+    !.
 
 %! set_stack_sizes
 % Increase the default stack sizes to the value indicated by
@@ -121,8 +121,8 @@ option_cleanup :-
 % 64-bit systems, a limit larger than the system allows will be automatically
 % reduced to the maximum allowed size.
 set_stack_sizes :-
-        stack_size(_X),
-        % set_prolog_stack(global, limit(X)),
-        % set_prolog_stack(local, limit(X)),
-        % set_prolog_stack(trail, limit(X)),
-        !.
+    stack_size(_X),
+    % set_prolog_stack(global, limit(X)),
+    % set_prolog_stack(local, limit(X)),
+    % set_prolog_stack(trail, limit(X)),
+    !.

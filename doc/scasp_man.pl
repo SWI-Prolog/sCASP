@@ -5,7 +5,7 @@
 :- doc(title, "s(CASP)").
 
 :- doc(subtitle, "A stable model semantic solver for constraint logic programs"
-	).
+    ).
 
 :- doc(author, "Joaquin Arias").
 :- doc(copyright, "").
@@ -51,4 +51,4 @@ install this this bundle.
 bundle and its options. Also, several execution modes are shown.
 
 @end{itemize}
-	").
+    ").

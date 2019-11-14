@@ -2,7 +2,7 @@
 
 % Move N disks in T moves.
 hanoi(N, T) :-
-        move_(N, 0, T, a, b, c).
+    move_(N, 0, T, a, b, c).
 
 % Move N disks from peg Pi to peg Pf using peg Paux.
 move_(N,Ti,Tf,Pi,Pf,Paux) :-

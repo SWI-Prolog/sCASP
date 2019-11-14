@@ -1,8 +1,8 @@
 :- module(interactive, [
-                        help/0,
-                        get_user_query/1,
-                        get_user_response/0
-                       ]).
+                    help/0,
+                    get_user_query/1,
+                    get_user_response/0
+                   ]).
 
 /** <module> User interaction
 
@@ -52,31 +52,31 @@ interactive mode.
 % Print usage information.
 help :- !, fail.
 help :-
-	%        current_prolog_flag(argv, [Prog | _]),
-	Prog = casp,
-        swritef(M1, 'Usage: ~w [options] InputFile(s)\n\n', [Prog]),
-        write(user_error, M1),
-        swritef(M2, 'c(ASP) computes stable models of ungrounded normal logic programs.\n', []),
-        write(user_error, M2),
-        % for reference on line length (keep under 80 chars/line incl. newline):
-        %                 '1                                                                          80->x'
-        write(user_error, 'Command-line switches are case-sensitive!\n\n'),
-        write(user_error, ' General Options:\n\n'),
-        write(user_error, '  -h, -?, --help     Print this help message and terminate.\n'),
-        write(user_error, '  -i, --interactive  Run in user / interactive mode.\n'),
-        write(user_error, '  -a, --auto         Run in automatic mode (no user interaction).\n'),
-        write(user_error, '  -sN                Compute N answer sets, where N >= 0. 0 for all.\n'),
-        write(user_error, '                     Ignored unless running in automatic mode.\n'),
-        write(user_error, '  -v, --verbose      Enable verbose progress messages.\n'),
-        write(user_error, '  -vv, --veryverbose Enable very verbose progress messages.\n'),
-        write(user_error, '  -j                 Print proof tree for each solution.\n'),
-        write(user_error, '  -w                 Generate html file with proof tree for each solution.\n'),
-        write(user_error, '  -g                 Generate the program transformation (+ duals and nmr_check)\n'),
-	write(user_error, '                     formated with pr_rule/2 in a new file named <NAME_pr.pl>.\n'),
-        write(user_error, '  -n                 Hide goals added to solution by global consistency checks.\n'),
-        write(user_error, '  -la                Print a separate list of succeeding abducibles with each\n'),
-        write(user_error, '                     CHS. List will only be printed if at least one abducible\n'),
-        write(user_error, '                     has succeeded.\n').
+    %        current_prolog_flag(argv, [Prog | _]),
+    Prog = casp,
+    swritef(M1, 'Usage: ~w [options] InputFile(s)\n\n', [Prog]),
+    write(user_error, M1),
+    swritef(M2, 'c(ASP) computes stable models of ungrounded normal logic programs.\n', []),
+    write(user_error, M2),
+    % for reference on line length (keep under 80 chars/line incl. newline):
+    %                 '1                                                                          80->x'
+    write(user_error, 'Command-line switches are case-sensitive!\n\n'),
+    write(user_error, ' General Options:\n\n'),
+    write(user_error, '  -h, -?, --help     Print this help message and terminate.\n'),
+    write(user_error, '  -i, --interactive  Run in user / interactive mode.\n'),
+    write(user_error, '  -a, --auto         Run in automatic mode (no user interaction).\n'),
+    write(user_error, '  -sN                Compute N answer sets, where N >= 0. 0 for all.\n'),
+    write(user_error, '                     Ignored unless running in automatic mode.\n'),
+    write(user_error, '  -v, --verbose      Enable verbose progress messages.\n'),
+    write(user_error, '  -vv, --veryverbose Enable very verbose progress messages.\n'),
+    write(user_error, '  -j                 Print proof tree for each solution.\n'),
+    write(user_error, '  -w                 Generate html file with proof tree for each solution.\n'),
+    write(user_error, '  -g                 Generate the program transformation (+ duals and nmr_check)\n'),
+    write(user_error, '                     formated with pr_rule/2 in a new file named <NAME_pr.pl>.\n'),
+    write(user_error, '  -n                 Hide goals added to solution by global consistency checks.\n'),
+    write(user_error, '  -la                Print a separate list of succeeding abducibles with each\n'),
+    write(user_error, '                     CHS. List will only be printed if at least one abducible\n'),
+    write(user_error, '                     has succeeded.\n').
 
 %! get_user_query(-Query:list) is det
 % Write a prompt, then get a query from the user, tokenize it, parse it and
@@ -85,28 +85,28 @@ help :-
 %
 % @param Query The list of goals entered by the user.
 get_user_query(Q) :-
-        write('?- '), % write initial prompt
-        read_query(user_input, CharPairs),
-        (tokenize(CharPairs, Toks) ->
-                (parse_query(Toks, Q) ->
-                        true % we're done
-                ;
-                        get_user_query(Q) % prompt user for another try
-                )
-        ;
-                get_user_query(Q) % prompt user for another try
-        ),
-        !.
+    write('?- '), % write initial prompt
+    read_query(user_input, CharPairs),
+    (tokenize(CharPairs, Toks) ->
+            (parse_query(Toks, Q) ->
+                    true % we're done
+            ;
+                    get_user_query(Q) % prompt user for another try
+            )
+    ;
+            get_user_query(Q) % prompt user for another try
+    ),
+    !.
 
 %! get_user_response is det
 % A query has succeeded, so get input from the user to accept ('.') or reject
 % (';') it.
 get_user_response :-
-	write(' ? '),
-        get_single_char(C),
-	nl,
-        !,
-        get_user_response2(C).
+    write(' ? '),
+    get_single_char(C),
+    nl,
+    !,
+    get_user_response2(C).
 
 %! get_user_response2(+Char:char) is det
 % Process the user's response. For invalid responses, print an error and give
@@ -114,29 +114,29 @@ get_user_response :-
 %
 % @param Char The one character response.
 get_user_response2(C) :- % accept
-        member(C, ['.', 'c', 'a', '\n']),
-        !.
+    member(C, ['.', 'c', 'a', '\n']),
+    !.
 get_user_response2(C) :- % accept
-        char_type(C, end_of_line),
-        !.
+    char_type(C, end_of_line),
+    !.
 get_user_response2(C) :- % redo
-        member(C, [';', 'n', 'r', ' ', '\t']),
-        !,
-        fail.
+    member(C, [';', 'n', 'r', ' ', '\t']),
+    !,
+    fail.
 get_user_response2(C) :- % help
-        member(C, ['?', 'h']),
-        !,
-        write(';, n, r, space, tab:\treject\n'),
-        write('., c, a, enter:\t\taccept\n'),
-        write('?, h:\t\t\thelp\n'),
-        write('Action? '),
-        !,
-        get_user_response.
+    member(C, ['?', 'h']),
+    !,
+    write(';, n, r, space, tab:\treject\n'),
+    write('., c, a, enter:\t\taccept\n'),
+    write('?, h:\t\t\thelp\n'),
+    write('Action? '),
+    !,
+    get_user_response.
 get_user_response2(C) :-
-        writef('Unknown action: ~w (h for help)\n', [C]),
-        write('Action? '),
-        !,
-        get_user_response.
+    writef('Unknown action: ~w (h for help)\n', [C]),
+    write('Action? '),
+    !,
+    get_user_response.
 
 
 

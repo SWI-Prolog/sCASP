@@ -1,8 +1,8 @@
 :- bundle(sCASP).
 
 depends([
-	core
-	]).
+    core
+    ]).
 
 alias_paths([
     scasp = 'src'

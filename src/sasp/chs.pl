@@ -1,10 +1,10 @@
 :- module(chs, [
-                        chs_entry/5,
-                        new_chs/1,
-                        add_to_chs/10,
-                        remove_from_chs/3,
-                        check_chs/8
-               ]).
+                    chs_entry/5,
+                    new_chs/1,
+                    add_to_chs/10,
+                    remove_from_chs/3,
+                    check_chs/8
+           ]).
 
 /** <module> Handle operations related to the Coinductive Hypothesis Set (CHS).
 
@@ -69,8 +69,8 @@ chs_entry(-(F, A, S, N), F, A, S, N).
 %
 % @param CHS The new CHS.
 new_chs(CHS) :-
-        rb_empty(CHS),
-        !.
+    rb_empty(CHS),
+    !.
 
 %! check_chs(+Functor:ground, +Args:list, +VarsIn:compound, -VarsOut:compound, +CHS:list, +CallStack:list, -Code:int, -EvenLoop:compound) is nondet
 % Check the CHS for a predicate or its negation. Be sure that the args are
@@ -93,46 +93,46 @@ new_chs(CHS) :-
 % @param EvenLoop Struct containing goals and vars for an even loop, if one is
 %        found.
 check_chs(F, A, V, V, C, _, _, _) :- % coinductive failure
-        negate_functor(F, Fn),
-        chs_entry(E, Fn, A, _, _),
-        once(rb_lookup(Fn, Esn, C)),
-        once(exact_match(E, Esn, V, _)), % don't bother with advanced checks if an exact match is in the CHS
-        !,
-        fail.
+    negate_functor(F, Fn),
+    chs_entry(E, Fn, A, _, _),
+    once(rb_lookup(Fn, Esn, C)),
+    once(exact_match(E, Esn, V, _)), % don't bother with advanced checks if an exact match is in the CHS
+    !,
+    fail.
 check_chs(F, A, Vi, Vo, C, Cs, Flag, Eloop) :- % constructive coinductive failure
-        chs_entry(E, F, A, _, _),
-        (once(rb_lookup(F, Es, C)) ->
-                once(\+exact_match(E, Es, Vi, _)) % don't bother if an exact match is in the CHS
-        ;
-                true
-        ),
-        once(get_dual_entries(E, Ens, C, Vi)),
-        %writef('check_chs Ens = ~w\n', [Ens]),
-        Ens \= [],
-        G =.. [F | A],
-        once(fill_in_variable_values(G, G2, [], _, Vi)),
-        %writef('chs matching against negation of ~w: ~w\n', [G2, Ens]),
-        G2 =.. [_ | A2],
-        once(replace_vars_in_all(Ens, Ens2, Vi, V1, 1)),
-        %writef('pre replace vars: ~w\npost replace vars: ~w\n', [Ens, Ens2]),
-        %force(write('a\n')),
-        %writef('check_chs Ens2 = ~w\n', [Ens2]),
-        match_neg(A2, Ens2, V1, V2, Rval),
-        %force(write('b\n')),
-        (Rval = 0 ->
-                !,
-                %fill_in_variable_values(G, G3, [], _, V2),
-                %writef('~w failing based on negation ~w\n', [F, G3]),
-                fail
-        ;
-                %fill_in_variable_values(G2, G3, [], _, V2),
-                %writef('chs got negation ~w for ~w\n', [G3, F]),
-                true
-        ), % if we run out of values, fail without backtracking
-        once(check_chs2(F, A2, V2, Vo, C, Cs, Flag, Eloop)). % test new values
+    chs_entry(E, F, A, _, _),
+    (once(rb_lookup(F, Es, C)) ->
+            once(\+exact_match(E, Es, Vi, _)) % don't bother if an exact match is in the CHS
+    ;
+            true
+    ),
+    once(get_dual_entries(E, Ens, C, Vi)),
+    %writef('check_chs Ens = ~w\n', [Ens]),
+    Ens \= [],
+    G =.. [F | A],
+    once(fill_in_variable_values(G, G2, [], _, Vi)),
+    %writef('chs matching against negation of ~w: ~w\n', [G2, Ens]),
+    G2 =.. [_ | A2],
+    once(replace_vars_in_all(Ens, Ens2, Vi, V1, 1)),
+    %writef('pre replace vars: ~w\npost replace vars: ~w\n', [Ens, Ens2]),
+    %force(write('a\n')),
+    %writef('check_chs Ens2 = ~w\n', [Ens2]),
+    match_neg(A2, Ens2, V1, V2, Rval),
+    %force(write('b\n')),
+    (Rval = 0 ->
+            !,
+            %fill_in_variable_values(G, G3, [], _, V2),
+            %writef('~w failing based on negation ~w\n', [F, G3]),
+            fail
+    ;
+            %fill_in_variable_values(G2, G3, [], _, V2),
+            %writef('chs got negation ~w for ~w\n', [G3, F]),
+            true
+    ), % if we run out of values, fail without backtracking
+    once(check_chs2(F, A2, V2, Vo, C, Cs, Flag, Eloop)). % test new values
 check_chs(F, A, Vi, Vo, C, Cs, Flag, Eloop) :- % coinductive success; success flag set
-        check_chs2(F, A, Vi, Vo, C, Cs, Flag, Eloop).
-        %force(write('cchsc\n')).
+    check_chs2(F, A, Vi, Vo, C, Cs, Flag, Eloop).
+    %force(write('cchsc\n')).
 
 %! check_chs2(+Functor:ground, +Args:list, +VarsIn:compound, -VarsOut:compound, +CHS:list, +CallStack:list, -Code:int, -EvenLoop:compound) is nondet
 % Check the CHS for a predicate. This handles coinductive success only.
@@ -149,32 +149,32 @@ check_chs(F, A, Vi, Vo, C, Cs, Flag, Eloop) :- % coinductive success; success fl
 % @param EvenLoop Struct containing goals and vars for an even loop, if one is
 %        found.
 check_chs2(F, A, V, V, C, _, 1, -([], [])) :- % coinductive success; success flag set
-        chs_entry(E, F, A, 1, _),
-        rb_lookup(F, Es, C), % get entries for predicate
-        exact_match(E, Es, V, 1),
-        !. % don't allow backtracking when we have an exact match
+    chs_entry(E, F, A, 1, _),
+    rb_lookup(F, Es, C), % get entries for predicate
+    exact_match(E, Es, V, 1),
+    !. % don't allow backtracking when we have an exact match
 check_chs2(F, A, Vi, Vo, _, Cs, Rval, Eloop) :- % coinductive success; success flag not set
-        G =.. [F | A],
-        check_negations(G, Cs, Vi, Vo, 0, Rval2, Cyc, Cvars), % Rval2 = -1, 1 or 2
-        (Rval2 > 0 -> % cycle
-                Eloop = -(Cyc, Cvars)
-        ; % no cycle
-                Eloop = -([], [])
-        ),
-        (member(Rval2, [-1, 2]) -> % on exact match or coinductive failure, don't backtrack
-                !
-        ;
-                true
-        ),
-        (Rval2 = 2 ->
-                Rval = 1
-        ;
-                Rval = Rval2
-        ).%,
-        %force(write('cchs2b\n')).
+    G =.. [F | A],
+    check_negations(G, Cs, Vi, Vo, 0, Rval2, Cyc, Cvars), % Rval2 = -1, 1 or 2
+    (Rval2 > 0 -> % cycle
+            Eloop = -(Cyc, Cvars)
+    ; % no cycle
+            Eloop = -([], [])
+    ),
+    (member(Rval2, [-1, 2]) -> % on exact match or coinductive failure, don't backtrack
+            !
+    ;
+            true
+    ),
+    (Rval2 = 2 ->
+            Rval = 1
+    ;
+            Rval = Rval2
+    ).%,
+    %force(write('cchs2b\n')).
 check_chs2(_, _, V, V, _, _, 0, -([], [])) :- % not present, or any matches consumed
-        %force(write('cchs2c\n')),
-        !.
+    %force(write('cchs2c\n')),
+    !.
 
 %! get_dual_entries(+Entry: compound, -DualEntries: list, +CHS:compound, +VarStruct:compound)
 % Given a CHS entry, get CHS entries from any duals with which it unifies.
@@ -186,15 +186,15 @@ check_chs2(_, _, V, V, _, _, 0, -([], [])) :- % not present, or any matches cons
 % @param CHS The CHS
 % @param VarStruct The variable structure to use in unification testing.
 get_dual_entries(E, Ens, C, V) :-
-        chs_entry(E, F, A, _, _),
-        once(negate_functor(F, Fn)),
-        once(rb_lookup(Fn, Ens2, C)), % get matches for negation
-        chs_entry(En, Fn, _, 1, _), % dummy entry for negation
-        once(findall(An, (member(En, Ens2), chs_entry(En, _, An, _, _)), Ens3)), % get args for entries matching negated functor
-        once(replace_vars(A, A2, V, V2, [], _, 0)), % strip unifiability flags
-        Gn =.. [Fn | A2],
-        check_unifiability(Gn, Fn, Ens3, Ens, V2),
-        !.
+    chs_entry(E, F, A, _, _),
+    once(negate_functor(F, Fn)),
+    once(rb_lookup(Fn, Ens2, C)), % get matches for negation
+    chs_entry(En, Fn, _, 1, _), % dummy entry for negation
+    once(findall(An, (member(En, Ens2), chs_entry(En, _, An, _, _)), Ens3)), % get args for entries matching negated functor
+    once(replace_vars(A, A2, V, V2, [], _, 0)), % strip unifiability flags
+    Gn =.. [Fn | A2],
+    check_unifiability(Gn, Fn, Ens3, Ens, V2),
+    !.
 
 %! check_unifiability(+Goal:compound, +NegFunctor:atom, +DualArgsIn:list, -DualArgsOut:list, +VarStruct:compound)
 % Given a list of argument lists, create a term with each element using
@@ -206,16 +206,16 @@ get_dual_entries(E, Ens, C, V) :-
 % @param DualArgsOut The output list of lists.
 % @param VarStruct The variable struct to use in testing.
 check_unifiability(G, F, [A | Asi], [A | Aso], V) :- % unifies
-        once(replace_vars(A, A2, V, V2, [], _, 0)), % strip unifiability flags
-        G2 =.. [F | A2],
-        solve_unify(G, G2, V2, _, 0),
-        !,
-        check_unifiability(G, F, Asi, Aso, V).
+    once(replace_vars(A, A2, V, V2, [], _, 0)), % strip unifiability flags
+    G2 =.. [F | A2],
+    solve_unify(G, G2, V2, _, 0),
+    !,
+    check_unifiability(G, F, Asi, Aso, V).
 check_unifiability(G, F, [_ | Asi], Aso, V) :- % does not unify
-        !,
-        check_unifiability(G, F, Asi, Aso, V).
+    !,
+    check_unifiability(G, F, Asi, Aso, V).
 check_unifiability(_, _, [], [], _) :-
-        !.
+    !.
 
 %! match_neg(+Args:list, +NegArgs:list, +VarsIn:compound, -VarsOut:compound, -Rval:int) is nondet
 % For each arg in Args, bind or constrain it using the values from the
@@ -231,20 +231,20 @@ check_unifiability(_, _, [], [], _) :-
 % @param VarsOut Output variables.
 % @param RVal 1 or 0 indicating if values remain to be tested.
 match_neg(_, [], V, V, 1).% :-
-        %write('success a\n'). % succeed
+    %write('success a\n'). % succeed
 match_neg(_, [], V, V, 0) :-
-        %write('success a\n'),
-        !. % succeed
+    %write('success a\n'),
+    !. % succeed
 match_neg(A, As, Vi, Vo, R) :-
-        As \= [],
-        A \= [],
-        once(select_heads(As, _, Hs)), % get heads from each entry in As
-        %force(writef('mn testing ~w against ~w\n', [A, Hs])),
-        match_neg2(A, Hs, As, Vi, Vo, R).
-        %force(write('mn success b\n')).
+    As \= [],
+    A \= [],
+    once(select_heads(As, _, Hs)), % get heads from each entry in As
+    %force(writef('mn testing ~w against ~w\n', [A, Hs])),
+    match_neg2(A, Hs, As, Vi, Vo, R).
+    %force(write('mn success b\n')).
 match_neg(_, _, _, _, 0) :- % out of values
-        %write('success c\n'),
-        !.
+    %write('success c\n'),
+    !.
 
 %! match_neg2(+Args:list, +OrigConstraints:list, +Duals:list +VarsIn:compound, -VarsOut:compound, -Rval:int) is nondet
 % Test the first arg. If the tests fail:
@@ -259,32 +259,32 @@ match_neg(_, _, _, _, 0) :- % out of values
 % @param VarsOut Output variables.
 % @param RVal 1 or 0 indicating if values remain to be tested.
 match_neg2([X | _], Cs, _, Vi, Vo, 1) :-
-        once(split_neg_matches(Cs, Cc, B, Lv, Vi)), % also handles failure on unbound non-loop variable
-        %write('mna\n'),
-        once(intersect_all(Cc, C)),
-        %writef('testing ~w against ~w and ~w, Lv = ~w\n', [X, C, B, Lv]),
-        match_neg_test(X, C, B, Lv, Vi, Vo), % tests passed if this succeeds
-        %writef('test passed!\n'),
-        (\+is_unbound(X, Vi, _, _, _) ->
-                !
-        ;
-                true
-        ).%,
-        %writef('matchneg test passed for ~w\n', [X]).
+    once(split_neg_matches(Cs, Cc, B, Lv, Vi)), % also handles failure on unbound non-loop variable
+    %write('mna\n'),
+    once(intersect_all(Cc, C)),
+    %writef('testing ~w against ~w and ~w, Lv = ~w\n', [X, C, B, Lv]),
+    match_neg_test(X, C, B, Lv, Vi, Vo), % tests passed if this succeeds
+    %writef('test passed!\n'),
+    (\+is_unbound(X, Vi, _, _, _) ->
+            !
+    ;
+            true
+    ).%,
+    %writef('matchneg test passed for ~w\n', [X]).
 match_neg2([X | T], _, D, Vi, Vo, R) :-
-        is_ground(X, Vi),
-        !,
-        once(remove_satisfied_constraints(X, D, D2, Vi, _)), % we can ignore variable changes, since they only affect the heads we're removing
-        once(select_heads(D2, D3, _)), % remove entries for current arg
-        %writef('testing ~w against ~w\n', [T, D3]),
-        match_neg(T, D3, Vi, Vo, R),
-        !.
+    is_ground(X, Vi),
+    !,
+    once(remove_satisfied_constraints(X, D, D2, Vi, _)), % we can ignore variable changes, since they only affect the heads we're removing
+    once(select_heads(D2, D3, _)), % remove entries for current arg
+    %writef('testing ~w against ~w\n', [T, D3]),
+    match_neg(T, D3, Vi, Vo, R),
+    !.
 match_neg2([_ | T], _, D, Vi, Vo, R) :-
-        %writef('c: ~w\n', [D2]),
-        once(select_heads(D, D2, _)), % remove entries for current arg
-        %writef('testing ~w against ~w\n', [T, D3]),
-        match_neg(T, D2, Vi, Vo, R). %,
-        %force(write('mn2 b\n')).
+    %writef('c: ~w\n', [D2]),
+    once(select_heads(D, D2, _)), % remove entries for current arg
+    %writef('testing ~w against ~w\n', [T, D3]),
+    match_neg(T, D2, Vi, Vo, R). %,
+    %force(write('mn2 b\n')).
 
 %! match_neg_test(+Arg:compound, +Constraints:list, +BoundDuals:list, +LoopVars:list, +VarsIn:compound, -VarsOut:compound) is nondet
 % Test an arg against constraints applied by duals. If unbound, try to find a
@@ -298,16 +298,16 @@ match_neg2([_ | T], _, D, Vi, Vo, R) :-
 % @param VarsIn Input variables.
 % @param VarsOut Output variables.
 match_neg_test(X, C, B, Lv, Vi, Vo) :-
-        C \= [], % At least one constraint
-        !,
-        member(Y, C),
-        solve_unify(X, Y, Vi, V1, 0), % X satisfies all constraints by unifying with a member of the intersection
-        dne_all(X, B, V1, V1), % X doesn't match any bound duals
-        constrain_loop_vars(Lv, X, V1, Vo). % constrain any loop vars against X
+    C \= [], % At least one constraint
+    !,
+    member(Y, C),
+    solve_unify(X, Y, Vi, V1, 0), % X satisfies all constraints by unifying with a member of the intersection
+    dne_all(X, B, V1, V1), % X doesn't match any bound duals
+    constrain_loop_vars(Lv, X, V1, Vo). % constrain any loop vars against X
 match_neg_test(X, [], B, Lv, Vi, Vo) :-
-        !, % no constraints
-        dne_all(X, B, Vi, V1), % no constraints, so test or constrain X against all bound duals
-        constrain_loop_vars(Lv, X, V1, Vo). % constrain any loop vars against X
+    !, % no constraints
+    dne_all(X, B, Vi, V1), % no constraints, so test or constrain X against all bound duals
+    constrain_loop_vars(Lv, X, V1, Vo). % constrain any loop vars against X
 
 %! constrain_loop_vars(+LoopVars:list, +Arg:compound, +VarsIn:compound, -VarsOut:compound)
 % Constrain each loop variable in LoopVars against Arg, even if Arg is a
@@ -319,10 +319,10 @@ match_neg_test(X, [], B, Lv, Vi, Vo) :-
 % @param VarsIn Input variables.
 % @param VarsOut Output variables.
 constrain_loop_vars([X | T], Y, Vi, Vo) :-
-        add_var_constraint(X, Y, Vi, V1), % MUST BE BACKTRACKABLE!
-        constrain_loop_vars(T, Y, V1, Vo).
+    add_var_constraint(X, Y, Vi, V1), % MUST BE BACKTRACKABLE!
+    constrain_loop_vars(T, Y, V1, Vo).
 constrain_loop_vars([], _, V, V) :-
-        !.
+    !.
 
 %! remove_satisfied_constraints(+Value:compound, +DualArgsIn:list, -DualArgsOut:list, +VarsIn:compound, -VarsOut:compound) is det
 % Keep only those constraint lists whose head unifies with Value. Value will
@@ -334,12 +334,12 @@ constrain_loop_vars([], _, V, V) :-
 % @param VarsIn Input variables.
 % @param VarsOut Output variables.
 remove_satisfied_constraints(V, [[X | Tx] | T], [[X | Tx] | T2], Vi, Vo) :-
-        once(solve_unify(V, X, Vi, V1, 0)),
-        !,
-        remove_satisfied_constraints(V, T, T2, V1, Vo).
+    once(solve_unify(V, X, Vi, V1, 0)),
+    !,
+    remove_satisfied_constraints(V, T, T2, V1, Vo).
 remove_satisfied_constraints(X, [_ | T], Do, Vi, Vo) :-
-        !, % first arg doesn't unify
-        remove_satisfied_constraints(X, T, Do, Vi, Vo).
+    !, % first arg doesn't unify
+    remove_satisfied_constraints(X, T, Do, Vi, Vo).
 remove_satisfied_constraints(_, [], [], V, V).
 
 %! intersect_all(+ListofLists:list, -Intersection:list) is det
@@ -348,15 +348,15 @@ remove_satisfied_constraints(_, [], [], V, V).
 % @param ListofLists Input lists.
 % @param Intersection The intersection.
 intersect_all([X | T], I) :-
-        T \= [],
-        !,
-        intersect_all(T, I2),
-        !,
-        list_intersection(X, I2, I).
+    T \= [],
+    !,
+    intersect_all(T, I2),
+    !,
+    list_intersection(X, I2, I).
 intersect_all([X], X) :-
-        !.
+    !.
 intersect_all([], []) :-
-        !.
+    !.
 
 %! dne_all(+Goal:compound, +ListofGoals:list, +VarsIn:compound, -VarsOut:compound) is det
 % Succeed if Goal doesn't unify with any member of ListofGoals.
@@ -366,8 +366,8 @@ intersect_all([], []) :-
 % @param VarsIn Input variables.
 % @param VarsOut Output variables.
 dne_all(X, [Y | T], Vi, Vo):-
-        solve_dnunify(X, Y, Vi, V1, _),
-        dne_all(X, T, V1, Vo).
+    solve_dnunify(X, Y, Vi, V1, _),
+    dne_all(X, T, V1, Vo).
 dne_all(_, [], V, V).
 
 %! select_heads(+ListIn:list, -ListOut:list, -HeadsOut:list) is det
@@ -377,10 +377,10 @@ dne_all(_, [], V, V).
 % @param ListOut Output list of lists. Lists from ListIn with heads removed.
 % @param HeadsOut List of the heads from each entry of ListIn.
 select_heads([[X | T] | Tt], [T | T2], [X | Ht]) :-
-        !,
-        select_heads(Tt, T2, Ht).
+    !,
+    select_heads(Tt, T2, Ht).
 select_heads([], [], []) :-
-        !.
+    !.
 
 %! split_neg_matches(+Matches:list, -ConstraintMatches:list, -BoundMatches:list, -LoopVars:list, +Vars:compound) is det
 % Split variables in Matches depending on whether they are bound or constrained.
@@ -393,28 +393,28 @@ select_heads([], [], []) :-
 % @param LoopVars Bound or constrained loop variables.
 % @param Vars Variable struct to look up values.
 split_neg_matches([X | T], Cm, [X | Bm], Lv, V) :-
-        \+is_var(X),
-        !,
-        split_neg_matches(T, Cm, Bm, Lv, V).
+    \+is_var(X),
+    !,
+    split_neg_matches(T, Cm, Bm, Lv, V).
 split_neg_matches([X | T], Cm, [Val | Bm], Lv, V) :-
-        is_var(X),
-        var_value(X, V, val(Val)), % not constrained or unbound
-        !,
-        split_neg_matches(T, Cm, Bm, Lv, V).
+    is_var(X),
+    var_value(X, V, val(Val)), % not constrained or unbound
+    !,
+    split_neg_matches(T, Cm, Bm, Lv, V).
 split_neg_matches([X | T], [Val | Cm], Bm, Lv, V) :-
-        is_var(X),
-        is_unbound(X, V, Val, _, Vl),
-        Vl =\= 1, % non-loop variable
-        Val = [_ | _], % constrained
-        !,
-        split_neg_matches(T, Cm, Bm, Lv, V).
+    is_var(X),
+    is_unbound(X, V, Val, _, Vl),
+    Vl =\= 1, % non-loop variable
+    Val = [_ | _], % constrained
+    !,
+    split_neg_matches(T, Cm, Bm, Lv, V).
 split_neg_matches([X | T], Cm, Bm, [X | Lv], V) :-
-        is_var(X),
-        is_unbound(X, V, _, _, 1), % loop variable
-        !,
-        split_neg_matches(T, Cm, Bm, Lv, V).
+    is_var(X),
+    is_unbound(X, V, _, _, 1), % loop variable
+    !,
+    split_neg_matches(T, Cm, Bm, Lv, V).
 split_neg_matches([], [], [], [], _) :-
-        !.
+    !.
 
 %! exact_match(+CHSentry:compound, +CHSentries:list, +Vars:compound, -Success:int) is det
 % Check to see if there is an exact match for CHSentry in the CHS. Basically,
@@ -427,13 +427,13 @@ split_neg_matches([], [], [], [], _) :-
 % @param Vars The var struct to get values from.
 % @param Success The success flag of the matching entry.
 exact_match(E, [X | _], V, S) :-
-        chs_entry(E, F, A1, _, _),
-        chs_entry(X, F, A2, S, _), % functors match
-        exact_match2(A1, A2, V),
-        !.
+    chs_entry(E, F, A1, _, _),
+    chs_entry(X, F, A2, S, _), % functors match
+    exact_match2(A1, A2, V),
+    !.
 exact_match(E, [_ | T], V, S) :-
-        !,
-        exact_match(E, T, V, S).
+    !,
+    exact_match(E, T, V, S).
 
 %! exact_match2(+Args1:list, +Args2:list, +Vars:compound) is det
 % Check to see if two lists of arguments match exactly. Unbound variables only
@@ -444,49 +444,49 @@ exact_match(E, [_ | T], V, S) :-
 % @param Args2 Second list of arguments.
 % @param Vars The var struct to get values from.
 exact_match2([X | T], [X | T2], V) :- % values match exactly; continue
-        !,
-        exact_match2(T, T2, V).
+    !,
+    exact_match2(T, T2, V).
 exact_match2([X | T], [Y | T2], V) :-
-        is_var(X),
-        is_var(Y),
-        !,
-        var_value(X, V, Xv),
-        var_value(Y, V, Yv),
-        (
-                var_con(Xv, Val, _, _),
-                var_con(Yv, Val, _, _)
-        ;
-                Xv = val(Xv2),
-                Yv = val(Yv2),
-                exact_match2([Xv2], [Yv2], V)
-        ),
-        !,
-        exact_match2(T, T2, V).
+    is_var(X),
+    is_var(Y),
+    !,
+    var_value(X, V, Xv),
+    var_value(Y, V, Yv),
+    (
+            var_con(Xv, Val, _, _),
+            var_con(Yv, Val, _, _)
+    ;
+            Xv = val(Xv2),
+            Yv = val(Yv2),
+            exact_match2([Xv2], [Yv2], V)
+    ),
+    !,
+    exact_match2(T, T2, V).
 exact_match2([X | T], [Y | T2], V) :-
-        is_var(X),
-        !,
-        var_value(X, V, val(Xv)),
-        exact_match2([Xv], [Y], V),
-        !,
-        exact_match2(T, T2, V).
+    is_var(X),
+    !,
+    var_value(X, V, val(Xv)),
+    exact_match2([Xv], [Y], V),
+    !,
+    exact_match2(T, T2, V).
 exact_match2([X | T], [Y | T2], V) :-
-        is_var(Y),
-        !,
-        var_value(Y, V, val(Yv)),
-        exact_match2([X], [Yv], V),
-        !,
-        exact_match2(T, T2, V).
+    is_var(Y),
+    !,
+    var_value(Y, V, val(Yv)),
+    exact_match2([X], [Yv], V),
+    !,
+    exact_match2(T, T2, V).
 exact_match2([X | T], [Y | T2], V) :-
-        X =.. [F | A],
-        Y =.. [F | A2],
-        length(A, L),
-        length(A2, L), % same functor and arity
-        !,
-        exact_match2(A, A2, V),
-        !,
-        exact_match2(T, T2, V).
+    X =.. [F | A],
+    Y =.. [F | A2],
+    length(A, L),
+    length(A2, L), % same functor and arity
+    !,
+    exact_match2(A, A2, V),
+    !,
+    exact_match2(T, T2, V).
 exact_match2([], [], _) :-
-        !.
+    !.
 
 %! check_negations(+Goal:compound, +CallStack:list, +VarsIn:compound, -VarsOut:compound, +NegSeen:int, -Rval:int, -Cycle:list, -CVars:list)
 % Check the call stack for negations between a call and its ancestor. This
@@ -509,52 +509,52 @@ exact_match2([], [], _) :-
 % @param CVars List of value IDs for non-ground variables present in both the
 %        ancestor and recursive call, by value ID.
 check_negations(G, [-(X, _) | T], Vi, Vo, _, R, [X | C], Cv) :- % Intervening negation
-        predicate(X, F2, _),
-        is_dual(F2),
-        predicate(G, F, _),
-        %writef('cn a: ~w vs ~w\n', [G, X]),
-        F \= F2, % not a match
-        !,
-        check_negations(G, T, Vi, Vo, 1, R, C, Cv).
+    predicate(X, F2, _),
+    is_dual(F2),
+    predicate(G, F, _),
+    %writef('cn a: ~w vs ~w\n', [G, X]),
+    F \= F2, % not a match
+    !,
+    check_negations(G, T, Vi, Vo, 1, R, C, Cv).
 check_negations(G, [-(X, _) | T], Vi, Vo, _, R, [X | C], Cv) :- % Intervening negation
-        predicate(X, F, _),
-        is_dual(F),
-        %writef('cn b: ~w vs ~w\n', [G, X]),
-        \+solve_unify(G, X, Vi, _, 1), % not a match
-        !,
-        check_negations(G, T, Vi, Vo, 1, R, C, Cv).
+    predicate(X, F, _),
+    is_dual(F),
+    %writef('cn b: ~w vs ~w\n', [G, X]),
+    \+solve_unify(G, X, Vi, _, 1), % not a match
+    !,
+    check_negations(G, T, Vi, Vo, 1, R, C, Cv).
 check_negations(G, [-(X, _) | T], Vi, Vo, N, R, C, Cv) :- % Match found
-        predicate(G, F, A1),
-        predicate(X, F, A2),
-        %writef('cn c: ~w vs ~w\nVi = ~w', [G, X,Vi]),
-        solve_unify(G, X, Vi, V2, 1),
-        !,
-        chs_entry(E1, F, A1, _, _),
-        chs_entry(E2, F, A2, _, _),
-        (N = 1 -> % intervening negation, we're in an even loop
-                C = [X],
-                Vo = V2,
-                variable_intersection(G, X, Vi, Cv), % get variables that are unbound throughout the loop
-                (exact_match(E1, [E2], Vi, _) ->
-                        R = 2 % exact match in call stack; succeed R = 2
-                ;
-                        R = 1 % intervening negation; succeed R = 1
-                )
-        ;
-                (exact_match(E1, [E2], Vi, _) ->
-                        R = -1, % positive loop; fail
-                        Vo = Vi, % failure: drop changes
-                        C = [],
-                        Cv = []
-                ;
-                        % ignore changes from unification; keep going
-                        check_negations(G, T, Vi, Vo, N, R, [X | C], Cv)
-                )
-        ),
-        !.
+    predicate(G, F, A1),
+    predicate(X, F, A2),
+    %writef('cn c: ~w vs ~w\nVi = ~w', [G, X,Vi]),
+    solve_unify(G, X, Vi, V2, 1),
+    !,
+    chs_entry(E1, F, A1, _, _),
+    chs_entry(E2, F, A2, _, _),
+    (N = 1 -> % intervening negation, we're in an even loop
+            C = [X],
+            Vo = V2,
+            variable_intersection(G, X, Vi, Cv), % get variables that are unbound throughout the loop
+            (exact_match(E1, [E2], Vi, _) ->
+                    R = 2 % exact match in call stack; succeed R = 2
+            ;
+                    R = 1 % intervening negation; succeed R = 1
+            )
+    ;
+            (exact_match(E1, [E2], Vi, _) ->
+                    R = -1, % positive loop; fail
+                    Vo = Vi, % failure: drop changes
+                    C = [],
+                    Cv = []
+            ;
+                    % ignore changes from unification; keep going
+                    check_negations(G, T, Vi, Vo, N, R, [X | C], Cv)
+            )
+    ),
+    !.
 check_negations(G, [-(X, _) | T], Vi, Vo, N, R, [X | C], Cv) :- % Neither a match nor a negation; keep going
-        !,
-        check_negations(G, T, Vi, Vo, N, R, C, Cv).
+    !,
+    check_negations(G, T, Vi, Vo, N, R, C, Cv).
 
 
 
@@ -577,22 +577,22 @@ check_negations(G, [-(X, _) | T], Vi, Vo, N, R, [X | C], Cv) :- % Neither a matc
 % @param CHSin Input CHS.
 % @param CHSout Output CHS.
 add_to_chs(F, A, S, N, E, Ev, Vi, Vo, CHSi, CHSo) :- % not already present
-        once(get_sub_pairs(F, A, Ev, Ev2, Vi)),
-        once(replace_vars(A, A2, Vi, Vo, Ev2, _, 1)), % perform substitution
-        chs_entry(E, F, A2, S, N),
-        (rb_lookup(F, Es, CHSi) -> % existing entry for predicate
-                once(\+exact_match(E, Es, Vo, _)),
-                rb_update(CHSi, F, [E | Es], CHSo) % add entry
-        ;
-                rb_insert(CHSi, F, [E], CHSo) % New entry for predicate
-        ),
-        %writef('chs added ~w\n', [E]),
-        !.
+    once(get_sub_pairs(F, A, Ev, Ev2, Vi)),
+    once(replace_vars(A, A2, Vi, Vo, Ev2, _, 1)), % perform substitution
+    chs_entry(E, F, A2, S, N),
+    (rb_lookup(F, Es, CHSi) -> % existing entry for predicate
+            once(\+exact_match(E, Es, Vo, _)),
+            rb_update(CHSi, F, [E | Es], CHSo) % add entry
+    ;
+            rb_insert(CHSi, F, [E], CHSo) % New entry for predicate
+    ),
+    %writef('chs added ~w\n', [E]),
+    !.
 add_to_chs(F, A, S, _, E, _, V, V, CHS, CHS) :- % already present; skip
-        chs_entry(E, F, A, S, _).%,
-        %writef('chs failed to add ~w (already present)\n', [E]).
-        %!,
-        %fail. % don't allow duplicate entry to succeed, as it will have already done so once via CHS and failed
+    chs_entry(E, F, A, S, _).%,
+    %writef('chs failed to add ~w (already present)\n', [E]).
+    %!,
+    %fail. % don't allow duplicate entry to succeed, as it will have already done so once via CHS and failed
 
 %! get_sub_pairs(+Functor:ground, +Args:list, +SubVarsIn:list, -SubVarsOut:list, +VarStruct:compound)
 % Get variable substitution pairs for even loop variables in the current goal.
@@ -603,13 +603,13 @@ add_to_chs(F, A, S, _, E, _, V, V, CHS, CHS) :- % already present; skip
 % @param SubVarsOut Output list of substitution variable structs.
 % @param VarStruct Var struct to lookup IDs.
 get_sub_pairs(_, _, [], [], _) :-
-        !.
+    !.
 get_sub_pairs(F, A, Svi, Svo, V) :-
-        get_sub_ids(Svi, Sv2, V),
-        G =.. [F | A],
-        body_vars2([G], [], [], Gv), % get vars from goal
-        get_sub_pairs2(Gv, Sv2, Svo, V),
-        !.
+    get_sub_ids(Svi, Sv2, V),
+    G =.. [F | A],
+    body_vars2([G], [], [], Gv), % get vars from goal
+    get_sub_pairs2(Gv, Sv2, Svo, V),
+    !.
 
 %! get_sub_pairs2(+GoalVars:list, +SubVarsIn:list, -SubVarsOut:list, +VarStruct:compound)
 % Get variable substitution pairs by checking each body variable's ID against
@@ -620,15 +620,15 @@ get_sub_pairs(F, A, Svi, Svo, V) :-
 % @param SubVarsOut Output var/subst var pairs.
 % @param VarStruct Var struct to lookup IDs.
 get_sub_pairs2([X | T], Svi, [-(X, Y) | Svo], Vs) :- % match
-        get_value_id(X, Xi, Vs),
-        member(-(Xi, Y), Svi), % ID match
-        !,
-        get_sub_pairs2(T, Svi, Svo, Vs).
+    get_value_id(X, Xi, Vs),
+    member(-(Xi, Y), Svi), % ID match
+    !,
+    get_sub_pairs2(T, Svi, Svo, Vs).
 get_sub_pairs2([_ | T], Svi, Svo, Vs) :- % no match
-        !,
-        get_sub_pairs2(T, Svi, Svo, Vs).
+    !,
+    get_sub_pairs2(T, Svi, Svo, Vs).
 get_sub_pairs2([], _, [], _) :-
-        !.
+    !.
 
 %! get_sub_ids(+SubVarsIn:list, -SubVarsOut:list, +VarStruct:compound)
 % Given a list of variable and substitution variable pairs, replace the
@@ -638,13 +638,13 @@ get_sub_pairs2([], _, [], _) :-
 % @param SubVarsOut Output sub var structs.
 % @param VarStruct Variable struct to look up IDs.
 get_sub_ids([X | T], [X2 | T2], Vs) :-
-        X = -(A, B),
-        get_value_id(A, Ai, Vs),
-        X2 = -(Ai, B),
-        !,
-        get_sub_ids(T, T2, Vs).
+    X = -(A, B),
+    get_value_id(A, Ai, Vs),
+    X2 = -(Ai, B),
+    !,
+    get_sub_ids(T, T2, Vs).
 get_sub_ids([], [], _) :-
-        !.
+    !.
 
 %! remove_from_chs(+Entry:compound, +CHSin:compound, -CHSout:compound) is det
 % Given a CHS entry, remove it from the CHS. If not found, return the original
@@ -654,13 +654,13 @@ get_sub_ids([], [], _) :-
 % @param CHSin Input CHS.
 % @param CHSout Output CHS.
 remove_from_chs(E, CHSi, CHSo) :-
-        chs_entry(E, F, _, _, _),
-        rb_lookup(F, Es, CHSi),
-        select(E, Es, Es2),
-        rb_update(CHSi, F, Es2, CHSo),
-        !.
+    chs_entry(E, F, _, _, _),
+    rb_lookup(F, Es, CHSi),
+    select(E, Es, Es2),
+    rb_update(CHSi, F, Es2, CHSo),
+    !.
 remove_from_chs(_, CHS, CHS) :- % not present.
-        !.
+    !.
 
 %! replace_vars_in_all(+GoalsIn:list, -GoalsOut:list, +VarStructIn:int, -VarStructOut:int, +Flag:int) is det
 % Given a list of lists of goals, replace NON-LOOP variables in each with unique
@@ -673,11 +673,11 @@ remove_from_chs(_, CHS, CHS) :- % not present.
 % @param Flag 0 or 1 indicating if non-loop variables should be set as
 %        non-unifiable.
 replace_vars_in_all([X | T], [X2 | T2], Vsi, Vso, F) :-
-        replace_vars(X, X2, Vsi, Vs1, [], _, F),
-        !,
-        replace_vars_in_all(T, T2, Vs1, Vso, F).
+    replace_vars(X, X2, Vsi, Vs1, [], _, F),
+    !,
+    replace_vars_in_all(T, T2, Vs1, Vso, F).
 replace_vars_in_all([], [], Vs, Vs, _) :-
-        !.
+    !.
 
 %! replace_vars(+GoalsIn:list, -GoalsOut:list, +VarStructIn:int, -VarStructOut:int, +VarsIn:compound, -VarsOut:compound, +Flag:int) is det
 % Given a list of goals, replace every bound variable with its value and every
@@ -694,9 +694,9 @@ replace_vars_in_all([], [], Vs, Vs, _) :-
 % @param Flag 0 or 1 indicating if non-loop variables should be set as
 %        non-unifiable.
 replace_vars([Xi | Ti], [Xo | To], Vsi, Vso, Vi, Vo, F) :-
-        replace_vars2(Xi, Xo, Vsi, Vs1, Vi, V1, F),
-        !,
-        replace_vars(Ti, To, Vs1, Vso, V1, Vo, F).
+    replace_vars2(Xi, Xo, Vsi, Vs1, Vi, V1, F),
+    !,
+    replace_vars(Ti, To, Vs1, Vso, V1, Vo, F).
 replace_vars([], [], Vs, Vs, V, V, _).
 
 %! replace_vars2(+Goal:compound, -GoalOut:compound, +VarStructIn:int, -VarStructOut:int, +VarsIn:compound, -VarsOut:compound, +Flag:int)
@@ -714,47 +714,47 @@ replace_vars([], [], Vs, Vs, V, V, _).
 % @param Flag 0 or 1 indicating if non-loop variables should be set as
 %        non-unifiable.
 replace_vars2(Gi, Go, Vs, Vs, V, V, _) :-
-        is_var(Gi),
-        member(-(Gi, Go), V), % already encountered, use the same value
-        !.
+    is_var(Gi),
+    member(-(Gi, Go), V), % already encountered, use the same value
+    !.
 replace_vars2(Gi, Gi, Vsi, Vsi, Vi, Vo, _) :-
-        is_unbound(Gi, Vsi, _, _, 1), % unbound or constrained variable, loop variable
-        !,
-        Vo = [-(Gi, Gi) | Vi].
+    is_unbound(Gi, Vsi, _, _, 1), % unbound or constrained variable, loop variable
+    !,
+    Vo = [-(Gi, Gi) | Vi].
 replace_vars2(Gi, Go, Vsi, Vso, Vi, Vo, 0) :-
-        is_unbound(Gi, Vsi, Con, _, Vl), % unbound or constrained variable, non-loop variable
-        Vl =\= 1,
-        !,
-        var_con(Val, Con, 0, Vl), % ALLOW further constraints or instantiation.
-        generate_unique_var(Go, Vsi, Vs1, Gi),
-        update_var_value(Go, Val, Vs1, Vso), % copy value to new variable
-        Vo = [-(Gi, Go) | Vi].
+    is_unbound(Gi, Vsi, Con, _, Vl), % unbound or constrained variable, non-loop variable
+    Vl =\= 1,
+    !,
+    var_con(Val, Con, 0, Vl), % ALLOW further constraints or instantiation.
+    generate_unique_var(Go, Vsi, Vs1, Gi),
+    update_var_value(Go, Val, Vs1, Vso), % copy value to new variable
+    Vo = [-(Gi, Go) | Vi].
 replace_vars2(Gi, Go, Vsi, Vso, Vi, Vo, 1) :-
-        is_unbound(Gi, Vsi, Con, _, Vl), % unbound or constrained variable, non-loop variable
-        Vl =\= 1,
-        !,
-        var_con(Val, Con, 2, Vl), % DISALLOW further constraints or instantiation.
-        generate_unique_var(Go, Vsi, Vs1, Gi),
-        update_var_value(Go, Val, Vs1, Vso), % copy value to new variable
-        Vo = [-(Gi, Go) | Vi].
+    is_unbound(Gi, Vsi, Con, _, Vl), % unbound or constrained variable, non-loop variable
+    Vl =\= 1,
+    !,
+    var_con(Val, Con, 2, Vl), % DISALLOW further constraints or instantiation.
+    generate_unique_var(Go, Vsi, Vs1, Gi),
+    update_var_value(Go, Val, Vs1, Vso), % copy value to new variable
+    Vo = [-(Gi, Go) | Vi].
 replace_vars2(Gi, Val2, Vsi, Vso, Vi, Vo, Flag) :-
-        is_var(Gi),
-        var_value(Gi, Vsi, val(Val)),
-        Val =.. [F | A], % compound term
-        !,
-        replace_vars(A, A2, Vsi, Vso, Vi, V1, Flag),
-        Val2 =.. [F | A2],
-        Vo = [-(Gi, Val2) | V1].
+    is_var(Gi),
+    var_value(Gi, Vsi, val(Val)),
+    Val =.. [F | A], % compound term
+    !,
+    replace_vars(A, A2, Vsi, Vso, Vi, V1, Flag),
+    Val2 =.. [F | A2],
+    Vo = [-(Gi, Val2) | V1].
 replace_vars2(Gi, Val, Vs, Vs, Vi, Vo, _) :-
-        is_var(Gi),
-        !,
-        var_value(Gi, Vs, val(Val)), % not unbound, constrained or a compound term
-        Vo = [-(Gi, Val) | Vi].
+    is_var(Gi),
+    !,
+    var_value(Gi, Vs, val(Val)), % not unbound, constrained or a compound term
+    Vo = [-(Gi, Val) | Vi].
 replace_vars2(Gi, Go, Vsi, Vso, Vi, Vo, Flag) :-
-        Gi =.. [F | A], % compound term, process args
-        !,
-        replace_vars(A, A2, Vsi, Vso, Vi, Vo, Flag),
-        Go =.. [F | A2].
+    Gi =.. [F | A], % compound term, process args
+    !,
+    replace_vars(A, A2, Vsi, Vso, Vi, Vo, Flag),
+    Go =.. [F | A2].
 replace_vars2(G, G, Vs, Vs, V, V, _) :-
-        % not a variable or compound term; keep original.
-        !.
+    % not a variable or compound term; keep original.
+    !.

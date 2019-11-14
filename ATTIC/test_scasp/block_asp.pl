@@ -43,48 +43,48 @@ location('table').
 % GENERATE
 
 % { move(B,L,T) : block(B) , location(L) } 2 :-
-% 	time(T),
-% 	T<3.
+%       time(T),
+%       T<3.
 move(B,L,T) :-
-	block(B) ,
-	location(L),
-	time(T),
-	T < 3, not neg_move(B,L,T).
+    block(B) ,
+    location(L),
+    time(T),
+    T < 3, not neg_move(B,L,T).
 neg_move(B,L,T) :-
-	block(B),
-	location(L),
-	time(T),
-	T < 3, not move(B,L,T).
+    block(B),
+    location(L),
+    time(T),
+    T < 3, not move(B,L,T).
 
 % DEFINE
 
 % effect of moving a block
 on(B,L,T1) :-
-	block(B),
-	location(L),
-	time(T),
-	move(B,L,T),
-	T1 is T + 1,
-	T < 3.
+    block(B),
+    location(L),
+    time(T),
+    move(B,L,T),
+    T1 is T + 1,
+    T < 3.
 
 % inertia
 on(B,L,T1) :-
-	location(L),
-	block(B),
-	time(T),
-	on(B,L,T),
-	T1 is T + 1,
-	not neg_on(B,L,T1),
-	T < 3.
+    location(L),
+    block(B),
+    time(T),
+    on(B,L,T),
+    T1 is T + 1,
+    not neg_on(B,L,T1),
+    T < 3.
 
 % uniqueness of location
 neg_on(B,L1,T) :-
-	block(B),
-	location(L),
-	location(L1),
-	time(T),
-	on(B,L,T),
-	L \= L1.
+    block(B),
+    location(L),
+    location(L1),
+    time(T),
+    on(B,L,T),
+    L \= L1.
 
 % TEST
 
