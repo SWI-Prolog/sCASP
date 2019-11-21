@@ -1,0 +1,3 @@
+precision(100).
+query :- holdsAt(light_red,699).
+

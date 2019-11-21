@@ -1,0 +1,35 @@
+%% Inspired by example 4 from Mueller
+
+timestep(0..10*P) :- precision(P).
+
+% If a light is turned on, it will be on:
+initiates(turn_on,light_on,T) :- timestep(T).
+
+% If a light is turned on, whether it is red or green will be released
+% from the commonsense law of inertia:
+releases(turn_on,light_red,T) :- timestep(T).
+releases(turn_on,light_green,T) :- timestep(T).
+
+% If a light is turned off, it will not be on
+terminates(turn_off,light_on,T) :- timestep(T).
+
+% After a light is turned on, it will emit red for up to D seconds
+% and green after at least D seconds where D is determine by delay(D):
+trajectory(light_on, T1, light_red, T2) :-
+                     timestep(T1), timestep(T2), precision(P),
+                     T1 < T2, T2 < T1 + (1*P).
+trajectory(light_on, T1, light_green, T2) :-
+                     timestep(T1), timestep(T2), precision(P),
+                     T2 >= T1 + (1*P).
+
+initiallyN(light_on).
+
+%% Actions
+happens(turn_on,2*P) :- precision(P).
+happens(turn_off,4*P) :- precision(P).
+happens(turn_on,6*P) :- precision(P).
+
+
+%% Queries (with the expected result)
+%% false :- not holdsAt(light_on,2*P), precision(P).
+:- not query.
