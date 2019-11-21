@@ -15,7 +15,7 @@ its functionalities (among others) with:
  @pred{dual_clpq/2} provide the dual of a constraint store in run-time
 to evaluate the @pred{forall/4} predicate.
 
- @pred{prety_print/1} used by @pred{portray_attribute/2} to print the
+ @pred{pretty_print/1} used by @pred{portray_attribute/2} to print the
 constraints of a variable.
 
 ").
@@ -147,7 +147,7 @@ entail_list(A,B) :-
 %           display('{ '),
 %           display(A), display(' '),
 %           display(Constraints),
-% %         prety_print(Constraints),
+% %         pretty_print(Constraints),
 %           display(' }')
 %       ).
 
@@ -158,16 +158,26 @@ portray_attribute(_,A) :-
         display(A)
     ;
         display(' {'),
-        prety_print(Constraints),
+        pretty_print(Constraints),
         display('} ')
     ).
 
     
-prety_print([]).
-prety_print([C]) :- prety_print_(C).
-prety_print([C1,C2|Cs]) :- prety_print_(C1), display(', '), prety_print([C2|Cs]).
-prety_print_(nonzero(Var)) :- display(nonzero(Var)), !.
-prety_print_(R) :- struct(R), R =.. [rat,A,B], display(A),!, display(/), display(B).
-prety_print_(C) :- struct(C), C =.. [Op,A,B], prety_print_(A), display(''), display(Op), display(''), prety_print_(B), !.
-prety_print_(A) :- display(A).
+pretty_print([]).
+pretty_print([C]) :- pretty_print_(C).
+pretty_print([C1,C2|Cs]) :- pretty_print_(C1), display(', '), pretty_print([C2|Cs]).
+pretty_print_(nonzero(Var)) :- display(nonzero(Var)), !.
+pretty_print_(R) :- struct(R), R =.. [rat,A,B], display(A),!, display(/), display(B).
+pretty_print_(C) :- struct(C), C =.. [Op,A,B], pretty_print_(A), display(' '), display_op(Op), display(' '), pretty_print_(B), !.
+pretty_print_(A) :- display(A).
+
+display_op(Op) :- pretty_op(Op,Pop), !, display(Pop).
+display_op(Op) :- display(Op).
+
+pretty_op(.<.,<).
+pretty_op(.=<.,=<).
+pretty_op(.>.,>).
+pretty_op(.>=.,>=).
+pretty_op(.=.,=).
+pretty_op(.\=.,\=).
 

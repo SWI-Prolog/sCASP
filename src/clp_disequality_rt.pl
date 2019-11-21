@@ -387,7 +387,7 @@ portray_attribute(att(_,false,att(clp_disequality_rt,neg(List),_)),Var) :-
         List == [] ->
         display(Var)
     ;
-        format(" {~w.\\=.~w} ",[Var,List])
+        format(" {~w \\= ~w} ",[Var,List])
     ).
     
 %% Auxiliar predicates %%
