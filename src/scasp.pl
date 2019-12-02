@@ -642,6 +642,10 @@ type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ variant(Goal, S).
 %type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal = S.
 type_loop_(Goal, 0, 0, [S|_],pos(S)) :-  \+ \+ Goal = S.
 
+% avoid loops due to repeated negated goal... -> can be solve
+%% using tabling
+type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(S)) :- Goal == S, N > 0, 0 is mod(N, 2).
+
 type_loop_(not(Goal), 0, N, [not(S)|_],even) :- Goal == S, N > 0, 1 is mod(N, 2).
 type_loop_(Goal, 0, N, [S|_],even) :- Goal \= not(_), Goal == S, N > 0, 0 is mod(N, 2).
 
