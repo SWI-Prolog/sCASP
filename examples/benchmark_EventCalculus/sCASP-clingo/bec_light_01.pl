@@ -21,7 +21,7 @@ terminates(turn_off, light_on, T).
 trajectory(light_on, T1, light_red, T2) :- T1 .<. T2, T2 .<. T1 + 1.
 trajectory(light_on, T1, light_green, T2) :- T2 .>=. T1 + 1.
 
-initiallyN(light_on).
+%initiallyN(light_on).
 
 %% Actions
 happens(turn_on, 2).

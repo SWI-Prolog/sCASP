@@ -20,7 +20,7 @@ if [ "$#" == 0 ]; then
     run_query "?- holdsAt(level(7),T).      % -> T = 12s      "
     run_query "?- holdsAt(level(12),T).     % -> no           "
     run_query "?- holdsAt(spilling,T).      % -> T > 15s      "
-    run_query "?- holdsAt(leak(L),14).      % -> L = 0	      "   
+    run_query "?- holdsAt(leak(L),14).      % -> no	      "   
     run_query "?- holdsAt(leak(L),19).      % -> L = 4        "
     run_query "?- holdsAt(leak(L),22).      % -> no           "
 
