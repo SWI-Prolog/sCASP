@@ -20,20 +20,45 @@ lists and terms.
 
 ## Installation of s(CASP) 
 
-To run / compile `s(CASP)` you need
-[`Ciao Prolog`](https://github.com/ciao-lang/ciao) working in your
-computer.
 
-### For Mac-OS / Linux
+## CIAO
 
-Then compile the s(CASP) source code (from the directiory src) using:
+`Ciao` is a programming language that builds up from a logic-based simple kernel, and is designed to be extensible and modular. It is available at [http://ciao-lang.org](http://ciao-lang.org). Its supports:
+
+* constraint logic programming (and, in particular, Prolog)
+* different levels of modularity (from small to large scale):
+  * modules as (analysis-friendly) compilation units
+  * bundles as collections of modules
+* packages as modules implementing language extensions (syntactic definitions, compilation options, compiler plugins)
+* assertions (as an homogeneous framework that allows static and dynamic verification to work cooperatively in a unified way)
+* multiparadigm constructs (meta-programming, higher-order, mutables, concurrency, functions, etc.) and interfacing with foreign code
+
+The system implements some advanced features such as separate and incremental compilation, global program analysis and static debugging and optimization (via source to source program transformation, `CiaoPP preprocessor`), a build automation system, documentation generator, debugger, and (Emacs-based) development environment.
+
+To begin the interactive installation type the following one-liner in a sh-compatible terminal:
 
 ```
-ciaoc -x -o scasp scasp.pl
+curl https://ciao-lang.org/boot -sSfL | sh
 ```
 
-to generate an executable file named `scasp` which you can place
-wherever you want...
+Do not forget to rerun the bashrc file `source ~/.bashrc`. If you have any problem go [here](http://ciao-lang.org/install.html) for details.
+
+## s(CASP)
+
+`s(CASP)` is an implementation of the stable model semantics of
+constraint logic programming. Unlike similar systems, it does not
+employ any form of grounding. This allows `s(CASP)` to execute programs
+that are not finitely groundable, including those which make use of
+lists and terms. It is available  [here](https://gitlab.software.imdea.org/joaquin.arias/sCASP).
+
+Once you have Ciao working in your computer to install `s(CASP)` type the following one-liner in a sh-compatible terminal:
+
+```
+ciao get gitlab.software.imdea.org/joaquin.arias/sCASP
+```
+
+If you have any problem contact
+[this mail](mailto:joaquin.arias@imdea.org?subject=[s(CASP) help]).
 
 ## Usage of s(CASP)
 
