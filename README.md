@@ -53,7 +53,7 @@ ciao get gitlab.software.imdea.org/joaquin.arias/sCASP
 ```
 
 If you have any problem contact
-[this mail](mailto:joaquin.arias@imdea.org?subject=[s(CASP) help]).
+[this mail](mailto:joaquin.arias@imdea.org?subject=[s(CASP)%20Help]).
 
 ## Usage of s(CASP)
 
