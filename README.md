@@ -21,7 +21,7 @@ lists and terms.
 ## Installation of s(CASP) 
 
 
-## CIAO
+### CIAO
 
 `Ciao` is a programming language that builds up from a logic-based simple kernel, and is designed to be extensible and modular. It is available at [http://ciao-lang.org](http://ciao-lang.org). Its supports:
 
@@ -35,7 +35,8 @@ lists and terms.
 
 The system implements some advanced features such as separate and incremental compilation, global program analysis and static debugging and optimization (via source to source program transformation, `CiaoPP preprocessor`), a build automation system, documentation generator, debugger, and (Emacs-based) development environment.
 
-To begin the interactive installation type the following one-liner in a sh-compatible terminal:
+To begin the interactive installation type the following one-liner in
+a sh-compatible terminal (For Windows you need [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10)):
 
 ```
 curl https://ciao-lang.org/boot -sSfL | sh
@@ -43,13 +44,7 @@ curl https://ciao-lang.org/boot -sSfL | sh
 
 Do not forget to rerun the bashrc file `source ~/.bashrc`. If you have any problem go [here](http://ciao-lang.org/install.html) for details.
 
-## s(CASP)
-
-`s(CASP)` is an implementation of the stable model semantics of
-constraint logic programming. Unlike similar systems, it does not
-employ any form of grounding. This allows `s(CASP)` to execute programs
-that are not finitely groundable, including those which make use of
-lists and terms. It is available  [here](https://gitlab.software.imdea.org/joaquin.arias/sCASP).
+### s(CASP)
 
 Once you have Ciao working in your computer to install `s(CASP)` type the following one-liner in a sh-compatible terminal:
 
