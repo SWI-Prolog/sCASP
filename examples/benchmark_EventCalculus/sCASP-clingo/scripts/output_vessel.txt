@@ -1,4 +1,4 @@
-./go_vessel
+./go_vessel 
 
 
 *************	 Clingo: ?- holdsAt(level(7),T) 	 precision(1) 
@@ -13,11 +13,11 @@ UNSATISFIABLE
 
 Models       : 0
 Calls        : 1
-Time         : 0.008s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 0.008s
+Time         : 0.011s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.009s
 
-real	0m0.017s
-user	0m0.010s
+real	0m0.021s
+user	0m0.011s
 sys	0m0.003s
 
 	 This result is incorrect due to the tiny precision
@@ -38,12 +38,12 @@ SATISFIABLE
 
 Models       : 1
 Calls        : 1
-Time         : 0.213s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 0.211s
+Time         : 0.332s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.294s
 
-real	0m0.267s
-user	0m0.250s
-sys	0m0.012s
+real	0m0.418s
+user	0m0.352s
+sys	0m0.017s
 
 
 *************	 Clingo: ?- holdsAt(level(700),T) 	 precision(100) 
@@ -60,12 +60,12 @@ SATISFIABLE
 
 Models       : 1
 Calls        : 1
-Time         : 31.179s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 31.057s
+Time         : 53.316s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 48.305s
 
-real	0m41.401s
-user	0m40.247s
-sys	0m0.992s
+real	1m12.206s
+user	1m1.893s
+sys	0m2.319s
 
 
 *************	 s(CASP): ?- holdsAt(level(7),T) 
@@ -77,13 +77,13 @@ Default query:
 	?- holdsAt(level(7),_16404).
 
 
-Answer 1	(in 24.392 ms):
+Answer 1	(in 30.457 ms):
 {  holdsAt(level(7),41/4) ,  initiates(tapOn,filling,5) ,  happens(tapOn,5) ,  trajectory(filling,5,level(7),41/4) ,  max_level(10) ,  holdsAt(level(0),5) ,  initiallyP(level(0)) ,  not stoppedIn(0,level(0),5) ,  not terminates( {_731 \= [tapOff]} ,level(0), {_664 > 0, _664 < 5} ) ,  not terminates(tapOff,level(0), {_664 > 0, _664 < 5} ) ,  not releases( {_1723 \= [tapOn]} ,level(0), {_1656 > 0, _1656 < 5} ) ,  not releases(tapOn,level(0), {_1656 > 0, _1656 < 5} ) ,  not happens(tapOn, {_1656 > 0, _1656 < 5} ) ,  not stoppedIn(5,filling,41/4) ,  not terminates( {_3129 \= [tapOff]} ,filling, {_3062 > 5, _3062 < 41/4} ) ,  terminates(tapOff,filling, {_3062 > 5, _3062 < 41/4} ) ,  not happens(tapOff, {_3062 > 5, _3062 < 41/4} ) ,  not releases( {_4654 \= [tapOn]} ,filling, {_4587 > 5, _4587 < 41/4} ) ,  not releases(tapOn,filling, {_4587 > 5, _4587 < 41/4} ) ,  not -holdsAt( {_7917 \= [filling]} , {_6066 =< 0} ) ,  not -holdsAt( {_7917 \= [filling]} , {_6283 > 0} ) ,  not terminates( {_6617 \= [tapOff]} , {_7917 \= [filling]} , {_6539 =< 0} ) ,  not terminates(tapOff, {_7917 \= [filling]} , {_6539 =< 0} ) ,  not -holdsAt(filling, {_12188 =< 0} ) ,  not -holdsAt(filling, {_17148 > 0} ) ,  not terminates( {_29210 \= [tapOff]} ,filling, {_28721 =< 0} ) ,  terminates(tapOff,filling, {_28721 =< 0} ) ,  not happens(tapOff, {_28721 =< 0} )  }
 
 [holdsAt(level(7),41/4)]
 
 
-real	0m0.258s
-user	0m0.209s
-sys	0m0.040s
-[15:16] joaquin@:scripts$ 
+real	0m0.388s
+user	0m0.254s
+sys	0m0.056s
+[16:35] joaquin@:scripts$ 

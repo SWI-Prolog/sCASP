@@ -29,13 +29,13 @@ trajectory(filling,T1,level(X2),T2) :-
     max_level(Max),
     X2 <= Max,
     holdsAt(level(X),T1).
-%% trajectory(filling,T1,level(overlimit),T2) :-
-%%     holdsAt(level(X),T1),
-%%     timestep(T1), timestep(T2),
-%%     T1 < T2,
-%%     X2 = X + (4 * (T2 - T1)/3),
-%%     max_level(Max),
-%%     X2 > Max.
+ trajectory(filling,T1,overlimit,T2) :-
+     timestep(T1), timestep(T2),
+     T1 < T2,
+     X2 = X + (4 * (T2 - T1)/3),
+     max_level(Max),
+     X2 > Max,
+     holdsAt(level(X),T1).
 
 % Now we have the Trajectory formula, which describes the continuous
 % variation in the Leaf fluent while the Spilling fluent holds. The
