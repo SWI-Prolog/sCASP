@@ -1,7 +1,7 @@
 
 
 %% Include the BASIC EVENT CALCULUS THEORY
-#include 'bec_theory'.
+#include '../bec_theory'.
 
 %% Inspired by example 4 from Mueller
 

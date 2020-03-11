@@ -2,30 +2,30 @@
 
 
 echo -e '\n\n*************\t Clingo: ?- holdsAt(light_red,_) \t precision(1) \n'
-time clingo -n0 --quiet=2 theory.clingo light_01.clingo query00.clingo
+time clingo -n0 --quiet=2 ../theory.clingo ../light/light_01.clingo ../light/query00.clingo
 echo -e '\n\t This result is incorrect due to the tiny precision\n'
 
 echo -e '\n\n*************\t Clingo: ?- holdsAt(light_red,69) \t precision(10) \n'
-time clingo -n0 --quiet=2 theory.clingo light_01.clingo query01.clingo
+time clingo -n0 --quiet=2 ../theory.clingo ../light/light_01.clingo ../light/query01.clingo
 
 echo -e '\n\n*************\t Clingo: ?- holdsAt(light_red,699) \t precision(100) \n'
-time clingo -n0 --quiet=2 theory.clingo light_01.clingo query02.clingo
+time clingo -n0 --quiet=2 ../theory.clingo ../light/light_01.clingo ../light/query02.clingo
 
 echo -e '\n\n*************\t Clingo: ?- holdsAt(light_red,6999) \t precision(1000) \n'
-## time clingo -n0 --quiet=2 theory.clingo light_01.clingo query02.clingo
+## time clingo -n0 --quiet=2 ../theory.clingo ../light/light_01.clingo ../light/query02.clingo
 echo timeout 5 min
 
 
 
 echo -e '\n\n*************\t s(CASP): ?- holdsAt(light_red,6.9) \n'
-time scasp -n0  bec_light_01.pl bec_query01.pl 
+time scasp -n0  ../light/bec_light_01.pl ../light/bec_query01.pl 
 
 echo -e '\n\n*************\t s(CASP): ?- holdsAt(light_red,6.99) \n'
-time scasp -n0  bec_light_01.pl bec_query02.pl 
+time scasp -n0  ../light/bec_light_01.pl ../light/bec_query02.pl 
 
 echo -e '\n\n*************\t s(CASP): ?- holdsAt(light_red,6.999) \n'
-time scasp -n0  bec_light_01.pl bec_query03.pl 
+time scasp -n0  ../light/bec_light_01.plb ../light/ec_query03.pl 
 
 echo -e '\n\n*************\t s(CASP): ?- holdsAt(light_red,T) \n'
-time scasp -n0  bec_light_01.pl bec_query0x.pl 
+time scasp -n0  ../light/bec_light_01.pl ../light/bec_query0x.pl 
 
