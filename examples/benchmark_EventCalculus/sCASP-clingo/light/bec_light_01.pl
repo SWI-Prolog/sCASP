@@ -3,7 +3,7 @@
 %% Include the BASIC EVENT CALCULUS THEORY
 #include '../bec_theory'.
 
-%% Inspired by example 4 from Mueller
+%% Inspired by example 14 from Mueller (2014)
 
 % If a light is turned on, it will be on:
 initiates(turn_on, light_on, T).

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+
+echo -e '\n\n*************\t Clingo: ?- holdsAt(level(7),T) \t precision(1) \n'
+time clingo -n0 ../theory.clingo ../vessel/vessel_01.clingo ../vessel/query00.clingo
+echo -e '\n\t This result is incorrect due to the tiny precision\n'
+
+echo -e '\n\n*************\t Clingo: ?- holdsAt(level(70),T) \t precision(10) \n'
+time clingo -n0 ../theory.clingo ../vessel/vessel_01.clingo ../vessel/query01.clingo
+
+echo -e '\n\n*************\t Clingo: ?- holdsAt(level(700),T) \t precision(100) \n'
+time clingo -n0 ../theory.clingo ../vessel/vessel_01.clingo ../vessel/query02.clingo
+
+
+
+
+echo -e '\n\n*************\t s(CASP): ?- holdsAt(level(7),T) \n'
+time scasp -n0  ../vessel/bec_vessel_01.pl ../vessel/bec_query01.pl 
+
+

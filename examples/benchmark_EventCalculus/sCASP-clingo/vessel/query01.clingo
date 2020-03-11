@@ -1,0 +1,7 @@
+precision(10).
+query :-  level(70,T).
+
+level(70,T) :- holdsAt(level(70),T).
+
+
+#show level/2.

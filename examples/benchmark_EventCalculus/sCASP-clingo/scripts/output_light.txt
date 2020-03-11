@@ -1,4 +1,4 @@
-./go_sCASP-clingo 
+./go_light
 
 
 *************	 Clingo: ?- holdsAt(light_red,_) 	 precision(1) 

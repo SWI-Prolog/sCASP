@@ -1,4 +1,4 @@
-%% Inspired by example 4 from Mueller
+%% Inspired by example 14 from Mueller (2014)
 
 timestep(0..10*P) :- precision(P).
 
