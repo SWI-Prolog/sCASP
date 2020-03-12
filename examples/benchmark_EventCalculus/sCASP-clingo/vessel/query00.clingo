@@ -1,7 +1,7 @@
 precision(1).
-query :-  level(7,T).
+query :-  level(11,T).
 
-level(7,T) :- holdsAt(level(7),T).
+level(11,T) :- holdsAt(level(11),T).
 
 
 #show level/2.

@@ -1,9 +1,11 @@
+
 %% Inspired by example from Shanahan (1999)
 
 timestep(0..30*P) :- precision(P).
 
 % One world - vessel size = 10
-max_level(10*P) :- precision(P).
+max_level(10*P) :- precision(P), not max_level(16*P).
+max_level(16*P) :- precision(P), not max_level(10*P).
 
 initiates(tapOn,filling,T) :- timestep(T).
 terminates(tapOff,filling,T) :- timestep(T).
@@ -19,9 +21,7 @@ initiates(overflow,spilling,T) :-
 releases(tapOn,level(0),T) :- timestep(T), happens(tapOn, T).
 
 % Now we have the Trajectory formula, which describes the continuous
-% variation in the Level fluent while the Filling fluent holds. The
-% level is assumed to rise at one unit per unit of time until it reach
-% the maximum level of the vessel.
+% variation in the Level fluent while the Filling fluent holds.
 trajectory(filling,T1,level(X2),T2) :-
     timestep(T1), timestep(T2),
     T1 < T2,
@@ -38,9 +38,7 @@ trajectory(filling,T1,level(X2),T2) :-
      holdsAt(level(X),T1).
 
 % Now we have the Trajectory formula, which describes the continuous
-% variation in the Leaf fluent while the Spilling fluent holds. The
-% water is assumed to leak at one unit per unit of time since it reach
-% the maximum level of the vessel.
+% variation in the Leaf fluent while the Spilling fluent holds.
 trajectory(spilling,T1,leak(X),T2) :-
     timestep(T1), timestep(T2),
     holdsAt(filling, T2),
@@ -59,8 +57,7 @@ happens(overflow,T) :- timestep(T).
 happens(tapOn,5*P) :- precision(P).
 
 
-%% Queries (with the expected result)
-%% false :- not holdsAt(level(25),75), precision(P).
+%% Query
 :- not query.
 
 

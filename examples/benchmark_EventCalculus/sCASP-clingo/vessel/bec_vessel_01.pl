@@ -6,7 +6,8 @@
 %% Inspired by example from Shanahan (1999)
 
 % One world - vessel size = 10
-max_level(10).
+max_level(10) :- not max_level(16).
+max_level(16) :- not max_level(10).
 
 initiates(tapOn,filling,T).
 terminates(tapOff,filling,T).
@@ -21,16 +22,14 @@ initiates(overflow,spilling,T) :-
 releases(tapOn,level(0),T) :- happens(tapOn, T).
 
 % Now we have the Trajectory formula, which describes the continuous
-% variation in the Level fluent while the Filling fluent holds. The
-% level is assumed to rise at one unit per unit of time until it reach
-% the maximum level of the vessel.
+% variation in the Level fluent while the Filling fluent holds.
 trajectory(filling,T1,level(X2),T2) :-
     T1 .<. T2,
     X2 .=. X + 4/3 * (T2 - T1),
     max_level(Max),
     X2 .=<. Max,
     holdsAt(level(X),T1).
-trajectory(filling,T1,level(overlimit),T2) :-
+trajectory(filling,T1,overlimit,T2) :-
     T1 .<. T2,
     X2 .=. X + 4/3 * (T2 - T1),
     max_level(Max),
@@ -38,9 +37,7 @@ trajectory(filling,T1,level(overlimit),T2) :-
     holdsAt(level(X),T1).
 
 % Now we have the Trajectory formula, which describes the continuous
-% variation in the Leaf fluent while the Spilling fluent holds. The
-% water is assumed to leak at one unit per unit of time since it reach
-% the maximum level of the vessel.
+% variation in the Leaf fluent while the Spilling fluent holds. 
 trajectory(spilling,T1,leak(X),T2) :-
     holdsAt(filling, T2),
     T1.<.T2,
