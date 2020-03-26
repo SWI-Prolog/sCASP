@@ -1,0 +1,94 @@
+[10:25] joaquin@:test_tabling$ scasp -w -i path.pl
+
+Loading files: path.pl
+
+?- p(a,c).
+
+
+Answer 1	(in 2.695 ms):
+{  p(a,c) ,  p(a,b) ,  p(b,c) ,  not p(b,d)  }
+
+[p(a,c)] ? ;
+
+
+fail_pos_loop(variant,p(c,_64705),p(c,_64519))
+
+fail_pos_loop(variant,p(b,_63987),p(b,_63859))
+
+fail_pos_loop(variant,p(c,_64325),p(c,_64219))
+
+fail_pos_loop(variant,p(c,_64753),p(c,_64567))
+
+fail_pos_loop(variant,p(b,_64035),p(b,_63907))
+
+fail_pos_loop(variant,p(b,_63123),p(b,_63075))
+
+fail_pos_loop(variant,p(a,_63026),p(a,_62978))
+
+false
+?- p(a,d).
+
+
+Answer 1	(in 2.816 ms):
+{  p(a,d) ,  p(a,b) ,  p(b,d) ,  not p(b,c)  }
+
+[p(a,d)] ? ;
+
+
+fail_pos_loop(variant,p(d,_64866),p(d,_64680))
+
+fail_pos_loop(variant,p(b,_64148),p(b,_64020))
+
+fail_pos_loop(variant,p(d,_64486),p(d,_64380))
+
+fail_pos_loop(variant,p(d,_64914),p(d,_64728))
+
+fail_pos_loop(variant,p(b,_64196),p(b,_64068))
+
+fail_pos_loop(variant,p(b,_63284),p(b,_63236))
+
+fail_pos_loop(variant,p(a,_63187),p(a,_63139))
+
+false
+?- p(a,X).
+
+
+Answer 1	(in 3.077 ms):
+{  p(a,b) ,  p(b,d) ,  not p(b,c)  }
+
+[p(a,b)] ? ;
+
+
+fail_pos_loop(variant,p(d,_67140),p(d,_66954))
+
+fail_pos_loop(variant,p(b,_66422),p(b,_66294))
+
+fail_pos_loop(variant,p(d,_66760),p(d,_66654))
+
+fail_pos_loop(variant,p(d,_67188),p(d,_67002))
+
+fail_pos_loop(variant,p(b,_66470),p(b,_66342))
+
+fail_pos_loop(variant,p(b,_65558),p(b,_65510))
+
+
+Answer 2	(in 6.167 ms):
+{  p(a,b) ,  not p(b,d) ,  p(b,c)  }
+
+[p(a,b)] ? ;
+
+
+fail_pos_loop(variant,p(c,_67276),p(c,_67056))
+
+fail_pos_loop(variant,p(c,_67276),p(c,_67056))
+
+fail_pos_loop(variant,p(b,_66487),p(b,_66435))
+
+fail_pos_loop(variant,p(c,_66432),p(c,_66326))
+
+fail_pos_loop(variant,p(b,_66174),p(b,_66126))
+
+fail_pos_loop(variant,p(a,_63274),p(a,_63111))
+
+false
+?-  

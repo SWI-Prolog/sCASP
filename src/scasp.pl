@@ -638,7 +638,7 @@ type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
     type_loop_(Goal, NewIv, N, Ss, Type).
 
 type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal == S.
-type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ variant(Goal, S).
+type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ variant(Goal, S), if_user_option(warning,format("\nWARNING: Failing in a positive loop due to a variant call (tabling required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n",[Goal,S])).
 %type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal = S.
 type_loop_(Goal, 0, 0, [S|_],pos(S)) :-  \+ \+ Goal = S.
 
@@ -646,7 +646,8 @@ type_loop_(Goal, 0, 0, [S|_],pos(S)) :-  \+ \+ Goal = S.
 % It should be solved using tabling !!
 %% type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(S)) :- Goal == S, N > 0, 0 is mod(N, 2).
 
-type_loop_(not(Goal), 0, N, [not(S)|_],even) :- Goal == S, N > 0, 1 is mod(N, 2).
+type_loop_(not(Goal), 0, _N, [not(S)|_],even) :- \+ \+ Goal == S. %% redundant, for debugging proposals
+type_loop_(not(Goal), 0, _N, [not(S)|_],even) :- Goal = S. 
 type_loop_(Goal, 0, N, [S|_],even) :- Goal \= not(_), Goal == S, N > 0, 0 is mod(N, 2).
 
 type_loop_(Goal, 0, N, [S|Ss],Type) :-

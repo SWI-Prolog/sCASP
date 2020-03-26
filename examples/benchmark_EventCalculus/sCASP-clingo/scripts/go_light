@@ -24,7 +24,7 @@ echo -e '\n\n*************\t s(CASP): ?- holdsAt(light_red,6.99) \n'
 time scasp -n0  ../light/bec_light_01.pl ../light/bec_query02.pl 
 
 echo -e '\n\n*************\t s(CASP): ?- holdsAt(light_red,6.999) \n'
-time scasp -n0  ../light/bec_light_01.plb ../light/ec_query03.pl 
+time scasp -n0  ../light/bec_light_01.pl ../light/bec_query03.pl 
 
 echo -e '\n\n*************\t s(CASP): ?- holdsAt(light_red,T) \n'
 time scasp -n0  ../light/bec_light_01.pl ../light/bec_query0x.pl 

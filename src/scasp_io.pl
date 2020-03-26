@@ -333,6 +333,8 @@ set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),se
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option('-v') :- set(check_calls, on).
 set_user_option('--verbose') :- set(check_calls, on).
+set_user_option('-w') :- set(warning, on).
+set_user_option('--warning') :- set(warning, on).
 set_user_option('-j') :- set(print_all, on).
 set_user_option('-j0') :- set(print_all, on).
 set_user_option('--justification') :- set(print_all, on).
@@ -365,6 +367,7 @@ help :-
     display('  -a, --auto            Run in automatic mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.\n'),
     display('  -v, --verbose         Enable verbose progress messages.\n'),
+    display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  -j, --justification   Print proof tree for each solution.\n'),
     display('  -d0                   Print the program translated (with duals and nmr_check).\n'),
     display('\n'),
