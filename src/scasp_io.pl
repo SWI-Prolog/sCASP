@@ -98,7 +98,11 @@ process_query(Q,Query) :-
     (
         ground(Bs) -> assert(cont) ; true
     ),
-    append(Bs, [add_to_query], Query).
+    ( current_option(no_nmr,on) ->
+        append(Bs, [true], Query)
+    ;
+        append(Bs, [add_to_query], Query)
+    ).
 
 :- pred ask_for_more_models/0 #"Ask if the user want to generate more
 models (interactive and top-level mode)".
@@ -335,6 +339,8 @@ set_user_option('-v') :- set(check_calls, on).
 set_user_option('--verbose') :- set(check_calls, on).
 set_user_option('-w') :- set(warning, on).
 set_user_option('--warning') :- set(warning, on).
+set_user_option('-no') :- set(no_nmr, on).
+set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('-j') :- set(print_all, on).
 set_user_option('-j0') :- set(print_all, on).
 set_user_option('--justification') :- set(print_all, on).

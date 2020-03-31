@@ -70,10 +70,10 @@ answer_domain_projection([],     []).
 answer_domain_projection([X|Xs], [D|Ds]) :-
     answer_domain_projection_(X, D), !,
     answer_domain_projection(Xs, Ds).
-answer_check_entail([],       [],       _, _).
-answer_check_entail([D1|D1s], [D2|D2s], R, _) :-
+answer_check_entail([],       [],       _).
+answer_check_entail([D1|D1s], [D2|D2s], R) :-
     answer_check_entail_( D1, D2, R, _),
-    answer_check_entail(D1s, D2s, R, _).
+    answer_check_entail(D1s, D2s, R).
 answer_store_projection(_, St, St).
 
 apply_answer([],     []).

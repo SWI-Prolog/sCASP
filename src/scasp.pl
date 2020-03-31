@@ -70,9 +70,9 @@ program under the stable model semantic.
 %% ------------------------------------------------------------- %%
 :- doc(section, "Main predicates").
 
-% :- use_package(tabling).  
-% :- active_tclp.
-% :- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
+:- use_package(tabling).  
+:- active_tclp.
+:- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
 
 :- pred load(Files) : list(Files) #"Loads a list of files".
 
@@ -290,7 +290,8 @@ solve_goal(Goal, StackIn, [[],Goal|StackIn], GoalModel) :-
     GoalModel = [Goal].
 solve_goal(Goal, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_,_)),Goal \= builtin(_),
-    table_predicate(Goal), 
+    table_predicate(Goal),
+    if_user_option(check_calls, format('Solve the tabled goal ~p\n',[Goal])),
     AttStackIn <~ stack([Goal|StackIn]),
     solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel),
     AttStackOut ~> stack(StackOut),
@@ -478,7 +479,7 @@ check_CHS(Goal, I, proved) :-
 %% coinduction success <- cycles containing even loops may succeed
 check_CHS(Goal, I, co_success) :-
     predicate(Goal),
-    \+ \+ type_loop(Goal, I, even), !.
+    type_loop(Goal, I, even), !.
 %% coinduction fails <- the goal is entailed by its negation in the
 %% call stack
 check_CHS(Goal, I, co_failure) :-
@@ -509,6 +510,7 @@ check_CHS(Goal, I, cont) :-
     if(
           (
               predicate(Goal),
+              \+ ground(Goal),
               ground_neg_in_stack(Goal, I)
           ),
           true,true
@@ -520,6 +522,16 @@ neg_in_stack(not(Goal), [NegGoal|_]) :-
     Goal == NegGoal, !.
 neg_in_stack(Goal, [not(NegGoal)|_]) :-
     Goal == NegGoal, !.
+neg_in_stack(not(Goal), [NegGoal|_]) :-
+    variant(Goal, NegGoal),
+    instance(Goal, NegGoal),
+    instance(NegGoal, Goal), !,
+    if_user_option(warning,format("\nWARNING: Co-Failing in a negated loop due to a variant call (extension clp-disequality required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n",[Goal,NegGoal])).
+neg_in_stack(Goal, [not(NegGoal)|_]) :-
+    variant(Goal, NegGoal),
+    instance(Goal, NegGoal),
+    instance(NegGoal, Goal), !,
+    if_user_option(warning,format("\nWARNING: Co-Failing in a negated loop due to a variant call (extension clp-disequality required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n",[Goal,NegGoal])).
 % neg_in_stack(not(Goal), [NegGoal|_]) :-
 %       Goal =.. [Name|ArgGoal],
 %       NegGoal =.. [Name|NegArgGoal],
@@ -549,24 +561,36 @@ ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
     ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter, Flag).
 ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
 %ground_neg_in_stack_(Goal, [not(NegGoal)|Ss], Intervening, MaxInter, found) :-
-    %       Intervening =< MaxInter,
     Intervening =< MaxInter,
     Goal =.. [Name|ArgGoal],
-    NegGoal =.. [Name|ArgNegGoal], !,
+    NegGoal =.. [Name|ArgNegGoal], 
     if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[Goal,chs(not(NegGoal))])),
     %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[Goal,not(NegGoal)])),
-    loop_list(ArgGoal, ArgNegGoal),
+    \+ \+ Goal = NegGoal,
+    loop_list(ArgGoal, ArgNegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
 %ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
+ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
+    Intervening =< MaxInter,
+    Goal =.. [Name|ArgGoal],
+    NegGoal =.. [Name|ArgNegGoal], 
+    if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),chs(NegGoal)])),
+    %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
+    \+ \+ Goal = NegGoal,
+    loop_list(ArgGoal, ArgNegGoal), !,
+    max(MaxInter, Intervening, NewMaxInter),
+    NewInter is Intervening + 1,
+    ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
     Goal =.. [Name|ArgGoal],
-    NegGoal =.. [Name|ArgNegGoal], !, 
-    if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),chs(NegGoal)])),
+    NegGoal =.. [Name|ArgNegGoal], 
+    if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
     %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
-    loop_list(ArgGoal, ArgNegGoal),
+    \+ \+ Goal = NegGoal,
+    loop_list(ArgGoal, ArgNegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
@@ -585,6 +609,9 @@ proved_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :-
 proved_in_stack_(Goal, [S|_], Intervening, MaxInter) :-
     S \= [],
     Goal == S, !,
+    Intervening =< MaxInter.
+proved_in_stack_(Goal, [chs(S)|_], Intervening, MaxInter) :-
+    Goal == S, 
     Intervening =< MaxInter.
 proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
     S \= [],
@@ -647,7 +674,7 @@ type_loop_(Goal, 0, 0, [S|_],pos(S)) :-  \+ \+ Goal = S.
 %% type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(S)) :- Goal == S, N > 0, 0 is mod(N, 2).
 
 type_loop_(not(Goal), 0, _N, [not(S)|_],even) :- \+ \+ Goal == S. %% redundant, for debugging proposals
-type_loop_(not(Goal), 0, _N, [not(S)|_],even) :- Goal = S. 
+type_loop_(not(Goal), 0, _N, [not(S)|_],even) :- variant(Goal,S), Goal = S. 
 type_loop_(Goal, 0, N, [S|_],even) :- Goal \= not(_), Goal == S, N > 0, 0 is mod(N, 2).
 
 type_loop_(Goal, 0, N, [S|Ss],Type) :-
@@ -685,10 +712,10 @@ table_predicate(Goal) :-
     Goal =.. [Name|Args],
     length(Args,La),
     pr_table_predicate(Name/La).
-table_predicate(not(Goal)) :-
-    Goal =.. [Name|Args],
-    length(Args,La),
-    pr_table_predicate(Name/La).
+%% table_predicate(not(Goal)) :-
+%%     Goal =.. [Name|Args],
+%%     length(Args,La),
+%%     pr_table_predicate(Name/La).
 
 shown_predicate(not(Goal)) :-
     predicate(Goal).
