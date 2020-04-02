@@ -345,6 +345,8 @@ set_user_option('-j') :- set(print_all, on).
 set_user_option('-j0') :- set(print_all, on).
 set_user_option('--justification') :- set(print_all, on).
 set_user_option('-d0') :- set(write_program, on).
+set_user_option('--html') :- set(html, on).
+set_user_option('--server') :- set(html, on), set(server, on).
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
 #"If the flag @var{Name} is on them the call @var{Call} is executed".
@@ -375,6 +377,8 @@ help :-
     display('  -v, --verbose         Enable verbose progress messages.\n'),
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  -j, --justification   Print proof tree for each solution.\n'),
+    display('  --html                Generate the proof tree in a file named InputFiles(s).html.\n'),
+    display('  --server              Generate the proof tree in the file named justification.html.\n'),
     display('  -d0                   Print the program translated (with duals and nmr_check).\n'),
     display('\n'),
     abort.
@@ -395,3 +399,160 @@ parse_args([O | Args], [O | Os], Ss) :-
     parse_args(Args, Os, Ss).
 parse_args([S | Args], Os, [S | Ss]) :-
     parse_args(Args, Os, Ss).
+
+
+
+:- use_module('html/html_head').
+:- use_module('html/jquery02').
+:- use_module('html/jquery_tree').
+:- use_module('html/html_tail').
+:- pred print_html(Sources, Query, Model, StackOut) #"Generate a html
+file with the model and the justification tree of the @var{Sources}
+forq the @var{Query} using @var{Model} and @var{StackOut} resp.".
+
+%% Print output predicates to presaent the results of the query
+print_html(Sources,[Q,CopyQ], Model, StackOut) :-
+    write('\n\nBEGIN HTML JUSTIFICATION\n\n'),
+    ( current_option(server,on) ->
+        Name=justification
+    ;
+        create_file_name(Sources,Name)
+    ),
+    atom_concat(Name,'.html',File),
+    print(file(File)),nl,
+%    File = 'html/justification.html',
+    open_output_file(Stream,File,Current),
+    if(
+        (
+            load_html_head(Head),
+            print(Head),
+            print('<h3>Query</h3>'),nl,
+            print_html_query([Q,CopyQ]),nl,
+            br,br,nl,
+            print('<h3>Model</h3>'),nl,
+            print_model(Model),nl,
+            br,br,nl,
+            print('<h3> Justification </h3>\n <ul class="tree">'),
+            print_html_stack(StackOut),
+            nl,print('</ul>'),nl,nl,
+            load_jquery(Jquery),
+            print(Jquery),nl,
+            load_jquery_tree(Jquery_tree),
+            print(Jquery_tree),nl,
+            load_html_tail(Tail),
+            print(Tail)
+        ),true,true),
+    close_output_file(Stream,Current),
+    write('\nEND HTML JUSTIFICATION\n\n'), 
+    !.
+
+
+create_file_name([Ss],F) :-
+    name(Ss,StringS),
+    create_file_name_(StringS,StringF),
+    name(F,StringF).
+create_file_name([A,B|Ss],Fs) :-
+    create_file_name([A],F),
+    create_file_name([B|Ss],Fm),
+    atom_concat(F,'-',F1),
+    atom_concat(F1,Fm,Fs).
+create_file_name_([46|_],[]) :- !.
+create_file_name_([L|Ls],[L|F2]) :-
+    create_file_name_(Ls,F2).
+
+
+:- use_module(library(terms_check)).
+print_html_query([Q,CopyQ]) :-
+        print('<b>\n  <font color=blue>?-</font> '),nl,
+        print_body(CopyQ),
+        unifiable(Q,CopyQ,Unifier),
+        nl,br,br,nl,
+        tab_html(10),print_body(Unifier),
+        print(' ?'),
+        br,nl,
+        print('</b>').
+
+
+print_html_stack(StackOut) :-
+    reverse(StackOut,[A|ReverseStack]),
+    nl,tab(5),print('<li> '),
+    nl,tab(5),print('  '),print(A),     
+    print_html_stack_(ReverseStack,9,5).
+
+print_html_stack_([],I,I0) :-
+    display('.'),
+    nl,tab(I0), print('</li> '),
+    close_ul(I0,I).
+print_html_stack_([[]|As],I,I0) :- !,
+    I1 is I - 4,
+    print_html_stack_(As,I1,I0).
+print_html_stack_([A|As],I,I0) :- !,
+    (
+        I0 > I ->
+            print('.'),
+            nl,tab(I0), print('</li> '),
+            close_ul(I0,I)
+    ;
+        I0 < I ->
+            print(' :-'),
+            nl,tab(I0), print('  <ul>')
+    ;
+        print(','),
+        nl,tab(I0), print('</li>')
+    ),
+    nl,tab(I),print('<li> '),
+    nl,tab(I),print('  '),print(A),     
+    I1 is I + 4,
+    print_html_stack_(As,I1,I).
+    
+close_ul(I,I) :- !.
+close_ul(I0,I) :-
+    I0 > I,
+    I1 is I0 - 4,
+    ( I1 > 2 ->
+        nl,tab(I1), print('</ul> '),
+        nl,tab(I1), print('</li> ')
+    ;
+        true
+    ),
+    close_ul(I1,I).
+
+
+%% print_list([],_).
+%% print_list([X|Xs],L) :-
+%%     tabs(L),
+%%     print('<li> '),
+%%     print_item(X,L),
+%%     print('</li>'),nl,
+%%     print_list(Xs,L).
+
+%! tab_html(+Level:int) is det
+% Write Level spaces.
+%
+% @param Level The level to tabs to.
+tab_html(N) :-
+    N > 0,
+    N1 is N - 1,
+    write('&nbsp;'),
+    !,
+    tab_html(N1).
+tab_html(0).
+
+print_body([]) :- print('true.').
+print_body([X]):-
+    print(X),print('.').
+print_body([X,Y|Xs]):-
+    print(X),print(','),tab_html(2),nl,
+    print_body([Y|Xs]).
+
+open_output_file(Stream,File,Current) :-
+    current_output(Current),
+    open(File,append,_F),close(_F), %% if File does not exists open it
+    open(File,write,Stream),
+    set_output(Stream).
+close_output_file(Stream,Current) :-
+    set_output(Current),
+    close(Stream).
+    
+br :- print('<br>').
+

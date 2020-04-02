@@ -95,38 +95,39 @@ main(Args) :-
     if_user_option(write_program, halt),
     (
         current_option(interactive, on) ->
-        main_loop
+        main_loop(Sources)
     ;
         defined_query(Q),
-        main_solve(Q)
+        main_solve(Sources,Q)
     ).
 main(_).
 
-main_loop :-
+main_loop(Sources) :-
     print('\n?- '),
-    catch(read(R),_,fail_main_loop),
+    catch(read(R),_,fail_main_loop(Sources)),
     conj_to_list(R,Q),
     (
         member(exit, Q) ->
         halt
     ;
         (
-            main_solve(Q) ->
-            nl, main_loop
+            main_solve(Sources,Q) ->
+            nl, main_loop(Sources)
         ;
             print('\nfalse'),
-            main_loop
+            main_loop(Sources)
         )
     ).
 
-fail_main_loop :-
+fail_main_loop(Sources) :-
     print('\nno'),
-    main_loop.
+    main_loop(Sources).
 
-main_solve(Q) :-
+main_solve(Sources,Q) :-
     current_option(answers,Number),
     init_counter,
     process_query(Q,Query),
+    copy_term(Q,CopyQ),
     statistics(runtime,_),
     if(solve(Query, [], StackOut, Model),nl,(print('\nfalse\n\n'),fail)),
     statistics(runtime, [_|[T]]),
@@ -135,6 +136,8 @@ main_solve(Q) :-
     format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
     if_user_option(print,print_output(StackOut)),
     if_user_option(print_all,print_all_output(StackOut)),
+    print(send(Sources)),nl,
+    if_user_option(html,print_html(Sources,[Q,CopyQ],Model,StackOut)),
     print_model(Model),nl,
     print(Q),
     (

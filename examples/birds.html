@@ -1,0 +1,909 @@
+<!doctype html>
+ <html>
+ <head>
+ <meta charset="utf-8">
+ <title>c(ASP) Justification</title>
+ <style>
+.treemenu li { list-style: none; }
+.treemenu .toggler { cursor: pointer; }
+.treemenu .toggler:before { display: inline-block; margin-right: 2pt; }
+li.tree-empty > .toggler { opacity: 0.3; cursor: default; }
+li.tree-empty > .toggler:before { content: " "; }
+li.tree-closed > .toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: transparent blue;
+    border-style: solid;
+    border-width: 0.25em 0 0.25em 0.5em;
+}
+li.tree-opened > .toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: blue transparent ;
+    border-style: solid;
+    border-width: 0.5em 0.25em 0 0.25em;
+}
+</style>
+ 
+ <link rel="icon" href="logo.ico">
+ 
+ </head>
+ 
+ <body style="font-size:15px;background: #ECECEC; margin:80px; color:#333;">
+ 
+<h3>Query</h3>
+<b>
+  <font color=blue>?-</font> 
+flies(_169316).
+<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_169316=tweety. ?<br>
+</b>
+<br><br>
+<h3>Model</h3>
+
+{  flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wounded_bird(tweety) ,  -ab( {_170367 \= [john,sam]} ) ,  not ab( {_170367 \= [john,sam]} ) ,  not penguin( {_170367 \= [john,sam]} ) ,  not wounded_bird( {_170367 \= [john,sam]} ) ,  not ab( {_170367 \= [john,sam]} ) ,  not penguin( {_170367 \= [john,sam]} ) ,  not wounded_bird( {_170367 \= [john,sam]} ) ,  not -ab(john) ,  ab(john) ,  wounded_bird(john) ,  not -ab(sam) ,  ab(sam) ,  penguin(sam) ,  -penguin( {_174679 \= [sam]} ) ,  not penguin( {_174679 \= [sam]} ) ,  not penguin( {_174679 \= [sam]} ) ,  not -penguin(sam) ,  -wounded_bird( {_177721 \= [john]} ) ,  not wounded_bird( {_177721 \= [john]} ) ,  not wounded_bird( {_177721 \= [john]} ) ,  not -wounded_bird(john) ,  -bird( {_181450 \= [john,sam,tweety]} ) ,  not bird( {_181450 \= [john,sam,tweety]} ) ,  not penguin( {_181450 \= [john,sam,tweety]} ) ,  not wounded_bird( {_181450 \= [john,sam,tweety]} ) ,  not bird( {_181450 \= [john,sam,tweety]} ) ,  not penguin( {_181450 \= [john,sam,tweety]} ) ,  not wounded_bird( {_181450 \= [john,sam,tweety]} ) ,  not -bird(john) ,  bird(john) ,  not -bird(sam) ,  bird(sam) ,  not -bird(tweety) ,  -flies( {_197566 \= [john,sam,tweety]} ) ,  -bird( {_197566 \= [john,sam,tweety]} ) ,  not bird( {_197566 \= [john,sam,tweety]} ) ,  not penguin( {_197566 \= [john,sam,tweety]} ) ,  not wounded_bird( {_197566 \= [john,sam,tweety]} ) ,  not flies( {_197566 \= [john,sam,tweety]} ) ,  not bird( {_197566 \= [john,sam,tweety]} ) ,  not penguin( {_197566 \= [john,sam,tweety]} ) ,  not wounded_bird( {_197566 \= [john,sam,tweety]} ) ,  -flies(john) ,  not flies(john) ,  -flies(sam) ,  not flies(sam) ,  not -flies(tweety)  }
+
+<br><br>
+<h3> Justification </h3>
+ <ul class="tree">
+     <li> 
+       flies(tweety) :-
+       <ul>
+         <li> 
+           bird(tweety),
+         </li>
+         <li> 
+           not ab(tweety) :-
+           <ul>
+             <li> 
+               not o_ab1(tweety) :-
+               <ul>
+                 <li> 
+                   not penguin(tweety) :-
+                   <ul>
+                     <li> 
+                       not o_penguin1(tweety) :-
+                       <ul>
+                         <li> 
+                           tweety\=sam.
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               not o_ab2(tweety) :-
+               <ul>
+                 <li> 
+                   not wounded_bird(tweety) :-
+                   <ul>
+                     <li> 
+                       not o_wounded_bird1(tweety) :-
+                       <ul>
+                         <li> 
+                           tweety\=john.
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+         </ul> 
+         </li> 
+     </ul> 
+     </li> 
+     <li> 
+       add_to_query :-
+       <ul>
+         <li> 
+           o_nmr_check :-
+           <ul>
+             <li> 
+               not o_chk1 :-
+               <ul>
+                 <li> 
+                   not o__chk11 :-
+                   <ul>
+                     <li> 
+                       forall(_170053,not o__chk11(_170053)) :-
+                       <ul>
+                         <li> 
+                           not o__chk11( {_170367 \= [john,sam]} ) :-
+                           <ul>
+                             <li> 
+                               -ab( {_170367 \= [john,sam]} ) :-
+                               <ul>
+                                 <li> 
+                                   not ab( {_170367 \= [john,sam]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_ab1( {_170367 \= [john,sam]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not penguin( {_170367 \= [john,sam]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not o_penguin1( {_170367 \= [john,sam]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                    {_170367 \= [john,sam]} \=sam.
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                     <li> 
+                                       not o_ab2( {_170367 \= [john,sam]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not wounded_bird( {_170367 \= [john,sam]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not o_wounded_bird1( {_170367 \= [john,sam]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                    {_170367 \= [john,sam]} \=john.
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not ab( {_170367 \= [john,sam]} ) :-
+                               <ul>
+                                 <li> 
+                                   not o_ab1( {_170367 \= [john,sam]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not penguin( {_170367 \= [john,sam]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not o_penguin1( {_170367 \= [john,sam]} ) :-
+                                           <ul>
+                                             <li> 
+                                                {_170367 \= [john,sam]} \=sam.
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                                 <li> 
+                                   not o_ab2( {_170367 \= [john,sam]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not wounded_bird( {_170367 \= [john,sam]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not o_wounded_bird1( {_170367 \= [john,sam]} ) :-
+                                           <ul>
+                                             <li> 
+                                                {_170367 \= [john,sam]} \=john.
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk11(john) :-
+                           <ul>
+                             <li> 
+                               not -ab(john) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_ab1(john) :-
+                                   <ul>
+                                     <li> 
+                                       ab(john) :-
+                                       <ul>
+                                         <li> 
+                                           wounded_bird(john).
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk11(sam) :-
+                           <ul>
+                             <li> 
+                               not -ab(sam) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_ab1(sam) :-
+                                   <ul>
+                                     <li> 
+                                       ab(sam) :-
+                                       <ul>
+                                         <li> 
+                                           penguin(sam).
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               not o_chk2 :-
+               <ul>
+                 <li> 
+                   not o__chk21 :-
+                   <ul>
+                     <li> 
+                       forall(_174486,not o__chk21(_174486)) :-
+                       <ul>
+                         <li> 
+                           not o__chk21( {_174679 \= [sam]} ) :-
+                           <ul>
+                             <li> 
+                               -penguin( {_174679 \= [sam]} ) :-
+                               <ul>
+                                 <li> 
+                                   not penguin( {_174679 \= [sam]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_penguin1( {_174679 \= [sam]} ) :-
+                                       <ul>
+                                         <li> 
+                                            {_174679 \= [sam]} \=sam.
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not penguin( {_174679 \= [sam]} ) :-
+                               <ul>
+                                 <li> 
+                                   not o_penguin1( {_174679 \= [sam]} ) :-
+                                   <ul>
+                                     <li> 
+                                        {_174679 \= [sam]} \=sam.
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk21(sam) :-
+                           <ul>
+                             <li> 
+                               not -penguin(sam) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_penguin1(sam) :-
+                                   <ul>
+                                     <li> 
+                                       proved(penguin(sam)).
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               not o_chk3 :-
+               <ul>
+                 <li> 
+                   not o__chk31 :-
+                   <ul>
+                     <li> 
+                       forall(_177528,not o__chk31(_177528)) :-
+                       <ul>
+                         <li> 
+                           not o__chk31( {_177721 \= [john]} ) :-
+                           <ul>
+                             <li> 
+                               -wounded_bird( {_177721 \= [john]} ) :-
+                               <ul>
+                                 <li> 
+                                   not wounded_bird( {_177721 \= [john]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_wounded_bird1( {_177721 \= [john]} ) :-
+                                       <ul>
+                                         <li> 
+                                            {_177721 \= [john]} \=john.
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not wounded_bird( {_177721 \= [john]} ) :-
+                               <ul>
+                                 <li> 
+                                   not o_wounded_bird1( {_177721 \= [john]} ) :-
+                                   <ul>
+                                     <li> 
+                                        {_177721 \= [john]} \=john.
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk31(john) :-
+                           <ul>
+                             <li> 
+                               not -wounded_bird(john) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_wounded_bird1(john) :-
+                                   <ul>
+                                     <li> 
+                                       proved(wounded_bird(john)).
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               not o_chk4 :-
+               <ul>
+                 <li> 
+                   not o__chk41 :-
+                   <ul>
+                     <li> 
+                       forall(_181257,not o__chk41(_181257)) :-
+                       <ul>
+                         <li> 
+                           not o__chk41( {_181450 \= [john,sam,tweety]} ) :-
+                           <ul>
+                             <li> 
+                               -bird( {_181450 \= [john,sam,tweety]} ) :-
+                               <ul>
+                                 <li> 
+                                   not bird( {_181450 \= [john,sam,tweety]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                       <ul>
+                                         <li> 
+                                            {_181450 \= [john,sam,tweety]} \=tweety.
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                     <li> 
+                                       not o_bird2( {_181450 \= [john,sam,tweety]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not penguin( {_181450 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not o_penguin1( {_181450 \= [john,sam,tweety]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                    {_181450 \= [john,sam,tweety]} \=sam.
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                     <li> 
+                                       not o_bird3( {_181450 \= [john,sam,tweety]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not wounded_bird( {_181450 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not o_wounded_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                    {_181450 \= [john,sam,tweety]} \=john.
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not bird( {_181450 \= [john,sam,tweety]} ) :-
+                               <ul>
+                                 <li> 
+                                   not o_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                   <ul>
+                                     <li> 
+                                        {_181450 \= [john,sam,tweety]} \=tweety.
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                                 <li> 
+                                   not o_bird2( {_181450 \= [john,sam,tweety]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not penguin( {_181450 \= [john,sam,tweety]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not o_penguin1( {_181450 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                                {_181450 \= [john,sam,tweety]} \=sam.
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                                 <li> 
+                                   not o_bird3( {_181450 \= [john,sam,tweety]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not wounded_bird( {_181450 \= [john,sam,tweety]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not o_wounded_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                                {_181450 \= [john,sam,tweety]} \=john.
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk41(john) :-
+                           <ul>
+                             <li> 
+                               not -bird(john) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_bird1(john) :-
+                                   <ul>
+                                     <li> 
+                                       bird(john) :-
+                                       <ul>
+                                         <li> 
+                                           proved(wounded_bird(john)).
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk41(sam) :-
+                           <ul>
+                             <li> 
+                               not -bird(sam) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_bird1(sam) :-
+                                   <ul>
+                                     <li> 
+                                       bird(sam) :-
+                                       <ul>
+                                         <li> 
+                                           proved(penguin(sam)).
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk41(tweety) :-
+                           <ul>
+                             <li> 
+                               not -bird(tweety) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_bird1(tweety) :-
+                                   <ul>
+                                     <li> 
+                                       proved(bird(tweety)).
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               not o_chk5 :-
+               <ul>
+                 <li> 
+                   not o__chk51 :-
+                   <ul>
+                     <li> 
+                       forall(_197333,not o__chk51(_197333)) :-
+                       <ul>
+                         <li> 
+                           not o__chk51( {_197566 \= [john,sam,tweety]} ) :-
+                           <ul>
+                             <li> 
+                               -flies( {_197566 \= [john,sam,tweety]} ) :-
+                               <ul>
+                                 <li> 
+                                   -bird( {_197566 \= [john,sam,tweety]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not bird( {_197566 \= [john,sam,tweety]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not o_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                                {_197566 \= [john,sam,tweety]} \=tweety.
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           not o_bird2( {_197566 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not penguin( {_197566 \= [john,sam,tweety]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_penguin1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_197566 \= [john,sam,tweety]} \=sam.
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           not o_bird3( {_197566 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not wounded_bird( {_197566 \= [john,sam,tweety]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_wounded_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_197566 \= [john,sam,tweety]} \=john.
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not flies( {_197566 \= [john,sam,tweety]} ) :-
+                               <ul>
+                                 <li> 
+                                   not o_flies1( {_197566 \= [john,sam,tweety]} ) :-
+                                   <ul>
+                                     <li> 
+                                       not bird( {_197566 \= [john,sam,tweety]} ) :-
+                                       <ul>
+                                         <li> 
+                                           not o_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                                {_197566 \= [john,sam,tweety]} \=tweety.
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           not o_bird2( {_197566 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not penguin( {_197566 \= [john,sam,tweety]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_penguin1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_197566 \= [john,sam,tweety]} \=sam.
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           not o_bird3( {_197566 \= [john,sam,tweety]} ) :-
+                                           <ul>
+                                             <li> 
+                                               not wounded_bird( {_197566 \= [john,sam,tweety]} ) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_wounded_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_197566 \= [john,sam,tweety]} \=john.
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk51(john) :-
+                           <ul>
+                             <li> 
+                               -flies(john) :-
+                               <ul>
+                                 <li> 
+                                   proved(ab(john)).
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not flies(john) :-
+                               <ul>
+                                 <li> 
+                                   not o_flies1(john) :-
+                                   <ul>
+                                     <li> 
+                                       proved(bird(john)),
+                                     </li>
+                                     <li> 
+                                       proved(ab(john)).
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk51(sam) :-
+                           <ul>
+                             <li> 
+                               -flies(sam) :-
+                               <ul>
+                                 <li> 
+                                   proved(ab(sam)).
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not flies(sam) :-
+                               <ul>
+                                 <li> 
+                                   not o_flies1(sam) :-
+                                   <ul>
+                                     <li> 
+                                       proved(bird(sam)),
+                                     </li>
+                                     <li> 
+                                       proved(ab(sam)).
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           not o__chk51(tweety) :-
+                           <ul>
+                             <li> 
+                               not -flies(tweety) :-
+                               <ul>
+                                 <li> 
+                                   not o_c_flies1(tweety) :-
+                                   <ul>
+                                     <li> 
+                                       proved(not ab(tweety)).
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                                 <li> 
+                                   not o_c_flies2(tweety) :-
+                                   <ul>
+                                     <li> 
+                                       proved(not -bird(tweety)).
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+         </ul> 
+         </li> 
+     </ul> 
+     </li> 
+</ul>
+
+<script
+  src="https://code.jquery.com/jquery-1.11.2.min.js"
+  integrity="sha256-Ls0pXSlb7AYs7evhd+VLnWsZ/AqEHcXBeMZUycz/CcA="
+  crossorigin="anonymous"></script>
+
+<script type="text/javascript">
+(function($){
+    $.fn.treemenu = function(options) {
+        options = options || {};
+        options.delay = options.delay || 0;
+        options.openActive = options.openActive || false;
+        options.closeOther = options.closeOther || false;
+        options.activeSelector = options.activeSelector || ".active";
+
+        this.addClass("treemenu");
+
+        if (!options.nonroot) {
+            this.addClass("treemenu-root");
+        }
+
+        options.nonroot = true;
+
+        this.find("> li").each(function() {
+            e = $(this);
+            var subtree = e.find('> ul');
+            var button = e.find('.toggler').eq(0);
+
+            if(button.length == 0) {
+                // create toggler
+                var button = $('<span>');
+                button.addClass('toggler');
+                e.prepend(button);
+            }
+
+            if(subtree.length > 0) {
+                subtree.hide();
+
+                e.addClass('tree-closed');
+
+                e.find(button).click(function() {
+                    var li = $(this).parent('li');
+
+                    if (options.closeOther && li.hasClass('tree-closed')) {
+                        var siblings = li.parent('ul').find("li:not(.tree-empty)");
+                        siblings.removeClass("tree-opened");
+                        siblings.addClass("tree-closed");
+                        siblings.removeClass(options.activeSelector);
+                        siblings.find('> ul').slideUp(options.delay);
+                    }
+
+                    li.find('> ul').slideToggle(options.delay);
+                    li.toggleClass('tree-opened');
+                    li.toggleClass('tree-closed');
+                    li.toggleClass(options.activeSelector);
+                });
+
+                $(this).find('> ul').treemenu(options);
+            } else {
+                $(this).addClass('tree-empty');
+            }
+        });
+
+        if (options.openActive) {
+            var cls = this.attr("class");
+
+            this.find(options.activeSelector).each(function(){
+                var el = $(this).parent();
+
+                while (el.attr("class") !== cls) {
+                    el.find('> ul').show();
+                    if(el.prop("tagName") === 'UL') {
+                        el.show();
+                    } else if (el.prop("tagName") === 'LI') {
+                        el.removeClass('tree-closed');
+                        el.addClass("tree-opened");
+                        el.show();
+                    }
+
+                    el = el.parent();
+                }
+            });
+        }
+
+        return this;
+    }
+})(jQuery);
+</script>
+
+ 
+
+ <script>
+ $(function(){
+        $(".tree").treemenu({delay:100}).openActive();
+    });
+ </script>
+ 
+ </body>
+ </html>
