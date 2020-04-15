@@ -136,7 +136,6 @@ main_solve(Sources,Q) :-
     format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
     if_user_option(print,print_output(StackOut)),
     if_user_option(print_all,print_all_output(StackOut)),
-    print(send(Sources)),nl,
     if_user_option(html,print_html(Sources,[Q,CopyQ],Model,StackOut)),
     print_model(Model),nl,
     print(Q),

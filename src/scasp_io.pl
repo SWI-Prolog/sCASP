@@ -274,7 +274,9 @@ print_check_calls_calling(Goal,I) :-
     format('\n---------------------Calling ~p-------------',[Goal]),
     print_s(RI).
 
-print_s(Stack) :- print_s_(Stack,5,5).
+print_s([A|Stack]) :-
+    nl,tab(0),print(A),
+    print_s_(Stack,4,0).
 
 print_s_([],_,_) :-
     display('.'), nl.
@@ -289,16 +291,13 @@ print_s_([A|As],I,I0) :- !,
         I0 < I ->
         print(' :-')
     ;
-        (
-            I0 \= 5 ->
-            print(',')
-        ;
-            true
-        )
+        print(',')
     ),
-    nl,tab(I),print(A),     
+%    nl,tab(I),current_output(S),write_term(S,A,[numbervars(false), portrayed(true)]),
+    nl,tab(I),print(A),
     I1 is I + 4,
     print_s_(As,I1,I).
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -158,8 +158,11 @@ portray_attribute(_,A) :-
         display(A)
     ;
         display(' {'),
-        pretty_print(Constraints),
-        display('} ')
+        display(A),
+        display('~['),
+        reverse(Constraints,RC),
+        pretty_print(RC),
+        display(']} ')
     ).
 
     
