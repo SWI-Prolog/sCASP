@@ -123,22 +123,37 @@ fail_main_loop(Sources) :-
     print('\nno'),
     main_loop(Sources).
 
+:- use_module(library(terms_vars)).
 main_solve(Sources,Q) :-
     current_option(answers,Number),
     init_counter,
-    process_query(Q,Query),
-    copy_term(Q,CopyQ),
+
+    process_query(Q,Query), varset(Q,Vars),
+    pretty_term([],D1,par(Vars,Q),par(PVars,PQ)),
+
+    format('\nDefault query:\n\t?- ~w\n',PQ),
+
     statistics(runtime,_),
     if(solve(Query, [], StackOut, Model),nl,(print('\nfalse\n\n'),fail)),
     statistics(runtime, [_|[T]]),
+
     increase_counter,
     answer_counter(Counter),
     format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
-    if_user_option(print,print_output(StackOut)),
-    if_user_option(print_all,print_all_output(StackOut)),
-    if_user_option(html,print_html(Sources,[Q,CopyQ],Model,StackOut)),
-    print_model(Model),nl,
-    print(Q),
+
+    pretty_term(D1,D2,par(Vars,Model),par(Bindings,P_Model)),
+
+    if_user_option(process_stack,(
+        reverse(StackOut, Reverse_StackOut),
+        pretty_term(D2,_D3,Reverse_StackOut,P_StackOut)
+    )),
+    
+    if_user_option(html,print_html(Sources,[PQ,Bindings,PVars],P_Model,P_StackOut)),
+    if_user_option(print_all,print_all_output(P_StackOut)),
+    print_model(P_Model),nl,
+    
+    print_unifier(Bindings,PVars),
+
     (
         Number = -1,
         allways_ask_for_more_models,nl,nl
@@ -172,8 +187,7 @@ defined_query(_) :-
     format('\nQuery not defined\n',[]),
     fail.
 defined_query(Q) :-
-    pr_query(Q),
-    format('\nDefault query:\n\t?- ~w.\n',Q).
+    pr_query(Q).
 
 %% ------------------------------------------------------------- %%
 :- doc(section, "Top Level Predicates").
@@ -206,19 +220,23 @@ the top-level. It calls solve_query/1".
     set(print,off),
     solve_query(Q).
 
-solve_query(A) :-
+solve_query(Q) :-
     init_counter,
-    process_query(A,Query),
+
+    process_query(Q,Query),
+
     statistics(runtime,_),
     solve(Query, [], StackOut, Model),
     statistics(runtime, [_|T]),
+
     increase_counter,
     answer_counter(Counter),
     format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),nl,
-%       format('\nsolve_run_time = ~w ms\n\n',T),
-    if_user_option(print,print_output(StackOut)),
-    if_user_option(print_all,print_all_output(StackOut)),
+
+    reverse(StackOut, Reverse_StackOut),
+    if_user_option(print_all,print_all_output(Reverse_StackOut)),
     print_model(Model),nl,nl,
+
     ask_for_more_models.
 
 %% ------------------------------------------------------------- %%

@@ -6,9 +6,12 @@
     allways_ask_for_more_models/0,
     init_counter/0,
     increase_counter/0,
-    print_output/1,
+%    print_output/1,
     print_all_output/1,
     print_model/1,
+%    print_term/3,
+    pretty_term/4,
+    print_unifier/2,
     print_check_calls_calling/2,
     if_user_option/2,
     set/2,
@@ -48,6 +51,7 @@ Arias} in the folder @file{./src/sasp/}.
 :- use_module('./sasp/main').
 
 %% ------------------------------------------------------------- %%
+
 
 :- pred load_program(Files) : list(Files) #"Call s(aso) to generate
     and assert the translation of the progam (with dual and
@@ -147,16 +151,16 @@ increase_counter :-
     retractall(answer_counter(N)),
     assert(answer_counter(N1)).
 
-:- pred print_output(StackOut) #"Print the justification tree using
-@var{StackOut}, the final call stack".
+%% :- pred print_output(StackOut) #"Print the justification tree using
+%% @var{StackOut}, the final call stack".
 
 %% Print output predicates to presaent the results of the query
-print_output(StackOut) :-
-    print_stack(StackOut), nl,
-    true.
+%% print_output(StackOut) :-
+%%     print_stack([],_,StackOut), nl,
+%%     true.
 
-:- pred print_all_output(StackOut) #"Print the justification tree using
-@var{StackOut}, the final call stack".
+:- pred print_all_output(StackOut) #"Print the justification
+tree using @var{StackOut}, the final call stack".
 
 %% Print output predicates to presaent the results of the query
 print_all_output(StackOut) :-
@@ -164,7 +168,7 @@ print_all_output(StackOut) :-
     true.
 
 :- pred print_model(Model) #"Print the partial model of the program
-using @var{Model}".
+using @var{Model}.".
 
 %% The model is obtained from the model.
 % TODO: use the StackOut instead of the model.
@@ -181,7 +185,7 @@ select_printable_literals([X|Xs],NSs) :-
     select_printable_literals(Xs,Ss),
     append(S,Ss,NSs).
 select_printable_literals(X,[X]) :-
-    print_literal(X), !.
+    printable_literal(X), !.
 select_printable_literals(_,[]).
 
 
@@ -193,8 +197,8 @@ print_model_([First,Second|Rest]) :-
     print(' ,  '),
     print_model_([Second|Rest]).
 
-print_literal(not(X)) :- print_literal(X).
-print_literal(X) :-
+printable_literal(not(X)) :- printable_literal(X).
+printable_literal(X) :-
     X \= 'add_to_query',
     X \= 'o_nmr_check',
     X \= chs(_),
@@ -205,20 +209,20 @@ print_literal(X) :-
         X \= proved(_)
     ).
 
-print_j(Justification,I) :-
-    print_model(Justification),
-    nl,
-    print_j_(Justification,I).
-print_j_([],_).
-print_j_([A,[]],I):- !,
-    tab(I), print(A), print('.'), nl.
-print_j_([A,[]|B],I):- !,
-    tab(I), print(A), print(','), nl,
-    print_j_(B,I).
-print_j_([A,ProofA|B],I):-
-    tab(I), print(A), print(' :-'), nl,
-    I1 is I + 4, print_j_(ProofA,I1),
-    print_j_(B,I).
+%% print_j(Justification,I) :-
+%%     print_model(Justification),
+%%     nl,
+%%     print_j_(Justification,I).
+%% print_j_([],_).
+%% print_j_([A,[]],I):- !,
+%%     tab(I), print(A), print('.'), nl.
+%% print_j_([A,[]|B],I):- !,
+%%     tab(I), print(A), print(','), nl,
+%%     print_j_(B,I).
+%% print_j_([A,ProofA|B],I):-
+%%     tab(I), print(A), print(' :-'), nl,
+%%     I1 is I + 4, print_j_(ProofA,I1),
+%%     print_j_(B,I).
 
 %% The stack is generated adding the last calls in the head (to avoid
 %% the use of append/3). To print the stack, it is reversed.
@@ -227,17 +231,18 @@ print_j_([A,ProofA|B],I):-
 %% calls in the stack which are not present in the model (e.g. the
 %% model of path(1,4) for the path/2 program - more details in the
 %% file README)
-print_stack(Stack) :-
-    reverse(Stack, RStack),
-    nl,
-    nl,nl,
-    print(RStack),nl.
-    % print_s(RStack).
+
+%% print_stack(Stack) :-
+%%     reverse(Stack, RStack),
+%%     nl,
+%%     nl,nl,
+%%     %    print(RStack),nl.
+%%     print_s(RStack).
 
 print_all_stack(Stack) :-
-    reverse(Stack, RStack),
+%    reverse(Stack, RStack),
     nl,
-    print_s(RStack).
+    print_s(Stack).
 
 
 
@@ -263,6 +268,19 @@ query3(X,  I, O) :-
     query3(Body, I, O).
 
 
+:- pred print_unifier(Vars,PVars) #" Predicate to print @var{PVars} =
+@var{Vars} the binding of the variables in the query".
+
+print_unifier([],[]).
+print_unifier([Binding|Bs],[PV|PVars]) :-
+    ( PV == Binding ->
+        true
+    ;
+        format(" \n~w = ~w",[PV,Binding])
+    ),
+    print_unifier(Bs,PVars).
+        
+              
 
 :- pred print_check_calls_calling(Goal, StackIn) #"Auxiliar predicate
 to print @var{StackIn} the current stack and @var{Goal}. This
@@ -293,12 +311,129 @@ print_s_([A|As],I,I0) :- !,
     ;
         print(',')
     ),
-%    nl,tab(I),current_output(S),write_term(S,A,[numbervars(false), portrayed(true)]),
     nl,tab(I),print(A),
     I1 is I + 4,
     print_s_(As,I1,I).
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Print pretty term
+%% (Also variables with attributes)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% print_term(D0,D1,A) :-
+%%     pretty_term(D0,D1,A,P),
+%%     print(P).
+
+%% :- data next_letra/1.
+%% %% init_mydict :-
+%% %%     retractall(next_letra(_)),
+%% %%     assert(next_letra(1)).
+
+%% next_letra(L1) :-
+%%     retract(next_letra(L0)),!,
+%%     L1 is L0 + 1,
+%%     assert(next_letra(L1)).
+%% next_letra(0).
+
+lookup_mydict(D0,D1,A,L) :-
+    ( lookup_mydict_(D0,A,L) ->
+        D1 = D0
+    ;
+        length(D0,L),
+        D1 = [(A,L)|D0]
+    ).
+
+lookup_mydict_([],_,_) :- !, fail.
+lookup_mydict_([(V,L)|_],A,L) :- V == A, !.
+lookup_mydict_([_|Rs],A,L) :- lookup_mydict_(Rs,A,L).
+
+:- use_module(engine(attributes)).
+pretty_term(D0,D1,A,PA) :-
+    var(A), !,
+    lookup_mydict(D0,D1,A,N),
+    Letter is N mod 26 + 0'A,
+    atom_codes(L,[32,Letter]),
+    (   N>=26 ->
+        Rest is N//26,
+        atom_number(AtomRest,Rest),
+        atom_concat(L,AtomRest,PVar)
+    ;   PVar=L
+    ),
+    ( get_attribute(A,Att) ->
+        pretty_portray_attribute(Att,A,PVar,PA)
+    ;
+        PA = PVar
+    ).
+pretty_term(D0,D0,[],[]) :- !.
+pretty_term(D0,D2,[A|As],[PA|PAs]) :- !,
+    pretty_term(D0,D1,A,PA),
+    pretty_term(D1,D2,As,PAs).
+pretty_term(D0,D0,rat(A,B),A/B) :- !.
+pretty_term(D0,D1,Functor,PF) :-
+    Functor =..[Name|Args], !,
+    pretty_term(D0,D1,Args,PArgs),
+    PF =.. [Name|PArgs].
+pretty_term(D0,D0,A,'?'(A)).
+
+
+:- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
+pretty_portray_attribute(Att,A,PVar,PA) :-
+    pretty_portray_attribute_(Att,A,PVar,PA), !.
+pretty_portray_attribute(_Att,_,PVar,PVar).
+
+pretty_portray_attribute_(att(_,false,att(clp_disequality_rt,neg(List),_)),_,PVar,PA) :-
+    (
+        List == [] ->
+        PA=PVar
+    ;
+        format_to_string(" {~w ∉ ~w} ",[PVar,List],String),
+        atom_codes(PA,String)
+    ).
+pretty_portray_attribute_(_,A,PVar,PA) :-
+    clpqr_dump_constraints(A, PVar, Constraints),
+    (  Constraints == [] ->
+        PA=PVar
+    ;
+        sort(Constraints,Sort),
+        reverse(Sort,RConstraints),
+        pretty_constraints(RConstraints,Const),
+        format_to_string(" {~w│~w} ",[PVar,Const],String),
+        atom_codes(PA,String)
+    ).
+pretty_constraints([A],(C)) :- !,
+    pretty_constraints_(A,C).
+pretty_constraints([A|As],(C,Cs)) :-
+    pretty_constraints_(A,C),
+    pretty_constraints(As,Cs).
+pretty_constraints_(A,C) :-
+    A =.. [Op,X,Y],
+    pretty_rat(X,PX),
+    pretty_rat(Y,PY),
+    pretty_op(Op,P_Op), !,
+    C =.. [P_Op,PX,PY].
+pretty_constraints_(A,A).
+pretty_rat(rat(A,B),A/B) :- !.
+pretty_rat(A,A).
+
+
+:- op(700, xfx, ['<',
+                 '≤',
+                 '>',
+                 '≥',
+                 '=',
+                 '≠']).
+
+pretty_op(.<., '<') :- !.
+pretty_op(.=<.,'≤') :- !.
+pretty_op(.>., '>') :- !.
+pretty_op(.>=.,'≥') :- !.
+pretty_op(.=., '=') :- !.
+pretty_op(.\=.,'≠') :- !.
+
+    
+        
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Set options
@@ -340,12 +475,12 @@ set_user_option('-w') :- set(warning, on).
 set_user_option('--warning') :- set(warning, on).
 set_user_option('-no') :- set(no_nmr, on).
 set_user_option('--no_nmr') :- set(no_nmr, on).
-set_user_option('-j') :- set(print_all, on).
-set_user_option('-j0') :- set(print_all, on).
-set_user_option('--justification') :- set(print_all, on).
+set_user_option('-j') :- set(print_all, on), set(process_stack, on).
+set_user_option('-j0') :- set(print_all, on), set(process_stack, on).
+set_user_option('--justification') :- set(print_all, on), set(process_stack, on).
 set_user_option('-d0') :- set(write_program, on).
-set_user_option('--html') :- set(html, on).
-set_user_option('--server') :- set(html, on), set(server, on).
+set_user_option('--html') :- set(html, on), set(process_stack, on).
+set_user_option('--server') :- set(html, on), set(server, on), set(process_stack, on).
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
 #"If the flag @var{Name} is on them the call @var{Call} is executed".
@@ -410,15 +545,14 @@ file with the model and the justification tree of the @var{Sources}
 forq the @var{Query} using @var{Model} and @var{StackOut} resp.".
 
 %% Print output predicates to presaent the results of the query
-print_html(Sources,[Q,CopyQ], Model, StackOut) :-
-    write('\n\nBEGIN HTML JUSTIFICATION\n\n'),
+print_html(Sources,Query, Model, StackOut) :-
+    write('\nBEGIN HTML JUSTIFICATION'),
     ( current_option(server,on) ->
         Name=justification
     ;
         create_file_name(Sources,Name)
     ),
     atom_concat(Name,'.html',File),
-    print(file(File)),nl,
 %    File = 'html/justification.html',
     open_output_file(Stream,File,Current),
     if(
@@ -426,7 +560,7 @@ print_html(Sources,[Q,CopyQ], Model, StackOut) :-
             load_html_head(Head),
             print(Head),
             print('<h3>Query</h3>'),nl,
-            print_html_query([Q,CopyQ]),nl,
+            print_html_query(Query),nl,
             br,br,nl,
             print('<h3>Model</h3>'),nl,
             print_model(Model),nl,
@@ -442,7 +576,7 @@ print_html(Sources,[Q,CopyQ], Model, StackOut) :-
             print(Tail)
         ),true,true),
     close_output_file(Stream,Current),
-    write('\nEND HTML JUSTIFICATION\n\n'), 
+    write(' and END\n'), 
     !.
 
 
@@ -456,27 +590,36 @@ create_file_name([A,B|Ss],Fs) :-
     atom_concat(F,'-',F1),
     atom_concat(F1,Fm,Fs).
 create_file_name_([46|_],[]) :- !.
+create_file_name_([],[]) :- !.
 create_file_name_([L|Ls],[L|F2]) :-
     create_file_name_(Ls,F2).
 
 
 :- use_module(library(terms_check)).
-print_html_query([Q,CopyQ]) :-
+print_html_query([PQ,Bindings,PVars]) :-
         print('<b>\n  <font color=blue>?-</font> '),nl,
-        print_body(CopyQ),
-        unifiable(Q,CopyQ,Unifier),
+        print_body(PQ),
         nl,br,br,nl,
-        tab_html(10),print_body(Unifier),
+        print_html_unifier(Bindings,PVars),
         print(' ?'),
         br,nl,
         print('</b>').
 
+print_html_unifier([],[]).
+print_html_unifier([Binding|Bs],[PV|PVars]) :-
+    ( PV == Binding ->
+        true
+    ;
+        format(" <br> \n~w = ~w",[PV,Binding])
+    ),
+    print_html_unifier(Bs,PVars).
 
-print_html_stack(StackOut) :-
-    reverse(StackOut,[A|ReverseStack]),
+
+print_html_stack([A|StackOut]) :-
+%    reverse(StackOut,[A|ReverseStack]),
     nl,tab(5),print('<li> '),
     nl,tab(5),print('  '),print(A),     
-    print_html_stack_(ReverseStack,9,5).
+    print_html_stack_(StackOut,9,5).
 
 print_html_stack_([],I,I0) :-
     display('.'),
