@@ -1,0 +1,579 @@
+<!doctype html>
+ <html>
+ <head>
+ <meta charset="utf-8">
+ <title>c(ASP) Justification</title>
+ <style>
+.treemenu li { list-style: none; }
+.treemenu .toggler { cursor: pointer; }
+.treemenu .toggler:before { display: inline-block; margin-right: 2pt; }
+li.tree-empty > .toggler { opacity: 0.3; cursor: default; }
+li.tree-empty > .toggler:before { content: " "; }
+li.tree-closed > .toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: transparent blue;
+    border-style: solid;
+    border-width: 0.25em 0 0.25em 0.5em;
+}
+li.tree-opened > .toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: blue transparent ;
+    border-style: solid;
+    border-width: 0.5em 0.25em 0 0.25em;
+}
+</style>
+ 
+ <link rel="icon" href="logo.ico">
+ 
+ </head>
+ 
+ <body style="font-size:15px;background: #ECECEC; margin:80px; color:#333;">
+ 
+<h3>Query</h3>
+<b>
+  <font color=blue>?-</font> 
+holdsAt(light_red,_394074).
+<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_394074= {_394403 > 2, _394403 < 3} . ?<br>
+</b>
+<br><br>
+<h3>Model</h3>
+
+{  holdsAt(light_red, {_394403 > 2, _394403 < 3} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  trajectory(light_on,2,light_red, {_394403 > 2, _394403 < 3} ) ,  not stoppedIn(2,light_on, {_394403 > 2, _394403 < 3} ) ,  not -holdsAt( {_419253 ∉ [light_on]} , {_405811 =< 0} ) ,  not -holdsAt( {_419253 ∉ [light_on]} , {_409722 > 0} ) ,  not terminates( {_415184 ∉ [turn_off]} , {_419253 ∉ [light_on]} , {_414648 =< 0} ) ,  not terminates(turn_off, {_419253 ∉ [light_on]} , {_414648 =< 0} ) ,  not -holdsAt(light_on, {_425919 =< 0} ) ,  not -holdsAt(light_on, {_431898 > 0} ) ,  not terminates( {_439404 ∉ [turn_off]} ,light_on, {_438868 =< 0} ) ,  terminates(turn_off,light_on, {_438868 =< 0} ) ,  not happens(turn_off, {_438868 =< 0} )  }
+
+<br><br>
+<h3> Justification </h3>
+ <ul class="tree">
+     <li> 
+       holdsAt(light_red, {_394403 > 2, _394403 < 3} ) :-
+       <ul>
+         <li> 
+           initiates(turn_on,light_on,2),
+         </li>
+         <li> 
+           happens(turn_on,2),
+         </li>
+         <li> 
+           trajectory(light_on,2,light_red, {_394403 > 2, _394403 < 3} ) :-
+           <ul>
+             <li> 
+               2.<. {_394403 > 2, _394403 < 3} ,
+             </li>
+             <li> 
+                {_394403 > 2, _394403 < 3} .<.2+1.
+             </li> 
+         </ul> 
+         </li> 
+         <li> 
+           not stoppedIn(2,light_on, {_394403 > 2, _394403 < 3} ) :-
+           <ul>
+             <li> 
+               not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} ) :-
+               <ul>
+                 <li> 
+                   forall(_394893,forall(_394896,not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} ,_394893,_394896))) :-
+                   <ul>
+                     <li> 
+                       forall(_394896,not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_395266 =< 2} ,_394896)) :-
+                       <ul>
+                         <li> 
+                           not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_395266 =< 2} ,_395082) :-
+                           <ul>
+                             <li> 
+                               2.>=. {_395266 =< 2} .
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                     <li> 
+                       forall(_394896,not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_396613 > 2} ,_394896)) :-
+                       <ul>
+                         <li> 
+                           not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_396613 > 2} ,_396870) :-
+                           <ul>
+                             <li> 
+                               2.<. {_396613 > 2} ,
+                             </li>
+                             <li> 
+                                {_396613 > 2} .>=. {_394403 > 2, _394403 < 3} .
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} ) :-
+               <ul>
+                 <li> 
+                   forall(_399066,forall(_399069,not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} ,_399066,_399069))) :-
+                   <ul>
+                     <li> 
+                       forall(_399069,not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_399439 =< 2} ,_399069)) :-
+                       <ul>
+                         <li> 
+                           not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_399439 =< 2} ,_399255) :-
+                           <ul>
+                             <li> 
+                               2.>=. {_399439 =< 2} .
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                     <li> 
+                       forall(_399069,not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_401447 > 2} ,_399069)) :-
+                       <ul>
+                         <li> 
+                           not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_401447 > 2} ,_401704) :-
+                           <ul>
+                             <li> 
+                               2.<. {_401447 > 2} ,
+                             </li>
+                             <li> 
+                                {_401447 > 2} .>=. {_394403 > 2, _394403 < 3} .
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+         </ul> 
+         </li> 
+     </ul> 
+     </li> 
+     <li> 
+       add_to_query :-
+       <ul>
+         <li> 
+           o_nmr_check :-
+           <ul>
+             <li> 
+               not o_chk1 :-
+               <ul>
+                 <li> 
+                   not o__chk11 :-
+                   <ul>
+                     <li> 
+                       forall(_405432,forall(_405435,not o__chk11(_405432,_405435))) :-
+                       <ul>
+                         <li> 
+                           forall(_405435,not o__chk11( {_419253 ∉ [light_on]} ,_405435)) :-
+                           <ul>
+                             <li> 
+                               not o__chk11( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                               <ul>
+                                 <li> 
+                                   not -holdsAt( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_c_holdsAt1( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           0.>=. {_405811 =< 0} .
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                     <li> 
+                                       not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           forall(_405967,forall(_405970,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ,_405967,_405970))) :-
+                                           <ul>
+                                             <li> 
+                                               forall(_405970,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ,_406319,_405970)) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ,_406319,_406141) :-
+                                                   <ul>
+                                                     <li> 
+                                                       _406319.>=. {_405811 =< 0} .
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not o__chk11( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                               <ul>
+                                 <li> 
+                                   not -holdsAt( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_c_holdsAt1( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           0.<. {_409722 > 0} ,
+                                         </li>
+                                         <li> 
+                                           not initiallyN( {_419253 ∉ [light_on]} ).
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                     <li> 
+                                       not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           forall(_410186,forall(_410189,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} ,_410186,_410189))) :-
+                                           <ul>
+                                             <li> 
+                                               forall(_410189,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_410538 > 0} ,_410189)) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_410538 > 0} ,_410360) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_410538 > 0} .>=. {_409722 > 0} .
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                             <li> 
+                                               forall(_410189,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_414648 =< 0} ,_410189)) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_414648 =< 0} , {_415184 ∉ [turn_off]} ) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_414648 =< 0} .<. {_409722 > 0} ,
+                                                     </li>
+                                                     <li> 
+                                                       not terminates( {_415184 ∉ [turn_off]} , {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                       <ul>
+                                                         <li> 
+                                                           not o_terminates1( {_415184 ∉ [turn_off]} , {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                           <ul>
+                                                             <li> 
+                                                                {_415184 ∉ [turn_off]} \=turn_off.
+                                                             </li> 
+                                                         </ul> 
+                                                         </li> 
+                                                     </ul> 
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                                 <li> 
+                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_414648 =< 0} ,turn_off) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_414648 =< 0} .<. {_409722 > 0} ,
+                                                     </li>
+                                                     <li> 
+                                                       not terminates(turn_off, {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                       <ul>
+                                                         <li> 
+                                                           not o_terminates1(turn_off, {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                           <ul>
+                                                             <li> 
+                                                               turn_off=turn_off,
+                                                             </li>
+                                                             <li> 
+                                                                {_419253 ∉ [light_on]} \=light_on.
+                                                             </li> 
+                                                         </ul> 
+                                                         </li> 
+                                                     </ul> 
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           forall(_405435,not o__chk11(light_on,_405435)) :-
+                           <ul>
+                             <li> 
+                               not o__chk11(light_on, {_425919 =< 0} ) :-
+                               <ul>
+                                 <li> 
+                                   not -holdsAt(light_on, {_425919 =< 0} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_c_holdsAt1(light_on, {_425919 =< 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           0.>=. {_425919 =< 0} .
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                     <li> 
+                                       not o_c_holdsAt2(light_on, {_425919 =< 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           forall(_426075,forall(_426078,not o_c_holdsAt2(light_on, {_425919 =< 0} ,_426075,_426078))) :-
+                                           <ul>
+                                             <li> 
+                                               forall(_426078,not o_c_holdsAt2(light_on, {_425919 =< 0} ,_426427,_426078)) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_c_holdsAt2(light_on, {_425919 =< 0} ,_426427,_426249) :-
+                                                   <ul>
+                                                     <li> 
+                                                       _426427.>=. {_425919 =< 0} .
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               not o__chk11(light_on, {_431898 > 0} ) :-
+                               <ul>
+                                 <li> 
+                                   not -holdsAt(light_on, {_431898 > 0} ) :-
+                                   <ul>
+                                     <li> 
+                                       not o_c_holdsAt1(light_on, {_431898 > 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           0.<. {_431898 > 0} ,
+                                         </li>
+                                         <li> 
+                                           not initiallyN(light_on).
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                     <li> 
+                                       not o_c_holdsAt2(light_on, {_431898 > 0} ) :-
+                                       <ul>
+                                         <li> 
+                                           forall(_432362,forall(_432365,not o_c_holdsAt2(light_on, {_431898 > 0} ,_432362,_432365))) :-
+                                           <ul>
+                                             <li> 
+                                               forall(_432365,not o_c_holdsAt2(light_on, {_431898 > 0} , {_432714 > 0} ,_432365)) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_c_holdsAt2(light_on, {_431898 > 0} , {_432714 > 0} ,_432536) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_432714 > 0} .>=. {_431898 > 0} .
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                             <li> 
+                                               forall(_432365,not o_c_holdsAt2(light_on, {_431898 > 0} , {_438868 =< 0} ,_432365)) :-
+                                               <ul>
+                                                 <li> 
+                                                   not o_c_holdsAt2(light_on, {_431898 > 0} , {_438868 =< 0} , {_439404 ∉ [turn_off]} ) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_438868 =< 0} .<. {_431898 > 0} ,
+                                                     </li>
+                                                     <li> 
+                                                       not terminates( {_439404 ∉ [turn_off]} ,light_on, {_438868 =< 0} ) :-
+                                                       <ul>
+                                                         <li> 
+                                                           not o_terminates1( {_439404 ∉ [turn_off]} ,light_on, {_438868 =< 0} ) :-
+                                                           <ul>
+                                                             <li> 
+                                                                {_439404 ∉ [turn_off]} \=turn_off.
+                                                             </li> 
+                                                         </ul> 
+                                                         </li> 
+                                                     </ul> 
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                                 <li> 
+                                                   not o_c_holdsAt2(light_on, {_431898 > 0} , {_438868 =< 0} ,turn_off) :-
+                                                   <ul>
+                                                     <li> 
+                                                        {_438868 =< 0} .<. {_431898 > 0} ,
+                                                     </li>
+                                                     <li> 
+                                                       terminates(turn_off,light_on, {_438868 =< 0} ),
+                                                     </li>
+                                                     <li> 
+                                                       not happens(turn_off, {_438868 =< 0} ) :-
+                                                       <ul>
+                                                         <li> 
+                                                           not o_happens1(turn_off, {_438868 =< 0} ) :-
+                                                           <ul>
+                                                             <li> 
+                                                               turn_off\=turn_on.
+                                                             </li> 
+                                                         </ul> 
+                                                         </li> 
+                                                         <li> 
+                                                           not o_happens2(turn_off, {_438868 =< 0} ) :-
+                                                           <ul>
+                                                             <li> 
+                                                               turn_off=turn_off,
+                                                             </li>
+                                                             <li> 
+                                                                {_438868 =< 0} \=4.
+                                                             </li> 
+                                                         </ul> 
+                                                         </li> 
+                                                         <li> 
+                                                           not o_happens3(turn_off, {_438868 =< 0} ) :-
+                                                           <ul>
+                                                             <li> 
+                                                               turn_off\=turn_on.
+                                                             </li> 
+                                                         </ul> 
+                                                         </li> 
+                                                     </ul> 
+                                                     </li> 
+                                                 </ul> 
+                                                 </li> 
+                                             </ul> 
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+         </ul> 
+         </li> 
+     </ul> 
+     </li> 
+</ul>
+
+<script
+  src="https://code.jquery.com/jquery-1.11.2.min.js"
+  integrity="sha256-Ls0pXSlb7AYs7evhd+VLnWsZ/AqEHcXBeMZUycz/CcA="
+  crossorigin="anonymous"></script>
+
+<script type="text/javascript">
+(function($){
+    $.fn.treemenu = function(options) {
+        options = options || {};
+        options.delay = options.delay || 0;
+        options.openActive = options.openActive || false;
+        options.closeOther = options.closeOther || false;
+        options.activeSelector = options.activeSelector || ".active";
+
+        this.addClass("treemenu");
+
+        if (!options.nonroot) {
+            this.addClass("treemenu-root");
+        }
+
+        options.nonroot = true;
+
+        this.find("> li").each(function() {
+            e = $(this);
+            var subtree = e.find('> ul');
+            var button = e.find('.toggler').eq(0);
+
+            if(button.length == 0) {
+                // create toggler
+                var button = $('<span>');
+                button.addClass('toggler');
+                e.prepend(button);
+            }
+
+            if(subtree.length > 0) {
+                subtree.hide();
+
+                e.addClass('tree-closed');
+
+                e.find(button).click(function() {
+                    var li = $(this).parent('li');
+
+                    if (options.closeOther && li.hasClass('tree-closed')) {
+                        var siblings = li.parent('ul').find("li:not(.tree-empty)");
+                        siblings.removeClass("tree-opened");
+                        siblings.addClass("tree-closed");
+                        siblings.removeClass(options.activeSelector);
+                        siblings.find('> ul').slideUp(options.delay);
+                    }
+
+                    li.find('> ul').slideToggle(options.delay);
+                    li.toggleClass('tree-opened');
+                    li.toggleClass('tree-closed');
+                    li.toggleClass(options.activeSelector);
+                });
+
+                $(this).find('> ul').treemenu(options);
+            } else {
+                $(this).addClass('tree-empty');
+            }
+        });
+
+        if (options.openActive) {
+            var cls = this.attr("class");
+
+            this.find(options.activeSelector).each(function(){
+                var el = $(this).parent();
+
+                while (el.attr("class") !== cls) {
+                    el.find('> ul').show();
+                    if(el.prop("tagName") === 'UL') {
+                        el.show();
+                    } else if (el.prop("tagName") === 'LI') {
+                        el.removeClass('tree-closed');
+                        el.addClass("tree-opened");
+                        el.show();
+                    }
+
+                    el = el.parent();
+                }
+            });
+        }
+
+        return this;
+    }
+})(jQuery);
+</script>
+
+ 
+
+ <script>
+ $(function(){
+        $(".tree").treemenu({delay:100}).openActive();
+    });
+ </script>
+ 
+ </body>
+ </html>
