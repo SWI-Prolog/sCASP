@@ -36,20 +36,21 @@ li.tree-opened > .toggler:before {
 <h3>Query</h3>
 <b>
   <font color=blue>?-</font> 
-holdsAt(light_red,_394074).
+holdsAt(light_red, A).
 <br><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_394074= {_394403 > 2, _394403 < 3} . ?<br>
+ <br> 
+ A =  { A│ A>2, A<3}  ?<br>
 </b>
 <br><br>
 <h3>Model</h3>
 
-{  holdsAt(light_red, {_394403 > 2, _394403 < 3} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  trajectory(light_on,2,light_red, {_394403 > 2, _394403 < 3} ) ,  not stoppedIn(2,light_on, {_394403 > 2, _394403 < 3} ) ,  not -holdsAt( {_419253 ∉ [light_on]} , {_405811 =< 0} ) ,  not -holdsAt( {_419253 ∉ [light_on]} , {_409722 > 0} ) ,  not terminates( {_415184 ∉ [turn_off]} , {_419253 ∉ [light_on]} , {_414648 =< 0} ) ,  not terminates(turn_off, {_419253 ∉ [light_on]} , {_414648 =< 0} ) ,  not -holdsAt(light_on, {_425919 =< 0} ) ,  not -holdsAt(light_on, {_431898 > 0} ) ,  not terminates( {_439404 ∉ [turn_off]} ,light_on, {_438868 =< 0} ) ,  terminates(turn_off,light_on, {_438868 =< 0} ) ,  not happens(turn_off, {_438868 =< 0} )  }
+{  holdsAt(light_red, { A│ A>2, A<3} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  trajectory(light_on,2,light_red, { A│ A>2, A<3} ) ,  not stoppedIn(2,light_on, { A│ A>2, A<3} ) ,  not -holdsAt( { B ∉ [light_on]} , { C│ C ≤ 0} ) ,  not -holdsAt( { B ∉ [light_on]} , { D│ D>0} ) ,  not terminates( { E ∉ [turn_off]} , { B ∉ [light_on]} , { F│ F ≤ 0} ) ,  not terminates(turn_off, { B ∉ [light_on]} , { F│ F ≤ 0} ) ,  not -holdsAt(light_on, { G│ G ≤ 0} ) ,  not -holdsAt(light_on, { H│ H>0} ) ,  not terminates( { I ∉ [turn_off]} ,light_on, { J│ J ≤ 0} ) ,  terminates(turn_off,light_on, { J│ J ≤ 0} ) ,  not happens(turn_off, { J│ J ≤ 0} )  }
 
 <br><br>
 <h3> Justification </h3>
  <ul class="tree">
      <li> 
-       holdsAt(light_red, {_394403 > 2, _394403 < 3} ) :-
+       holdsAt(light_red, { A│ A>2, A<3} ) :-
        <ul>
          <li> 
            initiates(turn_on,light_on,2),
@@ -58,49 +59,49 @@ holdsAt(light_red,_394074).
            happens(turn_on,2),
          </li>
          <li> 
-           trajectory(light_on,2,light_red, {_394403 > 2, _394403 < 3} ) :-
+           trajectory(light_on,2,light_red, { A│ A>2, A<3} ) :-
            <ul>
              <li> 
-               2.<. {_394403 > 2, _394403 < 3} ,
+               2.<. { A│ A>2, A<3} ,
              </li>
              <li> 
-                {_394403 > 2, _394403 < 3} .<.2+1.
+                { A│ A>2, A<3} .<.2+1.
              </li> 
          </ul> 
          </li> 
          <li> 
-           not stoppedIn(2,light_on, {_394403 > 2, _394403 < 3} ) :-
+           not stoppedIn(2,light_on, { A│ A>2, A<3} ) :-
            <ul>
              <li> 
-               not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} ) :-
+               not o_stoppedIn1(2,light_on, { A│ A>2, A<3} ) :-
                <ul>
                  <li> 
-                   forall(_394893,forall(_394896,not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} ,_394893,_394896))) :-
+                   forall( K,forall( L,not o_stoppedIn1(2,light_on, { A│ A>2, A<3} , K, L))) :-
                    <ul>
                      <li> 
-                       forall(_394896,not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_395266 =< 2} ,_394896)) :-
+                       forall( L,not o_stoppedIn1(2,light_on, { A│ A>2, A<3} , { M│ M ≤ 2} , L)) :-
                        <ul>
                          <li> 
-                           not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_395266 =< 2} ,_395082) :-
+                           not o_stoppedIn1(2,light_on, { A│ A>2, A<3} , { M│ M ≤ 2} , N) :-
                            <ul>
                              <li> 
-                               2.>=. {_395266 =< 2} .
+                               2.>=. { M│ M ≤ 2} .
                              </li> 
                          </ul> 
                          </li> 
                      </ul> 
                      </li> 
                      <li> 
-                       forall(_394896,not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_396613 > 2} ,_394896)) :-
+                       forall( L,not o_stoppedIn1(2,light_on, { A│ A>2, A<3} , { O│ O>2} , L)) :-
                        <ul>
                          <li> 
-                           not o_stoppedIn1(2,light_on, {_394403 > 2, _394403 < 3} , {_396613 > 2} ,_396870) :-
+                           not o_stoppedIn1(2,light_on, { A│ A>2, A<3} , { O│ O>2} , P) :-
                            <ul>
                              <li> 
-                               2.<. {_396613 > 2} ,
+                               2.<. { O│ O>2} ,
                              </li>
                              <li> 
-                                {_396613 > 2} .>=. {_394403 > 2, _394403 < 3} .
+                                { O│ O>2} .>=. { A│ A>2, A<3} .
                              </li> 
                          </ul> 
                          </li> 
@@ -111,35 +112,35 @@ holdsAt(light_red,_394074).
              </ul> 
              </li> 
              <li> 
-               not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} ) :-
+               not o_stoppedIn2(2,light_on, { A│ A>2, A<3} ) :-
                <ul>
                  <li> 
-                   forall(_399066,forall(_399069,not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} ,_399066,_399069))) :-
+                   forall( Q,forall( R,not o_stoppedIn2(2,light_on, { A│ A>2, A<3} , Q, R))) :-
                    <ul>
                      <li> 
-                       forall(_399069,not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_399439 =< 2} ,_399069)) :-
+                       forall( R,not o_stoppedIn2(2,light_on, { A│ A>2, A<3} , { S│ S ≤ 2} , R)) :-
                        <ul>
                          <li> 
-                           not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_399439 =< 2} ,_399255) :-
+                           not o_stoppedIn2(2,light_on, { A│ A>2, A<3} , { S│ S ≤ 2} , T) :-
                            <ul>
                              <li> 
-                               2.>=. {_399439 =< 2} .
+                               2.>=. { S│ S ≤ 2} .
                              </li> 
                          </ul> 
                          </li> 
                      </ul> 
                      </li> 
                      <li> 
-                       forall(_399069,not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_401447 > 2} ,_399069)) :-
+                       forall( R,not o_stoppedIn2(2,light_on, { A│ A>2, A<3} , { U│ U>2} , R)) :-
                        <ul>
                          <li> 
-                           not o_stoppedIn2(2,light_on, {_394403 > 2, _394403 < 3} , {_401447 > 2} ,_401704) :-
+                           not o_stoppedIn2(2,light_on, { A│ A>2, A<3} , { U│ U>2} , V) :-
                            <ul>
                              <li> 
-                               2.<. {_401447 > 2} ,
+                               2.<. { U│ U>2} ,
                              </li>
                              <li> 
-                                {_401447 > 2} .>=. {_394403 > 2, _394403 < 3} .
+                                { U│ U>2} .>=. { A│ A>2, A<3} .
                              </li> 
                          </ul> 
                          </li> 
@@ -166,39 +167,39 @@ holdsAt(light_red,_394074).
                    not o__chk11 :-
                    <ul>
                      <li> 
-                       forall(_405432,forall(_405435,not o__chk11(_405432,_405435))) :-
+                       forall( W,forall( X,not o__chk11( W, X))) :-
                        <ul>
                          <li> 
-                           forall(_405435,not o__chk11( {_419253 ∉ [light_on]} ,_405435)) :-
+                           forall( X,not o__chk11( { B ∉ [light_on]} , X)) :-
                            <ul>
                              <li> 
-                               not o__chk11( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                               not o__chk11( { B ∉ [light_on]} , { C│ C ≤ 0} ) :-
                                <ul>
                                  <li> 
-                                   not -holdsAt( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                                   not -holdsAt( { B ∉ [light_on]} , { C│ C ≤ 0} ) :-
                                    <ul>
                                      <li> 
-                                       not o_c_holdsAt1( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                                       not o_c_holdsAt1( { B ∉ [light_on]} , { C│ C ≤ 0} ) :-
                                        <ul>
                                          <li> 
-                                           0.>=. {_405811 =< 0} .
+                                           0.>=. { C│ C ≤ 0} .
                                          </li> 
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ) :-
+                                       not o_c_holdsAt2( { B ∉ [light_on]} , { C│ C ≤ 0} ) :-
                                        <ul>
                                          <li> 
-                                           forall(_405967,forall(_405970,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ,_405967,_405970))) :-
+                                           forall( Y,forall( Z,not o_c_holdsAt2( { B ∉ [light_on]} , { C│ C ≤ 0} , Y, Z))) :-
                                            <ul>
                                              <li> 
-                                               forall(_405970,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ,_406319,_405970)) :-
+                                               forall( Z,not o_c_holdsAt2( { B ∉ [light_on]} , { C│ C ≤ 0} , A1, Z)) :-
                                                <ul>
                                                  <li> 
-                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_405811 =< 0} ,_406319,_406141) :-
+                                                   not o_c_holdsAt2( { B ∉ [light_on]} , { C│ C ≤ 0} , A1, B1) :-
                                                    <ul>
                                                      <li> 
-                                                       _406319.>=. {_405811 =< 0} .
+                                                        A1.>=. { C│ C ≤ 0} .
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -213,58 +214,58 @@ holdsAt(light_red,_394074).
                              </ul> 
                              </li> 
                              <li> 
-                               not o__chk11( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                               not o__chk11( { B ∉ [light_on]} , { D│ D>0} ) :-
                                <ul>
                                  <li> 
-                                   not -holdsAt( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                                   not -holdsAt( { B ∉ [light_on]} , { D│ D>0} ) :-
                                    <ul>
                                      <li> 
-                                       not o_c_holdsAt1( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                                       not o_c_holdsAt1( { B ∉ [light_on]} , { D│ D>0} ) :-
                                        <ul>
                                          <li> 
-                                           0.<. {_409722 > 0} ,
+                                           0.<. { D│ D>0} ,
                                          </li>
                                          <li> 
-                                           not initiallyN( {_419253 ∉ [light_on]} ).
+                                           not initiallyN( { B ∉ [light_on]} ).
                                          </li> 
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} ) :-
+                                       not o_c_holdsAt2( { B ∉ [light_on]} , { D│ D>0} ) :-
                                        <ul>
                                          <li> 
-                                           forall(_410186,forall(_410189,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} ,_410186,_410189))) :-
+                                           forall( C1,forall( D1,not o_c_holdsAt2( { B ∉ [light_on]} , { D│ D>0} , C1, D1))) :-
                                            <ul>
                                              <li> 
-                                               forall(_410189,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_410538 > 0} ,_410189)) :-
+                                               forall( D1,not o_c_holdsAt2( { B ∉ [light_on]} , { D│ D>0} , { E1│ E1>0} , D1)) :-
                                                <ul>
                                                  <li> 
-                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_410538 > 0} ,_410360) :-
+                                                   not o_c_holdsAt2( { B ∉ [light_on]} , { D│ D>0} , { E1│ E1>0} , F1) :-
                                                    <ul>
                                                      <li> 
-                                                        {_410538 > 0} .>=. {_409722 > 0} .
+                                                        { E1│ E1>0} .>=. { D│ D>0} .
                                                      </li> 
                                                  </ul> 
                                                  </li> 
                                              </ul> 
                                              </li> 
                                              <li> 
-                                               forall(_410189,not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_414648 =< 0} ,_410189)) :-
+                                               forall( D1,not o_c_holdsAt2( { B ∉ [light_on]} , { D│ D>0} , { F│ F ≤ 0} , D1)) :-
                                                <ul>
                                                  <li> 
-                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_414648 =< 0} , {_415184 ∉ [turn_off]} ) :-
+                                                   not o_c_holdsAt2( { B ∉ [light_on]} , { D│ D>0} , { F│ F ≤ 0} , { E ∉ [turn_off]} ) :-
                                                    <ul>
                                                      <li> 
-                                                        {_414648 =< 0} .<. {_409722 > 0} ,
+                                                        { F│ F ≤ 0} .<. { D│ D>0} ,
                                                      </li>
                                                      <li> 
-                                                       not terminates( {_415184 ∉ [turn_off]} , {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                       not terminates( { E ∉ [turn_off]} , { B ∉ [light_on]} , { F│ F ≤ 0} ) :-
                                                        <ul>
                                                          <li> 
-                                                           not o_terminates1( {_415184 ∉ [turn_off]} , {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                           not o_terminates1( { E ∉ [turn_off]} , { B ∉ [light_on]} , { F│ F ≤ 0} ) :-
                                                            <ul>
                                                              <li> 
-                                                                {_415184 ∉ [turn_off]} \=turn_off.
+                                                                { E ∉ [turn_off]} \=turn_off.
                                                              </li> 
                                                          </ul> 
                                                          </li> 
@@ -273,22 +274,22 @@ holdsAt(light_red,_394074).
                                                  </ul> 
                                                  </li> 
                                                  <li> 
-                                                   not o_c_holdsAt2( {_419253 ∉ [light_on]} , {_409722 > 0} , {_414648 =< 0} ,turn_off) :-
+                                                   not o_c_holdsAt2( { B ∉ [light_on]} , { D│ D>0} , { F│ F ≤ 0} ,turn_off) :-
                                                    <ul>
                                                      <li> 
-                                                        {_414648 =< 0} .<. {_409722 > 0} ,
+                                                        { F│ F ≤ 0} .<. { D│ D>0} ,
                                                      </li>
                                                      <li> 
-                                                       not terminates(turn_off, {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                       not terminates(turn_off, { B ∉ [light_on]} , { F│ F ≤ 0} ) :-
                                                        <ul>
                                                          <li> 
-                                                           not o_terminates1(turn_off, {_419253 ∉ [light_on]} , {_414648 =< 0} ) :-
+                                                           not o_terminates1(turn_off, { B ∉ [light_on]} , { F│ F ≤ 0} ) :-
                                                            <ul>
                                                              <li> 
                                                                turn_off=turn_off,
                                                              </li>
                                                              <li> 
-                                                                {_419253 ∉ [light_on]} \=light_on.
+                                                                { B ∉ [light_on]} \=light_on.
                                                              </li> 
                                                          </ul> 
                                                          </li> 
@@ -309,36 +310,36 @@ holdsAt(light_red,_394074).
                          </ul> 
                          </li> 
                          <li> 
-                           forall(_405435,not o__chk11(light_on,_405435)) :-
+                           forall( X,not o__chk11(light_on, X)) :-
                            <ul>
                              <li> 
-                               not o__chk11(light_on, {_425919 =< 0} ) :-
+                               not o__chk11(light_on, { G│ G ≤ 0} ) :-
                                <ul>
                                  <li> 
-                                   not -holdsAt(light_on, {_425919 =< 0} ) :-
+                                   not -holdsAt(light_on, { G│ G ≤ 0} ) :-
                                    <ul>
                                      <li> 
-                                       not o_c_holdsAt1(light_on, {_425919 =< 0} ) :-
+                                       not o_c_holdsAt1(light_on, { G│ G ≤ 0} ) :-
                                        <ul>
                                          <li> 
-                                           0.>=. {_425919 =< 0} .
+                                           0.>=. { G│ G ≤ 0} .
                                          </li> 
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_c_holdsAt2(light_on, {_425919 =< 0} ) :-
+                                       not o_c_holdsAt2(light_on, { G│ G ≤ 0} ) :-
                                        <ul>
                                          <li> 
-                                           forall(_426075,forall(_426078,not o_c_holdsAt2(light_on, {_425919 =< 0} ,_426075,_426078))) :-
+                                           forall( G1,forall( H1,not o_c_holdsAt2(light_on, { G│ G ≤ 0} , G1, H1))) :-
                                            <ul>
                                              <li> 
-                                               forall(_426078,not o_c_holdsAt2(light_on, {_425919 =< 0} ,_426427,_426078)) :-
+                                               forall( H1,not o_c_holdsAt2(light_on, { G│ G ≤ 0} , I1, H1)) :-
                                                <ul>
                                                  <li> 
-                                                   not o_c_holdsAt2(light_on, {_425919 =< 0} ,_426427,_426249) :-
+                                                   not o_c_holdsAt2(light_on, { G│ G ≤ 0} , I1, J1) :-
                                                    <ul>
                                                      <li> 
-                                                       _426427.>=. {_425919 =< 0} .
+                                                        I1.>=. { G│ G ≤ 0} .
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -353,16 +354,16 @@ holdsAt(light_red,_394074).
                              </ul> 
                              </li> 
                              <li> 
-                               not o__chk11(light_on, {_431898 > 0} ) :-
+                               not o__chk11(light_on, { H│ H>0} ) :-
                                <ul>
                                  <li> 
-                                   not -holdsAt(light_on, {_431898 > 0} ) :-
+                                   not -holdsAt(light_on, { H│ H>0} ) :-
                                    <ul>
                                      <li> 
-                                       not o_c_holdsAt1(light_on, {_431898 > 0} ) :-
+                                       not o_c_holdsAt1(light_on, { H│ H>0} ) :-
                                        <ul>
                                          <li> 
-                                           0.<. {_431898 > 0} ,
+                                           0.<. { H│ H>0} ,
                                          </li>
                                          <li> 
                                            not initiallyN(light_on).
@@ -370,41 +371,41 @@ holdsAt(light_red,_394074).
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_c_holdsAt2(light_on, {_431898 > 0} ) :-
+                                       not o_c_holdsAt2(light_on, { H│ H>0} ) :-
                                        <ul>
                                          <li> 
-                                           forall(_432362,forall(_432365,not o_c_holdsAt2(light_on, {_431898 > 0} ,_432362,_432365))) :-
+                                           forall( K1,forall( L1,not o_c_holdsAt2(light_on, { H│ H>0} , K1, L1))) :-
                                            <ul>
                                              <li> 
-                                               forall(_432365,not o_c_holdsAt2(light_on, {_431898 > 0} , {_432714 > 0} ,_432365)) :-
+                                               forall( L1,not o_c_holdsAt2(light_on, { H│ H>0} , { M1│ M1>0} , L1)) :-
                                                <ul>
                                                  <li> 
-                                                   not o_c_holdsAt2(light_on, {_431898 > 0} , {_432714 > 0} ,_432536) :-
+                                                   not o_c_holdsAt2(light_on, { H│ H>0} , { M1│ M1>0} , N1) :-
                                                    <ul>
                                                      <li> 
-                                                        {_432714 > 0} .>=. {_431898 > 0} .
+                                                        { M1│ M1>0} .>=. { H│ H>0} .
                                                      </li> 
                                                  </ul> 
                                                  </li> 
                                              </ul> 
                                              </li> 
                                              <li> 
-                                               forall(_432365,not o_c_holdsAt2(light_on, {_431898 > 0} , {_438868 =< 0} ,_432365)) :-
+                                               forall( L1,not o_c_holdsAt2(light_on, { H│ H>0} , { J│ J ≤ 0} , L1)) :-
                                                <ul>
                                                  <li> 
-                                                   not o_c_holdsAt2(light_on, {_431898 > 0} , {_438868 =< 0} , {_439404 ∉ [turn_off]} ) :-
+                                                   not o_c_holdsAt2(light_on, { H│ H>0} , { J│ J ≤ 0} , { I ∉ [turn_off]} ) :-
                                                    <ul>
                                                      <li> 
-                                                        {_438868 =< 0} .<. {_431898 > 0} ,
+                                                        { J│ J ≤ 0} .<. { H│ H>0} ,
                                                      </li>
                                                      <li> 
-                                                       not terminates( {_439404 ∉ [turn_off]} ,light_on, {_438868 =< 0} ) :-
+                                                       not terminates( { I ∉ [turn_off]} ,light_on, { J│ J ≤ 0} ) :-
                                                        <ul>
                                                          <li> 
-                                                           not o_terminates1( {_439404 ∉ [turn_off]} ,light_on, {_438868 =< 0} ) :-
+                                                           not o_terminates1( { I ∉ [turn_off]} ,light_on, { J│ J ≤ 0} ) :-
                                                            <ul>
                                                              <li> 
-                                                                {_439404 ∉ [turn_off]} \=turn_off.
+                                                                { I ∉ [turn_off]} \=turn_off.
                                                              </li> 
                                                          </ul> 
                                                          </li> 
@@ -413,19 +414,19 @@ holdsAt(light_red,_394074).
                                                  </ul> 
                                                  </li> 
                                                  <li> 
-                                                   not o_c_holdsAt2(light_on, {_431898 > 0} , {_438868 =< 0} ,turn_off) :-
+                                                   not o_c_holdsAt2(light_on, { H│ H>0} , { J│ J ≤ 0} ,turn_off) :-
                                                    <ul>
                                                      <li> 
-                                                        {_438868 =< 0} .<. {_431898 > 0} ,
+                                                        { J│ J ≤ 0} .<. { H│ H>0} ,
                                                      </li>
                                                      <li> 
-                                                       terminates(turn_off,light_on, {_438868 =< 0} ),
+                                                       terminates(turn_off,light_on, { J│ J ≤ 0} ),
                                                      </li>
                                                      <li> 
-                                                       not happens(turn_off, {_438868 =< 0} ) :-
+                                                       not happens(turn_off, { J│ J ≤ 0} ) :-
                                                        <ul>
                                                          <li> 
-                                                           not o_happens1(turn_off, {_438868 =< 0} ) :-
+                                                           not o_happens1(turn_off, { J│ J ≤ 0} ) :-
                                                            <ul>
                                                              <li> 
                                                                turn_off\=turn_on.
@@ -433,18 +434,18 @@ holdsAt(light_red,_394074).
                                                          </ul> 
                                                          </li> 
                                                          <li> 
-                                                           not o_happens2(turn_off, {_438868 =< 0} ) :-
+                                                           not o_happens2(turn_off, { J│ J ≤ 0} ) :-
                                                            <ul>
                                                              <li> 
                                                                turn_off=turn_off,
                                                              </li>
                                                              <li> 
-                                                                {_438868 =< 0} \=4.
+                                                                { J│ J ≤ 0} \=4.
                                                              </li> 
                                                          </ul> 
                                                          </li> 
                                                          <li> 
-                                                           not o_happens3(turn_off, {_438868 =< 0} ) :-
+                                                           not o_happens3(turn_off, { J│ J ≤ 0} ) :-
                                                            <ul>
                                                              <li> 
                                                                turn_off\=turn_on.
