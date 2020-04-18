@@ -196,16 +196,13 @@ comp_dual3(_, [], _) :-
 % @param GoalIn The original goal.
 % @param GoalOut The negated goal.
 
-%% clpfd
-dual_goal(#=(A, B), #\=(A,B)).
-dual_goal(#\=(A, B), #=(A,B)).
+%% constraint 
+dual_goal(#=(A, B), #<>(A,B)).
+dual_goal(#<>(A, B), #=(A,B)).
 dual_goal(#>(A, B), #=<(A,B)).
 dual_goal(#<(A, B), #>=(A,B)).
 dual_goal(#>=(A, B), #<(A,B)).
 dual_goal(#=<(A, B), #>(A,B)).
-dual_goal(in(A, B), print(not(in(A,B)))).
-dual_goal(..(A, B), ..(A,B)).
-dual_goal(labeling(A, B), print(not(labeling(A,B)))).
 %% clpq/r
 dual_goal(.=.(A, B), .<>.(A,B)).
 dual_goal(.<>.(A, B), .=.(A,B)).

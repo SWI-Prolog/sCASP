@@ -454,6 +454,12 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     exec_goal(apply_clpq_constraints(Goal)),
     Model = [Goal].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
+    Goal =.. [Op|Operands],
+    clp_builtin_translate(Op,Op_T), !,
+    Goal_T =.. [Op_T|Operands],
+    exec_goal(apply_clpq_constraints(Goal_T)),
+    Model = [Goal].
+solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Goal =.. [Op|_],
     prolog_builtin(Op), !,
     exec_goal(Goal),
@@ -766,6 +772,17 @@ clp_builtin(.<.).
 clp_builtin(.>.).
 clp_builtin(.>=.).
 clp_builtin(.=<.).
+
+:- pred clp_builtin_translate(Goal,Goal_T) #"Translate s(CASP)
+    constraints into CLP(Q/R) syntax".
+
+clp_builtin_translate('#=',  .=.).
+clp_builtin_translate('#<>', .<>.).
+clp_builtin_translate('#<',  .<.).
+clp_builtin_translate('#>',  .>.).
+clp_builtin_translate('#>=', .>=.).
+clp_builtin_translate('#=<', .=<.).
+
 
 :- pred my_copy_term(Var, Term, NewVar, NewTerm) #"Its behaviour is
 similar to @pred{copy_term/2}. It returns in @var{NewTerm} a copy of

@@ -388,9 +388,12 @@ pretty_term(D0,D0,rat(A,B),A/B) :- !.
 pretty_term(D0,D1,Functor,PF) :-
     Functor =..[Name|Args], !,
     pretty_term(D0,D1,Args,PArgs),
-    ( pretty_clp(Name,PName) ->
+    (   pretty_clp(Name,PName) ->
         simple_operands(PArgs,SArgs),
         PF =.. [PName|SArgs]
+    ;   pretty_clp(_,Name) ->
+        simple_operands(PArgs,SArgs),
+        PF =.. [Name|SArgs]
     ;
         PF =.. [Name|PArgs]
     ).
@@ -462,14 +465,14 @@ pretty_rat(A,A).
 pretty_clp(N,PN) :- pretty_clp_(N,PN), !.
 
 :- op(700, xfx, ['#=' ,
-                 '#\=',
+                 '#<>',
                  '#<' ,
                  '#>' ,
                  '#=<',
                  '#>='
                  ]).
 pretty_clp_(.=.,  '#=' ).
-pretty_clp_(.<>., '#\=').
+pretty_clp_(.<>., '#<>').
 pretty_clp_(.<.,  '#<' ).
 pretty_clp_(.>.,  '#>' ).
 pretty_clp_(.=<., '#=<').
