@@ -36,17 +36,18 @@ li.tree-opened > .toggler:before {
 <h3>Query</h3>
 <b>
   <font color=blue>?-</font> 
-flies(_169316).
+flies(A).
 <br><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_169316=tweety. ?<br>
+ <br> 
+A = tweety ?<br>
 </b>
 <br><br>
 <h3>Model</h3>
 
-{  flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wounded_bird(tweety) ,  -ab( {_170367 \= [john,sam]} ) ,  not ab( {_170367 \= [john,sam]} ) ,  not penguin( {_170367 \= [john,sam]} ) ,  not wounded_bird( {_170367 \= [john,sam]} ) ,  not ab( {_170367 \= [john,sam]} ) ,  not penguin( {_170367 \= [john,sam]} ) ,  not wounded_bird( {_170367 \= [john,sam]} ) ,  not -ab(john) ,  ab(john) ,  wounded_bird(john) ,  not -ab(sam) ,  ab(sam) ,  penguin(sam) ,  -penguin( {_174679 \= [sam]} ) ,  not penguin( {_174679 \= [sam]} ) ,  not penguin( {_174679 \= [sam]} ) ,  not -penguin(sam) ,  -wounded_bird( {_177721 \= [john]} ) ,  not wounded_bird( {_177721 \= [john]} ) ,  not wounded_bird( {_177721 \= [john]} ) ,  not -wounded_bird(john) ,  -bird( {_181450 \= [john,sam,tweety]} ) ,  not bird( {_181450 \= [john,sam,tweety]} ) ,  not penguin( {_181450 \= [john,sam,tweety]} ) ,  not wounded_bird( {_181450 \= [john,sam,tweety]} ) ,  not bird( {_181450 \= [john,sam,tweety]} ) ,  not penguin( {_181450 \= [john,sam,tweety]} ) ,  not wounded_bird( {_181450 \= [john,sam,tweety]} ) ,  not -bird(john) ,  bird(john) ,  not -bird(sam) ,  bird(sam) ,  not -bird(tweety) ,  -flies( {_197566 \= [john,sam,tweety]} ) ,  -bird( {_197566 \= [john,sam,tweety]} ) ,  not bird( {_197566 \= [john,sam,tweety]} ) ,  not penguin( {_197566 \= [john,sam,tweety]} ) ,  not wounded_bird( {_197566 \= [john,sam,tweety]} ) ,  not flies( {_197566 \= [john,sam,tweety]} ) ,  not bird( {_197566 \= [john,sam,tweety]} ) ,  not penguin( {_197566 \= [john,sam,tweety]} ) ,  not wounded_bird( {_197566 \= [john,sam,tweety]} ) ,  -flies(john) ,  not flies(john) ,  -flies(sam) ,  not flies(sam) ,  not -flies(tweety)  }
+flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wounded_bird(tweety) ,  -ab(B │{B\=john,B\=sam}) ,  not ab(B │{B\=john,B\=sam}) ,  not penguin(B │{B\=john,B\=sam}) ,  not wounded_bird(B │{B\=john,B\=sam}) ,  not ab(B │{B\=john,B\=sam}) ,  not penguin(B │{B\=john,B\=sam}) ,  not wounded_bird(B │{B\=john,B\=sam}) ,  not -ab(john) ,  ab(john) ,  wounded_bird(john) ,  not -ab(sam) ,  ab(sam) ,  penguin(sam) ,  -penguin(C │{C\=sam}) ,  not penguin(C │{C\=sam}) ,  not penguin(C │{C\=sam}) ,  not -penguin(sam) ,  -wounded_bird(D │{D\=john}) ,  not wounded_bird(D │{D\=john}) ,  not wounded_bird(D │{D\=john}) ,  not -wounded_bird(john) ,  -bird(E │{E\=john,E\=sam,E\=tweety}) ,  not bird(E │{E\=john,E\=sam,E\=tweety}) ,  not penguin(E │{E\=john,E\=sam,E\=tweety}) ,  not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) ,  not bird(E │{E\=john,E\=sam,E\=tweety}) ,  not penguin(E │{E\=john,E\=sam,E\=tweety}) ,  not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) ,  not -bird(john) ,  bird(john) ,  not -bird(sam) ,  bird(sam) ,  not -bird(tweety) ,  -flies(F │{F\=john,F\=sam,F\=tweety}) ,  -bird(F │{F\=john,F\=sam,F\=tweety}) ,  not bird(F │{F\=john,F\=sam,F\=tweety}) ,  not penguin(F │{F\=john,F\=sam,F\=tweety}) ,  not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) ,  not flies(F │{F\=john,F\=sam,F\=tweety}) ,  not bird(F │{F\=john,F\=sam,F\=tweety}) ,  not penguin(F │{F\=john,F\=sam,F\=tweety}) ,  not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) ,  -flies(john) ,  not flies(john) ,  -flies(sam) ,  not flies(sam) ,  not -flies(tweety)
 
 <br><br>
-<h3> Justification </h3>
+<h3> Justification <button onclick="expand()">Expand All</button><button onclick="collapse()">Collapse All</button></h3>
  <ul class="tree">
      <li> 
        flies(tweety) :-
@@ -67,7 +68,7 @@ flies(_169316).
                        not o_penguin1(tweety) :-
                        <ul>
                          <li> 
-                           tweety\=sam.
+                           tweety \= sam.
                          </li> 
                      </ul> 
                      </li> 
@@ -85,7 +86,7 @@ flies(_169316).
                        not o_wounded_bird1(tweety) :-
                        <ul>
                          <li> 
-                           tweety\=john.
+                           tweety \= john.
                          </li> 
                      </ul> 
                      </li> 
@@ -110,28 +111,28 @@ flies(_169316).
                    not o__chk11 :-
                    <ul>
                      <li> 
-                       forall(_170053,not o__chk11(_170053)) :-
+                       forall(G,not o__chk11(G)) :-
                        <ul>
                          <li> 
-                           not o__chk11( {_170367 \= [john,sam]} ) :-
+                           not o__chk11(B │{B\=john,B\=sam}) :-
                            <ul>
                              <li> 
-                               -ab( {_170367 \= [john,sam]} ) :-
+                               -ab(B │{B\=john,B\=sam}) :-
                                <ul>
                                  <li> 
-                                   not ab( {_170367 \= [john,sam]} ) :-
+                                   not ab(B │{B\=john,B\=sam}) :-
                                    <ul>
                                      <li> 
-                                       not o_ab1( {_170367 \= [john,sam]} ) :-
+                                       not o_ab1(B │{B\=john,B\=sam}) :-
                                        <ul>
                                          <li> 
-                                           not penguin( {_170367 \= [john,sam]} ) :-
+                                           not penguin(B │{B\=john,B\=sam}) :-
                                            <ul>
                                              <li> 
-                                               not o_penguin1( {_170367 \= [john,sam]} ) :-
+                                               not o_penguin1(B │{B\=john,B\=sam}) :-
                                                <ul>
                                                  <li> 
-                                                    {_170367 \= [john,sam]} \=sam.
+                                                   B \= sam.
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -140,16 +141,16 @@ flies(_169316).
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_ab2( {_170367 \= [john,sam]} ) :-
+                                       not o_ab2(B │{B\=john,B\=sam}) :-
                                        <ul>
                                          <li> 
-                                           not wounded_bird( {_170367 \= [john,sam]} ) :-
+                                           not wounded_bird(B │{B\=john,B\=sam}) :-
                                            <ul>
                                              <li> 
-                                               not o_wounded_bird1( {_170367 \= [john,sam]} ) :-
+                                               not o_wounded_bird1(B │{B\=john,B\=sam}) :-
                                                <ul>
                                                  <li> 
-                                                    {_170367 \= [john,sam]} \=john.
+                                                   B \= john.
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -162,19 +163,19 @@ flies(_169316).
                              </ul> 
                              </li> 
                              <li> 
-                               not ab( {_170367 \= [john,sam]} ) :-
+                               not ab(B │{B\=john,B\=sam}) :-
                                <ul>
                                  <li> 
-                                   not o_ab1( {_170367 \= [john,sam]} ) :-
+                                   not o_ab1(B │{B\=john,B\=sam}) :-
                                    <ul>
                                      <li> 
-                                       not penguin( {_170367 \= [john,sam]} ) :-
+                                       not penguin(B │{B\=john,B\=sam}) :-
                                        <ul>
                                          <li> 
-                                           not o_penguin1( {_170367 \= [john,sam]} ) :-
+                                           not o_penguin1(B │{B\=john,B\=sam}) :-
                                            <ul>
                                              <li> 
-                                                {_170367 \= [john,sam]} \=sam.
+                                               B \= sam.
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -183,16 +184,16 @@ flies(_169316).
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   not o_ab2( {_170367 \= [john,sam]} ) :-
+                                   not o_ab2(B │{B\=john,B\=sam}) :-
                                    <ul>
                                      <li> 
-                                       not wounded_bird( {_170367 \= [john,sam]} ) :-
+                                       not wounded_bird(B │{B\=john,B\=sam}) :-
                                        <ul>
                                          <li> 
-                                           not o_wounded_bird1( {_170367 \= [john,sam]} ) :-
+                                           not o_wounded_bird1(B │{B\=john,B\=sam}) :-
                                            <ul>
                                              <li> 
-                                                {_170367 \= [john,sam]} \=john.
+                                               B \= john.
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -263,22 +264,22 @@ flies(_169316).
                    not o__chk21 :-
                    <ul>
                      <li> 
-                       forall(_174486,not o__chk21(_174486)) :-
+                       forall(H,not o__chk21(H)) :-
                        <ul>
                          <li> 
-                           not o__chk21( {_174679 \= [sam]} ) :-
+                           not o__chk21(C │{C\=sam}) :-
                            <ul>
                              <li> 
-                               -penguin( {_174679 \= [sam]} ) :-
+                               -penguin(C │{C\=sam}) :-
                                <ul>
                                  <li> 
-                                   not penguin( {_174679 \= [sam]} ) :-
+                                   not penguin(C │{C\=sam}) :-
                                    <ul>
                                      <li> 
-                                       not o_penguin1( {_174679 \= [sam]} ) :-
+                                       not o_penguin1(C │{C\=sam}) :-
                                        <ul>
                                          <li> 
-                                            {_174679 \= [sam]} \=sam.
+                                           C \= sam.
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -287,13 +288,13 @@ flies(_169316).
                              </ul> 
                              </li> 
                              <li> 
-                               not penguin( {_174679 \= [sam]} ) :-
+                               not penguin(C │{C\=sam}) :-
                                <ul>
                                  <li> 
-                                   not o_penguin1( {_174679 \= [sam]} ) :-
+                                   not o_penguin1(C │{C\=sam}) :-
                                    <ul>
                                      <li> 
-                                        {_174679 \= [sam]} \=sam.
+                                       C \= sam.
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -332,22 +333,22 @@ flies(_169316).
                    not o__chk31 :-
                    <ul>
                      <li> 
-                       forall(_177528,not o__chk31(_177528)) :-
+                       forall(I,not o__chk31(I)) :-
                        <ul>
                          <li> 
-                           not o__chk31( {_177721 \= [john]} ) :-
+                           not o__chk31(D │{D\=john}) :-
                            <ul>
                              <li> 
-                               -wounded_bird( {_177721 \= [john]} ) :-
+                               -wounded_bird(D │{D\=john}) :-
                                <ul>
                                  <li> 
-                                   not wounded_bird( {_177721 \= [john]} ) :-
+                                   not wounded_bird(D │{D\=john}) :-
                                    <ul>
                                      <li> 
-                                       not o_wounded_bird1( {_177721 \= [john]} ) :-
+                                       not o_wounded_bird1(D │{D\=john}) :-
                                        <ul>
                                          <li> 
-                                            {_177721 \= [john]} \=john.
+                                           D \= john.
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -356,13 +357,13 @@ flies(_169316).
                              </ul> 
                              </li> 
                              <li> 
-                               not wounded_bird( {_177721 \= [john]} ) :-
+                               not wounded_bird(D │{D\=john}) :-
                                <ul>
                                  <li> 
-                                   not o_wounded_bird1( {_177721 \= [john]} ) :-
+                                   not o_wounded_bird1(D │{D\=john}) :-
                                    <ul>
                                      <li> 
-                                        {_177721 \= [john]} \=john.
+                                       D \= john.
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -401,36 +402,36 @@ flies(_169316).
                    not o__chk41 :-
                    <ul>
                      <li> 
-                       forall(_181257,not o__chk41(_181257)) :-
+                       forall(J,not o__chk41(J)) :-
                        <ul>
                          <li> 
-                           not o__chk41( {_181450 \= [john,sam,tweety]} ) :-
+                           not o__chk41(E │{E\=john,E\=sam,E\=tweety}) :-
                            <ul>
                              <li> 
-                               -bird( {_181450 \= [john,sam,tweety]} ) :-
+                               -bird(E │{E\=john,E\=sam,E\=tweety}) :-
                                <ul>
                                  <li> 
-                                   not bird( {_181450 \= [john,sam,tweety]} ) :-
+                                   not bird(E │{E\=john,E\=sam,E\=tweety}) :-
                                    <ul>
                                      <li> 
-                                       not o_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                       not o_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
                                        <ul>
                                          <li> 
-                                            {_181450 \= [john,sam,tweety]} \=tweety.
+                                           E \= tweety.
                                          </li> 
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_bird2( {_181450 \= [john,sam,tweety]} ) :-
+                                       not o_bird2(E │{E\=john,E\=sam,E\=tweety}) :-
                                        <ul>
                                          <li> 
-                                           not penguin( {_181450 \= [john,sam,tweety]} ) :-
+                                           not penguin(E │{E\=john,E\=sam,E\=tweety}) :-
                                            <ul>
                                              <li> 
-                                               not o_penguin1( {_181450 \= [john,sam,tweety]} ) :-
+                                               not o_penguin1(E │{E\=john,E\=sam,E\=tweety}) :-
                                                <ul>
                                                  <li> 
-                                                    {_181450 \= [john,sam,tweety]} \=sam.
+                                                   E \= sam.
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -439,16 +440,16 @@ flies(_169316).
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_bird3( {_181450 \= [john,sam,tweety]} ) :-
+                                       not o_bird3(E │{E\=john,E\=sam,E\=tweety}) :-
                                        <ul>
                                          <li> 
-                                           not wounded_bird( {_181450 \= [john,sam,tweety]} ) :-
+                                           not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) :-
                                            <ul>
                                              <li> 
-                                               not o_wounded_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                               not o_wounded_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
                                                <ul>
                                                  <li> 
-                                                    {_181450 \= [john,sam,tweety]} \=john.
+                                                   E \= john.
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -461,27 +462,27 @@ flies(_169316).
                              </ul> 
                              </li> 
                              <li> 
-                               not bird( {_181450 \= [john,sam,tweety]} ) :-
+                               not bird(E │{E\=john,E\=sam,E\=tweety}) :-
                                <ul>
                                  <li> 
-                                   not o_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                   not o_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
                                    <ul>
                                      <li> 
-                                        {_181450 \= [john,sam,tweety]} \=tweety.
+                                       E \= tweety.
                                      </li> 
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   not o_bird2( {_181450 \= [john,sam,tweety]} ) :-
+                                   not o_bird2(E │{E\=john,E\=sam,E\=tweety}) :-
                                    <ul>
                                      <li> 
-                                       not penguin( {_181450 \= [john,sam,tweety]} ) :-
+                                       not penguin(E │{E\=john,E\=sam,E\=tweety}) :-
                                        <ul>
                                          <li> 
-                                           not o_penguin1( {_181450 \= [john,sam,tweety]} ) :-
+                                           not o_penguin1(E │{E\=john,E\=sam,E\=tweety}) :-
                                            <ul>
                                              <li> 
-                                                {_181450 \= [john,sam,tweety]} \=sam.
+                                               E \= sam.
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -490,16 +491,16 @@ flies(_169316).
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   not o_bird3( {_181450 \= [john,sam,tweety]} ) :-
+                                   not o_bird3(E │{E\=john,E\=sam,E\=tweety}) :-
                                    <ul>
                                      <li> 
-                                       not wounded_bird( {_181450 \= [john,sam,tweety]} ) :-
+                                       not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) :-
                                        <ul>
                                          <li> 
-                                           not o_wounded_bird1( {_181450 \= [john,sam,tweety]} ) :-
+                                           not o_wounded_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
                                            <ul>
                                              <li> 
-                                                {_181450 \= [john,sam,tweety]} \=john.
+                                               E \= john.
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -588,39 +589,39 @@ flies(_169316).
                    not o__chk51 :-
                    <ul>
                      <li> 
-                       forall(_197333,not o__chk51(_197333)) :-
+                       forall(K,not o__chk51(K)) :-
                        <ul>
                          <li> 
-                           not o__chk51( {_197566 \= [john,sam,tweety]} ) :-
+                           not o__chk51(F │{F\=john,F\=sam,F\=tweety}) :-
                            <ul>
                              <li> 
-                               -flies( {_197566 \= [john,sam,tweety]} ) :-
+                               -flies(F │{F\=john,F\=sam,F\=tweety}) :-
                                <ul>
                                  <li> 
-                                   -bird( {_197566 \= [john,sam,tweety]} ) :-
+                                   -bird(F │{F\=john,F\=sam,F\=tweety}) :-
                                    <ul>
                                      <li> 
-                                       not bird( {_197566 \= [john,sam,tweety]} ) :-
+                                       not bird(F │{F\=john,F\=sam,F\=tweety}) :-
                                        <ul>
                                          <li> 
-                                           not o_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                           not o_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
                                            <ul>
                                              <li> 
-                                                {_197566 \= [john,sam,tweety]} \=tweety.
+                                               F \= tweety.
                                              </li> 
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird2( {_197566 \= [john,sam,tweety]} ) :-
+                                           not o_bird2(F │{F\=john,F\=sam,F\=tweety}) :-
                                            <ul>
                                              <li> 
-                                               not penguin( {_197566 \= [john,sam,tweety]} ) :-
+                                               not penguin(F │{F\=john,F\=sam,F\=tweety}) :-
                                                <ul>
                                                  <li> 
-                                                   not o_penguin1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   not o_penguin1(F │{F\=john,F\=sam,F\=tweety}) :-
                                                    <ul>
                                                      <li> 
-                                                        {_197566 \= [john,sam,tweety]} \=sam.
+                                                       F \= sam.
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -629,16 +630,16 @@ flies(_169316).
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird3( {_197566 \= [john,sam,tweety]} ) :-
+                                           not o_bird3(F │{F\=john,F\=sam,F\=tweety}) :-
                                            <ul>
                                              <li> 
-                                               not wounded_bird( {_197566 \= [john,sam,tweety]} ) :-
+                                               not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) :-
                                                <ul>
                                                  <li> 
-                                                   not o_wounded_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   not o_wounded_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
                                                    <ul>
                                                      <li> 
-                                                        {_197566 \= [john,sam,tweety]} \=john.
+                                                       F \= john.
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -653,33 +654,33 @@ flies(_169316).
                              </ul> 
                              </li> 
                              <li> 
-                               not flies( {_197566 \= [john,sam,tweety]} ) :-
+                               not flies(F │{F\=john,F\=sam,F\=tweety}) :-
                                <ul>
                                  <li> 
-                                   not o_flies1( {_197566 \= [john,sam,tweety]} ) :-
+                                   not o_flies1(F │{F\=john,F\=sam,F\=tweety}) :-
                                    <ul>
                                      <li> 
-                                       not bird( {_197566 \= [john,sam,tweety]} ) :-
+                                       not bird(F │{F\=john,F\=sam,F\=tweety}) :-
                                        <ul>
                                          <li> 
-                                           not o_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                           not o_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
                                            <ul>
                                              <li> 
-                                                {_197566 \= [john,sam,tweety]} \=tweety.
+                                               F \= tweety.
                                              </li> 
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird2( {_197566 \= [john,sam,tweety]} ) :-
+                                           not o_bird2(F │{F\=john,F\=sam,F\=tweety}) :-
                                            <ul>
                                              <li> 
-                                               not penguin( {_197566 \= [john,sam,tweety]} ) :-
+                                               not penguin(F │{F\=john,F\=sam,F\=tweety}) :-
                                                <ul>
                                                  <li> 
-                                                   not o_penguin1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   not o_penguin1(F │{F\=john,F\=sam,F\=tweety}) :-
                                                    <ul>
                                                      <li> 
-                                                        {_197566 \= [john,sam,tweety]} \=sam.
+                                                       F \= sam.
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -688,16 +689,16 @@ flies(_169316).
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird3( {_197566 \= [john,sam,tweety]} ) :-
+                                           not o_bird3(F │{F\=john,F\=sam,F\=tweety}) :-
                                            <ul>
                                              <li> 
-                                               not wounded_bird( {_197566 \= [john,sam,tweety]} ) :-
+                                               not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) :-
                                                <ul>
                                                  <li> 
-                                                   not o_wounded_bird1( {_197566 \= [john,sam,tweety]} ) :-
+                                                   not o_wounded_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
                                                    <ul>
                                                      <li> 
-                                                        {_197566 \= [john,sam,tweety]} \=john.
+                                                       F \= john.
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -816,6 +817,48 @@ flies(_169316).
 
 <script type="text/javascript">
 (function($){
+        $.fn.expand = function(options) {
+            options = options || {};
+            options.delay = options.delay || 0;
+            
+            this.find("> li").each(function() {
+                e = $(this)
+                var subtree = e.find('> ul');
+
+                if (subtree.length > 0) {
+                    e.addClass('tree-opened');
+                    e.removeClass('tree-closed');
+
+                    subtree.slideDown(options.delay);
+                    subtree.show(options.delay);
+
+                    subtree.expand(options);
+                } 
+            });
+            return true;
+        }
+
+        $.fn.collapse = function(options) {
+            options = options || {};
+            options.delay = options.delay || 0;
+            
+            this.find("> li").each(function() {
+                e = $(this)
+                var subtree = e.find('> ul');
+
+                if (subtree.length > 0) {
+                    e.removeClass('tree-opened');
+                    e.addClass('tree-closed');
+
+                    subtree.slideUp(options.delay);
+                    subtree.hide(options.delay);
+
+                    subtree.collapse(options);
+                } 
+            });
+            return true;
+        }
+
     $.fn.treemenu = function(options) {
         options = options || {};
         options.delay = options.delay || 0;
@@ -895,6 +938,15 @@ flies(_169316).
         return this;
     }
 })(jQuery);
+</script>
+<script>
+function expand(){
+    $(".tree").expand({delay:1000});
+}
+
+function collapse(){
+    $(".tree").collapse({delay:1000});
+}
 </script>
 
  
