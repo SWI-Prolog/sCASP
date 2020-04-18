@@ -93,15 +93,15 @@ Do not forget to rerun the bashrc file `source ~/.bashrc`. If you have any probl
 constraint logic programming. Unlike similar systems, it does not
 employ any form of grounding. This allows `s(CASP)` to execute programs
 that are not finitely groundable, including those which make use of
-lists and terms. It is available  [here](https://gitlab.software.imdea.org/joaquin.arias/sCASP).
+lists and terms. It is available  [here](https://gitlab.software.imdea.org/ciao-lang/sCASP).
 
 Once you have Ciao working in your computer to install `s(CASP)` type the following one-liner in a sh-compatible terminal:
 
 ```
-ciao get gitlab.software.imdea.org/joaquin.arias/sCASP
+ciao get gitlab.software.imdea.org/ciao-lang/sCASP
 ```
 
-If you have any problem go [here](https://gitlab.software.imdea.org/joaquin.arias/sCASP/blob/master/README.md) for details.
+If you have any problem go [here](https://gitlab.software.imdea.org/ciao-lang/sCASP/blob/master/README.md) for details.
 
 # Evaluation of s(CASP) against s(ASP)
 

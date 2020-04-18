@@ -49,7 +49,7 @@ Do not forget to rerun the bashrc file `source ~/.bashrc`. If you have any probl
 Once you have Ciao working in your computer to install `s(CASP)` type the following one-liner in a sh-compatible terminal:
 
 ```
-ciao get gitlab.software.imdea.org/joaquin.arias/sCASP
+ciao get gitlab.software.imdea.org/ciao-lang/sCASP
 ```
 
 If you have any problem contact
