@@ -174,10 +174,8 @@ using @var{Model}.".
 % TODO: use the StackOut instead of the model.
 print_model(Model) :-
     nl,
-    print('{  '),
     select_printable_literals(Model,Printable),
-    print_model_(Printable),
-    print('  }'), nl.
+    print_model_(Printable), nl.
 
 select_printable_literals([],[]) :- !.
 select_printable_literals([X|Xs],NSs) :-
@@ -276,11 +274,25 @@ print_unifier([Binding|Bs],[PV|PVars]) :-
     ( PV == Binding ->
         true
     ;
-        format(" \n~w = ~w",[PV,Binding])
+        ( Binding =.. [_,PB,{PConst}], PV = PB ->
+            format(" \n~w",[PConst])
+        ;
+            format(" \n~w = ~w",[PV,Binding])
+        )
     ),
     print_unifier(Bs,PVars).
-        
-              
+
+print_constraints('│',_,Const) :-
+    format("~w",[Const]).
+print_constraints('∉',PB,(Const)) :- !,
+    print_constraints_not(PB,Const).
+print_constraints('∉',PB,(Const,Cs)) :-
+    print_constraints_not(PB,Const),
+    format(", ",[]),
+    print_constraints('∉',PB,Cs).
+print_constraints_not(PB,Const) :-
+    format("~w \= ~w",[PB,Const]).
+
 
 :- pred print_check_calls_calling(Goal, StackIn) #"Auxiliar predicate
 to print @var{StackIn} the current stack and @var{Goal}. This
@@ -314,6 +326,8 @@ print_s_([A|As],I,I0) :- !,
     nl,tab(I),print(A),
     I1 is I + 4,
     print_s_(As,I1,I).
+
+  
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -354,7 +368,7 @@ pretty_term(D0,D1,A,PA) :-
     var(A), !,
     lookup_mydict(D0,D1,A,N),
     Letter is N mod 26 + 0'A,
-    atom_codes(L,[32,Letter]),
+    atom_codes(L,[Letter]),
     (   N>=26 ->
         Rest is N//26,
         atom_number(AtomRest,Rest),
@@ -374,22 +388,42 @@ pretty_term(D0,D0,rat(A,B),A/B) :- !.
 pretty_term(D0,D1,Functor,PF) :-
     Functor =..[Name|Args], !,
     pretty_term(D0,D1,Args,PArgs),
-    PF =.. [Name|PArgs].
+    ( pretty_clp(Name,PName) ->
+        simple_operands(PArgs,SArgs),
+        PF =.. [PName|SArgs]
+    ;
+        PF =.. [Name|PArgs]
+    ).
 pretty_term(D0,D0,A,'?'(A)).
 
+simple_operands([A,B],[SA,SB]) :-
+    simple_operand(A,SA),
+    simple_operand(B,SB).
+simple_operand(Operand,Var) :-
+    Operand =.. ['│', Var, _], !.
+%% simple_operand(Operand,SOperand) :-
+%%     struct(Operand),
+%%     Operand =.. [Op|Args], !,
+%%     simple_operands(Args,SArgs),
+%%     SOperand =.. [Op|SArgs].
+simple_operand(A,A).
+ 
 
 :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
 pretty_portray_attribute(Att,A,PVar,PA) :-
     pretty_portray_attribute_(Att,A,PVar,PA), !.
 pretty_portray_attribute(_Att,_,PVar,PVar).
 
+%:- use_module(library(formulae)).
+:- op(700, xfx, ['│'
+                ]).
+
 pretty_portray_attribute_(att(_,false,att(clp_disequality_rt,neg(List),_)),_,PVar,PA) :-
-    (
-        List == [] ->
+    (  List == [] ->
         PA=PVar
     ;
-        format_to_string(" {~w ∉ ~w} ",[PVar,List],String),
-        atom_codes(PA,String)
+        pretty_disequality(PVar,List,Const),
+        PA =.. ['│', PVar, {Const}]
     ).
 pretty_portray_attribute_(_,A,PVar,PA) :-
     clpqr_dump_constraints(A, PVar, Constraints),
@@ -399,9 +433,13 @@ pretty_portray_attribute_(_,A,PVar,PA) :-
         sort(Constraints,Sort),
         reverse(Sort,RConstraints),
         pretty_constraints(RConstraints,Const),
-        format_to_string(" {~w│~w} ",[PVar,Const],String),
-        atom_codes(PA,String)
+        PA =.. ['│', PVar, {Const}]
     ).
+
+pretty_disequality(PVar,[A],(PVar \= A)) :- !.
+pretty_disequality(PVar,[A|As],(PVar \= A, Cs)) :-
+    pretty_disequality(PVar,As,Cs).
+    
 pretty_constraints([A],(C)) :- !,
     pretty_constraints_(A,C).
 pretty_constraints([A|As],(C,Cs)) :-
@@ -411,27 +449,32 @@ pretty_constraints_(A,C) :-
     A =.. [Op,X,Y],
     pretty_rat(X,PX),
     pretty_rat(Y,PY),
-    pretty_op(Op,P_Op), !,
-    C =.. [P_Op,PX,PY].
+    ( pretty_clp(Op,P_Op) ->
+        C =.. [P_Op,PX,PY]
+    ;
+        format("WARNING: clp operator ~w not defined\n",[Op]),
+        C =.. [Op,PX,PY]
+    ).    
 pretty_constraints_(A,A).
 pretty_rat(rat(A,B),A/B) :- !.
 pretty_rat(A,A).
 
+pretty_clp(N,PN) :- pretty_clp_(N,PN), !.
 
-:- op(700, xfx, ['<',
-                 '≤',
-                 '>',
-                 '≥',
-                 '=',
-                 '≠']).
-
-pretty_op(.<., '<') :- !.
-pretty_op(.=<.,'≤') :- !.
-pretty_op(.>., '>') :- !.
-pretty_op(.>=.,'≥') :- !.
-pretty_op(.=., '=') :- !.
-pretty_op(.\=.,'≠') :- !.
-
+:- op(700, xfx, ['#=' ,
+                 '#\=',
+                 '#<' ,
+                 '#>' ,
+                 '#=<',
+                 '#>='
+                 ]).
+pretty_clp_(.=.,  '#=' ).
+pretty_clp_(.<>., '#\=').
+pretty_clp_(.<.,  '#<' ).
+pretty_clp_(.>.,  '#>' ).
+pretty_clp_(.=<., '#=<').
+pretty_clp_(.>=., '#>=').
+pretty_clp_(\=, \=).
     
         
 
@@ -565,7 +608,7 @@ print_html(Sources,Query, Model, StackOut) :-
             print('<h3>Model</h3>'),nl,
             print_model(Model),nl,
             br,br,nl,
-            print('<h3> Justification </h3>\n <ul class="tree">'),
+            print('<h3> Justification <button onclick="expand()">Expand All</button><button onclick="collapse()">Collapse All</button></h3>\n <ul class="tree">'),
             print_html_stack(StackOut),
             nl,print('</ul>'),nl,nl,
             load_jquery(Jquery),
@@ -610,7 +653,11 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
     ( PV == Binding ->
         true
     ;
-        format(" <br> \n~w = ~w",[PV,Binding])
+        ( Binding =.. [_,PB,{PConst}], PV = PB ->
+            format(" <br> \n~w",[PConst])
+        ;
+            format(" <br> \n~w = ~w",[PV,Binding])
+        )
     ),
     print_html_unifier(Bs,PVars).
 
@@ -618,7 +665,7 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
 print_html_stack([A|StackOut]) :-
 %    reverse(StackOut,[A|ReverseStack]),
     nl,tab(5),print('<li> '),
-    nl,tab(5),print('  '),print(A),     
+    nl,tab(5),print('  '),print_html_term(A),     
     print_html_stack_(StackOut,9,5).
 
 print_html_stack_([],I,I0) :-
@@ -643,10 +690,16 @@ print_html_stack_([A|As],I,I0) :- !,
         nl,tab(I0), print('</li>')
     ),
     nl,tab(I),print('<li> '),
-    nl,tab(I),print('  '),print(A),     
+    nl,tab(I),print('  '),print_html_term(A),     
     I1 is I + 4,
     print_html_stack_(As,I1,I).
-    
+
+print_html_term(Constraint) :-
+    Constraint =.. [Op,A,B],
+    pretty_clp(_,Op), !,
+    format("~w ~w ~w",[A,Op,B]).
+print_html_term(A) :- print(A).
+
 close_ul(I,I) :- !.
 close_ul(I0,I) :-
     I0 > I,
