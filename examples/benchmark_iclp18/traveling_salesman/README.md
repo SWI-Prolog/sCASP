@@ -18,6 +18,6 @@ compact than that of `CLP(FD)`, `s(CASP) `is more expressive.
 ## s(CASP) implementation
 
 ```
-./scasp hamiltonian_scasp.pl
+scasp hamiltonian_scasp.pl
 
 ```

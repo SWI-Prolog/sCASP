@@ -117,3 +117,18 @@ s(ASP) is available [here](https://sourceforge.net/projects/sasp-system/). We us
 In the scripts folder  for s(CASP) (located [here](event-calculus/scripts/)) there is the script to run the benchmarks in the paper computing the time for s(CAPS):
 
 * [go\_time\_bec\_light\_01](event-calculus/scripts/go_time_bec_light_01) to run the benchmark using s(CASP).
+
+
+# Evaluation of s(CASP) against clingo
+
+In order to compare the run time of s(CASP) versus clingo in the
+folder `sCASP-clingo` there are several programs and scripts. We use
+extension `.pl` for s(CASP), the extension `.clingo` for clingo 5.2.0
+and `.e` for the encoding using F2LP.
+
+In the folder [scripts](sCASP-clingo/scripts/) you can find the files
+used to run the benchmarks:
+
+* [go\_light](sCASP-clingo/scripts/go_light) run the evaluation using the light scenario in folder [light](sCASP-clingo/light).
+* [go\_vessel](sCASP-clingo/scripts/go_vessel) run the evaluation using the vessel scenario in folder [vessel](sCASP-clingo/vessel).
+

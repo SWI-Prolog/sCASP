@@ -16,5 +16,5 @@ minutes.
 ## s(CASP) implementation
 
 ```
-./scasp yale_shooting_casp.pl
+scasp yale_shooting_casp.pl
 ```

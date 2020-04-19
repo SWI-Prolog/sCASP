@@ -1,11 +1,11 @@
-./go_light
+./go_light 
 
 
 *************	 Clingo: ?- holdsAt(light_red,_) 	 precision(1) 
 
 clingo version 5.2.0
-Reading from theory.clingo ...
-theory.clingo:19:35-53: info: atom does not occur in any rule head:
+Reading from ../theory.clingo ...
+../theory.clingo:19:35-53: info: atom does not occur in any rule head:
   initiallyP(Fluent)
 
 Solving...
@@ -16,9 +16,9 @@ Calls        : 1
 Time         : 0.004s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
 CPU Time     : 0.004s
 
-real	0m0.009s
+real	0m0.010s
 user	0m0.006s
-sys	0m0.002s
+sys	0m0.003s
 
 	 This result is incorrect due to the tiny precision
 
@@ -27,8 +27,8 @@ sys	0m0.002s
 *************	 Clingo: ?- holdsAt(light_red,69) 	 precision(10) 
 
 clingo version 5.2.0
-Reading from theory.clingo ...
-theory.clingo:19:35-53: info: atom does not occur in any rule head:
+Reading from ../theory.clingo ...
+../theory.clingo:19:35-53: info: atom does not occur in any rule head:
   initiallyP(Fluent)
 
 Solving...
@@ -36,19 +36,19 @@ SATISFIABLE
 
 Models       : 1
 Calls        : 1
-Time         : 0.069s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 0.068s
+Time         : 0.077s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.076s
 
-real	0m0.080s
-user	0m0.073s
+real	0m0.089s
+user	0m0.081s
 sys	0m0.004s
 
 
 *************	 Clingo: ?- holdsAt(light_red,699) 	 precision(100) 
 
 clingo version 5.2.0
-Reading from theory.clingo ...
-theory.clingo:19:35-53: info: atom does not occur in any rule head:
+Reading from ../theory.clingo ...
+../theory.clingo:19:35-53: info: atom does not occur in any rule head:
   initiallyP(Fluent)
 
 Solving...
@@ -56,12 +56,12 @@ SATISFIABLE
 
 Models       : 1
 Calls        : 1
-Time         : 7.705s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 7.685s
+Time         : 7.678s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 7.665s
 
-real	0m9.058s
-user	0m8.798s
-sys	0m0.237s
+real	0m9.041s
+user	0m8.800s
+sys	0m0.220s
 
 
 *************	 Clingo: ?- holdsAt(light_red,6999) 	 precision(1000) 
@@ -72,86 +72,88 @@ timeout 5 min
 *************	 s(CASP): ?- holdsAt(light_red,6.9) 
 
 
-Loading files: [bec_light_01.pl,bec_query01.pl]
+Loading files: [../light/bec_light_01.pl,../light/bec_query01.pl]
 
 Default query:
-	?- holdsAt(light_red,6.9).
+	?- holdsAt(light_red,6.9)
 
 
-Answer 1	(in 42.345 ms):
-{  holdsAt(light_red,6.9) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red,6.9) ,  not stoppedIn(6,light_on,6.9) ,  not terminates( {_575 \= [turn_off]} ,light_on, {_508 > 6, _508 < 69/10} ) ,  terminates(turn_off,light_on, {_508 > 6, _508 < 69/10} ) ,  not happens(turn_off, {_508 > 6, _508 < 69/10} ) ,  not releases( {_1679 \= [turn_on]} ,light_on, {_1612 > 6, _1612 < 69/10} ) ,  not releases(turn_on,light_on, {_1612 > 6, _1612 < 69/10} ) ,  not -holdsAt( {_2967 \= [light_on]} , {_2672 =< 0} ) ,  not -holdsAt( {_2967 \= [light_on]} , {_2889 > 0} ) ,  not initiallyN( {_2967 \= [light_on]} ) ,  not terminates( {_3240 \= [turn_off]} , {_2967 \= [light_on]} , {_3162 =< 0} ) ,  not terminates(turn_off, {_2967 \= [light_on]} , {_3162 =< 0} ) ,  not -holdsAt(light_on, {_7198 =< 0} ) ,  not -holdsAt(light_on, {_10337 > 2} ) ,  initiallyN(light_on) ,  startedIn(0,light_on, {_10337 > 2} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates( {_10993 \= [turn_off]} ,light_on, {_10915 =< 2} ) ,  terminates(turn_off,light_on, {_10915 =< 2} ) ,  not happens(turn_off, {_10915 =< 2} ) ,  -holdsAt(light_on, {_16360 =< 2, _16360 > 0} ) ,  not startedIn(0,light_on, {_16360 =< 2, _16360 > 0} ) ,  not holdsAt(light_on, {_16360 =< 2, _16360 > 0} ) ,  not initiates( {_27270 \= [turn_on]} ,_26991,_27117) ,  not initiates(turn_on, {_38441 \= [light_on]} ,_38288) ,  initiates(turn_on,light_on, {_50066 \= [2,6]} ) ,  not happens(turn_on, {_50066 \= [2,6]} ) ,  not trajectory(light_on,2,light_on, {_16360 =< 2, _16360 > 0} ) ,  not trajectory(light_on,6,light_on, {_16360 =< 2, _16360 > 0} ) ,  not initiates( {_93497 \= [turn_on]} ,light_on, {_93007 =< 0} ) ,  initiates(turn_on,light_on, {_93007 =< 0} ) ,  not happens(turn_on, {_93007 =< 0} )  }
-
-[holdsAt(light_red,6.9)]
+Answer 1	(in 48.76 ms):
+holdsAt(light_red,6.9) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red,6.9) ,  not stoppedIn(6,light_on,6.9) ,  not terminates(A │{A\=turn_off},light_on,B │{B#>6,B#<69/10}) ,  terminates(turn_off,light_on,B │{B#>6,B#<69/10}) ,  not happens(turn_off,B │{B#>6,B#<69/10}) ,  not releases(C │{C\=turn_on},light_on,D │{D#>6,D#<69/10}) ,  not releases(turn_on,light_on,D │{D#>6,D#<69/10}) ,  not -holdsAt(E │{E\=light_on},F │{F#=<0}) ,  not -holdsAt(E │{E\=light_on},G │{G#>0}) ,  not initiallyN(E │{E\=light_on}) ,  not terminates(H │{H\=turn_off},E │{E\=light_on},I │{I#=<0}) ,  not terminates(turn_off,E │{E\=light_on},I │{I#=<0}) ,  not -holdsAt(light_on,J │{J#=<0}) ,  not -holdsAt(light_on,K │{K#>2}) ,  initiallyN(light_on) ,  startedIn(0,light_on,K │{K#>2}) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates(L │{L\=turn_off},light_on,M │{M#=<2}) ,  terminates(turn_off,light_on,M │{M#=<2}) ,  not happens(turn_off,M │{M#=<2}) ,  -holdsAt(light_on,N │{N#>0,N#=<2}) ,  not startedIn(0,light_on,N │{N#>0,N#=<2}) ,  not holdsAt(light_on,N │{N#>0,N#=<2}) ,  not initiates(O │{O\=turn_on},P,Q) ,  not initiates(turn_on,R │{R\=light_on},S) ,  initiates(turn_on,light_on,T │{T\=2,T\=6}) ,  not happens(turn_on,T │{T\=2,T\=6}) ,  not trajectory(light_on,2,light_on,N │{N#>0,N#=<2}) ,  not trajectory(light_on,6,light_on,N │{N#>0,N#=<2}) ,  not initiates(U │{U\=turn_on},light_on,V │{V#=<0}) ,  initiates(turn_on,light_on,V │{V#=<0}) ,  not happens(turn_on,V │{V#=<0})
 
 
-real	0m0.311s
-user	0m0.216s
-sys	0m0.038s
+
+
+real	0m0.354s
+user	0m0.251s
+sys	0m0.058s
 
 
 *************	 s(CASP): ?- holdsAt(light_red,6.99) 
 
 
-Loading files: [bec_light_01.pl,bec_query02.pl]
+Loading files: [../light/bec_light_01.pl,../light/bec_query02.pl]
 
 Default query:
-	?- holdsAt(light_red,6.99).
+	?- holdsAt(light_red,6.99)
 
 
-Answer 1	(in 38.078 ms):
-{  holdsAt(light_red,6.99) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red,6.99) ,  not stoppedIn(6,light_on,6.99) ,  not terminates( {_575 \= [turn_off]} ,light_on, {_508 > 6, _508 < 699/100} ) ,  terminates(turn_off,light_on, {_508 > 6, _508 < 699/100} ) ,  not happens(turn_off, {_508 > 6, _508 < 699/100} ) ,  not releases( {_1679 \= [turn_on]} ,light_on, {_1612 > 6, _1612 < 699/100} ) ,  not releases(turn_on,light_on, {_1612 > 6, _1612 < 699/100} ) ,  not -holdsAt( {_2967 \= [light_on]} , {_2672 =< 0} ) ,  not -holdsAt( {_2967 \= [light_on]} , {_2889 > 0} ) ,  not initiallyN( {_2967 \= [light_on]} ) ,  not terminates( {_3240 \= [turn_off]} , {_2967 \= [light_on]} , {_3162 =< 0} ) ,  not terminates(turn_off, {_2967 \= [light_on]} , {_3162 =< 0} ) ,  not -holdsAt(light_on, {_7198 =< 0} ) ,  not -holdsAt(light_on, {_10337 > 2} ) ,  initiallyN(light_on) ,  startedIn(0,light_on, {_10337 > 2} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates( {_10993 \= [turn_off]} ,light_on, {_10915 =< 2} ) ,  terminates(turn_off,light_on, {_10915 =< 2} ) ,  not happens(turn_off, {_10915 =< 2} ) ,  -holdsAt(light_on, {_16360 =< 2, _16360 > 0} ) ,  not startedIn(0,light_on, {_16360 =< 2, _16360 > 0} ) ,  not holdsAt(light_on, {_16360 =< 2, _16360 > 0} ) ,  not initiates( {_27270 \= [turn_on]} ,_26991,_27117) ,  not initiates(turn_on, {_38441 \= [light_on]} ,_38288) ,  initiates(turn_on,light_on, {_50066 \= [2,6]} ) ,  not happens(turn_on, {_50066 \= [2,6]} ) ,  not trajectory(light_on,2,light_on, {_16360 =< 2, _16360 > 0} ) ,  not trajectory(light_on,6,light_on, {_16360 =< 2, _16360 > 0} ) ,  not initiates( {_93497 \= [turn_on]} ,light_on, {_93007 =< 0} ) ,  initiates(turn_on,light_on, {_93007 =< 0} ) ,  not happens(turn_on, {_93007 =< 0} )  }
-
-[holdsAt(light_red,6.99)]
+Answer 1	(in 49.201 ms):
+holdsAt(light_red,6.99) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red,6.99) ,  not stoppedIn(6,light_on,6.99) ,  not terminates(A │{A\=turn_off},light_on,B │{B#>6,B#<699/100}) ,  terminates(turn_off,light_on,B │{B#>6,B#<699/100}) ,  not happens(turn_off,B │{B#>6,B#<699/100}) ,  not releases(C │{C\=turn_on},light_on,D │{D#>6,D#<699/100}) ,  not releases(turn_on,light_on,D │{D#>6,D#<699/100}) ,  not -holdsAt(E │{E\=light_on},F │{F#=<0}) ,  not -holdsAt(E │{E\=light_on},G │{G#>0}) ,  not initiallyN(E │{E\=light_on}) ,  not terminates(H │{H\=turn_off},E │{E\=light_on},I │{I#=<0}) ,  not terminates(turn_off,E │{E\=light_on},I │{I#=<0}) ,  not -holdsAt(light_on,J │{J#=<0}) ,  not -holdsAt(light_on,K │{K#>2}) ,  initiallyN(light_on) ,  startedIn(0,light_on,K │{K#>2}) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates(L │{L\=turn_off},light_on,M │{M#=<2}) ,  terminates(turn_off,light_on,M │{M#=<2}) ,  not happens(turn_off,M │{M#=<2}) ,  -holdsAt(light_on,N │{N#>0,N#=<2}) ,  not startedIn(0,light_on,N │{N#>0,N#=<2}) ,  not holdsAt(light_on,N │{N#>0,N#=<2}) ,  not initiates(O │{O\=turn_on},P,Q) ,  not initiates(turn_on,R │{R\=light_on},S) ,  initiates(turn_on,light_on,T │{T\=2,T\=6}) ,  not happens(turn_on,T │{T\=2,T\=6}) ,  not trajectory(light_on,2,light_on,N │{N#>0,N#=<2}) ,  not trajectory(light_on,6,light_on,N │{N#>0,N#=<2}) ,  not initiates(U │{U\=turn_on},light_on,V │{V#=<0}) ,  initiates(turn_on,light_on,V │{V#=<0}) ,  not happens(turn_on,V │{V#=<0})
 
 
-real	0m0.263s
-user	0m0.217s
-sys	0m0.040s
+
+
+real	0m0.377s
+user	0m0.258s
+sys	0m0.059s
 
 
 *************	 s(CASP): ?- holdsAt(light_red,6.999) 
 
 
-Loading files: [bec_light_01.pl,bec_query03.pl]
+Loading files: [../light/bec_light_01.pl,../light/bec_query03.pl]
 
 Default query:
-	?- holdsAt(light_red,6.999).
+	?- holdsAt(light_red,6.999)
 
 
-Answer 1	(in 39.47 ms):
-{  holdsAt(light_red,6.999) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red,6.999) ,  not stoppedIn(6,light_on,6.999) ,  not terminates( {_575 \= [turn_off]} ,light_on, {_508 > 6, _508 < 6999/1000} ) ,  terminates(turn_off,light_on, {_508 > 6, _508 < 6999/1000} ) ,  not happens(turn_off, {_508 > 6, _508 < 6999/1000} ) ,  not releases( {_1679 \= [turn_on]} ,light_on, {_1612 > 6, _1612 < 6999/1000} ) ,  not releases(turn_on,light_on, {_1612 > 6, _1612 < 6999/1000} ) ,  not -holdsAt( {_2967 \= [light_on]} , {_2672 =< 0} ) ,  not -holdsAt( {_2967 \= [light_on]} , {_2889 > 0} ) ,  not initiallyN( {_2967 \= [light_on]} ) ,  not terminates( {_3240 \= [turn_off]} , {_2967 \= [light_on]} , {_3162 =< 0} ) ,  not terminates(turn_off, {_2967 \= [light_on]} , {_3162 =< 0} ) ,  not -holdsAt(light_on, {_7198 =< 0} ) ,  not -holdsAt(light_on, {_10337 > 2} ) ,  initiallyN(light_on) ,  startedIn(0,light_on, {_10337 > 2} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates( {_10993 \= [turn_off]} ,light_on, {_10915 =< 2} ) ,  terminates(turn_off,light_on, {_10915 =< 2} ) ,  not happens(turn_off, {_10915 =< 2} ) ,  -holdsAt(light_on, {_16360 =< 2, _16360 > 0} ) ,  not startedIn(0,light_on, {_16360 =< 2, _16360 > 0} ) ,  not holdsAt(light_on, {_16360 =< 2, _16360 > 0} ) ,  not initiates( {_27598 \= [turn_on]} ,_27319,_27445) ,  not initiates(turn_on, {_38769 \= [light_on]} ,_38616) ,  initiates(turn_on,light_on, {_50394 \= [2,6]} ) ,  not happens(turn_on, {_50394 \= [2,6]} ) ,  not trajectory(light_on,2,light_on, {_16360 =< 2, _16360 > 0} ) ,  not trajectory(light_on,6,light_on, {_16360 =< 2, _16360 > 0} ) ,  not initiates( {_93825 \= [turn_on]} ,light_on, {_93335 =< 0} ) ,  initiates(turn_on,light_on, {_93335 =< 0} ) ,  not happens(turn_on, {_93335 =< 0} )  }
-
-[holdsAt(light_red,6.999)]
+Answer 1	(in 53.123 ms):
+holdsAt(light_red,6.999) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red,6.999) ,  not stoppedIn(6,light_on,6.999) ,  not terminates(A │{A\=turn_off},light_on,B │{B#>6,B#<6999/1000}) ,  terminates(turn_off,light_on,B │{B#>6,B#<6999/1000}) ,  not happens(turn_off,B │{B#>6,B#<6999/1000}) ,  not releases(C │{C\=turn_on},light_on,D │{D#>6,D#<6999/1000}) ,  not releases(turn_on,light_on,D │{D#>6,D#<6999/1000}) ,  not -holdsAt(E │{E\=light_on},F │{F#=<0}) ,  not -holdsAt(E │{E\=light_on},G │{G#>0}) ,  not initiallyN(E │{E\=light_on}) ,  not terminates(H │{H\=turn_off},E │{E\=light_on},I │{I#=<0}) ,  not terminates(turn_off,E │{E\=light_on},I │{I#=<0}) ,  not -holdsAt(light_on,J │{J#=<0}) ,  not -holdsAt(light_on,K │{K#>2}) ,  initiallyN(light_on) ,  startedIn(0,light_on,K │{K#>2}) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates(L │{L\=turn_off},light_on,M │{M#=<2}) ,  terminates(turn_off,light_on,M │{M#=<2}) ,  not happens(turn_off,M │{M#=<2}) ,  -holdsAt(light_on,N │{N#>0,N#=<2}) ,  not startedIn(0,light_on,N │{N#>0,N#=<2}) ,  not holdsAt(light_on,N │{N#>0,N#=<2}) ,  not initiates(O │{O\=turn_on},P,Q) ,  not initiates(turn_on,R │{R\=light_on},S) ,  initiates(turn_on,light_on,T │{T\=2,T\=6}) ,  not happens(turn_on,T │{T\=2,T\=6}) ,  not trajectory(light_on,2,light_on,N │{N#>0,N#=<2}) ,  not trajectory(light_on,6,light_on,N │{N#>0,N#=<2}) ,  not initiates(U │{U\=turn_on},light_on,V │{V#=<0}) ,  initiates(turn_on,light_on,V │{V#=<0}) ,  not happens(turn_on,V │{V#=<0})
 
 
-real	0m0.259s
-user	0m0.213s
-sys	0m0.036s
+
+
+real	0m0.379s
+user	0m0.270s
+sys	0m0.066s
 
 
 *************	 s(CASP): ?- holdsAt(light_red,T) 
 
 
-Loading files: [bec_light_01.pl,bec_query0x.pl]
+Loading files: [../light/bec_light_01.pl,../light/bec_query0x.pl]
 
 Default query:
-	?- holdsAt(light_red,_15434).
+	?- holdsAt(light_red,A)
 
 
-Answer 1	(in 31.959 ms):
-{  holdsAt(light_red, {_136 < 3, _136 > 2} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  trajectory(light_on,2,light_red, {_136 < 3, _136 > 2} ) ,  not stoppedIn(2,light_on, {_136 < 3, _136 > 2} ) ,  not -holdsAt( {_2024 \= [light_on]} , {_1729 =< 0} ) ,  not -holdsAt( {_2024 \= [light_on]} , {_1946 > 0} ) ,  not initiallyN( {_2024 \= [light_on]} ) ,  not terminates( {_2297 \= [turn_off]} , {_2024 \= [light_on]} , {_2219 =< 0} ) ,  not terminates(turn_off, {_2024 \= [light_on]} , {_2219 =< 0} ) ,  not -holdsAt(light_on, {_5265 =< 0} ) ,  not -holdsAt(light_on, {_7670 > 2} ) ,  initiallyN(light_on) ,  startedIn(0,light_on, {_7670 > 2} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates( {_8326 \= [turn_off]} ,light_on, {_8248 =< 2} ) ,  terminates(turn_off,light_on, {_8248 =< 2} ) ,  not happens(turn_off, {_8248 =< 2} ) ,  -holdsAt(light_on, {_12703 =< 2, _12703 > 0} ) ,  not startedIn(0,light_on, {_12703 =< 2, _12703 > 0} ) ,  not holdsAt(light_on, {_12703 =< 2, _12703 > 0} ) ,  not initiates( {_16394 \= [turn_on]} ,_16357,_16373) ,  not initiates(turn_on, {_20241 \= [light_on]} ,_20220) ,  initiates(turn_on,light_on, {_24287 \= [2,6]} ) ,  not happens(turn_on, {_24287 \= [2,6]} ) ,  not trajectory(light_on,2,light_on, {_12703 =< 2, _12703 > 0} ) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  not trajectory(light_on,6,light_on, {_12703 =< 2, _12703 > 0} ) ,  not initiates( {_58640 \= [turn_on]} ,light_on, {_58150 =< 0} ) ,  initiates(turn_on,light_on, {_58150 =< 0} ) ,  not happens(turn_on, {_58150 =< 0} )  }
+Answer 1	(in 36.183 ms):
+holdsAt(light_red,A │{A#>2,A#<3}) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  trajectory(light_on,2,light_red,A │{A#>2,A#<3}) ,  not stoppedIn(2,light_on,A │{A#>2,A#<3}) ,  not -holdsAt(B │{B\=light_on},C │{C#=<0}) ,  not -holdsAt(B │{B\=light_on},D │{D#>0}) ,  not initiallyN(B │{B\=light_on}) ,  not terminates(E │{E\=turn_off},B │{B\=light_on},F │{F#=<0}) ,  not terminates(turn_off,B │{B\=light_on},F │{F#=<0}) ,  not -holdsAt(light_on,G │{G#=<0}) ,  not -holdsAt(light_on,H │{H#>2}) ,  initiallyN(light_on) ,  startedIn(0,light_on,H │{H#>2}) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates(I │{I\=turn_off},light_on,J │{J#=<2}) ,  terminates(turn_off,light_on,J │{J#=<2}) ,  not happens(turn_off,J │{J#=<2}) ,  -holdsAt(light_on,K │{K#>0,K#=<2}) ,  not startedIn(0,light_on,K │{K#>0,K#=<2}) ,  not holdsAt(light_on,K │{K#>0,K#=<2}) ,  not initiates(L │{L\=turn_on},M,N) ,  not initiates(turn_on,O │{O\=light_on},P) ,  initiates(turn_on,light_on,Q │{Q\=2,Q\=6}) ,  not happens(turn_on,Q │{Q\=2,Q\=6}) ,  not trajectory(light_on,2,light_on,K │{K#>0,K#=<2}) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  not trajectory(light_on,6,light_on,K │{K#>0,K#=<2}) ,  not initiates(R │{R\=turn_on},light_on,S │{S#=<0}) ,  initiates(turn_on,light_on,S │{S#=<0}) ,  not happens(turn_on,S │{S#=<0})
 
-[holdsAt(light_red, {_136 < 3, _136 > 2} )]
-
-
-
-Answer 2	(in 33.392 ms):
-{  holdsAt(light_red, {_136 < 7, _136 > 6} ) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red, {_136 < 7, _136 > 6} ) ,  not stoppedIn(6,light_on, {_136 < 7, _136 > 6} ) ,  not -holdsAt( {_2028 \= [light_on]} , {_1733 =< 0} ) ,  not -holdsAt( {_2028 \= [light_on]} , {_1950 > 0} ) ,  not initiallyN( {_2028 \= [light_on]} ) ,  not terminates( {_2301 \= [turn_off]} , {_2028 \= [light_on]} , {_2223 =< 0} ) ,  not terminates(turn_off, {_2028 \= [light_on]} , {_2223 =< 0} ) ,  not -holdsAt(light_on, {_5269 =< 0} ) ,  not -holdsAt(light_on, {_7674 > 2} ) ,  initiallyN(light_on) ,  startedIn(0,light_on, {_7674 > 2} ) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates( {_8330 \= [turn_off]} ,light_on, {_8252 =< 2} ) ,  terminates(turn_off,light_on, {_8252 =< 2} ) ,  not happens(turn_off, {_8252 =< 2} ) ,  -holdsAt(light_on, {_12707 =< 2, _12707 > 0} ) ,  not startedIn(0,light_on, {_12707 =< 2, _12707 > 0} ) ,  not holdsAt(light_on, {_12707 =< 2, _12707 > 0} ) ,  not initiates( {_16398 \= [turn_on]} ,_16361,_16377) ,  not initiates(turn_on, {_20245 \= [light_on]} ,_20224) ,  initiates(turn_on,light_on, {_24291 \= [2,6]} ) ,  not happens(turn_on, {_24291 \= [2,6]} ) ,  not trajectory(light_on,2,light_on, {_12707 =< 2, _12707 > 0} ) ,  not trajectory(light_on,6,light_on, {_12707 =< 2, _12707 > 0} ) ,  not initiates( {_49470 \= [turn_on]} ,light_on, {_48980 =< 0} ) ,  initiates(turn_on,light_on, {_48980 =< 0} ) ,  not happens(turn_on, {_48980 =< 0} )  }
-
-[holdsAt(light_red, {_136 < 7, _136 > 6} )]
+ 
+A#>2,A#<3
 
 
-real	0m0.423s
-user	0m0.265s
-sys	0m0.036s
-[11:26] joaquin@:sCASP-clingo$ 
+
+Answer 2	(in 40.491 ms):
+holdsAt(light_red,A │{A#>6,A#<7}) ,  initiates(turn_on,light_on,6) ,  happens(turn_on,6) ,  trajectory(light_on,6,light_red,A │{A#>6,A#<7}) ,  not stoppedIn(6,light_on,A │{A#>6,A#<7}) ,  not -holdsAt(B │{B\=light_on},C │{C#=<0}) ,  not -holdsAt(B │{B\=light_on},D │{D#>0}) ,  not initiallyN(B │{B\=light_on}) ,  not terminates(E │{E\=turn_off},B │{B\=light_on},F │{F#=<0}) ,  not terminates(turn_off,B │{B\=light_on},F │{F#=<0}) ,  not -holdsAt(light_on,G │{G#=<0}) ,  not -holdsAt(light_on,H │{H#>2}) ,  initiallyN(light_on) ,  startedIn(0,light_on,H │{H#>2}) ,  initiates(turn_on,light_on,2) ,  happens(turn_on,2) ,  not terminates(I │{I\=turn_off},light_on,J │{J#=<2}) ,  terminates(turn_off,light_on,J │{J#=<2}) ,  not happens(turn_off,J │{J#=<2}) ,  -holdsAt(light_on,K │{K#>0,K#=<2}) ,  not startedIn(0,light_on,K │{K#>0,K#=<2}) ,  not holdsAt(light_on,K │{K#>0,K#=<2}) ,  not initiates(L │{L\=turn_on},M,N) ,  not initiates(turn_on,O │{O\=light_on},P) ,  initiates(turn_on,light_on,Q │{Q\=2,Q\=6}) ,  not happens(turn_on,Q │{Q\=2,Q\=6}) ,  not trajectory(light_on,2,light_on,K │{K#>0,K#=<2}) ,  not trajectory(light_on,6,light_on,K │{K#>0,K#=<2}) ,  not initiates(R │{R\=turn_on},light_on,S │{S#=<0}) ,  initiates(turn_on,light_on,S │{S#=<0}) ,  not happens(turn_on,S │{S#=<0})
+
+ 
+A#>6,A#<7
+
+
+real	0m0.466s
+user	0m0.304s
+sys	0m0.060s
+[14:05] joaquin@:scripts$ 

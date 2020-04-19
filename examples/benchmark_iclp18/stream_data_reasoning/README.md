@@ -16,5 +16,5 @@ for _X=a_).
 ## s(CASP) implementation
 
 ```
-./scasp stream_data_reasoning.pl
+scasp stream_data_reasoning.pl
 ```

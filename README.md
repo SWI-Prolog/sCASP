@@ -59,93 +59,94 @@ If you have any problem contact
 
 Usage:
 ```
-./scasp [options] InputFile(s)
-```
-
-Example:
-```
-./scasp -j src/test.pl
+scasp [options] InputFile(s)
 ```
 
 * General Options:
 
 ```
-  -h, -?, --help         Print this help message and terminate.  
-  -i, --interactive      Run in user / interactive mode. 
-  -a, --auto             Run in automatic mode (no user interaction). 
-  -sN, -nN               Compute N answer sets, where N >= 0. 0 for all. 
-  -v, --verbose          Enable verbose progress messages. 
-  -j, --justification    Print proof tree for each solution. 
-  -d0                    Print the program translated (with duals and nmr_check). 
+  -h, -?, --help        Print this help message and terminate.
+  -i, --interactive     Run in user / interactive mode.
+  -a, --auto            Run in automatic mode (no user interaction).
+  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.
+  -v, --verbose         Enable verbose progress messages.
+  -w, --warning         Enable warning messages (failing in variant loops).
+  -j, --justification   Print proof tree for each solution.
+  --html                Generate the proof tree in a file named InputFiles(s).html.
+  --server              Generate the proof tree in the file named justification.html.
+  -d0                   Print the program translated (with duals and nmr_check).
 ```
 
-### Examples of use
+### Using the principal options
 
-* To obtain one model of the program (i.e. test.pl)
-
-```
-$ ./scasp test.pl
-Answer: 1
-{ q(X), not p(X) }
-$
-```
-   
-* To obtain all the models (answers) of test.pl
-
-```
-$ ./scasp -s0 test.pl
-```
-
-* To obtain 5 answers of test.pl
-
-```
-$ ./scasp -s5 test.pl
-```
-
-* To print the "translation" of the code (with duals predicates and
-check-rules)
-
-```
-$ ./scasp -d0 test.pl
-```
-
-
-* To use scasp with its iterative mode:
-
-```
-$ ./scasp -i test.pl
-?- p(X).
-{ p(X), not q(X) } ? 
-false.
-?- q(X).
-{ q(X), not p(X) } ? ;
-false.
-?- halt.
-```
-
-* The example program test.pl is:
-
+Let us consider the program `test.pl`:
 ```
 p(X) :- not q(X).
 q(X) :- not p(X).
-?- q(X).
+?- p(X).
 ```
-   
-__NOTE:__ that the program can include the query in order to be use without
-iterative mode...
+
+* To obtain the models one by one:
+
+```
+$ scasp test.pl
+Answer 1	(in 0.09 ms):
+p(A) ,  not q(A)
+
+ ? ;
+```
+for this example there is only one model so when we ask for more models (introducing `;` after the `?`) the evaluation finishes.
+
+* To obtain all the models automatically use the option `-sn` with `n=0`:
+
+```
+$ scasp -s0 test.pl
+```
+
+* To obtain a specific number of models, e.g., 5, invoke:
+
+```
+$ scasp -s5 test.pl
+```
+
+* To use scasp with its iterative mode invoke s(CASP) with `-i`, and introduce the query after `?-`:
+
+```
+$ scasp -i test.pl
+?- q(X).
+Answer 1	(in 0.228 ms):
+q(A) ,  not p(A)
+ ? 
+```
+
+### Debuging options
+
+* To print the "translation" of the code (with duals predicates and
+check-rules) use `-d0`:
+
+```
+$ scasp -d0 test.pl
+```
+
+* To obtain the justification tree for each model use `-j`.
+```
+$ scasp -j test.pl
+```
+
 
 ## Examples & Benchmarks & Event Calculus
 
 ### Examples
 
-There are some examples, most of them from the distribution of s(ASP),
-availables [here](examples/).
+There are some examples, most of them available in the distribution of
+s(ASP).  Check them [here](examples/) and in your local installation
+(the default folder is `~/.ciao/sCASP`).
 
 ### Towers of Hanoi
 
 `s(CASP)` vs `Clingo` _standard_ vs `Clingo` _incremental_.
 
-See files [here](examples/benchmark_iclp18/towers_hanoi/README.md).
+See more details [here](examples/benchmark_iclp18/towers_hanoi/README.md).
 
 ### Stream data reasoning
 
@@ -161,7 +162,7 @@ sources are equally reliable, them we have (at least) two different
 models: one where `q(a)` is __true__ and another where `p(X)` is __true__ (also
 for _X=a_).
 
-See files [here](examples/benchmark_iclp18/stream_data_reasoning/README.md).
+See more details [here](examples/benchmark_iclp18/stream_data_reasoning/README.md).
 
 ### Traveling salesman
 
@@ -180,7 +181,7 @@ whose code is non-trivial.
 We will show that also in this problem, where the `ASP` solution is more
 compact than that of `CLP(FD)`, `s(CASP) `is more expressive.
 
-See file [here](examples/benchmark_iclp18/traveling_salesman/README.md)
+See more details [here](examples/benchmark_iclp18/traveling_salesman/README.md)
 
 
 ### Yale shooting scenario
@@ -198,7 +199,7 @@ for an executable plan such that:
 * considering that we are not allowed to shoot in the first 35
 minutes.
 
-See file [here](examples/benchmark_iclp18/yale_shooting_scenario/README.md)
+See more details [here](examples/benchmark_iclp18/yale_shooting_scenario/README.md)
 
 ## Event Calculus
 
@@ -210,3 +211,4 @@ find the benchmark and instruction to
 reproduce the evaluation and example presented in the paper
 __"Modelling and Reasoning in Event Calculus using Goal-Directed Constraint Answer Set Programming"__.
 
+See more details [here](examples/benchmark_EventCalculus/README.md)

@@ -13,10 +13,10 @@ UNSATISFIABLE
 
 Models       : 0
 Calls        : 1
-Time         : 0.009s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 0.009s
+Time         : 0.008s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.008s
 
-real	0m0.015s
+real	0m0.014s
 user	0m0.010s
 sys	0m0.002s
 
@@ -38,12 +38,12 @@ SATISFIABLE
 
 Models       : 1
 Calls        : 1
-Time         : 0.421s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 0.411s
+Time         : 0.391s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.389s
 
-real	0m0.527s
-user	0m0.489s
-sys	0m0.022s
+real	0m0.480s
+user	0m0.461s
+sys	0m0.015s
 
 
 *************	 Clingo: ?- holdsAt(level(1100),T) 	 precision(100) 
@@ -60,12 +60,12 @@ SATISFIABLE
 
 Models       : 1
 Calls        : 1
-Time         : 60.297s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 59.670s
+Time         : 57.314s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 57.033s
 
-real	1m19.155s
-user	1m16.241s
-sys	0m2.180s
+real	1m14.662s
+user	1m12.624s
+sys	0m1.730s
 
 
 *************	 s(CASP): ?- holdsAt(level(11),T) 
@@ -74,16 +74,16 @@ sys	0m2.180s
 Loading files: [../vessel/bec_vessel_01.pl,../vessel/bec_query01.pl]
 
 Default query:
-	?- holdsAt(level(11),_35578).
+	?- holdsAt(level(11),A)
 
 
-Answer 1	(in 30.208 ms):
-{  holdsAt(level(11),53/4) ,  initiates(tapOn,filling,5) ,  happens(tapOn,5) ,  trajectory(filling,5,level(11),53/4) ,  max_level(16) ,  not max_level(10) ,  holdsAt(level(0),5) ,  initiallyP(level(0)) ,  not stoppedIn(0,level(0),5) ,  not terminates( {_818 \= [tapOff]} ,level(0), {_751 > 0, _751 < 5} ) ,  not terminates(tapOff,level(0), {_751 > 0, _751 < 5} ) ,  not releases( {_1810 \= [tapOn]} ,level(0), {_1743 > 0, _1743 < 5} ) ,  not releases(tapOn,level(0), {_1743 > 0, _1743 < 5} ) ,  not happens(tapOn, {_1743 > 0, _1743 < 5} ) ,  not stoppedIn(5,filling,53/4) ,  not terminates( {_3216 \= [tapOff]} ,filling, {_3149 > 5, _3149 < 53/4} ) ,  terminates(tapOff,filling, {_3149 > 5, _3149 < 53/4} ) ,  not happens(tapOff, {_3149 > 5, _3149 < 53/4} ) ,  not releases( {_4741 \= [tapOn]} ,filling, {_4674 > 5, _4674 < 53/4} ) ,  not releases(tapOn,filling, {_4674 > 5, _4674 < 53/4} ) ,  not -holdsAt( {_17282 \= [filling]} , {_6265 =< 0} ) ,  not -holdsAt( {_17282 \= [filling]} , {_9718 > 0} ) ,  not terminates( {_13686 \= [tapOff]} , {_17282 \= [filling]} , {_13556 =< 0} ) ,  not terminates(tapOff, {_17282 \= [filling]} , {_13556 =< 0} ) ,  not -holdsAt(filling, {_28177 =< 0} ) ,  not -holdsAt(filling, {_38759 > 0} ) ,  not terminates( {_50821 \= [tapOff]} ,filling, {_50332 =< 0} ) ,  terminates(tapOff,filling, {_50332 =< 0} ) ,  not happens(tapOff, {_50332 =< 0} )  }
+Answer 1	(in 35.282 ms):
+holdsAt(level(11),53/4) ,  initiates(tapOn,filling,5) ,  happens(tapOn,5) ,  trajectory(filling,5,level(11),53/4) ,  max_level(16) ,  not max_level(10) ,  holdsAt(level(0),5) ,  initiallyP(level(0)) ,  not stoppedIn(0,level(0),5) ,  not terminates(B │{B\=tapOff},level(0),C │{C#>0,C#<5}) ,  not terminates(tapOff,level(0),C │{C#>0,C#<5}) ,  not releases(D │{D\=tapOn},level(0),E │{E#>0,E#<5}) ,  not releases(tapOn,level(0),E │{E#>0,E#<5}) ,  not happens(tapOn,E │{E#>0,E#<5}) ,  not stoppedIn(5,filling,53/4) ,  not terminates(F │{F\=tapOff},filling,G │{G#>5,G#<53/4}) ,  terminates(tapOff,filling,G │{G#>5,G#<53/4}) ,  not happens(tapOff,G │{G#>5,G#<53/4}) ,  not releases(H │{H\=tapOn},filling,I │{I#>5,I#<53/4}) ,  not releases(tapOn,filling,I │{I#>5,I#<53/4}) ,  not -holdsAt(J │{J\=filling},K │{K#=<0}) ,  not -holdsAt(J │{J\=filling},L │{L#>0}) ,  not terminates(M │{M\=tapOff},J │{J\=filling},N │{N#=<0}) ,  not terminates(tapOff,J │{J\=filling},N │{N#=<0}) ,  not -holdsAt(filling,O │{O#=<0}) ,  not -holdsAt(filling,P │{P#>0}) ,  not terminates(Q │{Q\=tapOff},filling,R │{R#=<0}) ,  terminates(tapOff,filling,R │{R#=<0}) ,  not happens(tapOff,R │{R#=<0})
 
-[holdsAt(level(11),53/4)]
+ 
+A = 53/4
 
 
-real	0m0.303s
-user	0m0.237s
-sys	0m0.041s
-[14:53] joaquin@:scripts$ 
+real	0m0.392s
+user	0m0.269s
+sys	0m0.062s

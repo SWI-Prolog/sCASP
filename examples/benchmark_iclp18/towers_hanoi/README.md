@@ -32,8 +32,8 @@ hanoi(N,T) receives in N the number of disks and returns in T the
 number of movements and a partial stable model which contains all the
 movements and the time in which they have to be performed.
 ```
-./scasp hanoi_scasp_7.pl
-./scasp hanoi_scasp_8.pl
-./scasp hanoi_scasp_9.pl
+scasp hanoi_scasp_7.pl
+scasp hanoi_scasp_8.pl
+scasp hanoi_scasp_9.pl
 ```
 
