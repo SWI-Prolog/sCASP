@@ -81,9 +81,9 @@ scasp [options] InputFile(s)
 
 Let us consider the program `test.pl`:
 ```
-p(X) :- not q(X).
-q(X) :- not p(X).
-?- p(X).
+p(A) :- not q(A).
+q(A) :- not p(A).
+?- p(A).
 ```
 
 * To obtain the models one by one:
@@ -113,7 +113,7 @@ $ scasp -s5 test.pl
 
 ```
 $ scasp -i test.pl
-?- q(X).
+?- q(A).
 Answer 1	(in 0.228 ms):
 q(A) ,  not p(A)
  ? 
@@ -153,13 +153,13 @@ See more details [here](examples/benchmark_iclp18/towers_hanoi/README.md).
 Let us assume that we deal with series of data items, some of which
 may be contradictory. Moreover, different sources may give data a
 different degree of trustworthiness which can make some pieces of
-inconsistent data to be preferred. Lets us assume that `p(X`) and `q(X)`
-are contradictory and we receive, from source _S1_, `p(X)` and, from
-source _S2_, `q(a)`. We may decide that: (i) `p(X)` is __true__ because _S1_ is
+inconsistent data to be preferred. Lets us assume that `p(A)` and `q(A)`
+are contradictory and we receive, from source _S1_, `p(A)` and, from
+source _S2_, `q(a)`. We may decide that: (i) `p(A)` is __true__ because _S1_ is
 more realiable; (ii) or if _S2_ is more realiable, `q(a)` is __true__, and any
-value `not a` (i.e., _X \= a_) `p(X)` is also __true__; (iii) or, if both
+value `not a` (i.e., _X \= a_) `p(A)` is also __true__; (iii) or, if both
 sources are equally reliable, them we have (at least) two different
-models: one where `q(a)` is __true__ and another where `p(X)` is __true__ (also
+models: one where `q(a)` is __true__ and another where `p(A)` is __true__ (also
 for _X=a_).
 
 See more details [here](examples/benchmark_iclp18/stream_data_reasoning/README.md).
