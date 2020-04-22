@@ -1126,11 +1126,11 @@ print_var(B) :- !,
 :- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1, pr_table_predicate/1, pr_show_predicate/1.
 
 %! generate_pr_rules/0
-generate_pr_rules(Sources) :-
+generate_pr_rules(_Sources) :-
     retractall(pr_query(_)), retractall(pr_rule(_,_)), retractall(pr_user_predicate(_)),
     retractall(pr_table_predicate(_)),
     retractall(pr_show_predicate(_)),
-    format('\nLoading files: ~w\n',Sources),
+    %% format('\nLoading files: ~w\n',Sources),
     findall(R, (defined_rule(_, H, B), rule(R, H, B)), Rs),
     new_var_struct(V),
     format_term_list(Rs,Rs2,_,V),
@@ -1167,7 +1167,7 @@ generate_pr_rules(Sources) :-
     ),
     retractall(show(_)),
     assert_pr_rules(Rs2),
-    assert_pr_rules([-('add_to_query', NMR2)]),
+    assert_pr_rules([-('global_constraints', NMR2)]),
     % close_output_file(Stream, Current),
     % write('\nEND pr_rules GENERATION\n'),!.
     true.

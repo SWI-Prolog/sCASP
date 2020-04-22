@@ -7,11 +7,11 @@
     init_counter/0,
     increase_counter/0,
 %    print_output/1,
-    print_all_output/1,
-    print_model/1,
+    print_all_output/1, % justification tree
+    print_model/1,      % model
+    print_unifier/2,    % bindings
 %    print_term/3,
     pretty_term/4,
-    print_unifier/2,
     print_check_calls_calling/2,
     if_user_option/2,
     set/2,
@@ -105,7 +105,7 @@ process_query(Q,Query) :-
     ( current_option(no_nmr,on) ->
         append(Bs, [true], Query)
     ;
-        append(Bs, [add_to_query], Query)
+        append(Bs, [global_constraints], Query)
     ).
 
 :- pred ask_for_more_models/0 #"Ask if the user want to generate more
@@ -164,7 +164,8 @@ tree using @var{StackOut}, the final call stack".
 
 %% Print output predicates to presaent the results of the query
 print_all_output(StackOut) :-
-    print_all_stack(StackOut), nl,
+    format('\nJUSTIFICATION_TREE:',[]),
+    print_all_stack(StackOut),
     true.
 
 :- pred print_model(Model) #"Print the partial model of the program
@@ -173,9 +174,31 @@ using @var{Model}.".
 %% The model is obtained from the model.
 % TODO: use the StackOut instead of the model.
 print_model(Model) :-
-    nl,
+    format('\nMODEL:\n',[]),
     select_printable_literals(Model,Printable),
     print_model_(Printable), nl.
+
+:- pred print_unifier(Vars,PVars) #" Predicate to print @var{PVars} =
+@var{Vars} the binding of the variables in the query".
+
+print_unifier(Bindings,PVars) :-
+    format('\nBINDINGS:',[]),
+    print_unifier_(Bindings,PVars).
+    
+print_unifier_([],[]).
+print_unifier_([Binding|Bs],[PV|PVars]) :-
+    ( PV == Binding ->
+        true
+    ;
+        ( Binding =.. [_,PB,{PConst}], PV = PB ->
+            format(" \n~w",[PConst])
+        ;
+            format(" \n~w = ~w",[PV,Binding])
+        )
+    ),
+    print_unifier_(Bs,PVars).
+
+
 
 select_printable_literals([],[]) :- !.
 select_printable_literals([X|Xs],NSs) :-
@@ -197,7 +220,7 @@ print_model_([First,Second|Rest]) :-
 
 printable_literal(not(X)) :- printable_literal(X).
 printable_literal(X) :-
-    X \= 'add_to_query',
+    X \= 'global_constraints',
     X \= 'o_nmr_check',
     X \= chs(_),
     (
@@ -238,8 +261,6 @@ printable_literal(X) :-
 %%     print_s(RStack).
 
 print_all_stack(Stack) :-
-%    reverse(Stack, RStack),
-    nl,
     print_s(Stack).
 
 
@@ -266,21 +287,6 @@ query3(X,  I, O) :-
     query3(Body, I, O).
 
 
-:- pred print_unifier(Vars,PVars) #" Predicate to print @var{PVars} =
-@var{Vars} the binding of the variables in the query".
-
-print_unifier([],[]).
-print_unifier([Binding|Bs],[PV|PVars]) :-
-    ( PV == Binding ->
-        true
-    ;
-        ( Binding =.. [_,PB,{PConst}], PV = PB ->
-            format(" \n~w",[PConst])
-        ;
-            format(" \n~w = ~w",[PV,Binding])
-        )
-    ),
-    print_unifier(Bs,PVars).
 
 print_constraints('│',_,Const) :-
     format("~w",[Const]).

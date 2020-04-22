@@ -236,7 +236,7 @@ op_tok(('?-', Pos)) -->
     [('?', Pos)], [('-', _)].
 op_tok((\/, Pos)) -->
     [('\\', Pos)], [('/', _)].
-%% Translate constraints into clp(q/r)
+%% Default constraints
 op_tok(('#=<', Pos)) -->
     [('#', Pos)], [('=', _)], [('<', _)].
 op_tok(('#=', Pos)) -->
@@ -340,8 +340,6 @@ keyword('_abducible').
 keyword(hide).
 keyword('_false').
 keyword('_nmr_check').
-% clpfd
-keyword(in).
 
 
 %! builtin(+Token:atom)
@@ -351,9 +349,6 @@ keyword(in).
 builtin(write).
 builtin(writef).
 builtin(nl).
-% clpfd
-builtin(labeling).
-builtin(label).
 
 %! number(-Token:atom, -Position:compound, +CharsIn:list, -CharsOut:list)
 % An integer or floating point token. Can be positive or negative.

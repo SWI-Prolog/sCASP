@@ -124,14 +124,16 @@ fail_main_loop(Sources) :-
     main_loop(Sources).
 
 :- use_module(library(terms_vars)).
+:- use_module(library(formulae)).
 main_solve(Sources,Q) :-
     current_option(answers,Number),
     init_counter,
 
     process_query(Q,Query), varset(Q,Vars),
     pretty_term([],D1,par(Vars,Q),par(PVars,PQ)),
+    list_to_conj(PQ,ConjPQ),
 
-    format('\nDefault query:\n\t?- ~w\n',PQ),
+    format('RENAMED_QUERY:\t?- ~w.\n',ConjPQ),
 
     statistics(runtime,_),
     if(solve(Query, [], StackOut, Model),nl,(print('\nfalse\n\n'),fail)),
@@ -139,7 +141,7 @@ main_solve(Sources,Q) :-
 
     increase_counter,
     answer_counter(Counter),
-    format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),
+    format('\tANSWER:\t~w (in ~w ms)\n',[Counter,T]),
 
     pretty_term(D1,D2,par(Vars,Model),par(Bindings,P_Model)),
 
