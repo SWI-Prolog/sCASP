@@ -1,13 +1,13 @@
 :- module(scasp_io, [
     load_program/1,
     write_program/0,
-    process_query/2,
+    process_query/3,
     ask_for_more_models/0,
     allways_ask_for_more_models/0,
     init_counter/0,
     increase_counter/0,
 %    print_output/1,
-    print_all_output/1, % justification tree
+    print_justification_tree/1, % justification tree
     print_model/1,      % model
     print_unifier/2,    % bindings
 %    print_term/3,
@@ -46,12 +46,27 @@ Arias} in the folder @file{./src/sasp/}.
     pr_query/1,
     pr_user_predicate/1,
     pr_table_predicate/1,
-    pr_show_predicate/1
+    pr_show_predicate/1,
+    pr_pred_predicate/1
                             ]).
 :- use_module('./sasp/main').
 
 %% ------------------------------------------------------------- %%
 
+:- op(700, xfx, ['#=' ,
+                 '#<>',
+                 '#<' ,
+                 '#>' ,
+                 '#=<',
+                 '#>='
+                 ]).
+
+:- op(700, xfx, ['::']).
+
+:- op(700, xfx, ['│']). %% such as
+
+
+%% ------------------------------------------------------------- %%
 
 :- pred load_program(Files) : list(Files) #"Call s(aso) to generate
     and assert the translation of the progam (with dual and
@@ -81,31 +96,31 @@ write_program :-
 
 :- dynamic cont/0.
 
-:- pred process_query(Q, Query) #"Initialize internal flags to allows
-the generation of multiples models in the interaction and top-level
-mode (even when the query is ground). Returns in @var{Query} a list
-with the sub_goals in @var{Q} and @em{nmr_check} with run the
-nmr_check".
+:- pred process_query(Q, Query, TotalQuery) #"Initialize internal
+flags to allows the generation of multiples models in the interaction
+and top-level mode (even when the query is ground). Returns in
+@var{TotalQuery} a list with the sub_goals in @var{Q} and
+@em{global_constraints} to run the nmr_check".
 
-process_query(Q,Query) :-
+process_query(Q,Query,TotalQuery) :-
     revar(Q,A),
     (
         list(A) -> As = A ; As = [A]
     ),
     (
         As = [not(_)|_] ->
-        Bs = [true|As]
+        Query = [true|As]
     ;
-        Bs = As
+        Query = As
     ),
     retractall(cont),
     (
-        ground(Bs) -> assert(cont) ; true
+        ground(Query) -> assert(cont) ; true
     ),
     ( current_option(no_nmr,on) ->
-        append(Bs, [true], Query)
+        append(Query, [true], TotalQuery)
     ;
-        append(Bs, [global_constraints], Query)
+        append(Query, [global_constraints], TotalQuery)
     ).
 
 :- pred ask_for_more_models/0 #"Ask if the user want to generate more
@@ -159,13 +174,13 @@ increase_counter :-
 %%     print_stack([],_,StackOut), nl,
 %%     true.
 
-:- pred print_all_output(StackOut) #"Print the justification
+:- pred print_justification_tree(StackOut) #"Print the justification
 tree using @var{StackOut}, the final call stack".
 
 %% Print output predicates to presaent the results of the query
-print_all_output(StackOut) :-
+print_justification_tree(StackOut) :-
     format('\nJUSTIFICATION_TREE:',[]),
-    print_all_stack(StackOut),
+    print_tree_stack(StackOut),
     true.
 
 :- pred print_model(Model) #"Print the partial model of the program
@@ -182,7 +197,7 @@ print_model(Model) :-
 @var{Vars} the binding of the variables in the query".
 
 print_unifier(Bindings,PVars) :-
-    format('\nBINDINGS:',[]),
+    format('BINDINGS:',[]),
     print_unifier_(Bindings,PVars).
     
 print_unifier_([],[]).
@@ -190,10 +205,14 @@ print_unifier_([Binding|Bs],[PV|PVars]) :-
     ( PV == Binding ->
         true
     ;
-        ( Binding =.. [_,PB,{PConst}], PV = PB ->
-            format(" \n~w",[PConst])
+        (current_option(human,on) ->
+            format(' \n~w is ~p',[PV,Binding])
         ;
-            format(" \n~w = ~w",[PV,Binding])
+            ( Binding =.. [_,PB,{PConst}], PV = PB ->
+                format(" \n~w",[PConst])
+            ;
+                format(" \n~w = ~w",[PV,Binding])
+            )
         )
     ),
     print_unifier_(Bs,PVars).
@@ -212,10 +231,10 @@ select_printable_literals(_,[]).
 
 print_model_([]).
 print_model_([Last]) :- 
-    print(Last).
+    write(Last).
 print_model_([First,Second|Rest]) :-
-    print(First),
-    print(' ,  '),
+    write(First),
+    display(' ,  '),
     print_model_([Second|Rest]).
 
 printable_literal(not(X)) :- printable_literal(X).
@@ -260,7 +279,7 @@ printable_literal(X) :-
 %%     %    print(RStack),nl.
 %%     print_s(RStack).
 
-print_all_stack(Stack) :-
+print_tree_stack(Stack) :-
     print_s(Stack).
 
 
@@ -307,34 +326,93 @@ predicate is executed when the flag @var{check_calls} is
 
 print_check_calls_calling(Goal,I) :-
     reverse([('¿'+Goal+'?')|I],RI),
-    format('\n---------------------Calling ~p-------------',[Goal]),
+    format('\n---------------------Calling ~w-------------',[Goal]),
     print_s(RI).
 
 print_s([A|Stack]) :-
-    nl,tab(0),print(A),
+    nl,tab(0),print_human_term(A),
     print_s_(Stack,4,0).
 
 print_s_([],_,_) :-
-    display('.'), nl.
+    print_human('.'), nl.
 print_s_([[]|As],I,I0) :- !,
     I1 is I - 4,
     print_s_(As,I1,I0).
+print_s_([global_constraints|_],_,_) :-
+    current_option(human,on), !,
+    nl.    
 print_s_([A|As],I,I0) :- !,
     (
         I0 > I ->
-        print('.')
+        print_human('.')
     ;
         I0 < I ->
-        print(' :-')
+        print_human(' :-')
     ;
-        print(',')
+        print_human(',')
     ),
-    nl,tab(I),print(A),
+    nl,tab(I),print_human_term(A),
     I1 is I + 4,
     print_s_(As,I1,I).
 
-  
 
+
+print_human_term(A) :-
+    ( current_option(human,on) ->
+        ( pr_pred_predicate(A::Human) ->
+            call(Human)
+        ;
+            pr_pred_default(A::Human) ->
+            call(Human)
+        ;
+            true
+        )
+    ;
+        write(A)
+    ).
+
+print_human(Conector) :-
+    ( current_option(human,on) ->
+        human(Conector,A)
+    ;
+        A = Conector
+    ),
+    write(A).
+
+%% Predefine human rules:
+pr_pred_default(proved(A)::(B,format(', as we saw before',[]))) :-
+    pr_pred_predicate(A::B).
+pr_pred_default(true::format('\r',[])).
+
+human('.','').
+human(',','').
+human(' :-','').
+
+:- multifile portray/1.
+portray(X) :-
+    ( current_option(human,on) ->
+        human_protray(X)
+    ;
+        write(X)
+    ).
+
+human_protray_(c-{X,Y,Z}) :- !,
+    print_c(X), print(', '), human_protray_(c-{Y,Z}).
+human_protray_(c-{X,Z}) :- !,
+    print_c(X), print(',and '), human_protray_(Z).
+human_protray_(c-{X}) :-
+    print_c(X).
+human_protray(A '│' B) :-
+    print(A), print(' '), human_protray_(c-B).
+
+print_c(_#=V) :- format('equal ~w',[V]).
+print_c(_#<>V) :- format('not equal ~w',[V]).
+print_c(_#<V) :- format('less than ~w',[V]).
+print_c(_#>V) :- format('greater than ~w',[V]).
+print_c(_#=<V) :- format('less or equal ~w',[V]).
+print_c(_#>=V) :- format('greater or equal ~w',[V]).
+
+print_c(_\=V) :- format('not equal ~w',[V]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Print pretty term
@@ -420,13 +498,10 @@ simple_operand(A,A).
 
 :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
 pretty_portray_attribute(Att,A,PVar,PA) :-
-    pretty_portray_attribute_(Att,A,PVar,PA), !.
+    pretty_portray_attribute_(Att,A,PVar,PA),!.
 pretty_portray_attribute(_Att,_,PVar,PVar).
 
 %:- use_module(library(formulae)).
-:- op(700, xfx, ['│'
-                ]).
-
 pretty_portray_attribute_(att(_,false,att(clp_disequality_rt,neg(List),_)),_,PVar,PA) :-
     (  List == [] ->
         PA=PVar
@@ -470,13 +545,6 @@ pretty_rat(A,A).
 
 pretty_clp(N,PN) :- pretty_clp_(N,PN), !.
 
-:- op(700, xfx, ['#=' ,
-                 '#<>',
-                 '#<' ,
-                 '#>' ,
-                 '#=<',
-                 '#>='
-                 ]).
 pretty_clp_(.=.,  '#=' ).
 pretty_clp_(.<>., '#<>').
 pretty_clp_(.<.,  '#<' ).
@@ -527,12 +595,13 @@ set_user_option('-w') :- set(warning, on).
 set_user_option('--warning') :- set(warning, on).
 set_user_option('-no') :- set(no_nmr, on).
 set_user_option('--no_nmr') :- set(no_nmr, on).
-set_user_option('-j') :- set(print_all, on), set(process_stack, on).
-set_user_option('-j0') :- set(print_all, on), set(process_stack, on).
-set_user_option('--justification') :- set(print_all, on), set(process_stack, on).
-set_user_option('-d0') :- set(write_program, on).
+set_user_option('-j') :- set(print_tree, on), set(process_stack, on).
+set_user_option('-j0') :- set(print_tree, on), set(process_stack, on).
+set_user_option('--justification') :- set(print_tree, on), set(process_stack, on).
+set_user_option('--human') :- set(human, on), set(print_tree, on), set(process_stack, on).
 set_user_option('--html') :- set(html, on), set(process_stack, on).
-set_user_option('--server') :- set(html, on), set(server, on), set(process_stack, on).
+set_user_option('--server') :- set(server, on), set(html, on), set(process_stack, on).
+set_user_option('-d0') :- set(write_program, on).
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
 #"If the flag @var{Name} is on them the call @var{Call} is executed".
@@ -563,6 +632,7 @@ help :-
     display('  -v, --verbose         Enable verbose progress messages.\n'),
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  -j, --justification   Print proof tree for each solution.\n'),
+    display('  -human                Print the proof tree in natural language.\n'),
     display('  --html                Generate the proof tree in a file named InputFiles(s).html.\n'),
     display('  --server              Generate the proof tree in the file named justification.html.\n'),
     display('  -d0                   Print the program translated (with duals and nmr_check).\n'),
@@ -592,16 +662,17 @@ parse_args([S | Args], Os, [S | Ss]) :-
 :- use_module('html/jquery02').
 :- use_module('html/jquery_tree').
 :- use_module('html/html_tail').
-:- pred print_html(Sources, Query, Model, StackOut) #"Generate a html
+:- pred print_html(Query, Model, StackOut) #"Generate a html
 file with the model and the justification tree of the @var{Sources}
-forq the @var{Query} using @var{Model} and @var{StackOut} resp.".
+for the @var{Query} using @var{Model} and @var{StackOut} resp.".
 
 %% Print output predicates to presaent the results of the query
-print_html(Sources,Query, Model, StackOut) :-
+print_html(Query, Model, StackOut) :-
     write('\nBEGIN HTML JUSTIFICATION'),
     ( current_option(server,on) ->
         Name=justification
     ;
+        loaded_file(Sources),
         create_file_name(Sources,Name)
     ),
     atom_concat(Name,'.html',File),

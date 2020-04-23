@@ -379,8 +379,6 @@ operator(>>, yfx, 400).
 operator('**', xfx, 200).
 operator(^, xfy, 200).
 %% constraint operator
-%% operator(in, xfx, 700).
-%% operator('..', yfx, 500).
 operator(#=, xfx, 700).
 operator(#<>, xfx, 700).
 operator(#<, xfx, 700).
@@ -394,5 +392,8 @@ operator(.<., xfx, 700).
 operator(.>., xfx, 700).
 operator(.>=., xfx, 700).
 operator(.=<., xfx, 700).
+%% operator for human output
+operator(::, xfx, 700).
+
 
 

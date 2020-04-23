@@ -70,20 +70,17 @@ sys	0m1.730s
 
 *************	 s(CASP): ?- holdsAt(level(11),T) 
 
+RENAMED_QUERY:	?- holdsAt(level(11),A).
 
-Loading files: [../vessel/bec_vessel_01.pl,../vessel/bec_query01.pl]
+	ANSWER:	1 (in 36.065 ms)
 
-Default query:
-	?- holdsAt(level(11),A)
-
-
-Answer 1	(in 35.282 ms):
+MODEL:
 holdsAt(level(11),53/4) ,  initiates(tapOn,filling,5) ,  happens(tapOn,5) ,  trajectory(filling,5,level(11),53/4) ,  max_level(16) ,  not max_level(10) ,  holdsAt(level(0),5) ,  initiallyP(level(0)) ,  not stoppedIn(0,level(0),5) ,  not terminates(B │{B\=tapOff},level(0),C │{C#>0,C#<5}) ,  not terminates(tapOff,level(0),C │{C#>0,C#<5}) ,  not releases(D │{D\=tapOn},level(0),E │{E#>0,E#<5}) ,  not releases(tapOn,level(0),E │{E#>0,E#<5}) ,  not happens(tapOn,E │{E#>0,E#<5}) ,  not stoppedIn(5,filling,53/4) ,  not terminates(F │{F\=tapOff},filling,G │{G#>5,G#<53/4}) ,  terminates(tapOff,filling,G │{G#>5,G#<53/4}) ,  not happens(tapOff,G │{G#>5,G#<53/4}) ,  not releases(H │{H\=tapOn},filling,I │{I#>5,I#<53/4}) ,  not releases(tapOn,filling,I │{I#>5,I#<53/4}) ,  not -holdsAt(J │{J\=filling},K │{K#=<0}) ,  not -holdsAt(J │{J\=filling},L │{L#>0}) ,  not terminates(M │{M\=tapOff},J │{J\=filling},N │{N#=<0}) ,  not terminates(tapOff,J │{J\=filling},N │{N#=<0}) ,  not -holdsAt(filling,O │{O#=<0}) ,  not -holdsAt(filling,P │{P#>0}) ,  not terminates(Q │{Q\=tapOff},filling,R │{R#=<0}) ,  terminates(tapOff,filling,R │{R#=<0}) ,  not happens(tapOff,R │{R#=<0})
 
- 
+BINDINGS: 
 A = 53/4
 
 
-real	0m0.392s
-user	0m0.269s
-sys	0m0.062s
+real	0m0.377s
+user	0m0.277s
+sys	0m0.070s

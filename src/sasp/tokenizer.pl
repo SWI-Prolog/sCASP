@@ -262,6 +262,9 @@ op_tok((.>=., Pos)) -->
     [('.', Pos)], [('>', _)], [('=', _)], [('.', _)].
 op_tok((.=<., Pos)) -->
     [('.', Pos)], [('=', _)], [('<', _)], [('.', _)].
+%% operator for human output
+op_tok((::, Pos)) -->
+    [(':', Pos)], [(':', _)].
 
 
 %! quoted_string(-Token:compound, +CharsIn:list, -CharsOut:list)
@@ -335,6 +338,7 @@ keyword(compute).
 keyword(include).
 keyword(table).
 keyword(show).
+keyword(pred).
 keyword(abducible).
 keyword('_abducible').
 keyword(hide).

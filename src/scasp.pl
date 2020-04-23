@@ -47,6 +47,7 @@ program under the stable model semantic.
     pr_user_predicate/1,
     pr_table_predicate/1,
     pr_show_predicate/1,
+    pr_pred_predicate/1,
     set/2,
     write_program/0
                      ]).
@@ -95,41 +96,42 @@ main(Args) :-
     if_user_option(write_program, halt),
     (
         current_option(interactive, on) ->
-        main_loop(Sources)
+        main_loop
     ;
         defined_query(Q),
-        main_solve(Sources,Q)
+        main_solve(Q)
     ).
 main(_).
 
-main_loop(Sources) :-
+main_loop :-
     print('\n?- '),
-    catch(read(R),_,fail_main_loop(Sources)),
+    catch(read(R),_,fail_main_loop),
     conj_to_list(R,Q),
     (
         member(exit, Q) ->
         halt
     ;
         (
-            main_solve(Sources,Q) ->
-            nl, main_loop(Sources)
+            main_solve(Q) ->
+            nl, main_loop
         ;
             print('\nfalse'),
-            main_loop(Sources)
+            main_loop
         )
     ).
 
-fail_main_loop(Sources) :-
+fail_main_loop :-
     print('\nno'),
-    main_loop(Sources).
+    main_loop.
 
 :- use_module(library(terms_vars)).
 :- use_module(library(formulae)).
-main_solve(Sources,Q) :-
+main_solve(Q0) :-
     current_option(answers,Number),
     init_counter,
 
-    process_query(Q,Query), varset(Q,Vars),
+    process_query(Q0,Q,Query), varset(Q,Vars),
+
     pretty_term([],D1,par(Vars,Q),par(PVars,PQ)),
     list_to_conj(PQ,ConjPQ),
 
@@ -150,8 +152,8 @@ main_solve(Sources,Q) :-
         pretty_term(D2,_D3,Reverse_StackOut,P_StackOut)
     )),
     
-    if_user_option(html,print_html(Sources,[PQ,Bindings,PVars],P_Model,P_StackOut)),
-    if_user_option(print_all,print_all_output(P_StackOut)),
+    if_user_option(html,print_html([PQ,Bindings,PVars],P_Model,P_StackOut)),
+    if_user_option(print_tree,print_justification_tree(P_StackOut)),
     print_model(P_Model),nl,
     
     print_unifier(Bindings,PVars),
@@ -197,17 +199,17 @@ defined_query(Q) :-
 :- pred check_calls/0 #"Turn on the flag @var{check_calls}".
 :- pred pos_loops/0 #"Turn on the flag @var{pos_loops}".
 :- pred print_on/0 #"Turn on the flag @var{print}".
-:- pred print_all_on/0 #"Turn on the flag @var{print_all}".
+:- pred print_tree_on/0 #"Turn on the flag @var{print_tree}".
 
 clear_flags :-
     set(check_calls,off),
     set(pos_loops,off),
     set(print,off),
-    set(print_all,off).
+    set(print_tree,off).
 check_calls :-  set(check_calls,on).
 pos_loops :-    set(pos_loops,on).
 print_on :-     set(print,on).
-print_all_on :- set(print_all,on).
+print_tree_on :- set(print_tree,on).
 
 :- pred ??(Query) : list(Query) #"Shorcut predicate to ask queries in
 the top-level returning also the justification tree. It calls solve_query/1".
@@ -225,7 +227,7 @@ the top-level. It calls solve_query/1".
 solve_query(Q) :-
     init_counter,
 
-    process_query(Q,Query),
+    process_query(Q,_,Query),
 
     statistics(runtime,_),
     solve(Query, [], StackOut, Model),
@@ -236,7 +238,7 @@ solve_query(Q) :-
     format('\nAnswer ~w\t(in ~w ms):',[Counter,T]),nl,
 
     reverse(StackOut, Reverse_StackOut),
-    if_user_option(print_all,print_all_output(Reverse_StackOut)),
+    if_user_option(print_tree,print_justification_tree(Reverse_StackOut)),
     print_model(Model),nl,nl,
 
     ask_for_more_models.

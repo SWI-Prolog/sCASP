@@ -64,7 +64,7 @@ comp_duals :-
 %
 % @param Predicates List of predicates in the program.
 comp_duals2([X | T]) :-
-    X = 'o_false_0', % skip headless rules; handled by NMR check
+    X = '_false_0', % skip headless rules; handled by NMR check
     !,
     comp_duals2(T).
 comp_duals2([X | T]) :-

@@ -15,6 +15,7 @@
                     pr_user_predicate/1,
                     pr_table_predicate/1,
                     pr_show_predicate/1,
+                    pr_pred_predicate/1,
                     revar/2,
 %                       refunct/3,
                     print_abducibles/2
@@ -299,9 +300,11 @@ format_predicate2(Xi, Xo, Uv, Uv, _) :-
     predicate(Xi, X2, []),
     atom(X2), % compound term, predicate or atom
     atom_chars(X2, ['\'' | X3]), % quoted string; strip outermost quotes and arity
-    reverse(X3, ['0', '_', '\'' | X4]),
+    %% reverse(X3, ['0', '_', '\'' | X4]),
+    %% reverse(X4, X5),
+    reverse(X3, ['0', '_' | X4]),
     reverse(X4, X5),
-    atom_chars(Xo, X5).
+    atom_chars(Xo, ['\'' | X5]).
 format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
     predicate(Xi, X2, A),
     atom(X2), % compound term, predicate or atom
@@ -1123,13 +1126,15 @@ print_var(B) :- !,
 
 
 
-:- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1, pr_table_predicate/1, pr_show_predicate/1.
+:- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1.
+:- dynamic pr_table_predicate/1, pr_show_predicate/1, pr_pred_predicate/1.
 
 %! generate_pr_rules/0
 generate_pr_rules(_Sources) :-
     retractall(pr_query(_)), retractall(pr_rule(_,_)), retractall(pr_user_predicate(_)),
     retractall(pr_table_predicate(_)),
     retractall(pr_show_predicate(_)),
+    retractall(pr_pred_predicate(_)),
     %% format('\nLoading files: ~w\n',Sources),
     findall(R, (defined_rule(_, H, B), rule(R, H, B)), Rs),
     new_var_struct(V),
@@ -1166,6 +1171,15 @@ generate_pr_rules(_Sources) :-
         true
     ),
     retractall(show(_)),
+    (
+        findall(P, pred(P), Ps),
+        format_term_list(Ps, Ps2, _, V),
+        assert_pr_pred(Ps2) ->
+        true
+    ;
+        true
+    ),
+    retractall(pred(_)),
     assert_pr_rules(Rs2),
     assert_pr_rules([-('global_constraints', NMR2)]),
     % close_output_file(Stream, Current),
@@ -1194,6 +1208,36 @@ assert_pr_show([Name/Arity|Ts]) :-
     % print('.'),nl,
     assert_pr_show(Ts).
 
+:- op(700, xfx, ['::']).
+assert_pr_pred([]).
+assert_pr_pred([[T|Ts]|Tss]) :- !,
+    assert_pr_pred([T|Ts]),
+    assert_pr_pred(Tss).
+assert_pr_pred([T|Ts]) :-
+    process_pr_pred(T,PT),
+    revar(PT,RT),
+    assert(pr_pred_predicate(RT)),
+    % print(pr_pred_predicate(T)),
+    % print('.'),nl,
+    assert_pr_pred(Ts).
+
+process_pr_pred(A::B,A::format(PB,List)) :-
+    atom_chars(B,Chars),
+    process_pr_pred_(Chars,PChars,List),
+    atom_chars(PB,PChars).
+process_pr_pred_([],[],[]).
+process_pr_pred_([@,'('|Cs],[~,p|Ps],[V|Vs]) :- !,
+    process_pr_pred_var(Cs,[],Var,Rs),
+    atom_chars(V,Var),
+    process_pr_pred_(Rs,Ps,Vs).
+process_pr_pred_([C|Cs],[C|Rs],Var) :-
+    process_pr_pred_(Cs,Rs,Var).
+process_pr_pred_var([')'|Rs],Ac0,Ac1,Rs) :- !,
+    reverse(Ac0,Ac1).
+process_pr_pred_var([V0|R0],Ac0,Ac1,Rs) :-
+    process_pr_pred_var(R0,[V0|Ac0],Ac1,Rs).
+
+
 assert_pr_rules([]).
 assert_pr_rules([-(Head, Body)|Rs]) :-
     revar(-(Head,Body),-(H,B)),
@@ -1203,8 +1247,8 @@ assert_pr_rules([-(Head, Body)|Rs]) :-
     % print('.'),nl,
     assert_pr_rules(Rs).
 
-assert_pr_query(Query) :-
-    revar(Query,Q),
+assert_pr_query(Q) :-
+    %%    revar(Query,Q), do revar here, will be done later
     assert(pr_query(Q)),
     % print(pr_query(Q)),
     % print('.'),nl.
@@ -1245,7 +1289,12 @@ special_atom(X,'rat'(A,B)) :-
     atom_codes(X, Codes),
     append(C_A, [0'/ | C_B], Codes),
     number_codes(A,C_A),
-    number_codes(B,C_B).
+    number_codes(B,C_B),!.
+special_atom(X,Y) :-
+    atom(X),
+    atom_chars(X,Codes),
+    append(['\''|C_Y],['\''],Codes),
+    atom_chars(Y,C_Y).
 
 varc(C) :- C >= 0'A, C =< 0'Z, !.
 varc(0'_).
