@@ -399,7 +399,7 @@ portray(X) :-
 human_protray_(c-{X,Y,Z}) :- !,
     print_c(X), print(', '), human_protray_(c-{Y,Z}).
 human_protray_(c-{X,Z}) :- !,
-    print_c(X), print(',and '), human_protray_(Z).
+    print_c(X), print(', and '), human_protray_(c-{Z}).
 human_protray_(c-{X}) :-
     print_c(X).
 human_protray(A '│' B) :-
