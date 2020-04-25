@@ -1,41 +1,45 @@
 %% Fever4 - introduce data to the temp register to filter
 
 
+# pred diagnosis(P,D) :: 'The diagnosis of @(P:patient) is @(D)'.
+diagnosis(P,'fever') :- fever(P,T).
+diagnosis(P,'no fever') :- no_fever(P,T).
 
-# pred diagnosis(P,T) :: 'The diagnosis for @(P) with a temperature of @(T) is that:'.
-diagnosis(P,T) :- fever(P,T).
-diagnosis(P,T) :- no_fever(P,T).
-
-# pred fever(Person,Temp) :: '@(Person) has a fever'.
-# pred no_fever(Person,Temp) :: '@(Person) has no fever'.
-fever(Person,Temp) :-
-    temp(Person,Temp),
+# pred fever(P,T) :: 'There is a fever for @(P:patient) with @(T:temperature)'.
+# pred not fever(P,T) :: 'There is no fever for @(P:patient) with @(T:temperature)'.
+fever(Patient,Temp) :-
+    temp(Patient,Temp),
     high_temp(Temp),
-    not no_fever(Person,Temp).
+    not no_fever(Patient,Temp).
 
-no_fever(Person,Temp) :-
-    temp(Person,Temp),
+# pred no_fever(P,T) :: 'For @(P:patient) with @(T:temperature) we conclude that there is no fever'.
+# pred not no_fever(P,T) :: 'For @(P:patient) with @(T:temperature) we conclude that there is a fever'.
+no_fever(Patient,Temp) :-
+    temp(Patient,Temp),
     not high_temp(Temp),
-    not fever(Person,Temp).
+    not fever(Patient,Temp).
 
+# pred high_temp(T) :: 'A temperature with @(T:value) is high'.
+# pred not high_temp(T) :: 'A temperature with @(T:value) is not high'.
 high_temp(T) :- T #> 38.
 
-temp(P,T) :- recent_reg(D), reg_temp(P,T,D).
+# pred temp(P,T) :: 'The temperature for @(P:patient) has @(T:value)'.
+temp(P,T) :- reg_temp(P,T,D), recent_reg(D).
 temp(P,T) :- not reg_person(P).
 
-# pred recent_reg(D) :: 'The registered temperatured is valid. @(D) is greater than -3'.
-# pred not recent_reg(D) :: 'The registered temperatured has expired. @(D) is not greater than -3'.
+# pred recent_reg(D) :: 'A register at @(D:time point) is recent'.
+# pred not recent_reg(D) :: 'A register at @(D:time point) is not recent'.
 recent_reg(D) :- D #> -3.
 
-# pred reg_temp(Person,Temp,D) :: 'The registered temperarture of @(Person) is @(Temp) at time @(D)'.
-# pred not reg_temp(Person,Temp,D) :: 'We do not have a registered temperature for @(Person) of @(Temp) at time @(D)'.
+# pred reg_temp(P,T,D) :: 'There is a register, for @(P:patient), with @(T:temperature), at @(D:time point)'.
+# pred not reg_temp(P,T,D) :: 'There is no register, for @(P:patient), with @(T:temperature), at @(D:time point)'.
 reg_temp('Juan',37,-2).
 reg_temp('Pedro',39,-2).
 reg_temp('Jose',39,-4).
 reg_temp('Jose',37,-6).
 
-# pred not reg_person(Person) :: 'There are no valid registerd temperature of @(Person)'.
-%reg_person(P) :- reg_temp(P,T,D).
+# pred reg_person(P) :: 'There is a valid register for @(P:patient)'.
+# pred not reg_person(P) :: 'There is no valid register for @(P:patient)'.
 reg_person(P) :- reg_temp(P,T,D), recent_reg(D).
 
 %%%%%%%%   Queries %%%%%%%

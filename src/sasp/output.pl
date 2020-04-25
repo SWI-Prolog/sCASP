@@ -1226,17 +1226,26 @@ process_pr_pred(A::B,A::format(PB,List)) :-
     process_pr_pred_(Chars,PChars,List),
     atom_chars(PB,PChars).
 process_pr_pred_([],[],[]).
-process_pr_pred_([@,'('|Cs],[~,p|Ps],[V|Vs]) :- !,
-    process_pr_pred_var(Cs,[],Var,Rs),
+process_pr_pred_([@,'('|Cs],[~,p|Ps],[@(V:NV)|Vs]) :- !,
+    process_pr_pred_var(Cs,Rs,[],Var,NVar),
     atom_chars(V,Var),
+    atom_chars(NV,NVar),
     process_pr_pred_(Rs,Ps,Vs).
 process_pr_pred_([C|Cs],[C|Rs],Var) :-
     process_pr_pred_(Cs,Rs,Var).
-process_pr_pred_var([')'|Rs],Ac0,Ac1,Rs) :- !,
+process_pr_pred_var([':'|R0],Rs,VAc0,VAc1,NAc) :- !,
+    reverse(VAc0,VAc1),
+    process_pr_pred_name(R0,Rs,[],NAc).
+process_pr_pred_var([')'|Rs],Rs,Ac0,Ac1,['\'','\'']) :- !,
     reverse(Ac0,Ac1).
-process_pr_pred_var([V0|R0],Ac0,Ac1,Rs) :-
-    process_pr_pred_var(R0,[V0|Ac0],Ac1,Rs).
+process_pr_pred_var([V0|R0],Rs,Ac0,Ac1,NVar) :-
+    process_pr_pred_var(R0,Rs,[V0|Ac0],Ac1,NVar).
+process_pr_pred_name([')'|Rs],Rs,NAc0,NAc1) :- !,
+    reverse(NAc0,NAc1).
+process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
+    process_pr_pred_name(R0,Rs,[NV0|NAc0],NAc1).
 
+    
 
 assert_pr_rules([]).
 assert_pr_rules([-(Head, Body)|Rs]) :-

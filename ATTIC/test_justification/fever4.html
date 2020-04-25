@@ -1,0 +1,483 @@
+<!doctype html>
+ <html>
+ <head>
+ <meta charset="utf-8">
+ <title>c(ASP) Justification</title>
+ <style>
+.treemenu li { list-style: none; }
+.treemenu .toggler { cursor: pointer; }
+.treemenu .toggler:before { display: inline-block; margin-right: 2pt; }
+li.tree-empty > .toggler { opacity: 0.3; cursor: default; }
+li.tree-empty > .toggler:before { content: " "; }
+li.tree-closed > .toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: transparent blue;
+    border-style: solid;
+    border-width: 0.25em 0 0.25em 0.5em;
+}
+li.tree-opened > .toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: blue transparent ;
+    border-style: solid;
+    border-width: 0.5em 0.25em 0 0.25em;
+}
+</style>
+ 
+ <link rel="icon" href="logo.ico">
+ 
+ </head>
+ 
+ <body style="font-size:15px;background: #ECECEC; margin:80px; color:#333;">
+ 
+<h3>Query</h3>
+<b>
+  <font color=blue>?-</font> 
+diagnosis(Jose,A).
+<br><br>
+ <br> 
+$(A) = fever ?<br>
+</b>
+<br><br>
+<h3>Model</h3>
+
+MODEL:
+diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  not reg_person(Jose) ,  not reg_temp(Jose,C │{C \= 37,C \= 39},D) ,  not reg_temp(Jose,37,E │{E \= -6}) ,  reg_temp(Jose,37,-6) ,  not recent_reg(-6) ,  not reg_temp(Jose,39,F │{F \= -4}) ,  reg_temp(Jose,39,-4) ,  not recent_reg(-4) ,  high_temp(B │{B #> 38}) ,  not no_fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  high_temp(B │{B #> 38})
+
+<br><br>
+<h3> Justification <button onclick="expand()">Expand All</button><button onclick="collapse()">Collapse All</button></h3>
+ <ul class="tree">
+     <li> 
+       The diagnosis of the patient Jose is fever
+       <ul>
+         <li> 
+           There is a fever for the patient Jose with a temperature B greater than 38
+           <ul>
+             <li> 
+               The temperature for the patient Jose has a value B greater than 38
+               <ul>
+                 <li> 
+                   There is no valid register for the patient Jose
+                   <ul>
+                     <li> 
+                       First: There is no valid register for the patient Jose
+                       <ul>
+                         <li> 
+                           For any possible value:		 forall(G,forall(H,not o_reg_person.1(Jose,G,H)))
+                           <ul>
+                             <li> 
+                               For any possible value:		 forall(H,not o_reg_person.1(Jose,C │{C \= 37,C \= 39},H))
+                               <ul>
+                                 <li> 
+                                   First: For this conclusion there is no text		 not reg_person(Jose,C │{C \= 37,C \= 39},D)
+                                   <ul>
+                                     <li> 
+                                       There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                       <ul>
+                                         <li> 
+                                           First: There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           <ul>
+                                             <li> 
+                                               Jose is not equal Juan
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Second: There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           <ul>
+                                             <li> 
+                                               Jose is not equal Pedro
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Third: There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           <ul>
+                                             <li> 
+                                               Jose is Jose
+                                             </li>
+                                             <li> 
+                                               C is not equal 39
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Then (4): There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           <ul>
+                                             <li> 
+                                               Jose is Jose
+                                             </li>
+                                             <li> 
+                                               C is not equal 37
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               For any possible value:		 forall(H,not o_reg_person.1(Jose,37,H))
+                               <ul>
+                                 <li> 
+                                   First: For this conclusion there is no text		 not reg_person(Jose,37,E │{E \= -6})
+                                   <ul>
+                                     <li> 
+                                       There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                       <ul>
+                                         <li> 
+                                           First: There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           <ul>
+                                             <li> 
+                                               Jose is not equal Juan
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Second: There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           <ul>
+                                             <li> 
+                                               Jose is not equal Pedro
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Third: There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           <ul>
+                                             <li> 
+                                               Jose is Jose
+                                             </li>
+                                             <li> 
+                                               37 is not equal 39
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Then (4): There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           <ul>
+                                             <li> 
+                                               Jose is Jose
+                                             </li>
+                                             <li> 
+                                               37 is 37
+                                             </li>
+                                             <li> 
+                                               E is not equal -6
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                                 <li> 
+                                   First: For this conclusion there is no text		 not reg_person(Jose,37,-6)
+                                   <ul>
+                                     <li> 
+                                       There is a register, for the patient Jose, with the temperature 37, at the time point -6
+                                     </li>
+                                     <li> 
+                                       A register at the time point -6 is not recent
+                                       <ul>
+                                         <li> 
+                                           First: A register at the time point -6 is not recent
+                                           <ul>
+                                             <li> 
+                                               -6 is less or equal -3
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             <li> 
+                               For any possible value:		 forall(H,not o_reg_person.1(Jose,39,H))
+                               <ul>
+                                 <li> 
+                                   First: For this conclusion there is no text		 not reg_person(Jose,39,F │{F \= -4})
+                                   <ul>
+                                     <li> 
+                                       There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                       <ul>
+                                         <li> 
+                                           First: There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           <ul>
+                                             <li> 
+                                               Jose is not equal Juan
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Second: There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           <ul>
+                                             <li> 
+                                               Jose is not equal Pedro
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Third: There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           <ul>
+                                             <li> 
+                                               Jose is Jose
+                                             </li>
+                                             <li> 
+                                               39 is 39
+                                             </li>
+                                             <li> 
+                                               F is not equal -4
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                         <li> 
+                                           Then (4): There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           <ul>
+                                             <li> 
+                                               Jose is Jose
+                                             </li>
+                                             <li> 
+                                               39 is not equal 37
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                                 <li> 
+                                   First: For this conclusion there is no text		 not reg_person(Jose,39,-4)
+                                   <ul>
+                                     <li> 
+                                       There is a register, for the patient Jose, with the temperature 39, at the time point -4
+                                     </li>
+                                     <li> 
+                                       A register at the time point -4 is not recent
+                                       <ul>
+                                         <li> 
+                                           First: A register at the time point -4 is not recent
+                                           <ul>
+                                             <li> 
+                                               -4 is less or equal -3
+                                             </li> 
+                                         </ul> 
+                                         </li> 
+                                     </ul> 
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               A temperature with a value B greater than 38 is high
+               <ul>
+                 <li> 
+                   B is greater than 38
+                 </li> 
+             </ul> 
+             </li> 
+             <li> 
+               For the patient Jose with a temperature B greater than 38 we conclude that there is a fever
+               <ul>
+                 <li> 
+                   First: For the patient Jose with a temperature B greater than 38 we conclude that there is a fever
+                   <ul>
+                     <li> 
+                       The temperature for the patient Jose has a value B greater than 38
+                       <ul>
+                         <li> 
+                           There is no valid register for the patient Jose, as we saw before
+                         </li> 
+                     </ul> 
+                     </li> 
+                     <li> 
+                       A temperature with a value B greater than 38 is high
+                       <ul>
+                         <li> 
+                           B is greater than 38
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+         </ul> 
+         </li> 
+     </ul> 
+     </li> 
+     <li> 
+       The global constraints hold
+       <ul>
+         <li> 
+           There are no global constraints to be checked
+
+         </li> 
+     </ul> 
+     </li> 
+</ul>
+
+<script
+  src="https://code.jquery.com/jquery-1.11.2.min.js"
+  integrity="sha256-Ls0pXSlb7AYs7evhd+VLnWsZ/AqEHcXBeMZUycz/CcA="
+  crossorigin="anonymous"></script>
+
+<script type="text/javascript">
+(function($){
+        $.fn.expand = function(options) {
+            options = options || {};
+            options.delay = options.delay || 0;
+            
+            this.find("> li").each(function() {
+                e = $(this)
+                var subtree = e.find('> ul');
+
+                if (subtree.length > 0) {
+                    e.addClass('tree-opened');
+                    e.removeClass('tree-closed');
+
+                    subtree.slideDown(options.delay);
+                    subtree.show(options.delay);
+
+                    subtree.expand(options);
+                } 
+            });
+            return true;
+        }
+
+        $.fn.collapse = function(options) {
+            options = options || {};
+            options.delay = options.delay || 0;
+            
+            this.find("> li").each(function() {
+                e = $(this)
+                var subtree = e.find('> ul');
+
+                if (subtree.length > 0) {
+                    e.removeClass('tree-opened');
+                    e.addClass('tree-closed');
+
+                    subtree.slideUp(options.delay);
+                    subtree.hide(options.delay);
+
+                    subtree.collapse(options);
+                } 
+            });
+            return true;
+        }
+
+    $.fn.treemenu = function(options) {
+        options = options || {};
+        options.delay = options.delay || 0;
+        options.openActive = options.openActive || false;
+        options.closeOther = options.closeOther || false;
+        options.activeSelector = options.activeSelector || ".active";
+
+        this.addClass("treemenu");
+
+        if (!options.nonroot) {
+            this.addClass("treemenu-root");
+        }
+
+        options.nonroot = true;
+
+        this.find("> li").each(function() {
+            e = $(this);
+            var subtree = e.find('> ul');
+            var button = e.find('.toggler').eq(0);
+
+            if(button.length == 0) {
+                // create toggler
+                var button = $('<span>');
+                button.addClass('toggler');
+                e.prepend(button);
+            }
+
+            if(subtree.length > 0) {
+                subtree.hide();
+
+                e.addClass('tree-closed');
+
+                e.find(button).click(function() {
+                    var li = $(this).parent('li');
+
+                    if (options.closeOther && li.hasClass('tree-closed')) {
+                        var siblings = li.parent('ul').find("li:not(.tree-empty)");
+                        siblings.removeClass("tree-opened");
+                        siblings.addClass("tree-closed");
+                        siblings.removeClass(options.activeSelector);
+                        siblings.find('> ul').slideUp(options.delay);
+                    }
+
+                    li.find('> ul').slideToggle(options.delay);
+                    li.toggleClass('tree-opened');
+                    li.toggleClass('tree-closed');
+                    li.toggleClass(options.activeSelector);
+                });
+
+                $(this).find('> ul').treemenu(options);
+            } else {
+                $(this).addClass('tree-empty');
+            }
+        });
+
+        if (options.openActive) {
+            var cls = this.attr("class");
+
+            this.find(options.activeSelector).each(function(){
+                var el = $(this).parent();
+
+                while (el.attr("class") !== cls) {
+                    el.find('> ul').show();
+                    if(el.prop("tagName") === 'UL') {
+                        el.show();
+                    } else if (el.prop("tagName") === 'LI') {
+                        el.removeClass('tree-closed');
+                        el.addClass("tree-opened");
+                        el.show();
+                    }
+
+                    el = el.parent();
+                }
+            });
+        }
+
+        return this;
+    }
+})(jQuery);
+</script>
+<script>
+function expand(){
+    $(".tree").expand({delay:1000});
+}
+
+function collapse(){
+    $(".tree").collapse({delay:1000});
+}
+</script>
+
+ 
+
+ <script>
+ $(function(){
+        $(".tree").treemenu({delay:100}).openActive();
+    });
+ </script>
+ 
+ </body>
+ </html>

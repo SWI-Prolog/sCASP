@@ -206,12 +206,12 @@ print_unifier_([Binding|Bs],[PV|PVars]) :-
         true
     ;
         (current_option(human,on) ->
-            format(' \n~w is ~p',[PV,Binding])
+            format(' \n~p is ~p',[PV,Binding])
         ;
             ( Binding =.. [_,PB,{PConst}], PV = PB ->
-                format(" \n~w",[PConst])
+                format(" \n~p",[PConst])
             ;
-                format(" \n~w = ~w",[PV,Binding])
+                format(" \n~p = ~p",[PV,Binding])
             )
         )
     ),
@@ -231,9 +231,9 @@ select_printable_literals(_,[]).
 
 print_model_([]).
 print_model_([Last]) :- 
-    write(Last).
+    print(Last).
 print_model_([First,Second|Rest]) :-
-    write(First),
+    print(First),
     display(' ,  '),
     print_model_([Second|Rest]).
 
@@ -338,9 +338,6 @@ print_s_([],_,_) :-
 print_s_([[]|As],I,I0) :- !,
     I1 is I - 4,
     print_s_(As,I1,I0).
-print_s_([global_constraints|_],_,_) :-
-    current_option(human,on), !,
-    nl.    
 print_s_([A|As],I,I0) :- !,
     (
         I0 > I ->
@@ -351,24 +348,39 @@ print_s_([A|As],I,I0) :- !,
     ;
         print_human(',')
     ),
-    nl,tab(I),print_human_term(A),
+    nl,tab(I),
+    ( [A|As] == [o_nmr_check,[],[],[]] ->
+        print_human_empty_nmr
+    ;
+        print_human_term(A)
+    ),
     I1 is I + 4,
     print_s_(As,I1,I).
 
 
-
 print_human_term(A) :-
+    pr_human_term(A::Human),
+    call(Human).
+print_human_empty_nmr :-
     ( current_option(human,on) ->
-        ( pr_pred_predicate(A::Human) ->
-            call(Human)
+        format('There are no global constraints to be checked\n',[])
+    ;
+        print(o_nmr_check)
+    ).
+
+
+pr_human_term(A::Human) :-
+    ( current_option(human,on) ->
+        (   pr_pred_predicate(A::Human) ->
+            true
         ;
             pr_pred_default(A::Human) ->
-            call(Human)
+                true
         ;
-            true
+            Human = write(A)
         )
     ;
-        write(A)
+        Human = print(A)
     ).
 
 print_human(Conector) :-
@@ -379,22 +391,75 @@ print_human(Conector) :-
     ),
     write(A).
 
-%% Predefine human rules:
-pr_pred_default(proved(A)::(B,format(', as we saw before',[]))) :-
-    pr_pred_predicate(A::B).
-pr_pred_default(true::format('\r',[])).
-
 human('.','').
 human(',','').
 human(' :-','').
 
-:- multifile portray/1.
-portray(X) :-
-    ( current_option(human,on) ->
-        human_protray(X)
+%% Predefine human rules:
+pr_pred_default( (A=A)        :: format('~w is ~w',[A,A])).
+pr_pred_default( proved(A)    :: (B,format(', as we saw before',[]))) :-
+    pr_pred_predicate(A::B).
+pr_pred_default(true          :: format('\r',[])).
+pr_pred_default(Operation     :: format('~w is ~w ~w',[HA,HOp,B])) :-
+    Operation =.. [Op,A,B],
+    human_op(Op,HOp),
+    ( A = '$'(Var) ->
+        HA = Var
     ;
-        write(X)
+        HA = A
     ).
+pr_pred_default(not(Auxiliar) :: Human) :-
+    Auxiliar =.. [Aux|Args],
+    atom_chars(Aux,['o','_'|Rs]),
+    append(Pred,['.'|Num],Rs),
+    number_chars(N,Num),
+    ordinal_human(N,Ordinal),
+    atom_chars(Pr,Pred),
+    (   Pr == chk ->
+        Human = format('~w, the rule number ~w holds ',[Ordinal, N])
+    ;
+        Predicate =.. [Pr|Args],
+        pr_human_term(not(Predicate)::PrH),
+        Human = (format('~w: ',[Ordinal]),PrH)
+    ).
+pr_pred_default(Forall        :: format('For any possible value:\t\t ~p',[Forall])) :-
+    Forall = forall(_,_).
+pr_pred_default(global_constraints :: format('The global constraints hold',[])).
+pr_pred_default(o_nmr_check :: format('Let\'s check the non-monotonic-rules',[])).
+pr_pred_default(Other         :: format('For this conclusion there is no text\t\t ~p',[Other])).
+
+
+ordinal_human(1,'First').
+ordinal_human(2,'Second').
+ordinal_human(3,'Third').
+ordinal_human(N,'Then '(N)) :- N > 3.
+
+
+:- multifile portray/1.
+portray(@(X:'')) :- !,
+    human_protray_default(X).
+portray(@(X:NX)) :- !,
+    human_protray(X:NX).
+portray('$'(X)) :-
+        write(X).
+portray(Constraint) :-
+    Constraint =.. [Op,A,B],
+    pretty_clp(_,Op), !,
+    format("~p ~w ~p",[A,Op,B]).
+
+% para la conclusion xx no tentemos texto.
+human_protray_default(A '│' B) :- !,
+    print(A), print(' '), human_protray_(c-B).
+human_protray_default('$'(X)) :- !, write(X).
+human_protray_default(X) :- write(X).
+
+human_protray((A '│' B):NX) :- !,
+    format('a ~w ~w ',[NX,A]),
+    human_protray_(c-B).
+human_protray('$'(_X):NX) :- !,
+    format('any ~w',[NX]).
+human_protray(X:NX) :-
+    format('the ~w ~w',[NX,X]).
 
 human_protray_(c-{X,Y,Z}) :- !,
     print_c(X), print(', '), human_protray_(c-{Y,Z}).
@@ -402,17 +467,20 @@ human_protray_(c-{X,Z}) :- !,
     print_c(X), print(', and '), human_protray_(c-{Z}).
 human_protray_(c-{X}) :-
     print_c(X).
-human_protray(A '│' B) :-
-    print(A), print(' '), human_protray_(c-B).
 
-print_c(_#=V) :- format('equal ~w',[V]).
-print_c(_#<>V) :- format('not equal ~w',[V]).
-print_c(_#<V) :- format('less than ~w',[V]).
-print_c(_#>V) :- format('greater than ~w',[V]).
-print_c(_#=<V) :- format('less or equal ~w',[V]).
-print_c(_#>=V) :- format('greater or equal ~w',[V]).
+print_c(Operation) :-
+    Operation =.. [Op,_,B],
+    human_op(Op,HOp),
+    format('~w ~w',[HOp,B]).
 
-print_c(_\=V) :- format('not equal ~w',[V]).
+human_op(#= ,'equal').
+human_op(#<>,'not equal').
+human_op(#< ,'less than').
+human_op(#> ,'greater than').
+human_op(#=<,'less or equal').
+human_op(#>=,'greater or equal').
+human_op(\=, 'not equal').
+human_op(=,  '').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Print pretty term
@@ -462,7 +530,7 @@ pretty_term(D0,D1,A,PA) :-
     ( get_attribute(A,Att) ->
         pretty_portray_attribute(Att,A,PVar,PA)
     ;
-        PA = PVar
+        PA = '$'(PVar)
     ).
 pretty_term(D0,D0,[],[]) :- !.
 pretty_term(D0,D2,[A|As],[PA|PAs]) :- !,
@@ -486,7 +554,7 @@ pretty_term(D0,D0,A,'?'(A)).
 simple_operands([A,B],[SA,SB]) :-
     simple_operand(A,SA),
     simple_operand(B,SB).
-simple_operand(Operand,Var) :-
+simple_operand(Operand,'$'(Var)) :-
     Operand =.. ['│', Var, _], !.
 %% simple_operand(Operand,SOperand) :-
 %%     struct(Operand),
@@ -749,7 +817,7 @@ print_html_stack([A|StackOut]) :-
     print_html_stack_(StackOut,9,5).
 
 print_html_stack_([],I,I0) :-
-    display('.'),
+    print_human('.'),
     nl,tab(I0), print('</li> '),
     close_ul(I0,I).
 print_html_stack_([[]|As],I,I0) :- !,
@@ -758,27 +826,38 @@ print_html_stack_([[]|As],I,I0) :- !,
 print_html_stack_([A|As],I,I0) :- !,
     (
         I0 > I ->
-            print('.'),
+            print_human('.'),
             nl,tab(I0), print('</li> '),
             close_ul(I0,I)
     ;
         I0 < I ->
-            print(' :-'),
+            print_human(' :-'),
             nl,tab(I0), print('  <ul>')
     ;
-        print(','),
+        print_human(','),
         nl,tab(I0), print('</li>')
     ),
     nl,tab(I),print('<li> '),
-    nl,tab(I),print('  '),print_html_term(A),     
+    nl,tab(I),print('  '),
+    ( [A|As] == [o_nmr_check,[],[],[]] ->
+        print_html_empty_nmr
+    ;
+        print_html_term(A)
+    ),
     I1 is I + 4,
     print_html_stack_(As,I1,I).
 
-print_html_term(Constraint) :-
-    Constraint =.. [Op,A,B],
-    pretty_clp(_,Op), !,
-    format("~w ~w ~w",[A,Op,B]).
-print_html_term(A) :- print(A).
+print_html_term(A) :-
+    print_human_term(A).
+print_html_empty_nmr :-
+    print_human_empty_nmr.
+
+
+%% print_html_term(Constraint) :-
+%%     Constraint =.. [Op,A,B],
+%%     pretty_clp(_,Op), !,
+%%     format("~w ~w ~w",[A,Op,B]).
+%% print_html_term(A) :- print(A).
 
 close_ul(I,I) :- !.
 close_ul(I0,I) :-
