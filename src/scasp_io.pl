@@ -395,7 +395,9 @@ human('.','').
 human(',','').
 human(' :-','').
 
-%% Predefine human rules:
+%% Predefine human rules  & introduced during execution (forall...)
+:- dynamic new_pr_pred_default/1.
+pr_pred_default(A) :- new_pr_pred_default(A),!.
 pr_pred_default( (A=A)        :: format('~w is ~w',[A,A])).
 pr_pred_default( proved(A)    :: (B,format(', as we saw before',[]))) :-
     pr_pred_predicate(A::B).
@@ -413,27 +415,102 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     atom_chars(Aux,['o','_'|Rs]),
     append(Pred,['.'|Num],Rs),
     number_chars(N,Num),
-    ordinal_human(N,Ordinal),
     atom_chars(Pr,Pred),
     (   Pr == chk ->
-        Human = format('~w, the rule number ~w holds ',[Ordinal, N])
+        Human = format('For the rule number ~w ',[N])
     ;
-        Predicate =.. [Pr|Args],
-        pr_human_term(not(Predicate)::PrH),
-        Human = (format('~w: ',[Ordinal]),PrH)
+        ( Pr == '_chk' ->
+            Human = format('There is no contradiction ',[])
+        ;
+            Predicate =.. [Pr|Args],
+            pr_human_term(not(Predicate)::PrH),
+            Human = (format('~w) ',[N]),PrH)
+        )
     ).
-pr_pred_default(Forall        :: format('For any possible value:\t\t ~p',[Forall])) :-
-    Forall = forall(_,_).
+pr_pred_default(Forall        :: Human) :-
+    Forall = forall(_,_),
+    find_vars_description(Forall,[Var|_],Descripcion),
+    (  member(@(Var:VHuman),Descripcion), VHuman \= '' ->
+        Human = format('For any possible ~p',[VHuman])
+    ;
+        Human = format('For any possible value',[])
+    ).
 pr_pred_default(global_constraints :: format('The global constraints hold',[])).
-pr_pred_default(o_nmr_check :: format('Let\'s check the non-monotonic-rules',[])).
-pr_pred_default(Other         :: format('For this conclusion there is no text\t\t ~p',[Other])).
+pr_pred_default(o_nmr_check        :: format('Let\'s see each non-monotonic-rule',[])).
+pr_pred_default(Other              :: format(F,[Name|NArgs])) :-
+    ( Other = not(Pre) ->
+        F0 = 'There is no conclusion of'
+    ;
+        Pre = Other,
+        F0 = 'There is a conclusion of'
+    ),
+    Pre =.. [Name|Args],
+    F1 = ' ~w',
+    other_format(Args,NArgs,F2),
+    atom_concat(F0,F1,Fm), atom_concat(Fm,F2,F).
+
+other_format([],[],'').
+other_format([V|Vs],[@(V:'')|NVs],F) :-
+    other_format(Vs,NVs,F0),
+    atom_concat(', for ~p',F0,F).
+                
+    
+
+find_vars_description(Forall,Vars,Descripcion) :-
+    find_vars_description_(Forall,Vars,not(Call),Descripcion),
+    Call =.. [Name|Args], append(Prev,Vars,Args),
+    length(Args,Len),length(FreeArgs,Len),
+    FreeCall =.. [Name|FreeArgs],
+    (  new_pr_pred_default(not(FreeCall) :: _) ->
+        true
+    ;
+        process_new_call01(Name,Prev,NewPrev,Human01),
+        process_new_call02(Vars,Descripcion,Free,Human02),
+        append(NewPrev,Free,NewFreeArgs), NewFreeCall =.. [Name|NewFreeArgs],
+        assert(new_pr_pred_default(not(NewFreeCall)::(Human01,Human02)))
+    ).
+
+process_new_call01(_,[],[],format('There is no contradiction',[])) :- !.
+process_new_call01(Name,Prev,FreePrev,Human1) :-
+    atom_chars(Name,[o,'_'|Names]), append(Preds,['.'|Nums],Names), number_chars(_,Nums),atom_chars(Pred,Preds),
+    length(Prev,Len), length(FreePrev,Len), PrevCall =.. [Pred|FreePrev],
+    (  pr_pred_predicate(not(PrevCall)::Human1) ->
+        true
+    ;
+        pr_pred_default(not(PrevCall)::Human1)
+    ).
+            
+process_new_call02([V],Descripcion,[F],(H)) :- !,
+    (  member(@(V:VHuman),Descripcion) ->
+        H = format(', for ~p',[@(F:VHuman)])
+    ;
+        H = format(', for ~p',[@(F:'')])
+    ).
+process_new_call02([V0,V1|Vars],Descripcion,[F|Fs],(H,Hs)) :-
+    process_new_call02([V0],Descripcion,[F],H),
+    process_new_call02([V1|Vars],Descripcion,Fs,Hs).
 
 
-ordinal_human(1,'First').
-ordinal_human(2,'Second').
-ordinal_human(3,'Third').
-ordinal_human(N,'Then '(N)) :- N > 3.
+find_vars_description_(forall(V,Rs),[V|Vs],Call,Description) :- !,
+    find_vars_description_(Rs,Vs,Call,Description).
+find_vars_description_(Rs,[],Rs,Description) :-
+    find_last_description(Rs,Description).
 
+find_last_description(Rs,Description) :-
+    findall(Body, pr_rule(Rs,Body), Cls),
+    reverse(Cls,[Body|_]), %% the last clause has all the literals of a forall
+    find_description(Body,Description).
+
+find_description([],[]).  %% no more var description
+find_description([L|Ls],D) :-
+    ( pr_pred_predicate(L::format(_,D0)) ->
+        true
+    ;
+        D0 = []
+    ),
+    find_description(Ls,Ds),
+    append(D0,Ds,D).
+    
 
 :- multifile portray/1.
 portray(@(X:'')) :- !,

@@ -5,25 +5,25 @@
 diagnosis(P,'fever') :- fever(P,T).
 diagnosis(P,'no fever') :- no_fever(P,T).
 
-# pred fever(P,T) :: 'There is a fever for @(P:patient) with @(T:temperature)'.
-# pred not fever(P,T) :: 'There is no fever for @(P:patient) with @(T:temperature)'.
+# pred fever(P,T) :: 'There is a fever for @(P:patient), with @(T:temperature)'.
+# pred not fever(P,T) :: 'There is no fever for @(P:patient), with @(T:temperature)'.
 fever(Patient,Temp) :-
     temp(Patient,Temp),
     high_temp(Temp),
     not no_fever(Patient,Temp).
 
-# pred no_fever(P,T) :: 'For @(P:patient) with @(T:temperature) we conclude that there is no fever'.
-# pred not no_fever(P,T) :: 'For @(P:patient) with @(T:temperature) we conclude that there is a fever'.
+# pred no_fever(P,T) :: 'For @(P:patient), with @(T:temperature) we conclude that there is no fever'.
+# pred not no_fever(P,T) :: 'For @(P:patient), with @(T:temperature) we conclude that there is a fever'.
 no_fever(Patient,Temp) :-
     temp(Patient,Temp),
     not high_temp(Temp),
     not fever(Patient,Temp).
 
-# pred high_temp(T) :: 'A temperature with @(T:value) is high'.
-# pred not high_temp(T) :: 'A temperature with @(T:value) is not high'.
+# pred high_temp(T) :: 'It is high @(T:temperature)'.
+# pred not high_temp(T) :: 'It is not high @(T:temperature)'.
 high_temp(T) :- T #> 38.
 
-# pred temp(P,T) :: 'The temperature for @(P:patient) has @(T:value)'.
+# pred temp(P,T) :: 'For @(P:patient) we assume @(T:temperature)'.
 temp(P,T) :- reg_temp(P,T,D), recent_reg(D).
 temp(P,T) :- not reg_person(P).
 
@@ -47,3 +47,8 @@ reg_person(P) :- reg_temp(P,T,D), recent_reg(D).
 ?- diagnosis('Juan',T).    %% Juan has no fever
 ?- diagnosis('Pedro',T).   %% Pedro has fever
 ?- diagnosis('Jose',T).    %% The reg of Peter is old
+
+
+:- s(X).
+
+s(1) :- b(34).

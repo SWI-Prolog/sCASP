@@ -26,6 +26,7 @@ temp(P,T) :- not reg_person(P).
 reg_temp('Juan',37).
 reg_temp('Pedro',39).
 
+
 # pred not reg_person(Person) :: 'There are no registerd temperature of @(Person)'.
 reg_person(P) :- reg_temp(P,T).
 

@@ -45,7 +45,7 @@ $(A) = fever ?<br>
 <h3>Model</h3>
 
 MODEL:
-diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  not reg_person(Jose) ,  not reg_temp(Jose,C │{C \= 37,C \= 39},D) ,  not reg_temp(Jose,37,E │{E \= -6}) ,  reg_temp(Jose,37,-6) ,  not recent_reg(-6) ,  not reg_temp(Jose,39,F │{F \= -4}) ,  reg_temp(Jose,39,-4) ,  not recent_reg(-4) ,  high_temp(B │{B #> 38}) ,  not no_fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  high_temp(B │{B #> 38})
+diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  not reg_person(Jose) ,  not reg_temp(Jose,C │{C \= 37,C \= 39},D) ,  not reg_temp(Jose,37,E │{E \= -6}) ,  reg_temp(Jose,37,-6) ,  not recent_reg(-6) ,  not reg_temp(Jose,39,F │{F \= -4}) ,  reg_temp(Jose,39,-4) ,  not recent_reg(-4) ,  high_temp(B │{B #> 38}) ,  not no_fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  high_temp(B │{B #> 38}) ,  not s(G │{G \= 1}) ,  not s(1)
 
 <br><br>
 <h3> Justification <button onclick="expand()">Expand All</button><button onclick="collapse()">Collapse All</button></h3>
@@ -54,31 +54,31 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
        The diagnosis of the patient Jose is fever
        <ul>
          <li> 
-           There is a fever for the patient Jose with a temperature B greater than 38
+           There is a fever for the patient Jose, with a temperature B greater than 38
            <ul>
              <li> 
-               The temperature for the patient Jose has a value B greater than 38
+               For the patient Jose we assume a temperature B greater than 38
                <ul>
                  <li> 
                    There is no valid register for the patient Jose
                    <ul>
                      <li> 
-                       First: There is no valid register for the patient Jose
+                       1) There is no valid register for the patient Jose
                        <ul>
                          <li> 
-                           For any possible value:		 forall(G,forall(H,not o_reg_person.1(Jose,G,H)))
+                           For any possible temperature
                            <ul>
                              <li> 
-                               For any possible value:		 forall(H,not o_reg_person.1(Jose,C │{C \= 37,C \= 39},H))
+                               For any possible time point
                                <ul>
                                  <li> 
-                                   First: For this conclusion there is no text		 not reg_person(Jose,C │{C \= 37,C \= 39},D)
+                                   There is no valid register for the patient Jose, for a temperature C not equal 37, and not equal 39, for any time point
                                    <ul>
                                      <li> 
                                        There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
                                        <ul>
                                          <li> 
-                                           First: There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           1) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
                                            <ul>
                                              <li> 
                                                Jose is not equal Juan
@@ -86,7 +86,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Second: There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           2) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
                                            <ul>
                                              <li> 
                                                Jose is not equal Pedro
@@ -94,7 +94,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Third: There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           3) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
                                            <ul>
                                              <li> 
                                                Jose is Jose
@@ -105,7 +105,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Then (4): There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                           4) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
                                            <ul>
                                              <li> 
                                                Jose is Jose
@@ -122,16 +122,16 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                              </ul> 
                              </li> 
                              <li> 
-                               For any possible value:		 forall(H,not o_reg_person.1(Jose,37,H))
+                               For any possible time point
                                <ul>
                                  <li> 
-                                   First: For this conclusion there is no text		 not reg_person(Jose,37,E │{E \= -6})
+                                   There is no valid register for the patient Jose, for the temperature 37, for a time point E not equal -6
                                    <ul>
                                      <li> 
                                        There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
                                        <ul>
                                          <li> 
-                                           First: There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           1) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
                                            <ul>
                                              <li> 
                                                Jose is not equal Juan
@@ -139,7 +139,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Second: There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           2) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
                                            <ul>
                                              <li> 
                                                Jose is not equal Pedro
@@ -147,7 +147,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Third: There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           3) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
                                            <ul>
                                              <li> 
                                                Jose is Jose
@@ -158,7 +158,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Then (4): There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                           4) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
                                            <ul>
                                              <li> 
                                                Jose is Jose
@@ -176,7 +176,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   First: For this conclusion there is no text		 not reg_person(Jose,37,-6)
+                                   There is no valid register for the patient Jose, for the temperature 37, for the time point -6
                                    <ul>
                                      <li> 
                                        There is a register, for the patient Jose, with the temperature 37, at the time point -6
@@ -185,7 +185,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                        A register at the time point -6 is not recent
                                        <ul>
                                          <li> 
-                                           First: A register at the time point -6 is not recent
+                                           1) A register at the time point -6 is not recent
                                            <ul>
                                              <li> 
                                                -6 is less or equal -3
@@ -199,16 +199,16 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                              </ul> 
                              </li> 
                              <li> 
-                               For any possible value:		 forall(H,not o_reg_person.1(Jose,39,H))
+                               For any possible time point
                                <ul>
                                  <li> 
-                                   First: For this conclusion there is no text		 not reg_person(Jose,39,F │{F \= -4})
+                                   There is no valid register for the patient Jose, for the temperature 39, for a time point F not equal -4
                                    <ul>
                                      <li> 
                                        There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
                                        <ul>
                                          <li> 
-                                           First: There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           1) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
                                            <ul>
                                              <li> 
                                                Jose is not equal Juan
@@ -216,7 +216,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Second: There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           2) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
                                            <ul>
                                              <li> 
                                                Jose is not equal Pedro
@@ -224,7 +224,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Third: There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           3) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
                                            <ul>
                                              <li> 
                                                Jose is Jose
@@ -238,7 +238,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           Then (4): There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                           4) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
                                            <ul>
                                              <li> 
                                                Jose is Jose
@@ -253,7 +253,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   First: For this conclusion there is no text		 not reg_person(Jose,39,-4)
+                                   There is no valid register for the patient Jose, for the temperature 39, for the time point -4
                                    <ul>
                                      <li> 
                                        There is a register, for the patient Jose, with the temperature 39, at the time point -4
@@ -262,7 +262,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                                        A register at the time point -4 is not recent
                                        <ul>
                                          <li> 
-                                           First: A register at the time point -4 is not recent
+                                           1) A register at the time point -4 is not recent
                                            <ul>
                                              <li> 
                                                -4 is less or equal -3
@@ -284,7 +284,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
              </ul> 
              </li> 
              <li> 
-               A temperature with a value B greater than 38 is high
+               It is high a temperature B greater than 38
                <ul>
                  <li> 
                    B is greater than 38
@@ -292,13 +292,13 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
              </ul> 
              </li> 
              <li> 
-               For the patient Jose with a temperature B greater than 38 we conclude that there is a fever
+               For the patient Jose, with a temperature B greater than 38 we conclude that there is a fever
                <ul>
                  <li> 
-                   First: For the patient Jose with a temperature B greater than 38 we conclude that there is a fever
+                   1) For the patient Jose, with a temperature B greater than 38 we conclude that there is a fever
                    <ul>
                      <li> 
-                       The temperature for the patient Jose has a value B greater than 38
+                       For the patient Jose we assume a temperature B greater than 38
                        <ul>
                          <li> 
                            There is no valid register for the patient Jose, as we saw before
@@ -306,7 +306,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                      </ul> 
                      </li> 
                      <li> 
-                       A temperature with a value B greater than 38 is high
+                       It is high a temperature B greater than 38
                        <ul>
                          <li> 
                            B is greater than 38
@@ -325,8 +325,63 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
        The global constraints hold
        <ul>
          <li> 
-           There are no global constraints to be checked
-
+           Let's see each non-monotonic-rule
+           <ul>
+             <li> 
+               For the rule number 1 
+               <ul>
+                 <li> 
+                   There is no contradiction 
+                   <ul>
+                     <li> 
+                       For any possible value
+                       <ul>
+                         <li> 
+                           There is no contradiction, for G not equal 1
+                           <ul>
+                             <li> 
+                               There is no conclusion of s, for G not equal 1
+                               <ul>
+                                 <li> 
+                                   1) There is no conclusion of s, for G not equal 1
+                                   <ul>
+                                     <li> 
+                                       G is not equal 1
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         <li> 
+                           There is no contradiction, for 1
+                           <ul>
+                             <li> 
+                               There is no conclusion of s, for 1
+                               <ul>
+                                 <li> 
+                                   1) There is no conclusion of s, for 1
+                                   <ul>
+                                     <li> 
+                                       1 is 1
+                                     </li>
+                                     <li> 
+                                       There is no conclusion of b, for 34
+                                     </li> 
+                                 </ul> 
+                                 </li> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                     </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+             </ul> 
+             </li> 
+         </ul> 
          </li> 
      </ul> 
      </li> 
