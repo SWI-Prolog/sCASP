@@ -39,7 +39,7 @@ li.tree-opened > .toggler:before {
 diagnosis(Jose,A).
 <br><br>
  <br> 
-$(A) = fever ?<br>
+A = fever ?<br>
 </b>
 <br><br>
 <h3>Model</h3>
@@ -48,8 +48,12 @@ MODEL:
 diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  not reg_person(Jose) ,  not reg_temp(Jose,C │{C \= 37,C \= 39},D) ,  not reg_temp(Jose,37,E │{E \= -6}) ,  reg_temp(Jose,37,-6) ,  not recent_reg(-6) ,  not reg_temp(Jose,39,F │{F \= -4}) ,  reg_temp(Jose,39,-4) ,  not recent_reg(-4) ,  high_temp(B │{B #> 38}) ,  not no_fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  high_temp(B │{B #> 38}) ,  not s(G │{G \= 1}) ,  not s(1)
 
 <br><br>
-<h3> Justification <button onclick="expand()">Expand All</button><button onclick="collapse()">Collapse All</button></h3>
+<h3> Justification <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>
+
+
  <ul class="tree">
+
+
      <li> 
        The diagnosis of the patient Jose is fever
        <ul>
@@ -325,7 +329,7 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
        The global constraints hold
        <ul>
          <li> 
-           Let's see each non-monotonic-rule
+           Let's check the non-monotonic-rules
            <ul>
              <li> 
                For the rule number 1 
@@ -393,8 +397,39 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
   crossorigin="anonymous"></script>
 
 <script type="text/javascript">
-(function($){
-        $.fn.expand = function(options) {
+    (function($){
+        $.fn.depth = function(options,depth) {
+            options = options || {};
+            options.delay = options.delay || 0;
+            
+            this.find("> li").each(function() {
+                e = $(this)
+                var subtree = e.find('> ul');
+
+                if (subtree.length > 0) {
+                    if (depth > 0) {
+                        e.addClass('tree-opened');
+                        e.removeClass('tree-closed');
+
+                        subtree.slideDown(options.delay);
+                        subtree.show(options.delay);
+
+                        subtree.depth(options,depth-1);
+                    } else {
+                        e.removeClass('tree-opened');
+                        e.addClass('tree-closed');
+
+                        subtree.slideUp(options.delay);
+                        subtree.hide(options.delay);
+
+                        subtree.collapse(options);
+                    }
+                }
+            });
+            return true;
+        }
+        
+        $.fn.expand = function(options,depth) {
             options = options || {};
             options.delay = options.delay || 0;
             
@@ -409,8 +444,9 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
                     subtree.slideDown(options.delay);
                     subtree.show(options.delay);
 
-                    subtree.expand(options);
-                } 
+                    subtree.expand(options,depth+1);
+                }
+                g_depth=Math.max(g_depth,depth);
             });
             return true;
         }
@@ -435,104 +471,122 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
             });
             return true;
         }
+        
+        $.fn.treemenu = function(options) {
+            options = options || {};
+            options.delay = options.delay || 0;
+            options.openActive = options.openActive || false;
+            options.closeOther = options.closeOther || false;
+            options.activeSelector = options.activeSelector || ".active";
 
-    $.fn.treemenu = function(options) {
-        options = options || {};
-        options.delay = options.delay || 0;
-        options.openActive = options.openActive || false;
-        options.closeOther = options.closeOther || false;
-        options.activeSelector = options.activeSelector || ".active";
+            this.addClass("treemenu");
 
-        this.addClass("treemenu");
-
-        if (!options.nonroot) {
-            this.addClass("treemenu-root");
-        }
-
-        options.nonroot = true;
-
-        this.find("> li").each(function() {
-            e = $(this);
-            var subtree = e.find('> ul');
-            var button = e.find('.toggler').eq(0);
-
-            if(button.length == 0) {
-                // create toggler
-                var button = $('<span>');
-                button.addClass('toggler');
-                e.prepend(button);
+            if (!options.nonroot) {
+                this.addClass("treemenu-root");
             }
 
-            if(subtree.length > 0) {
-                subtree.hide();
+            options.nonroot = true;
 
-                e.addClass('tree-closed');
+            this.find("> li").each(function() {
+                e = $(this);
+                var subtree = e.find('> ul');
+                var button = e.find('.toggler').eq(0);
 
-                e.find(button).click(function() {
-                    var li = $(this).parent('li');
+                if(button.length == 0) {
+                    // create toggler
+                    var button = $('<span>');
+                    button.addClass('toggler');
+                    e.prepend(button);
+                }
 
-                    if (options.closeOther && li.hasClass('tree-closed')) {
-                        var siblings = li.parent('ul').find("li:not(.tree-empty)");
-                        siblings.removeClass("tree-opened");
-                        siblings.addClass("tree-closed");
-                        siblings.removeClass(options.activeSelector);
-                        siblings.find('> ul').slideUp(options.delay);
-                    }
+                if(subtree.length > 0) {
+                    subtree.hide();
 
-                    li.find('> ul').slideToggle(options.delay);
-                    li.toggleClass('tree-opened');
-                    li.toggleClass('tree-closed');
-                    li.toggleClass(options.activeSelector);
-                });
+                    e.addClass('tree-closed');
 
-                $(this).find('> ul').treemenu(options);
-            } else {
-                $(this).addClass('tree-empty');
-            }
-        });
+                    e.find(button).click(function() {
+                        var li = $(this).parent('li');
 
-        if (options.openActive) {
-            var cls = this.attr("class");
+                        if (options.closeOther && li.hasClass('tree-closed')) {
+                            var siblings = li.parent('ul').find("li:not(.tree-empty)");
+                            siblings.removeClass("tree-opened");
+                            siblings.addClass("tree-closed");
+                            siblings.removeClass(options.activeSelector);
+                            siblings.find('> ul').slideUp(options.delay);
+                        }
 
-            this.find(options.activeSelector).each(function(){
-                var el = $(this).parent();
+                        li.find('> ul').slideToggle(options.delay);
+                        li.toggleClass('tree-opened');
+                        li.toggleClass('tree-closed');
+                        li.toggleClass(options.activeSelector);
+                    });
 
-                while (el.attr("class") !== cls) {
-                    el.find('> ul').show();
-                    if(el.prop("tagName") === 'UL') {
-                        el.show();
-                    } else if (el.prop("tagName") === 'LI') {
-                        el.removeClass('tree-closed');
-                        el.addClass("tree-opened");
-                        el.show();
-                    }
-
-                    el = el.parent();
+                    $(this).find('> ul').treemenu(options);
+                } else {
+                    $(this).addClass('tree-empty');
                 }
             });
-        }
 
-        return this;
-    }
-})(jQuery);
-</script>
-<script>
+            if (options.openActive) {
+                var cls = this.attr("class");
+
+                this.find(options.activeSelector).each(function(){
+                    var el = $(this).parent();
+
+                    while (el.attr("class") !== cls) {
+                        el.find('> ul').show();
+                        if(el.prop("tagName") === 'UL') {
+                            el.show();
+                        } else if (el.prop("tagName") === 'LI') {
+                            el.removeClass('tree-closed');
+                            el.addClass("tree-opened");
+                            el.show();
+                        }
+
+                        el = el.parent();
+                    }
+                });
+            }
+
+            expand({delay:0},0);
+            max_depth = g_depth;
+            this.collapse({delay:0});
+            g_depth = 0;
+
+            return this;
+        }
+    })(jQuery);
+
+var g_depth = 0;
+var max_depth = 4
+
+function depth(step){
+    g_depth = g_depth + step;
+    g_depth = g_depth < 0 ? 0 : g_depth;
+    g_depth = g_depth > max_depth ? max_depth : g_depth;
+    $(".tree").depth({delay:500},g_depth);
+}
+
 function expand(){
-    $(".tree").expand({delay:1000});
+    g_depth = 0     
+    $(".tree").expand({delay:0},0);
 }
 
 function collapse(){
-    $(".tree").collapse({delay:1000});
+    $(".tree").collapse({delay:0});
+    g_depth = 0;    
 }
+
+$(function(){
+    $(".tree").treemenu({delay:0}).openActive();
+});
+
 </script>
 
- 
 
- <script>
- $(function(){
-        $(".tree").treemenu({delay:100}).openActive();
-    });
- </script>
- 
- </body>
- </html>
+
+ <div style='min-height: 400px'></div>
+
+</body>
+</html>
+

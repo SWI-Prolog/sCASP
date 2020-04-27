@@ -350,7 +350,7 @@ print_s_([A|As],I,I0) :- !,
     ),
     nl,tab(I),
     ( [A|As] == [o_nmr_check,[],[],[]] ->
-        print_human_empty_nmr
+        print_zero_nmr(A)
     ;
         print_human_term(A)
     ),
@@ -361,11 +361,11 @@ print_s_([A|As],I,I0) :- !,
 print_human_term(A) :-
     pr_human_term(A::Human),
     call(Human).
-print_human_empty_nmr :-
+print_zero_nmr(A) :-
     ( current_option(human,on) ->
-        format('There are no global constraints to be checked\n',[])
+        format('There are no non-monotonic-rules to be checked\n',[])
     ;
-        print(o_nmr_check)
+        print(A)
     ).
 
 
@@ -436,7 +436,7 @@ pr_pred_default(Forall        :: Human) :-
         Human = format('For any possible value',[])
     ).
 pr_pred_default(global_constraints :: format('The global constraints hold',[])).
-pr_pred_default(o_nmr_check        :: format('Let\'s see each non-monotonic-rule',[])).
+pr_pred_default(o_nmr_check        :: format('Let\'s check the non-monotonic-rules',[])).
 pr_pred_default(Other              :: format(F,[Name|NArgs])) :-
     ( Other = not(Pre) ->
         F0 = 'There is no conclusion of'
@@ -804,7 +804,6 @@ parse_args([S | Args], Os, [S | Ss]) :-
 
 
 :- use_module('html/html_head').
-:- use_module('html/jquery02').
 :- use_module('html/jquery_tree').
 :- use_module('html/html_tail').
 :- pred print_html(Query, Model, StackOut) #"Generate a html
@@ -832,16 +831,15 @@ print_html(Query, Model, StackOut) :-
             br,br,nl,
             print('<h3>Model</h3>'),nl,
             print_model(Model),nl,
-            br,br,nl,
-            print('<h3> Justification <button onclick="expand()">Expand All</button><button onclick="collapse()">Collapse All</button></h3>\n <ul class="tree">'),
+            br,br,
+            nl,print('<h3> Justification <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>'),nl,nl,
+            nl,print(' <ul class="tree">'),nl,nl,
             print_html_stack(StackOut),
             nl,print('</ul>'),nl,nl,
-            load_jquery(Jquery),
-            print(Jquery),nl,
             load_jquery_tree(Jquery_tree),
-            print(Jquery_tree),nl,
+            print(Jquery_tree),nl,nl,
             load_html_tail(Tail),
-            print(Tail)
+            print(Tail),nl
         ),true,true),
     close_output_file(Stream,Current),
     write(' and END\n'), 
@@ -917,7 +915,7 @@ print_html_stack_([A|As],I,I0) :- !,
     nl,tab(I),print('<li> '),
     nl,tab(I),print('  '),
     ( [A|As] == [o_nmr_check,[],[],[]] ->
-        print_html_empty_nmr
+        print_html_zero_nmr(A)
     ;
         print_html_term(A)
     ),
@@ -926,8 +924,8 @@ print_html_stack_([A|As],I,I0) :- !,
 
 print_html_term(A) :-
     print_human_term(A).
-print_html_empty_nmr :-
-    print_human_empty_nmr.
+print_html_zero_nmr(A) :-
+    print_zero_nmr(A).
 
 
 %% print_html_term(Constraint) :-
