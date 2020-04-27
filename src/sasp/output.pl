@@ -471,6 +471,10 @@ strip_prefixes(Fi, Fo) :-
     atom_chars(Fo, Fc),
     !.
 strip_prefixes(Fi, Fo) :- % '_' prefixes change to 'o_'
+    atom_chars(Fi, ['_','c','_' | Fc]),
+    atom_chars(Fo, ['o', '_','-' | Fc]),
+    !.
+strip_prefixes(Fi, Fo) :- % '_' prefixes change to 'o_'
     atom_chars(Fi, ['_' | Fc]),
     atom_chars(Fo, ['o', '_' | Fc]),
     !.

@@ -44,31 +44,32 @@ A = tweety ?<br>
 <br><br>
 <h3>Model</h3>
 
-flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wounded_bird(tweety) ,  -ab(B │{B\=john,B\=sam}) ,  not ab(B │{B\=john,B\=sam}) ,  not penguin(B │{B\=john,B\=sam}) ,  not wounded_bird(B │{B\=john,B\=sam}) ,  not ab(B │{B\=john,B\=sam}) ,  not penguin(B │{B\=john,B\=sam}) ,  not wounded_bird(B │{B\=john,B\=sam}) ,  not -ab(john) ,  ab(john) ,  wounded_bird(john) ,  not -ab(sam) ,  ab(sam) ,  penguin(sam) ,  -penguin(C │{C\=sam}) ,  not penguin(C │{C\=sam}) ,  not penguin(C │{C\=sam}) ,  not -penguin(sam) ,  -wounded_bird(D │{D\=john}) ,  not wounded_bird(D │{D\=john}) ,  not wounded_bird(D │{D\=john}) ,  not -wounded_bird(john) ,  -bird(E │{E\=john,E\=sam,E\=tweety}) ,  not bird(E │{E\=john,E\=sam,E\=tweety}) ,  not penguin(E │{E\=john,E\=sam,E\=tweety}) ,  not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) ,  not bird(E │{E\=john,E\=sam,E\=tweety}) ,  not penguin(E │{E\=john,E\=sam,E\=tweety}) ,  not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) ,  not -bird(john) ,  bird(john) ,  not -bird(sam) ,  bird(sam) ,  not -bird(tweety) ,  -flies(F │{F\=john,F\=sam,F\=tweety}) ,  -bird(F │{F\=john,F\=sam,F\=tweety}) ,  not bird(F │{F\=john,F\=sam,F\=tweety}) ,  not penguin(F │{F\=john,F\=sam,F\=tweety}) ,  not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) ,  not flies(F │{F\=john,F\=sam,F\=tweety}) ,  not bird(F │{F\=john,F\=sam,F\=tweety}) ,  not penguin(F │{F\=john,F\=sam,F\=tweety}) ,  not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) ,  -flies(john) ,  not flies(john) ,  -flies(sam) ,  not flies(sam) ,  not -flies(tweety)
+MODEL:
+flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wounded_bird(tweety) ,  -ab(B │{B \= john,B \= sam}) ,  not ab(B │{B \= john,B \= sam}) ,  not penguin(B │{B \= john,B \= sam}) ,  not wounded_bird(B │{B \= john,B \= sam}) ,  not ab(B │{B \= john,B \= sam}) ,  not penguin(B │{B \= john,B \= sam}) ,  not wounded_bird(B │{B \= john,B \= sam}) ,  not -ab(john) ,  ab(john) ,  wounded_bird(john) ,  not -ab(sam) ,  ab(sam) ,  penguin(sam) ,  -penguin(C │{C \= sam}) ,  not penguin(C │{C \= sam}) ,  not penguin(C │{C \= sam}) ,  not -penguin(sam) ,  -wounded_bird(D │{D \= john}) ,  not wounded_bird(D │{D \= john}) ,  not wounded_bird(D │{D \= john}) ,  not -wounded_bird(john) ,  -bird(E │{E \= john,E \= sam,E \= tweety}) ,  not bird(E │{E \= john,E \= sam,E \= tweety}) ,  not penguin(E │{E \= john,E \= sam,E \= tweety}) ,  not wounded_bird(E │{E \= john,E \= sam,E \= tweety}) ,  not bird(E │{E \= john,E \= sam,E \= tweety}) ,  not penguin(E │{E \= john,E \= sam,E \= tweety}) ,  not wounded_bird(E │{E \= john,E \= sam,E \= tweety}) ,  not -bird(john) ,  bird(john) ,  not -bird(sam) ,  bird(sam) ,  not -bird(tweety) ,  -flies(F │{F \= john,F \= sam,F \= tweety}) ,  -bird(F │{F \= john,F \= sam,F \= tweety}) ,  not bird(F │{F \= john,F \= sam,F \= tweety}) ,  not penguin(F │{F \= john,F \= sam,F \= tweety}) ,  not wounded_bird(F │{F \= john,F \= sam,F \= tweety}) ,  not flies(F │{F \= john,F \= sam,F \= tweety}) ,  not bird(F │{F \= john,F \= sam,F \= tweety}) ,  not penguin(F │{F \= john,F \= sam,F \= tweety}) ,  not wounded_bird(F │{F \= john,F \= sam,F \= tweety}) ,  -flies(john) ,  not flies(john) ,  -flies(sam) ,  not flies(sam) ,  not -flies(tweety)
 
 <br><br>
 <h3> Justification <button onclick="expand()">Expand All</button><button onclick="collapse()">Collapse All</button></h3>
  <ul class="tree">
      <li> 
-       flies(tweety) :-
+       There is a conclusion of flies, for tweety
        <ul>
          <li> 
-           bird(tweety),
+           There is a conclusion of bird, for tweety
          </li>
          <li> 
-           not ab(tweety) :-
+           There is no conclusion of ab, for tweety
            <ul>
              <li> 
-               not o_ab1(tweety) :-
+               1) There is no conclusion of ab, for tweety
                <ul>
                  <li> 
-                   not penguin(tweety) :-
+                   There is no conclusion of penguin, for tweety
                    <ul>
                      <li> 
-                       not o_penguin1(tweety) :-
+                       1) There is no conclusion of penguin, for tweety
                        <ul>
                          <li> 
-                           tweety \= sam.
+                           tweety is not equal sam
                          </li> 
                      </ul> 
                      </li> 
@@ -77,16 +78,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
              </ul> 
              </li> 
              <li> 
-               not o_ab2(tweety) :-
+               2) There is no conclusion of ab, for tweety
                <ul>
                  <li> 
-                   not wounded_bird(tweety) :-
+                   There is no conclusion of wounded_bird, for tweety
                    <ul>
                      <li> 
-                       not o_wounded_bird1(tweety) :-
+                       1) There is no conclusion of wounded_bird, for tweety
                        <ul>
                          <li> 
-                           tweety \= john.
+                           tweety is not equal john
                          </li> 
                      </ul> 
                      </li> 
@@ -99,40 +100,40 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
      </ul> 
      </li> 
      <li> 
-       add_to_query :-
+       The global constraints hold
        <ul>
          <li> 
-           o_nmr_check :-
+           Let's see each non-monotonic-rule
            <ul>
              <li> 
-               not o_chk1 :-
+               For the rule number 1 
                <ul>
                  <li> 
-                   not o__chk11 :-
+                   There is no contradiction 
                    <ul>
                      <li> 
-                       forall(G,not o__chk11(G)) :-
+                       For any possible value
                        <ul>
                          <li> 
-                           not o__chk11(B │{B\=john,B\=sam}) :-
+                           There is no contradiction, for B not equal john, and not equal sam
                            <ul>
                              <li> 
-                               -ab(B │{B\=john,B\=sam}) :-
+                               There is a conclusion of -ab, for B not equal john, and not equal sam
                                <ul>
                                  <li> 
-                                   not ab(B │{B\=john,B\=sam}) :-
+                                   There is no conclusion of ab, for B not equal john, and not equal sam
                                    <ul>
                                      <li> 
-                                       not o_ab1(B │{B\=john,B\=sam}) :-
+                                       1) There is no conclusion of ab, for B not equal john, and not equal sam
                                        <ul>
                                          <li> 
-                                           not penguin(B │{B\=john,B\=sam}) :-
+                                           There is no conclusion of penguin, for B not equal john, and not equal sam
                                            <ul>
                                              <li> 
-                                               not o_penguin1(B │{B\=john,B\=sam}) :-
+                                               1) There is no conclusion of penguin, for B not equal john, and not equal sam
                                                <ul>
                                                  <li> 
-                                                   B \= sam.
+                                                   B is not equal sam
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -141,16 +142,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_ab2(B │{B\=john,B\=sam}) :-
+                                       2) There is no conclusion of ab, for B not equal john, and not equal sam
                                        <ul>
                                          <li> 
-                                           not wounded_bird(B │{B\=john,B\=sam}) :-
+                                           There is no conclusion of wounded_bird, for B not equal john, and not equal sam
                                            <ul>
                                              <li> 
-                                               not o_wounded_bird1(B │{B\=john,B\=sam}) :-
+                                               1) There is no conclusion of wounded_bird, for B not equal john, and not equal sam
                                                <ul>
                                                  <li> 
-                                                   B \= john.
+                                                   B is not equal john
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -163,19 +164,19 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                              </ul> 
                              </li> 
                              <li> 
-                               not ab(B │{B\=john,B\=sam}) :-
+                               There is no conclusion of ab, for B not equal john, and not equal sam
                                <ul>
                                  <li> 
-                                   not o_ab1(B │{B\=john,B\=sam}) :-
+                                   1) There is no conclusion of ab, for B not equal john, and not equal sam
                                    <ul>
                                      <li> 
-                                       not penguin(B │{B\=john,B\=sam}) :-
+                                       There is no conclusion of penguin, for B not equal john, and not equal sam
                                        <ul>
                                          <li> 
-                                           not o_penguin1(B │{B\=john,B\=sam}) :-
+                                           1) There is no conclusion of penguin, for B not equal john, and not equal sam
                                            <ul>
                                              <li> 
-                                               B \= sam.
+                                               B is not equal sam
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -184,16 +185,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   not o_ab2(B │{B\=john,B\=sam}) :-
+                                   2) There is no conclusion of ab, for B not equal john, and not equal sam
                                    <ul>
                                      <li> 
-                                       not wounded_bird(B │{B\=john,B\=sam}) :-
+                                       There is no conclusion of wounded_bird, for B not equal john, and not equal sam
                                        <ul>
                                          <li> 
-                                           not o_wounded_bird1(B │{B\=john,B\=sam}) :-
+                                           1) There is no conclusion of wounded_bird, for B not equal john, and not equal sam
                                            <ul>
                                              <li> 
-                                               B \= john.
+                                               B is not equal john
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -206,19 +207,19 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk11(john) :-
+                           There is no contradiction, for john
                            <ul>
                              <li> 
-                               not -ab(john) :-
+                               There is no conclusion of -ab, for john
                                <ul>
                                  <li> 
-                                   not o_c_ab1(john) :-
+                                   1) There is no conclusion of -ab, for john
                                    <ul>
                                      <li> 
-                                       ab(john) :-
+                                       There is a conclusion of ab, for john
                                        <ul>
                                          <li> 
-                                           wounded_bird(john).
+                                           There is a conclusion of wounded_bird, for john
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -229,19 +230,19 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk11(sam) :-
+                           There is no contradiction, for sam
                            <ul>
                              <li> 
-                               not -ab(sam) :-
+                               There is no conclusion of -ab, for sam
                                <ul>
                                  <li> 
-                                   not o_c_ab1(sam) :-
+                                   1) There is no conclusion of -ab, for sam
                                    <ul>
                                      <li> 
-                                       ab(sam) :-
+                                       There is a conclusion of ab, for sam
                                        <ul>
                                          <li> 
-                                           penguin(sam).
+                                           There is a conclusion of penguin, for sam
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -258,28 +259,28 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
              </ul> 
              </li> 
              <li> 
-               not o_chk2 :-
+               For the rule number 2 
                <ul>
                  <li> 
-                   not o__chk21 :-
+                   There is no contradiction 
                    <ul>
                      <li> 
-                       forall(H,not o__chk21(H)) :-
+                       For any possible value
                        <ul>
                          <li> 
-                           not o__chk21(C │{C\=sam}) :-
+                           There is no contradiction, for C not equal sam
                            <ul>
                              <li> 
-                               -penguin(C │{C\=sam}) :-
+                               There is a conclusion of -penguin, for C not equal sam
                                <ul>
                                  <li> 
-                                   not penguin(C │{C\=sam}) :-
+                                   There is no conclusion of penguin, for C not equal sam
                                    <ul>
                                      <li> 
-                                       not o_penguin1(C │{C\=sam}) :-
+                                       1) There is no conclusion of penguin, for C not equal sam
                                        <ul>
                                          <li> 
-                                           C \= sam.
+                                           C is not equal sam
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -288,13 +289,13 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                              </ul> 
                              </li> 
                              <li> 
-                               not penguin(C │{C\=sam}) :-
+                               There is no conclusion of penguin, for C not equal sam
                                <ul>
                                  <li> 
-                                   not o_penguin1(C │{C\=sam}) :-
+                                   1) There is no conclusion of penguin, for C not equal sam
                                    <ul>
                                      <li> 
-                                       C \= sam.
+                                       C is not equal sam
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -303,16 +304,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk21(sam) :-
+                           There is no contradiction, for sam
                            <ul>
                              <li> 
-                               not -penguin(sam) :-
+                               There is no conclusion of -penguin, for sam
                                <ul>
                                  <li> 
-                                   not o_c_penguin1(sam) :-
+                                   1) There is no conclusion of -penguin, for sam
                                    <ul>
                                      <li> 
-                                       proved(penguin(sam)).
+                                       There is a conclusion of penguin, for sam, as we saw before
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -327,28 +328,28 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
              </ul> 
              </li> 
              <li> 
-               not o_chk3 :-
+               For the rule number 3 
                <ul>
                  <li> 
-                   not o__chk31 :-
+                   There is no contradiction 
                    <ul>
                      <li> 
-                       forall(I,not o__chk31(I)) :-
+                       For any possible value
                        <ul>
                          <li> 
-                           not o__chk31(D │{D\=john}) :-
+                           There is no contradiction, for D not equal john
                            <ul>
                              <li> 
-                               -wounded_bird(D │{D\=john}) :-
+                               There is a conclusion of -wounded_bird, for D not equal john
                                <ul>
                                  <li> 
-                                   not wounded_bird(D │{D\=john}) :-
+                                   There is no conclusion of wounded_bird, for D not equal john
                                    <ul>
                                      <li> 
-                                       not o_wounded_bird1(D │{D\=john}) :-
+                                       1) There is no conclusion of wounded_bird, for D not equal john
                                        <ul>
                                          <li> 
-                                           D \= john.
+                                           D is not equal john
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -357,13 +358,13 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                              </ul> 
                              </li> 
                              <li> 
-                               not wounded_bird(D │{D\=john}) :-
+                               There is no conclusion of wounded_bird, for D not equal john
                                <ul>
                                  <li> 
-                                   not o_wounded_bird1(D │{D\=john}) :-
+                                   1) There is no conclusion of wounded_bird, for D not equal john
                                    <ul>
                                      <li> 
-                                       D \= john.
+                                       D is not equal john
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -372,16 +373,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk31(john) :-
+                           There is no contradiction, for john
                            <ul>
                              <li> 
-                               not -wounded_bird(john) :-
+                               There is no conclusion of -wounded_bird, for john
                                <ul>
                                  <li> 
-                                   not o_c_wounded_bird1(john) :-
+                                   1) There is no conclusion of -wounded_bird, for john
                                    <ul>
                                      <li> 
-                                       proved(wounded_bird(john)).
+                                       There is a conclusion of wounded_bird, for john, as we saw before
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -396,42 +397,42 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
              </ul> 
              </li> 
              <li> 
-               not o_chk4 :-
+               For the rule number 4 
                <ul>
                  <li> 
-                   not o__chk41 :-
+                   There is no contradiction 
                    <ul>
                      <li> 
-                       forall(J,not o__chk41(J)) :-
+                       For any possible value
                        <ul>
                          <li> 
-                           not o__chk41(E │{E\=john,E\=sam,E\=tweety}) :-
+                           There is no contradiction, for E not equal john, not equal sam, and not equal tweety
                            <ul>
                              <li> 
-                               -bird(E │{E\=john,E\=sam,E\=tweety}) :-
+                               There is a conclusion of -bird, for E not equal john, not equal sam, and not equal tweety
                                <ul>
                                  <li> 
-                                   not bird(E │{E\=john,E\=sam,E\=tweety}) :-
+                                   There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                    <ul>
                                      <li> 
-                                       not o_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
+                                       1) There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                        <ul>
                                          <li> 
-                                           E \= tweety.
+                                           E is not equal tweety
                                          </li> 
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_bird2(E │{E\=john,E\=sam,E\=tweety}) :-
+                                       2) There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                        <ul>
                                          <li> 
-                                           not penguin(E │{E\=john,E\=sam,E\=tweety}) :-
+                                           There is no conclusion of penguin, for E not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               not o_penguin1(E │{E\=john,E\=sam,E\=tweety}) :-
+                                               1) There is no conclusion of penguin, for E not equal john, not equal sam, and not equal tweety
                                                <ul>
                                                  <li> 
-                                                   E \= sam.
+                                                   E is not equal sam
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -440,16 +441,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                                      </ul> 
                                      </li> 
                                      <li> 
-                                       not o_bird3(E │{E\=john,E\=sam,E\=tweety}) :-
+                                       3) There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                        <ul>
                                          <li> 
-                                           not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) :-
+                                           There is no conclusion of wounded_bird, for E not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               not o_wounded_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
+                                               1) There is no conclusion of wounded_bird, for E not equal john, not equal sam, and not equal tweety
                                                <ul>
                                                  <li> 
-                                                   E \= john.
+                                                   E is not equal john
                                                  </li> 
                                              </ul> 
                                              </li> 
@@ -462,27 +463,27 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                              </ul> 
                              </li> 
                              <li> 
-                               not bird(E │{E\=john,E\=sam,E\=tweety}) :-
+                               There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                <ul>
                                  <li> 
-                                   not o_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
+                                   1) There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                    <ul>
                                      <li> 
-                                       E \= tweety.
+                                       E is not equal tweety
                                      </li> 
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   not o_bird2(E │{E\=john,E\=sam,E\=tweety}) :-
+                                   2) There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                    <ul>
                                      <li> 
-                                       not penguin(E │{E\=john,E\=sam,E\=tweety}) :-
+                                       There is no conclusion of penguin, for E not equal john, not equal sam, and not equal tweety
                                        <ul>
                                          <li> 
-                                           not o_penguin1(E │{E\=john,E\=sam,E\=tweety}) :-
+                                           1) There is no conclusion of penguin, for E not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               E \= sam.
+                                               E is not equal sam
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -491,16 +492,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   not o_bird3(E │{E\=john,E\=sam,E\=tweety}) :-
+                                   3) There is no conclusion of bird, for E not equal john, not equal sam, and not equal tweety
                                    <ul>
                                      <li> 
-                                       not wounded_bird(E │{E\=john,E\=sam,E\=tweety}) :-
+                                       There is no conclusion of wounded_bird, for E not equal john, not equal sam, and not equal tweety
                                        <ul>
                                          <li> 
-                                           not o_wounded_bird1(E │{E\=john,E\=sam,E\=tweety}) :-
+                                           1) There is no conclusion of wounded_bird, for E not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               E \= john.
+                                               E is not equal john
                                              </li> 
                                          </ul> 
                                          </li> 
@@ -513,19 +514,19 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk41(john) :-
+                           There is no contradiction, for john
                            <ul>
                              <li> 
-                               not -bird(john) :-
+                               There is no conclusion of -bird, for john
                                <ul>
                                  <li> 
-                                   not o_c_bird1(john) :-
+                                   1) There is no conclusion of -bird, for john
                                    <ul>
                                      <li> 
-                                       bird(john) :-
+                                       There is a conclusion of bird, for john
                                        <ul>
                                          <li> 
-                                           proved(wounded_bird(john)).
+                                           There is a conclusion of wounded_bird, for john, as we saw before
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -536,19 +537,19 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk41(sam) :-
+                           There is no contradiction, for sam
                            <ul>
                              <li> 
-                               not -bird(sam) :-
+                               There is no conclusion of -bird, for sam
                                <ul>
                                  <li> 
-                                   not o_c_bird1(sam) :-
+                                   1) There is no conclusion of -bird, for sam
                                    <ul>
                                      <li> 
-                                       bird(sam) :-
+                                       There is a conclusion of bird, for sam
                                        <ul>
                                          <li> 
-                                           proved(penguin(sam)).
+                                           There is a conclusion of penguin, for sam, as we saw before
                                          </li> 
                                      </ul> 
                                      </li> 
@@ -559,16 +560,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk41(tweety) :-
+                           There is no contradiction, for tweety
                            <ul>
                              <li> 
-                               not -bird(tweety) :-
+                               There is no conclusion of -bird, for tweety
                                <ul>
                                  <li> 
-                                   not o_c_bird1(tweety) :-
+                                   1) There is no conclusion of -bird, for tweety
                                    <ul>
                                      <li> 
-                                       proved(bird(tweety)).
+                                       There is a conclusion of bird, for tweety, as we saw before
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -583,45 +584,45 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
              </ul> 
              </li> 
              <li> 
-               not o_chk5 :-
+               For the rule number 5 
                <ul>
                  <li> 
-                   not o__chk51 :-
+                   There is no contradiction 
                    <ul>
                      <li> 
-                       forall(K,not o__chk51(K)) :-
+                       For any possible value
                        <ul>
                          <li> 
-                           not o__chk51(F │{F\=john,F\=sam,F\=tweety}) :-
+                           There is no contradiction, for F not equal john, not equal sam, and not equal tweety
                            <ul>
                              <li> 
-                               -flies(F │{F\=john,F\=sam,F\=tweety}) :-
+                               There is a conclusion of -flies, for F not equal john, not equal sam, and not equal tweety
                                <ul>
                                  <li> 
-                                   -bird(F │{F\=john,F\=sam,F\=tweety}) :-
+                                   There is a conclusion of -bird, for F not equal john, not equal sam, and not equal tweety
                                    <ul>
                                      <li> 
-                                       not bird(F │{F\=john,F\=sam,F\=tweety}) :-
+                                       There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                        <ul>
                                          <li> 
-                                           not o_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
+                                           1) There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               F \= tweety.
+                                               F is not equal tweety
                                              </li> 
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird2(F │{F\=john,F\=sam,F\=tweety}) :-
+                                           2) There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               not penguin(F │{F\=john,F\=sam,F\=tweety}) :-
+                                               There is no conclusion of penguin, for F not equal john, not equal sam, and not equal tweety
                                                <ul>
                                                  <li> 
-                                                   not o_penguin1(F │{F\=john,F\=sam,F\=tweety}) :-
+                                                   1) There is no conclusion of penguin, for F not equal john, not equal sam, and not equal tweety
                                                    <ul>
                                                      <li> 
-                                                       F \= sam.
+                                                       F is not equal sam
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -630,16 +631,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird3(F │{F\=john,F\=sam,F\=tweety}) :-
+                                           3) There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) :-
+                                               There is no conclusion of wounded_bird, for F not equal john, not equal sam, and not equal tweety
                                                <ul>
                                                  <li> 
-                                                   not o_wounded_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
+                                                   1) There is no conclusion of wounded_bird, for F not equal john, not equal sam, and not equal tweety
                                                    <ul>
                                                      <li> 
-                                                       F \= john.
+                                                       F is not equal john
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -654,33 +655,33 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                              </ul> 
                              </li> 
                              <li> 
-                               not flies(F │{F\=john,F\=sam,F\=tweety}) :-
+                               There is no conclusion of flies, for F not equal john, not equal sam, and not equal tweety
                                <ul>
                                  <li> 
-                                   not o_flies1(F │{F\=john,F\=sam,F\=tweety}) :-
+                                   1) There is no conclusion of flies, for F not equal john, not equal sam, and not equal tweety
                                    <ul>
                                      <li> 
-                                       not bird(F │{F\=john,F\=sam,F\=tweety}) :-
+                                       There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                        <ul>
                                          <li> 
-                                           not o_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
+                                           1) There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               F \= tweety.
+                                               F is not equal tweety
                                              </li> 
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird2(F │{F\=john,F\=sam,F\=tweety}) :-
+                                           2) There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               not penguin(F │{F\=john,F\=sam,F\=tweety}) :-
+                                               There is no conclusion of penguin, for F not equal john, not equal sam, and not equal tweety
                                                <ul>
                                                  <li> 
-                                                   not o_penguin1(F │{F\=john,F\=sam,F\=tweety}) :-
+                                                   1) There is no conclusion of penguin, for F not equal john, not equal sam, and not equal tweety
                                                    <ul>
                                                      <li> 
-                                                       F \= sam.
+                                                       F is not equal sam
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -689,16 +690,16 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                                          </ul> 
                                          </li> 
                                          <li> 
-                                           not o_bird3(F │{F\=john,F\=sam,F\=tweety}) :-
+                                           3) There is no conclusion of bird, for F not equal john, not equal sam, and not equal tweety
                                            <ul>
                                              <li> 
-                                               not wounded_bird(F │{F\=john,F\=sam,F\=tweety}) :-
+                                               There is no conclusion of wounded_bird, for F not equal john, not equal sam, and not equal tweety
                                                <ul>
                                                  <li> 
-                                                   not o_wounded_bird1(F │{F\=john,F\=sam,F\=tweety}) :-
+                                                   1) There is no conclusion of wounded_bird, for F not equal john, not equal sam, and not equal tweety
                                                    <ul>
                                                      <li> 
-                                                       F \= john.
+                                                       F is not equal john
                                                      </li> 
                                                  </ul> 
                                                  </li> 
@@ -715,27 +716,27 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk51(john) :-
+                           There is no contradiction, for john
                            <ul>
                              <li> 
-                               -flies(john) :-
+                               There is a conclusion of -flies, for john
                                <ul>
                                  <li> 
-                                   proved(ab(john)).
+                                   There is a conclusion of ab, for john, as we saw before
                                  </li> 
                              </ul> 
                              </li> 
                              <li> 
-                               not flies(john) :-
+                               There is no conclusion of flies, for john
                                <ul>
                                  <li> 
-                                   not o_flies1(john) :-
+                                   1) There is no conclusion of flies, for john
                                    <ul>
                                      <li> 
-                                       proved(bird(john)),
+                                       There is a conclusion of bird, for john, as we saw before
                                      </li>
                                      <li> 
-                                       proved(ab(john)).
+                                       There is a conclusion of ab, for john, as we saw before
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -744,27 +745,27 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk51(sam) :-
+                           There is no contradiction, for sam
                            <ul>
                              <li> 
-                               -flies(sam) :-
+                               There is a conclusion of -flies, for sam
                                <ul>
                                  <li> 
-                                   proved(ab(sam)).
+                                   There is a conclusion of ab, for sam, as we saw before
                                  </li> 
                              </ul> 
                              </li> 
                              <li> 
-                               not flies(sam) :-
+                               There is no conclusion of flies, for sam
                                <ul>
                                  <li> 
-                                   not o_flies1(sam) :-
+                                   1) There is no conclusion of flies, for sam
                                    <ul>
                                      <li> 
-                                       proved(bird(sam)),
+                                       There is a conclusion of bird, for sam, as we saw before
                                      </li>
                                      <li> 
-                                       proved(ab(sam)).
+                                       There is a conclusion of ab, for sam, as we saw before
                                      </li> 
                                  </ul> 
                                  </li> 
@@ -773,24 +774,24 @@ flies(tweety) ,  bird(tweety) ,  not ab(tweety) ,  not penguin(tweety) ,  not wo
                          </ul> 
                          </li> 
                          <li> 
-                           not o__chk51(tweety) :-
+                           There is no contradiction, for tweety
                            <ul>
                              <li> 
-                               not -flies(tweety) :-
+                               There is no conclusion of -flies, for tweety
                                <ul>
                                  <li> 
-                                   not o_c_flies1(tweety) :-
+                                   1) There is no conclusion of -flies, for tweety
                                    <ul>
                                      <li> 
-                                       proved(not ab(tweety)).
+                                       There is no conclusion of ab, for tweety, as we saw before
                                      </li> 
                                  </ul> 
                                  </li> 
                                  <li> 
-                                   not o_c_flies2(tweety) :-
+                                   2) There is no conclusion of -flies, for tweety
                                    <ul>
                                      <li> 
-                                       proved(not -bird(tweety)).
+                                       There is no conclusion of -bird, for tweety, as we saw before
                                      </li> 
                                  </ul> 
                                  </li> 

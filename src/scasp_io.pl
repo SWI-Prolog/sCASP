@@ -397,10 +397,10 @@ human(' :-','').
 
 %% Predefine human rules  & introduced during execution (forall...)
 :- dynamic new_pr_pred_default/1.
+pr_pred_default( proved(A)    :: (B,format(', as we saw before',[]))) :-
+    pr_human_term(A::B).
 pr_pred_default(A) :- new_pr_pred_default(A),!.
 pr_pred_default( (A=A)        :: format('~w is ~w',[A,A])).
-pr_pred_default( proved(A)    :: (B,format(', as we saw before',[]))) :-
-    pr_pred_predicate(A::B).
 pr_pred_default(true          :: format('\r',[])).
 pr_pred_default(Operation     :: format('~w is ~w ~w',[HA,HOp,B])) :-
     Operation =.. [Op,A,B],
@@ -879,9 +879,9 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
         true
     ;
         ( Binding =.. [_,PB,{PConst}], PV = PB ->
-            format(" <br> \n~w",[PConst])
+            format(" <br> \n~p",[PConst])
         ;
-            format(" <br> \n~w = ~w",[PV,Binding])
+            format(" <br> \n~p = ~p",[PV,Binding])
         )
     ),
     print_html_unifier(Bs,PVars).
