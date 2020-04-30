@@ -311,3 +311,39 @@ diagnosis(Jose,no fever) ,  no_fever(Jose,B │{B #=< 38}) ,  temp(Jose,B │{B 
 BINDINGS: 
 A is no fever ? ;
 
+
+
+
+    ---------------------- Example human_short -----------------
+scasp --human_short --html fever4.pl
+RENAMED_QUERY:	?- diagnosis(Jose,A).
+
+	ANSWER:	1 (in 7.656 ms)
+
+BEGIN HTML JUSTIFICATION and END
+
+JUSTIFICATION_TREE:
+The diagnosis of the patient Jose is fever
+            It is consider that the patient Jose has a temperature B greater than 38
+                There is no valid register for the patient Jose
+                                                There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
+                                                There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
+                                                There is a register, for the patient Jose, with the temperature 37, at the time point -6
+                                                A register at the time point -6 is not recent
+                                                There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                                                There is a register, for the patient Jose, with the temperature 39, at the time point -4
+                                                A register at the time point -4 is not recent
+        It is high a temperature B greater than 38
+The global constraints hold
+                The diagnosis of the patient Pedro is fever
+                            It is known that the patient Pedro has the temperature 39
+                                There is a valid register for the patient Pedro with the temperature 39
+                                    There is a register, for the patient Pedro, with the temperature 39, at the time point -2
+                                    A register at the time point -2 is recent
+                        It is high the temperature 39
+
+MODEL:
+diagnosis(Jose,fever) ,  temp(Jose,B │{B #> 38}) ,  reg_temp(Jose,37,-6) ,  reg_temp(Jose,39,-4) ,  diagnosis(Pedro,fever) ,  temp(Pedro,39) ,  reg_temp(Pedro,39,-2)
+
+BINDINGS: 
+A is fever ? 
