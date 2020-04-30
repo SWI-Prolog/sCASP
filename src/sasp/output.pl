@@ -1204,6 +1204,13 @@ assert_pr_show([]).
 assert_pr_show([[T|Ts]|Tss]) :-
     assert_pr_show([T|Ts]),
     assert_pr_show(Tss).
+assert_pr_show([not(Name)/Arity|Ts]) :- !,
+    length(Args,Arity),
+    T =.. [Name|Args],
+    assert(pr_show_predicate(not(T))),
+    % print(pr_show_predicate(T)),
+    % print('.'),nl,
+    assert_pr_show(Ts).
 assert_pr_show([Name/Arity|Ts]) :-
     length(Args,Arity),
     T =.. [Name|Args],

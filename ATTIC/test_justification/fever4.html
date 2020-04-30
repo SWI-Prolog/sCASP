@@ -45,7 +45,7 @@ A = fever ?<br>
 <h3>Model</h3>
 
 MODEL:
-diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  not reg_person(Jose) ,  not reg_temp(Jose,C │{C \= 37,C \= 39},D) ,  not reg_temp(Jose,37,E │{E \= -6}) ,  reg_temp(Jose,37,-6) ,  not recent_reg(-6) ,  not reg_temp(Jose,39,F │{F \= -4}) ,  reg_temp(Jose,39,-4) ,  not recent_reg(-4) ,  high_temp(B │{B #> 38}) ,  not no_fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38}) ,  high_temp(B │{B #> 38}) ,  not s(G │{G \= 1}) ,  not s(1)
+diagnosis(Jose,fever) ,  temp(Jose,B │{B #> 38}) ,  reg_temp(Jose,37,-6) ,  reg_temp(Jose,39,-4) ,  temp(Jose,B │{B #> 38}) ,  diagnosis(Pedro,fever) ,  temp(Pedro,39) ,  reg_temp(Pedro,39,-2)
 
 <br><br>
 <h3> Justification <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>
@@ -55,227 +55,114 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
 
 
      <li> 
-       The diagnosis of the patient Jose is fever
+     <li> 
+     The diagnosis of the patient Jose is fever
        <ul>
          <li> 
-           There is a fever for the patient Jose, with a temperature B greater than 38
+         There is a fever for the patient Jose, with a temperature B greater than 38
            <ul>
              <li> 
-               For the patient Jose we assume a temperature B greater than 38
+             For the patient Jose the a temperature B greater than 38
                <ul>
                  <li> 
-                   There is no valid register for the patient Jose
+                 For the patient Jose we assume a temperature B greater than 38
                    <ul>
                      <li> 
-                       1) There is no valid register for the patient Jose
+                     There is no valid register for the patient Jose
                        <ul>
+                         </li>
+                         </li>
+                         </li>
                          <li> 
-                           For any possible temperature
+                         There is no valid register for the patient Jose with a temperature C not equal 37, and not equal 39
                            <ul>
+                             </li>
+                             </li>
+                             </li>
                              <li> 
-                               For any possible time point
+                             There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
                                <ul>
-                                 <li> 
-                                   There is no valid register for the patient Jose, for a temperature C not equal 37, and not equal 39, for any time point
-                                   <ul>
-                                     <li> 
-                                       There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
-                                       <ul>
-                                         <li> 
-                                           1) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
-                                           <ul>
-                                             <li> 
-                                               Jose is not equal Juan
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           2) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
-                                           <ul>
-                                             <li> 
-                                               Jose is not equal Pedro
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           3) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
-                                           <ul>
-                                             <li> 
-                                               Jose is Jose
-                                             </li>
-                                             <li> 
-                                               C is not equal 39
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           4) There is no register, for the patient Jose, with a temperature C not equal 37, and not equal 39, at any time point
-                                           <ul>
-                                             <li> 
-                                               Jose is Jose
-                                             </li>
-                                             <li> 
-                                               C is not equal 37
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                     </ul> 
-                                     </li> 
-                                 </ul> 
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
                                  </li> 
                              </ul> 
                              </li> 
+                         </ul> 
+                         </li> 
+                         </li>
+                         <li> 
+                         There is no valid register for the patient Jose with the temperature 37
+                           <ul>
+                             </li>
+                             </li>
+                             </li>
                              <li> 
-                               For any possible time point
+                             There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
                                <ul>
-                                 <li> 
-                                   There is no valid register for the patient Jose, for the temperature 37, for a time point E not equal -6
-                                   <ul>
-                                     <li> 
-                                       There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
-                                       <ul>
-                                         <li> 
-                                           1) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
-                                           <ul>
-                                             <li> 
-                                               Jose is not equal Juan
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           2) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
-                                           <ul>
-                                             <li> 
-                                               Jose is not equal Pedro
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           3) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
-                                           <ul>
-                                             <li> 
-                                               Jose is Jose
-                                             </li>
-                                             <li> 
-                                               37 is not equal 39
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           4) There is no register, for the patient Jose, with the temperature 37, at a time point E not equal -6
-                                           <ul>
-                                             <li> 
-                                               Jose is Jose
-                                             </li>
-                                             <li> 
-                                               37 is 37
-                                             </li>
-                                             <li> 
-                                               E is not equal -6
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                     </ul> 
-                                     </li> 
-                                 </ul> 
-                                 </li> 
-                                 <li> 
-                                   There is no valid register for the patient Jose, for the temperature 37, for the time point -6
-                                   <ul>
-                                     <li> 
-                                       There is a register, for the patient Jose, with the temperature 37, at the time point -6
-                                     </li>
-                                     <li> 
-                                       A register at the time point -6 is not recent
-                                       <ul>
-                                         <li> 
-                                           1) A register at the time point -6 is not recent
-                                           <ul>
-                                             <li> 
-                                               -6 is less or equal -3
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                     </ul> 
-                                     </li> 
-                                 </ul> 
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
                                  </li> 
                              </ul> 
                              </li> 
+                             </li>
                              <li> 
-                               For any possible time point
+                             There is a register, for the patient Jose, with the temperature 37, at the time point -6
+                             </li>
+                             <li> 
+                             A register at the time point -6 is not recent
                                <ul>
-                                 <li> 
-                                   There is no valid register for the patient Jose, for the temperature 39, for a time point F not equal -4
-                                   <ul>
-                                     <li> 
-                                       There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
-                                       <ul>
-                                         <li> 
-                                           1) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
-                                           <ul>
-                                             <li> 
-                                               Jose is not equal Juan
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           2) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
-                                           <ul>
-                                             <li> 
-                                               Jose is not equal Pedro
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           3) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
-                                           <ul>
-                                             <li> 
-                                               Jose is Jose
-                                             </li>
-                                             <li> 
-                                               39 is 39
-                                             </li>
-                                             <li> 
-                                               F is not equal -4
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                         <li> 
-                                           4) There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
-                                           <ul>
-                                             <li> 
-                                               Jose is Jose
-                                             </li>
-                                             <li> 
-                                               39 is not equal 37
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                     </ul> 
-                                     </li> 
-                                 </ul> 
+                                 </li>
                                  </li> 
-                                 <li> 
-                                   There is no valid register for the patient Jose, for the temperature 39, for the time point -4
-                                   <ul>
-                                     <li> 
-                                       There is a register, for the patient Jose, with the temperature 39, at the time point -4
-                                     </li>
-                                     <li> 
-                                       A register at the time point -4 is not recent
-                                       <ul>
-                                         <li> 
-                                           1) A register at the time point -4 is not recent
-                                           <ul>
-                                             <li> 
-                                               -4 is less or equal -3
-                                             </li> 
-                                         </ul> 
-                                         </li> 
-                                     </ul> 
-                                     </li> 
-                                 </ul> 
+                             </ul> 
+                             </li> 
+                         </ul> 
+                         </li> 
+                         </li>
+                         <li> 
+                         There is no valid register for the patient Jose with the temperature 39
+                           <ul>
+                             </li>
+                             </li>
+                             </li>
+                             <li> 
+                             There is no register, for the patient Jose, with the temperature 39, at a time point F not equal -4
+                               <ul>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li>
+                                 </li> 
+                             </ul> 
+                             </li> 
+                             </li>
+                             <li> 
+                             There is a register, for the patient Jose, with the temperature 39, at the time point -4
+                             </li>
+                             <li> 
+                             A register at the time point -4 is not recent
+                               <ul>
+                                 </li>
                                  </li> 
                              </ul> 
                              </li> 
@@ -288,34 +175,29 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
              </ul> 
              </li> 
              <li> 
-               It is high a temperature B greater than 38
+             It is high a temperature B greater than 38
                <ul>
-                 <li> 
-                   B is greater than 38
                  </li> 
              </ul> 
              </li> 
              <li> 
-               For the patient Jose, with a temperature B greater than 38 we conclude that there is a fever
+             For the patient Jose, with a temperature B greater than 38 we conclude that there is a fever
                <ul>
+                 </li>
                  <li> 
-                   1) For the patient Jose, with a temperature B greater than 38 we conclude that there is a fever
+                 For the patient Jose the a temperature B greater than 38
                    <ul>
                      <li> 
-                       For the patient Jose we assume a temperature B greater than 38
+                     For the patient Jose we assume a temperature B greater than 38
                        <ul>
-                         <li> 
-                           There is no valid register for the patient Jose, as we saw before
                          </li> 
                      </ul> 
                      </li> 
-                     <li> 
-                       It is high a temperature B greater than 38
-                       <ul>
-                         <li> 
-                           B is greater than 38
-                         </li> 
-                     </ul> 
+                 </ul> 
+                 </li> 
+                 <li> 
+                 It is high a temperature B greater than 38
+                   <ul>
                      </li> 
                  </ul> 
                  </li> 
@@ -326,60 +208,52 @@ diagnosis(Jose,fever) ,  fever(Jose,B │{B #> 38}) ,  temp(Jose,B │{B #> 38})
      </ul> 
      </li> 
      <li> 
-       The global constraints hold
+     The global constraints hold
        <ul>
+         </li>
+         </li>
+         </li>
          <li> 
-           Let's check the non-monotonic-rules
+         The diagnosis of the patient Pedro is fever
            <ul>
              <li> 
-               For the rule number 1 
+             There is a fever for the patient Pedro, with the temperature 39
                <ul>
                  <li> 
-                   There is no contradiction 
+                 For the patient Pedro the the temperature 39
                    <ul>
                      <li> 
-                       For any possible value
+                     the patient Pedro has the temperature 39
                        <ul>
                          <li> 
-                           There is no contradiction, for G not equal 1
+                         There is a valid register for the patient Pedro with the temperature 39
                            <ul>
                              <li> 
-                               There is no conclusion of s, for G not equal 1
-                               <ul>
-                                 <li> 
-                                   1) There is no conclusion of s, for G not equal 1
-                                   <ul>
-                                     <li> 
-                                       G is not equal 1
-                                     </li> 
-                                 </ul> 
-                                 </li> 
-                             </ul> 
-                             </li> 
-                         </ul> 
-                         </li> 
-                         <li> 
-                           There is no contradiction, for 1
-                           <ul>
+                             There is a register, for the patient Pedro, with the temperature 39, at the time point -2
+                             </li>
                              <li> 
-                               There is no conclusion of s, for 1
+                             A register at the time point -2 is recent
                                <ul>
-                                 <li> 
-                                   1) There is no conclusion of s, for 1
-                                   <ul>
-                                     <li> 
-                                       1 is 1
-                                     </li>
-                                     <li> 
-                                       There is no conclusion of b, for 34
-                                     </li> 
-                                 </ul> 
                                  </li> 
                              </ul> 
                              </li> 
                          </ul> 
                          </li> 
                      </ul> 
+                     </li> 
+                 </ul> 
+                 </li> 
+                 <li> 
+                 It is high the temperature 39
+                   <ul>
+                     </li> 
+                 </ul> 
+                 </li> 
+                 <li> 
+                 For the patient Pedro, with the temperature 39 we conclude that there is a fever
+                   <ul>
+                     </li>
+                     </li>
                      </li> 
                  </ul> 
                  </li> 

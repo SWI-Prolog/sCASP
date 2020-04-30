@@ -237,7 +237,7 @@ print_model_([First,Second|Rest]) :-
     display(' ,  '),
     print_model_([Second|Rest]).
 
-printable_literal(not(X)) :- printable_literal(X).
+%printable_literal(not(X)) :- printable_literal(X).
 printable_literal(X) :-
     X \= 'global_constraints',
     X \= 'o_nmr_check',
@@ -330,7 +330,8 @@ print_check_calls_calling(Goal,I) :-
     print_s(RI).
 
 print_s([A|Stack]) :-
-    nl,tab(0),print_human_term(A),
+%    nl,tab(0),
+    print_human_term(A,0),
     print_s_(Stack,4,0).
 
 print_s_([],_,_) :-
@@ -348,36 +349,52 @@ print_s_([A|As],I,I0) :- !,
     ;
         print_human(',')
     ),
-    nl,tab(I),
+%    nl,tab(I),
     ( [A|As] == [o_nmr_check,[],[],[]] ->
-        print_zero_nmr(A)
+        print_zero_nmr(A,I)
     ;
-        print_human_term(A)
+        print_human_term(A,I)
     ),
     I1 is I + 4,
     print_s_(As,I1,I).
 
 
-print_human_term(A) :-
-    pr_human_term(A::Human),
-    call(Human).
-print_zero_nmr(A) :-
-    ( current_option(human,on) ->
-        format('There are no non-monotonic-rules to be checked\n',[])
+print_human_term(A,I) :-
+    pr_human_term((A::Human),Type),
+    (   current_option(short,on), Type \= pred ->
+        true
     ;
-        print(A)
+        nl,tab(I),call(Human)
+    ).
+        
+print_zero_nmr(A,I) :-
+    ( current_option(human,on) ->
+        nl,tab(I),
+        ( current_option(humanall,on) ->
+            format('There are no non-monotonic-rules to be checked\n',[])
+        ;
+            print(A)
+        )
+    ;
+        true
     ).
 
 
-pr_human_term(A::Human) :-
+pr_human_term((A::Human),Type) :-
     ( current_option(human,on) ->
         (   pr_pred_predicate(A::Human) ->
-            true
+            Type = pred
         ;
-            pr_pred_default(A::Human) ->
-                true
-        ;
-            Human = write(A)
+            (   pr_pred_default(A::Human) ->
+                (   member(A,[global_constraints]) ->
+                    Type = pred
+                ;
+                    Type = default
+                )
+            ;
+                Type = error,
+                Human = write(A)
+            )
         )
     ;
         Human = print(A)
@@ -398,7 +415,7 @@ human(' :-','').
 %% Predefine human rules  & introduced during execution (forall...)
 :- dynamic new_pr_pred_default/1.
 pr_pred_default( proved(A)    :: (B,format(', as we saw before',[]))) :-
-    pr_human_term(A::B).
+    pr_human_term(A::B,_).
 pr_pred_default(A) :- new_pr_pred_default(A),!.
 pr_pred_default( (A=A)        :: format('~w is ~w',[A,A])).
 pr_pred_default(true          :: format('\r',[])).
@@ -423,7 +440,7 @@ pr_pred_default(not(Auxiliar) :: Human) :-
             Human = format('There is no contradiction ',[])
         ;
             Predicate =.. [Pr|Args],
-            pr_human_term(not(Predicate)::PrH),
+            pr_human_term(not(Predicate)::PrH,_),
             Human = (format('~w) ',[N]),PrH)
         )
     ).
@@ -435,6 +452,9 @@ pr_pred_default(Forall        :: Human) :-
     ;
         Human = format('For any possible value',[])
     ).
+pr_pred_default(CHS        :: (format('It is assumed that: ',[]),Human)) :-
+    CHS = chs(Pred),
+    pr_human_term(Pred::Human,_).
 pr_pred_default(global_constraints :: format('The global constraints hold',[])).
 pr_pred_default(o_nmr_check        :: format('Let\'s check the non-monotonic-rules',[])).
 pr_pred_default(Other              :: format(F,[Name|NArgs])) :-
@@ -744,6 +764,7 @@ set_user_option('-j') :- set(print_tree, on), set(process_stack, on).
 set_user_option('-j0') :- set(print_tree, on), set(process_stack, on).
 set_user_option('--justification') :- set(print_tree, on), set(process_stack, on).
 set_user_option('--human') :- set(human, on), set(print_tree, on), set(process_stack, on).
+set_user_option('--human_short') :- set(human, on), set(short,on),set(print_tree, on), set(process_stack, on).
 set_user_option('--html') :- set(html, on), set(process_stack, on).
 set_user_option('--server') :- set(server, on), set(html, on), set(process_stack, on).
 set_user_option('-d0') :- set(write_program, on).
@@ -777,7 +798,8 @@ help :-
     display('  -v, --verbose         Enable verbose progress messages.\n'),
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  -j, --justification   Print proof tree for each solution.\n'),
-    display('  -human                Print the proof tree in natural language.\n'),
+    display('  --human               Print the whole proof tree in (predefine) natural language.\n'),
+    display('  --human_short         Print the proof tree in natural language (only annotated predicates).\n'),
     display('  --html                Generate the proof tree in a file named InputFiles(s).html.\n'),
     display('  --server              Generate the proof tree in the file named justification.html.\n'),
     display('  -d0                   Print the program translated (with duals and nmr_check).\n'),
@@ -884,11 +906,12 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
     ),
     print_html_unifier(Bs,PVars).
 
-
+:- data li_tab/1.
 print_html_stack([A|StackOut]) :-
-%    reverse(StackOut,[A|ReverseStack]),
+    retractall(li_tab(_)),
     nl,tab(5),print('<li> '),
-    nl,tab(5),print('  '),print_html_term(A),     
+%    nl,tab(5),print('  '),
+    print_html_term(A,5,_),     
     print_html_stack_(StackOut,9,5).
 
 print_html_stack_([],I,I0) :-
@@ -896,7 +919,12 @@ print_html_stack_([],I,I0) :-
     nl,tab(I0), print('</li> '),
     close_ul(I0,I).
 print_html_stack_([[]|As],I,I0) :- !,
-    I1 is I - 4,
+    (  li_tab(I) ->
+        retract(li_tab(I)),
+        I1 = I
+    ;
+        I1 is I - 4
+    ),
     print_html_stack_(As,I1,I0).
 print_html_stack_([A|As],I,I0) :- !,
     (
@@ -912,20 +940,28 @@ print_html_stack_([A|As],I,I0) :- !,
         print_human(','),
         nl,tab(I0), print('</li>')
     ),
-    nl,tab(I),print('<li> '),
-    nl,tab(I),print('  '),
+    %    nl,tab(I),print('<li> '),
+    %    nl,tab(I),print('  '),
     ( [A|As] == [o_nmr_check,[],[],[]] ->
-        print_html_zero_nmr(A)
+        print_html_zero_nmr(A,I,I1)
     ;
-        print_html_term(A)
+        print_html_term(A,I,I1)
     ),
-    I1 is I + 4,
     print_html_stack_(As,I1,I).
 
-print_html_term(A) :-
-    print_human_term(A).
-print_html_zero_nmr(A) :-
-    print_zero_nmr(A).
+print_html_term(A,I,I1) :-
+    pr_human_term((A::Human),Type),
+    (   current_option(short,on), Type \= pred ->
+        assert(li_tab(I)),
+        I1 = I
+    ;
+        nl,tab(I),print('<li> '),
+        nl,tab(I),call(Human),
+        I1 is I + 4
+    ).
+print_html_zero_nmr(A,I,I1) :-
+    print_zero_nmr(A,I),
+    I1 is I + 4.
 
 
 %% print_html_term(Constraint) :-
