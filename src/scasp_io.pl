@@ -280,7 +280,7 @@ printable_literal(X) :-
 %%     print_s(RStack).
 
 print_tree_stack(Stack) :-
-    print_s(Stack).
+    print_s(Stack),!.
 
 
 
@@ -327,17 +327,24 @@ predicate is executed when the flag @var{check_calls} is
 print_check_calls_calling(Goal,I) :-
     reverse([('¿'+Goal+'?')|I],RI),
     format('\n---------------------Calling ~w-------------',[Goal]),
-    print_s(RI).
+    print_s(RI),!.
 
+:- data sp_tab/1.
 print_s([A|Stack]) :-
+    retractall(sp_tab(_)),
 %    nl,tab(0),
-    print_human_term(A,0),
+    print_human_term(A,0,_),
     print_s_(Stack,4,0).
 
 print_s_([],_,_) :-
     print_human('.'), nl.
 print_s_([[]|As],I,I0) :- !,
-    I1 is I - 4,
+    (  sp_tab(I) ->
+        retract(sp_tab(I)),
+        I1 = I
+    ;
+        I1 is I - 4
+    ),
     print_s_(As,I1,I0).
 print_s_([A|As],I,I0) :- !,
     (
@@ -351,28 +358,31 @@ print_s_([A|As],I,I0) :- !,
     ),
 %    nl,tab(I),
     ( [A|As] == [global_constraints,o_nmr_check,[],[],[]] ->
-        print_zero_nmr(A,I)
+        print_zero_nmr(A,I,I1)
     ;
         ( [A|As] == [o_nmr_check,[],[],[]] ->
-            print_zero_nmr(A,I)
+            print_zero_nmr(A,I,I1)
         ;
-            print_human_term(A,I)
+            print_human_term(A,I,I1)
         )
     ),
-    I1 is I + 4,
     print_s_(As,I1,I).
 
 
-print_human_term(A,I) :-
+print_human_term(A,I,I1) :-
     pr_human_term((A::Human),Type),
     (   current_option(short,on), Type \= pred ->
-        true
+        assert(sp_tab(I)),
+        I1 = I
     ;
-        nl,tab(I),call(Human)
+        nl,tab(I),call(Human),
+        I1 is I + 4
     ).
         
-print_zero_nmr(A,I) :-
+print_zero_nmr(A,I,I1) :-
     ( current_option(short,on) ->
+        assert(sp_tab(I)),
+        I1 = I,
         nl
     ;
         nl,tab(I),
@@ -384,7 +394,8 @@ print_zero_nmr(A,I) :-
             )
         ;
             print(A)
-        )
+        ),
+        I1 is I + 4
     ).
 
 
@@ -542,6 +553,8 @@ find_description([L|Ls],D) :-
     
 
 :- multifile portray/1.
+portray(@(Var:_)) :- var(Var), !,
+    print(Var).
 portray(@(X:'')) :- !,
     human_protray_default(X).
 portray(@(X:NX)) :- !,
@@ -555,23 +568,23 @@ portray(Constraint) :-
 
 % para la conclusion xx no tentemos texto.
 human_protray_default(A '│' B) :- !,
-    print(A), print(' '), human_protray_(c-B).
+    print(A), print(' '), human_protray_(B).
 human_protray_default('$'(X)) :- !, write(X).
 human_protray_default(X) :- write(X).
 
 human_protray((A '│' B):NX) :- !,
     format('a ~w ~w ',[NX,A]),
-    human_protray_(c-B).
+    human_protray_(B).
 human_protray('$'(_X):NX) :- !,
     format('any ~w',[NX]).
 human_protray(X:NX) :-
     format('the ~w ~w',[NX,X]).
 
-human_protray_(c-{X,Y,Z}) :- !,
-    print_c(X), print(', '), human_protray_(c-{Y,Z}).
-human_protray_(c-{X,Z}) :- !,
-    print_c(X), print(', and '), human_protray_(c-{Z}).
-human_protray_(c-{X}) :-
+human_protray_({X,Y,Z}) :- !,
+    print_c(X), print(', '), human_protray_({Y,Z}).
+human_protray_({X,Z}) :- !,
+    print_c(X), print(', and '), human_protray_({Z}).
+human_protray_({X}) :-
     print_c(X).
 
 print_c(Operation) :-
