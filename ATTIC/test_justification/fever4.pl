@@ -1,7 +1,7 @@
 %% Fever4 - introduce data to the temp register to filter
 
 
-# pred diagnosis(P,D) :: 'The diagnosis of @(P:patient) is @(D)'.
+#pred diagnosis(P,D) :: 'The diagnosis of @(P:patient) is @(D)'.
 diagnosis(P,'fever') :- fever(P,T).
 diagnosis(P,'no fever') :- no_fever(P,T).
 
@@ -17,8 +17,8 @@ no_fever(Patient,Temp) :-
     temp(Patient,Temp),
     not high_temp(Temp).
 
-# pred high_temp(T) :: 'It is high @(T:temperature)'.
-# pred not high_temp(T) :: 'It is not high @(T:temperature)'.
+#pred high_temp(T) :: 'It is high @(T:temperature)'.
+#pred not high_temp(T) :: 'It is not high @(T:temperature)'.
 high_temp(T) :- T #> 38.
 
 %# pred temp(P,T) :: 'For @(P:patient) the @(T:temperature)'.
@@ -50,14 +50,12 @@ reg_person(P) :- reg_person_temp(P,T).
 
 %%%%%%%%   Queries %%%%%%%
 
-# show diagnosis/2, temp/2, reg_temp/3.
+#show diagnosis/2, temp/2, reg_temp/3.
 
 ?- diagnosis('Luisa',D).   %% Two possible models
 ?- diagnosis('Juan',D).    %% Juan has no fever
 ?- diagnosis('Pedro',D).   %% Pedro has fever
-?- diagnosis('Jose',D).    %% The reg of Jose is old
-%%?- diagnosis(X,D).         %% Give all diagnosis
+%?- diagnosis('Jose',D).    %% The reg of Jose is old
+?- diagnosis(X,D).         %% Give all diagnosis
 
-
-:- not diagnosis('Pedro','fever').
 

@@ -350,10 +350,14 @@ print_s_([A|As],I,I0) :- !,
         print_human(',')
     ),
 %    nl,tab(I),
-    ( [A|As] == [o_nmr_check,[],[],[]] ->
+    ( [A|As] == [global_constraints,o_nmr_check,[],[],[]] ->
         print_zero_nmr(A,I)
     ;
-        print_human_term(A,I)
+        ( [A|As] == [o_nmr_check,[],[],[]] ->
+            print_zero_nmr(A,I)
+        ;
+            print_human_term(A,I)
+        )
     ),
     I1 is I + 4,
     print_s_(As,I1,I).
@@ -368,15 +372,19 @@ print_human_term(A,I) :-
     ).
         
 print_zero_nmr(A,I) :-
-    ( current_option(human,on) ->
+    ( current_option(short,on) ->
+        nl
+    ;
         nl,tab(I),
-        ( current_option(humanall,on) ->
-            format('There are no non-monotonic-rules to be checked\n',[])
+        (   current_option(human,on) ->
+            (  A = global_constraints ->
+                format('The global constraints hold',[])
+            ;
+                format('There are no non-monotonic-rules to be checked',[])
+            )
         ;
             print(A)
         )
-    ;
-        true
     ).
 
 
@@ -397,6 +405,7 @@ pr_human_term((A::Human),Type) :-
             )
         )
     ;
+        Type = plain,
         Human = print(A)
     ).
 
@@ -943,10 +952,14 @@ print_html_stack_([A|As],I,I0) :- !,
     ),
     %    nl,tab(I),print('<li> '),
     %    nl,tab(I),print('  '),
-    ( [A|As] == [o_nmr_check,[],[],[]] ->
+    ( [A|As] == [global_constraints,o_nmr_check,[],[],[]] ->
         print_html_zero_nmr(A,I,I1)
     ;
-        print_html_term(A,I,I1)
+        ( [A|As] == [o_nmr_check,[],[],[]] ->
+            print_html_zero_nmr(A,I,I1)
+        ;
+            print_html_term(A,I,I1)
+        )
     ),
     print_html_stack_(As,I1,I).
 
@@ -961,8 +974,23 @@ print_html_term(A,I,I1) :-
         I1 is I + 4
     ).
 print_html_zero_nmr(A,I,I1) :-
-    print_zero_nmr(A,I),
-    I1 is I + 4.
+    ( current_option(short,on) ->
+        assert(li_tab(I)),
+        I1 = I
+    ;
+        nl,tab(I),print('<li> '),
+        nl,tab(I),
+        (   current_option(human,on) ->
+            (  A = global_constraints ->
+                format('The global constraints hold',[])
+            ;
+                format('There are no non-monotonic-rules to be checked',[])
+            )
+        ;
+            print(A)
+        ),
+        I1 is I + 4
+    ).
 
 
 %% print_html_term(Constraint) :-
