@@ -329,9 +329,10 @@ print_check_calls_calling(Goal,I) :-
     format('\n---------------------Calling ~w-------------',[Goal]),
     print_s(RI),!.
 
-:- data sp_tab/1.
+:- data sp_tab/1, pr_repeat/2.
 print_s([A|Stack]) :-
     retractall(sp_tab(_)),
+    retractall(pr_repeat(_,_)),
 %    nl,tab(0),
     print_human_term(A,0,_),
     print_s_(Stack,4,0).
@@ -349,6 +350,7 @@ print_s_([[]|As],I,I0) :- !,
 print_s_([A|As],I,I0) :- !,
     (
         I0 > I ->
+        retractall(pr_repeat(I0,_)),
         print_human('.')
     ;
         I0 < I ->
@@ -370,9 +372,9 @@ print_s_([A|As],I,I0) :- !,
 
 
 print_human_term(A,I,I1) :-
-    pr_human_term((A::Human),Type),
+    pr_human_term((A::Human),Type), !,
     (   current_option(short,on), Type \= pred ->
-        assert(sp_tab(I)),
+        asserta(sp_tab(I)),
         I1 = I
     ;
         nl,tab(I),call(Human),
@@ -381,7 +383,7 @@ print_human_term(A,I,I1) :-
         
 print_zero_nmr(A,I,I1) :-
     ( current_option(short,on) ->
-        assert(sp_tab(I)),
+        asserta(sp_tab(I)),
         I1 = I,
         nl
     ;
@@ -398,10 +400,25 @@ print_zero_nmr(A,I,I1) :-
         I1 is I + 4
     ).
 
+pr_pred_short(A) :-
+    pr_pred_predicate(A), !.
+pr_pred_short(proved(A)::(Human,format(', already justified',[]))) :-
+    pr_pred_predicate(A::Human),
+    (   sp_tab(I) ->
+        (  pr_repeat(I,A) ->
+            fail
+        ;
+            assert(pr_repeat(I,A))
+        )
+    ;
+        true
+    ).
+pr_pred_short(chs(A)::(format('Assume: ',[]), Human)) :-
+    pr_pred_predicate(A::Human).
 
 pr_human_term((A::Human),Type) :-
     ( current_option(human,on) ->
-        (   pr_pred_predicate(A::Human) ->
+        (   pr_pred_short(A::Human) ->
             Type = pred
         ;
             (   pr_pred_default(A::Human) ->
@@ -434,7 +451,7 @@ human(' :-','').
 
 %% Predefine human rules  & introduced during execution (forall...)
 :- dynamic new_pr_pred_default/1.
-pr_pred_default( proved(A)    :: (B,format(', as we saw before',[]))) :-
+pr_pred_default( proved(A)    :: (B,format(', already justified',[]))) :- !,
     pr_human_term(A::B,_).
 pr_pred_default(A) :- new_pr_pred_default(A),!.
 pr_pred_default( (A=A)        :: format('~w is ~w',[A,A])).
@@ -472,7 +489,7 @@ pr_pred_default(Forall        :: Human) :-
     ;
         Human = format('For any possible value',[])
     ).
-pr_pred_default(CHS        :: (format('It is assumed that: ',[]),Human)) :-
+pr_pred_default(CHS        :: (format('Assume: ',[]),Human)) :-
     CHS = chs(Pred),
     pr_human_term(Pred::Human,_).
 pr_pred_default(global_constraints :: format('The global constraints hold',[])).
@@ -785,7 +802,7 @@ set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('-j') :- set(print_tree, on), set(process_stack, on).
 set_user_option('-j0') :- set(print_tree, on), set(process_stack, on).
 set_user_option('--justification') :- set(print_tree, on), set(process_stack, on).
-set_user_option('--human') :- set(human, on), set(print_tree, on), set(process_stack, on).
+set_user_option('--human_all') :- set(human, on), set(print_tree, on), set(process_stack, on).
 set_user_option('--human_short') :- set(human, on), set(short,on),set(print_tree, on), set(process_stack, on).
 set_user_option('--html') :- set(html, on), set(process_stack, on).
 set_user_option('--server') :- set(server, on), set(html, on), set(process_stack, on).
