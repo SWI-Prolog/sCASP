@@ -837,7 +837,7 @@ help :-
     display('  -v, --verbose         Enable verbose progress messages.\n'),
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  -j, --justification   Print proof tree for each solution.\n'),
-    display('  --human               Print the whole proof tree in (predefine) natural language.\n'),
+    display('  --human_all           Print the whole proof tree in (predefine) natural language.\n'),
     display('  --human_short         Print the proof tree in natural language (only annotated predicates).\n'),
     display('  --html                Generate the proof tree in a file named InputFiles(s).html.\n'),
     display('  --server              Generate the proof tree in the file named justification.html.\n'),
@@ -946,9 +946,10 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
     ),
     print_html_unifier(Bs,PVars).
 
-:- data li_tab/1.
+%% let's reuse sp_tab and pr_repeat from print_s/1.
 print_html_stack([A|StackOut]) :-
-    retractall(li_tab(_)),
+    retractall(sp_tab(_)),
+    retractall(pr_repeat(_,_)),
     nl,tab(5),print('<li> '),
 %    nl,tab(5),print('  '),
     print_html_term(A,5,_),     
@@ -959,8 +960,8 @@ print_html_stack_([],I,I0) :-
     nl,tab(I0), print('</li> '),
     close_ul(I0,I).
 print_html_stack_([[]|As],I,I0) :- !,
-    (  li_tab(I) ->
-        retract(li_tab(I)),
+    (  sp_tab(I) ->
+        retract(sp_tab(I)),
         I1 = I
     ;
         I1 is I - 4
@@ -969,6 +970,7 @@ print_html_stack_([[]|As],I,I0) :- !,
 print_html_stack_([A|As],I,I0) :- !,
     (
         I0 > I ->
+            retractall(pr_repeat(I0,_)),
             print_human('.'),
             nl,tab(I0), print('</li> '),
             close_ul(I0,I)
@@ -996,7 +998,7 @@ print_html_stack_([A|As],I,I0) :- !,
 print_html_term(A,I,I1) :-
     pr_human_term((A::Human),Type),
     (   current_option(short,on), Type \= pred ->
-        assert(li_tab(I)),
+        asserta(sp_tab(I)),
         I1 = I
     ;
         nl,tab(I),print('<li> '),
@@ -1005,7 +1007,7 @@ print_html_term(A,I,I1) :-
     ).
 print_html_zero_nmr(A,I,I1) :-
     ( current_option(short,on) ->
-        assert(li_tab(I)),
+        asserta(sp_tab(I)),
         I1 = I
     ;
         nl,tab(I),print('<li> '),
