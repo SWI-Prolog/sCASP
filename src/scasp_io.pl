@@ -767,11 +767,21 @@ pretty_clp_(\=, \=).
 
 set_options(Options) :-
     set_default_options,
-    set_user_options(Options).
+    set_user_options(Options),
+    check_compatibilities.
 
 set_default_options :-
     set(answers,-1),
     set(verbose,0).
+
+check_compatibilities :-
+    current_option(check_calls,on),
+    current_option(human,on), !,
+    format('ERROR: verboser and human output do not allowed together!\n\n',[]),
+    help,
+    fail.
+check_compatibilities.
+
 
 set_user_options([]).
 set_user_options([O | Os]) :-

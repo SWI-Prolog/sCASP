@@ -71,9 +71,9 @@ program under the stable model semantic.
 %% ------------------------------------------------------------- %%
 :- doc(section, "Main predicates").
 
-:- use_package(tabling).  
-:- active_tclp.
-:- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
+%% :- use_package(tabling).  
+%% :- active_tclp.
+%% :- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
 
 :- pred load(Files) : list(Files) #"Loads a list of files".
 
@@ -304,7 +304,7 @@ visited to prove the sub-goals and in @var{Model} the model with
 support the sub-goals".
 
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
-    Goal = forall(_,_), 
+    Goal = forall(_,_),
     solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model),
     GoalModel = [Goal|Model].
 solve_goal(Goal, StackIn, [[],Goal|StackIn], GoalModel) :-
@@ -415,7 +415,7 @@ exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
     my_copy_term(Var, [Goal,StackIn], NewVar, [NewGoal,NewStackIn]),
     NewVar = Value,
     if_user_option(check_calls, format('Executing ~p with value ~p\n',[NewGoal,Value])),
-    solve([NewGoal], NewStackIn, [[]|NewStackMid], ModelMid), 
+    solve([NewGoal], NewStackIn, [[]|NewStackMid], ModelMid),
     if_user_option(check_calls, format('Success executing ~p with value ~p\n',[NewGoal,Value])),
     exec_with_neg_list(Var, Goal, Vs, NewStackMid, StackOut, Models),
     append(ModelMid,Models,Model).
