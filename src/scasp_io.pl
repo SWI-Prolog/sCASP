@@ -213,11 +213,15 @@ print_unifier_([Binding|Bs],[PV|PVars]) :-
     ( PV == Binding ->
         true
     ;
-        (current_option(human,on) ->
-            format(' \n~p is ~p',[PV,Binding])
-        ;
-            ( Binding =.. [_,PB,{PConst}], PV = PB ->
+        ( Binding =.. [_,PB,{PConst}], PV = $(PB) ->
+            (current_option(human,on) ->
+                format(' \n~p',[@(Binding:'')])
+            ;
                 format(" \n~p",[PConst])
+            )
+        ;
+            (current_option(human,on) ->
+                format(' \n~p equal ~p',[PV,@(Binding:'')])
             ;
                 format(" \n~p = ~p",[PV,Binding])
             )
@@ -419,6 +423,11 @@ pr_pred_short(proved(A)::(Human,format(', already justified',[]))) :-
 pr_pred_short(chs(A)::(format('Assume: ',[]), Human)) :-
     pr_pred_predicate(A::Human).
 
+user_predicate(A) :-
+    A =.. [Name|Args],
+    length(Args,La),
+    pr_user_predicate(Name/La).
+
 
 pr_human_term((A::Human),Type) :-
     ( current_option(human,on) ->
@@ -426,12 +435,15 @@ pr_human_term((A::Human),Type) :-
             Type = pred
         ;
             (
-                pr_pred_negated(A::Human,pred) ->
+                pr_pred_negated(A::Human,T), (T=pred;T=mid) ->
                 Type = mid 
             ;
                 (   pr_pred_default(A::Human) ->
                     (   member(A,[o_nmr_check]) ->
                         Type = pred
+                    ;
+                        user_predicate(A),
+                        Type = mid
                     ;
                         Type = default
                     )
@@ -458,23 +470,23 @@ human('.','').
 human(',','').
 human(' :-','').
 
+pr_pred_negated(not(Auxiliar) :: Human,pred) :-
+    Auxiliar =.. [Aux|_],
+    atom_chars(Aux,['o','_'|Rs]),
+    append(Pred,['_'|Num],Rs),
+    number_chars(N,Num),
+    atom_chars(Pr,Pred),
+    Pr == chk, !,
+    Human = format('the nmr-check number ~w holds',[N]).
 pr_pred_negated(not(Predicate) :: Human,Type) :-
     pr_human_term(Predicate::PrH,Type), !,
-    Human = ( format('can NOT be proven that ',[]), PrH ).
+    Human = ( format('can not be proven that ',[]), PrH ).
 pr_pred_negated(NegPredicate :: Human,Type) :-
     NegPredicate =.. [NegName|Arg],
     atom_concat('-',Name,NegName),
     Predicate =.. [Name|Arg],
     pr_human_term(Predicate::PrH,Type),
-    Human = ( format('it is NOT the case that ',[]), PrH ).
-pr_pred_negated(not(Auxiliar) :: Human,pred) :-
-    Auxiliar =.. [Aux|_],
-    atom_chars(Aux,['o','_'|Rs]), !,
-    append(Pred,['_'|Num],Rs),
-    number_chars(N,Num),
-    atom_chars(Pr,Pred),
-    Pr == chk,
-    Human = format('the nmr-check number ~w holds',[N]).
+    Human = ( format('it is not the case that ',[]), PrH ).
 
 %% Predefine human rules  & introduced during execution (forall...)
 :- use_module(library(formulae)).
@@ -499,8 +511,7 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     number_chars(N,Num),
     atom_chars(Pr,Pred),
     (   Pr == chk ->
-        fail %% defined to be output also by human_mid
-        %%        Human = format('the nmr-check number ~w holds',[N])
+        Human = format('the nmr-check number ~w holds',[N])
     ;
         ( append(['_','c','h','k'],Suffix,Rs) ->
             atom_chars(Suff,['n','m','r'|Suffix]),
@@ -526,15 +537,14 @@ pr_pred_default(CHS        :: (format('Assume: ',[]),Human)) :-
 pr_pred_default(o_nmr_check        :: format('The nmr-checks and global constraint hold',[])).
 pr_pred_default(Other              :: format(F,[Name|NArgs])) :-
     ( Other = not(Pre) ->
-        F0 = 'there is no conclusion of'
+        F0 = 'there is no evidence that ~w holds'
     ;
         Pre = Other,
-        F0 = 'there is a conclusion of'
+        F0 = 'there is an evidence that ~w holds'
     ),
     Pre =.. [Name|Args],
-    F1 = ' ~w',
-    other_format(Args,NArgs,F2),
-    atom_concat(F0,F1,Fm), atom_concat(Fm,F2,F).
+    other_format(Args,NArgs,F1),
+    atom_concat(F0,F1,F).
 
 other_format([],[],'').
 other_format([V|Vs],[@(V:'')|NVs],F) :-
@@ -557,7 +567,9 @@ find_forall_description(Forall,not(Call),Vars,Descripcion) :-
         assert(new_pr_pred_default(not(NewFreeCall)::(Human01,Human02)))
     ).
 
-process_new_call01(_,[],[],format('there is no conclusion of this nmr-check',[])) :- !.
+process_new_call01(Name,[],[],Human) :- !,
+    pr_pred_default(not(Name) :: Human).
+
 process_new_call01(Name,Prev,FreePrev,Human1) :-
     atom_chars(Name,[o,'_'|Names]), append(Preds,['.'|Nums],Names), number_chars(_,Nums),atom_chars(Pred,Preds),
     length(Prev,Len), length(FreePrev,Len), PrevCall =.. [Pred|FreePrev],
@@ -940,13 +952,16 @@ print_html(Query, Model, StackOut) :-
         (
             load_html_head(Head),
             print(Head),
-            print('<h3>Query</h3>'),nl,
-            print_html_query(Query),nl,
+            (  current_option(human,on) ->
+                print_html_human_query(Query),nl
+                %% Skip output of the model in human mode
+            ;
+                print_html_query(Query),nl,
+                print('<h3>Model:</h3>'),nl,
+                print_model_(Model)
+            ),
             br,br,nl,
-            print('<h3>Model</h3>'),nl,
-            print_model_(Model),
-            br,br,
-            nl,print('<h3> Justification <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>'),nl,nl,
+            print('<h3> Justification: <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>'),nl,nl,
             nl,print(' <ul class="tree">'),nl,nl,
             print_html_stack(StackOut),
             nl,print('</ul>'),nl,nl,
@@ -976,24 +991,46 @@ create_file_name_([L|Ls],[L|F2]) :-
 
 
 :- use_module(library(terms_check)).
-print_html_query([PQ,Bindings,PVars]) :-
-        print('<b>\n  <font color=blue>?-</font> '),nl,
-        print_body(PQ),
-        nl,br,br,nl,
-        print_html_unifier(Bindings,PVars),
-        print(' ?'),
-        br,nl,
-        print('</b>').
+print_html_query([PQ,_,Bindings,PVars]) :-
+    print('<h3>Query:</h3>'),nl,
+    tab_html(5),
+    print('?-'),tab_html(2),
+    print_html_body(PQ),
+    br,nl,br,nl,
+    print('<h3>Answer:</h3>'),
+    print_html_unifier(Bindings,PVars),
+    br,nl.
+
+print_html_human_query([PQ,PAnswer,Bindings,PVars]) :-
+    print('<h3>Query:</h3>'),
+    tab_html(5),
+    print('I would like to know if'),br,nl,
+    print_html_human_body(PQ),
+    br,nl,
+    print('<h3>Answer:</h3>'),nl,
+    tab_html(5),
+    print('Yes, I found that for'),br,
+    print_html_unifier(Bindings,PVars),
+    print_html_human_body(PAnswer),
+    br,nl.
 
 print_html_unifier([],[]).
 print_html_unifier([Binding|Bs],[PV|PVars]) :-
     ( PV == Binding ->
         true
     ;
-        ( Binding =.. [_,PB,{PConst}], PV = PB ->
-            format(" <br> \n~p",[PConst])
+        (   Binding =.. [_,PB,{PConst}], PV = $(PB) ->
+            (   current_option(human,on) ->
+                tab_html(15),format('~p',[@(Binding:'')]),br,nl
+            ;
+                tab_html(15),format("~p",[PConst]),br,nl
+            )
         ;
-            format(" <br> \n~p = ~p",[PV,Binding])
+            (   current_option(human,on) ->
+                tab_html(15),format('~p equal ~p',[PV,@(Binding:'')]),br,nl
+            ;
+                tab_html(15),format("~p = ~p",[PV,Binding]),br,nl
+            )
         )
     ),
     print_html_unifier(Bs,PVars).
@@ -1045,11 +1082,11 @@ print_html_stack_([A|As],I,I0) :- !,
 
 print_html_term(A,I,I1) :-
     pr_human_term((A::Human),Type),
-    (   current_option(short,on), Type \= pred ->
+    (   current_option(mid,on), Type \= pred, Type \= mid ->
         asserta(sp_tab(I)),
         I1 = I
     ;
-        current_option(mid,on), Type \= mid ->
+        current_option(short,on), Type \= pred ->
         asserta(sp_tab(I)),
         I1 = I
     ;
@@ -1066,11 +1103,7 @@ print_html_zero_nmr(A,I,I1) :-
         nl,tab(I),print('<li> '),
         nl,tab(I),
         (   current_option(human,on) ->
-            (  A = global_constraints ->
-                format('The global constraints hold',[])
-            ;
-                format('There are no non-monotonic-rules to be checked',[])
-            )
+            format('There are no nmr to be checked',[])
         ;
             print(A)
         ),
@@ -1117,12 +1150,24 @@ tab_html(N) :-
     tab_html(N1).
 tab_html(0).
 
-print_body([]) :- print('true.').
-print_body([X]):-
+print_html_human_body([Last]) :- !,
+    pr_human_term(Last::Format,_),
+    tab_html(15),
+    call(Format),br,nl,
+    nl.
+print_html_human_body([L|Ls]) :-
+    pr_human_term(L::Format,_),
+    tab_html(15),
+    call(Format),
+    print(' and'),br,nl,
+    print_html_human_body(Ls).
+
+print_html_body([]) :- print('true.').
+print_html_body([X]):-
     print(X),print('.').
-print_body([X,Y|Xs]):-
+print_html_body([X,Y|Xs]):-
     print(X),print(','),tab_html(2),nl,
-    print_body([Y|Xs]).
+    print_html_body([Y|Xs]).
 
 open_output_file(Stream,File,Current) :-
     current_output(Current),
@@ -1151,7 +1196,8 @@ print_human_program :-
     print_human_program_('USER PREDICATES',UserRules),
     (  current_option(all_program,on) ->
         print_human_program_('DUAL RULES',DualRules),
-        print_human_program_('NMR-Checks',NMRChecks)
+        nmr_reverse(NMRChecks,R_NMRChecks),
+        print_human_program_('NMR-Checks',R_NMRChecks)
     ;
         true
     ),
@@ -1159,9 +1205,15 @@ print_human_program :-
 
 filter([],[],[],[]).
 filter([R|Rs], Us, Ds, [R|Ns]) :-
-    R = rule(Head,_),
+    R = rule(not(Head),_),
     Head =.. [Pred|_],
-    atom_concat(_,'_check',Pred), !,
+    ( atom_concat(o_chk,_,Pred), ! ; atom_concat(o__chk,_,Pred), ! ), 
+    filter(Rs,Us,Ds,Ns).
+filter([R|Rs], Us, Ds, [R|Ns]) :-
+    R = rule(o_nmr_check,_), !,
+    filter(Rs,Us,Ds,Ns).
+filter([R|Rs], Us, Ds, Ns) :-
+    R = rule(global_constraints,_), !,
     filter(Rs,Us,Ds,Ns).
 filter([R|Rs], Us, [R|Ds], Ns) :-
     R = rule(not(_),_), !,
@@ -1232,5 +1284,30 @@ print_human_body_forall(InForall,I) :-
     nl,tab(I),
     call(Format).
 
-
     
+   
+:- pred nmr_reverse/2 #"Auxiliary predicate to sort the NMR checks".
+nmr_reverse(L,[A|Rs]) :-
+    nmr_check(A),
+    append(Chks,[A],L),
+    nmr_reverse_(Chks,[],Rs).
+
+nmr_reverse_([],[],[]).
+nmr_reverse_([A|As],Ac0,Ac) :-
+    nmr_chk(A), !,
+    nmr_eq([A|As],Eq,Rest),
+    append(Eq,Ac0,Ac1),
+    nmr_reverse_(Rest,Ac1,Ac).
+nmr_reverse_([A|Rs],Ac0,Ac1) :-
+    nmr_reverse_(Rs,[],AcRs),
+    append([A|Ac0],AcRs,Ac1).
+
+nmr_check(rule(o_nmr_check,_)).
+nmr_chk(rule(not(A),_)) :-
+    A =.. [Name|_],
+    \+ atom_concat(o_chk,_,Name).
+
+nmr_eq([A,B|As],[A|Eq],Rest) :-
+    \+ \+ A = B, !,
+    nmr_eq([B|As],Eq,Rest).
+nmr_eq([A|As],[A],As).

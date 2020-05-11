@@ -144,14 +144,14 @@ main_solve(Q0) :-
     answer_counter(Counter),
     format('\tANSWER:\t~w (in ~w ms)\n',[Counter,T]),
 
-    pretty_term(D1,D2,par(Vars,Model),par(Bindings,P_Model)),
+    pretty_term(D1,D2,par(Q,Vars,Model),par(PAnswer,Bindings,P_Model)),
 
     if_user_option(process_stack,(
         reverse(StackOut, Reverse_StackOut),
         pretty_term(D2,_D3,Reverse_StackOut,P_StackOut)
     )),
     
-    if_user_option(html,print_html([PQ,Bindings,PVars],P_Model,P_StackOut)),
+    if_user_option(html,print_html([PQ,PAnswer,Bindings,PVars],P_Model,P_StackOut)),
     if_user_option(print_tree,print_justification_tree(P_StackOut)),
     print_model(P_Model),nl,
     
