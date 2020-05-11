@@ -854,9 +854,11 @@ help :-
     display('  -j, --justification   Print proof tree for each solution.\n'),
     display('  --human_all           Print the whole proof tree in (predefine) natural language.\n'),
     display('  --human_short         Print the proof tree in natural language (only annotated predicates).\n'),
-    display('  --html                Generate the proof tree in a file named InputFiles(s).html.\n'),
-    display('  --server              Generate the proof tree in the file named justification.html.\n'),
-    display('  -d0                   Print the program translated (with duals and nmr_check).\n'),
+    display('  --html                Generate the (selected) proof tree in a file named InputFiles(s).html.\n'),
+    display('  --server              Generate the (selected) proof tree in the file named justification.html.\n'),
+    display('  -d0                   Print the DUAL program (with duals and nmr_check).\n'),
+    display('  -d0_human_short       Print the program in natural langauge.\n'),
+    display('  -d0_human_all         Print the DUAL program in natural language.\n'),
     display('\n').
 
 help_all :-
