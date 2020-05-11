@@ -376,10 +376,14 @@ print_s_([A|As],I,I0) :- !,
 
 print_human_term(A,I,I1) :-
     pr_human_term((A::Human),Type), !,
-    (   current_option(short,on), Type \= pred ->
+    (   current_option(mid,on), Type \= pred, Type \= mid ->
         asserta(sp_tab(I)),
         I1 = I
     ;
+        current_option(short,on), Type \= pred ->
+        asserta(sp_tab(I)),
+        I1 = I
+    ;            
         nl,tab(I),call(Human),
         I1 is I + 4
     ).
@@ -415,20 +419,26 @@ pr_pred_short(proved(A)::(Human,format(', already justified',[]))) :-
 pr_pred_short(chs(A)::(format('Assume: ',[]), Human)) :-
     pr_pred_predicate(A::Human).
 
+
 pr_human_term((A::Human),Type) :-
     ( current_option(human,on) ->
         (   pr_pred_short(A::Human) ->
             Type = pred
         ;
-            (   pr_pred_default(A::Human) ->
-                (   member(A,[o_nmr_check]) ->
-                    Type = pred
-                ;
-                    Type = default
-                )
+            (
+                pr_pred_negated(A::Human,pred) ->
+                Type = mid 
             ;
-                Type = error,
-                Human = write(A)
+                (   pr_pred_default(A::Human) ->
+                    (   member(A,[o_nmr_check]) ->
+                        Type = pred
+                    ;
+                        Type = default
+                    )
+                ;
+                    Type = error,
+                    Human = write(A)
+                )
             )
         )
     ;
@@ -448,6 +458,24 @@ human('.','').
 human(',','').
 human(' :-','').
 
+pr_pred_negated(not(Predicate) :: Human,Type) :-
+    pr_human_term(Predicate::PrH,Type), !,
+    Human = ( format('can NOT be proven that ',[]), PrH ).
+pr_pred_negated(NegPredicate :: Human,Type) :-
+    NegPredicate =.. [NegName|Arg],
+    atom_concat('-',Name,NegName),
+    Predicate =.. [Name|Arg],
+    pr_human_term(Predicate::PrH,Type),
+    Human = ( format('it is NOT the case that ',[]), PrH ).
+pr_pred_negated(not(Auxiliar) :: Human,pred) :-
+    Auxiliar =.. [Aux|_],
+    atom_chars(Aux,['o','_'|Rs]), !,
+    append(Pred,['_'|Num],Rs),
+    number_chars(N,Num),
+    atom_chars(Pr,Pred),
+    Pr == chk,
+    Human = format('the nmr-check number ~w holds',[N]).
+
 %% Predefine human rules  & introduced during execution (forall...)
 :- use_module(library(formulae)).
 :- dynamic new_pr_pred_default/1.
@@ -466,12 +494,13 @@ pr_pred_default(Operation     :: format('~w is ~w ~w',[HA,HOp,B])) :-
     ).
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Aux|Args],
-    atom_chars(Aux,['o','_'|Rs]),
+    atom_chars(Aux,['o','_'|Rs]), !,
     append(Pred,['_'|Num],Rs),
     number_chars(N,Num),
     atom_chars(Pr,Pred),
     (   Pr == chk ->
-        Human = format('the nmr-check number ~w holds',[N])
+        fail %% defined to be output also by human_mid
+        %%        Human = format('the nmr-check number ~w holds',[N])
     ;
         ( append(['_','c','h','k'],Suffix,Rs) ->
             atom_chars(Suff,['n','m','r'|Suffix]),
@@ -594,7 +623,7 @@ human_protray((A '│' B):NX) :- !,
     format('a ~w ~w ',[NX,A]),
     human_protray_(B).
 human_protray('$'(X):NX) :- !,
-    format('any ~w ~w',[NX,X]).
+    format('~w, a ~w,',[X,NX]).
 human_protray(X:NX) :-
     format('the ~w ~w',[NX,X]).
 
@@ -811,7 +840,8 @@ set_user_option('-j') :- set(print_tree, on), set(process_stack, on).
 set_user_option('-j0') :- set(print_tree, on), set(process_stack, on).
 set_user_option('--justification') :- set(print_tree, on), set(process_stack, on).
 set_user_option('--human_all') :- set(human, on), set(print_tree, on), set(process_stack, on).
-set_user_option('--human_short') :- set(human, on), set(short,on),set(print_tree, on), set(process_stack, on).
+set_user_option('--human_mid') :- set(human, on), set(mid,on), set(print_tree, on), set(process_stack, on).
+set_user_option('--human_short') :- set(human, on), set(mid,on), set(short,on), set(print_tree, on), set(process_stack, on).
 set_user_option('--html') :- set(html, on), set(process_stack, on).
 set_user_option('--server') :- set(server, on), set(html, on), set(process_stack, on).
 set_user_option('-d0') :- set(write_program, on).
@@ -853,11 +883,12 @@ help :-
     display('  -v, --verbose         Enable verbose progress messages.\n'),
     display('  -j, --justification   Print proof tree for each solution.\n'),
     display('  --human_all           Print the whole proof tree in (predefine) natural language.\n'),
+    display('  --human_mid           Print the proof tree in natural language (annotated predicates + its negated).\n'),
     display('  --human_short         Print the proof tree in natural language (only annotated predicates).\n'),
     display('  --html                Generate the (selected) proof tree in a file named InputFiles(s).html.\n'),
     display('  --server              Generate the (selected) proof tree in the file named justification.html.\n'),
     display('  -d0                   Print the DUAL program (with duals and nmr_check).\n'),
-    display('  -d0_human_short       Print the program in natural langauge.\n'),
+    display('  -d0_human_short       Print the asserted predicates of the program in natural langauge.\n'),
     display('  -d0_human_all         Print the DUAL program in natural language.\n'),
     display('\n').
 
@@ -1005,14 +1036,10 @@ print_html_stack_([A|As],I,I0) :- !,
     ),
     %    nl,tab(I),print('<li> '),
     %    nl,tab(I),print('  '),
-    ( [A|As] == [global_constraints,o_nmr_check,[],[],[]] ->
+    ( [A|As] == [o_nmr_check,[],[],[]] ->
         print_html_zero_nmr(A,I,I1)
     ;
-        ( [A|As] == [o_nmr_check,[],[],[]] ->
-            print_html_zero_nmr(A,I,I1)
-        ;
-            print_html_term(A,I,I1)
-        )
+        print_html_term(A,I,I1)
     ),
     print_html_stack_(As,I1,I).
 
@@ -1022,10 +1049,15 @@ print_html_term(A,I,I1) :-
         asserta(sp_tab(I)),
         I1 = I
     ;
+        current_option(mid,on), Type \= mid ->
+        asserta(sp_tab(I)),
+        I1 = I
+    ;
         nl,tab(I),print('<li> '),
         nl,tab(I),call(Human),
         I1 is I + 4
     ).
+
 print_html_zero_nmr(A,I,I1) :-
     ( current_option(short,on) ->
         asserta(sp_tab(I)),
