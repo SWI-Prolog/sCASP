@@ -92,8 +92,7 @@ main(Args) :-
     parse_args(Args, Options, Sources),
     set_options(Options),
     load(Sources),
-    if_user_option(write_program, write_program),
-    if_user_option(write_program, halt),
+    if_user_option(write_program, ( write_program, halt )),
     (
         current_option(interactive, on) ->
         main_loop
@@ -521,6 +520,7 @@ check_CHS(Goal, I, co_failure) :-
 check_CHS(Goal, I, co_failure) :-
     predicate(Goal),
     \+ table_predicate(Goal),
+    if_user_option(no_fail_loop, fail),
     \+ \+ (
               type_loop(Goal, I, fail_pos(S)),
               if_user_option(check_calls, format('Positive loop, failling (Goal == ~w)\n',[Goal])),
@@ -540,8 +540,16 @@ check_CHS(Goal, I, cont) :-
     if(
           (
               predicate(Goal),
-              \+ ground(Goal),
+              \+ ground(Goal),    %% the current goal is restricted
               ground_neg_in_stack(Goal, I)
+          ),
+          true,true
+      ),
+    if(
+          (
+              predicate(Goal),
+              ground(Goal),   %% the current goal restrict previous results
+              constrained_neg_in_stack(Goal, I)
           ),
           true,true
       ).
@@ -562,12 +570,12 @@ neg_in_stack(Goal, [not(NegGoal)|_]) :-
     instance(Goal, NegGoal),
     instance(NegGoal, Goal), !,
     if_user_option(warning,format("\nWARNING: Co-Failing in a negated loop due to a variant call (extension clp-disequality required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n",[Goal,NegGoal])).
-% neg_in_stack(not(Goal), [NegGoal|_]) :-
-%       Goal =.. [Name|ArgGoal],
-%       NegGoal =.. [Name|NegArgGoal],
-%       if_user_option(check_calls, format('\t\tCheck if not(~p) entails (is more particular than) ~p\n',[Goal,NegGoal])),
-%       entail_list(ArgGoal, NegArgGoal), !,
-%       if_user_option(check_calls, format('\t\tOK\n',[])).
+%% neg_in_stack(not(Goal), [NegGoal|_]) :-
+%%       Goal =.. [Name|ArgGoal],
+%%       NegGoal =.. [Name|NegArgGoal],
+%%       if_user_option(check_calls, format('\t\tCheck if not(~p) entails (is more particular than) ~p\n',[Goal,NegGoal])),
+%%       entail_list(ArgGoal, NegArgGoal), !,
+%%       if_user_option(check_calls, format('\t\tOK\n',[])).
 % neg_in_stack(Goal, [not(NegGoal)|_]) :-
 %       Goal =.. [Name|ArgGoal],
 %       NegGoal =.. [Name|NegArgGoal],
@@ -628,6 +636,28 @@ ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,    
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
+
+
+% restrict even more the constrained in the stack
+constrained_neg_in_stack(_,[]).
+constrained_neg_in_stack(not(Goal), [NegGoal|Ss]) :-
+    Goal =.. [Name|ArgGoal],
+    NegGoal =.. [Name|NegArgGoal],
+    if_user_option(check_calls, format('\t\tCheck if not(~p) is consistent with ~p\n',[Goal,NegGoal])), !,
+    loop_list(ArgGoal, NegArgGoal), !,
+    if_user_option(check_calls, format('\t\tOK\n',[])),
+    constrained_neg_in_stack(not(Goal), Ss).
+constrained_neg_in_stack(Goal, [not(NegGoal)|Ss]) :-
+      Goal =.. [Name|ArgGoal],
+      NegGoal =.. [Name|NegArgGoal],
+    if_user_option(check_calls, format('\t\tCheck if not(~p) is consistent with ~p\n',[Goal,NegGoal])), !,
+    loop_list(ArgGoal, NegArgGoal), !,
+    if_user_option(check_calls, format('\t\tOK\n',[])),
+    constrained_neg_in_stack(Goal, Ss).
+constrained_neg_in_stack(Goal, [_|Ss]) :-
+    constrained_neg_in_stack(Goal, Ss).
+
+
 
 %% proved_in_stack
 proved_in_stack(Goal, S) :-

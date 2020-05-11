@@ -188,7 +188,7 @@ split_functor(P, N, -1) :- % no arity attached
 create_unique_functor(Hi, C, Ho) :-
     split_functor(Hi, Fc, A), % Strip the arity
     number_chars(C, Cc),
-    append(Fc, ['.'], Fcc), % Add simbol '.' before the counter
+    append(Fc, ['_'], Fcc), % Add simbol '_' before the counter
     append(Fcc, Cc, Fc2), % Add the counter
     number_chars(A, Ac),
     append(Fc2, ['_' | Ac], Fc3), % Add the arity back

@@ -75,7 +75,7 @@ Arias} in the folder @file{./src/sasp/}.
 :- dynamic loaded_file/1.
 load_program([]) :-
     display('ERROR: No imput file specified!'),nl,nl,
-    help. %% halt.
+    help, abort. %% halt.
 load_program(X) :-
     retractall(loaded_file(_)),
     (
@@ -91,6 +91,10 @@ load_program(X) :-
 translation of the programs already loaded by @pred{load_program/1}".
 
 write_program :-
+    loaded_file(_Files),
+    current_option(human,on), !,
+    print_human_program.
+write_program :-
     loaded_file(Files),
     main(['-d0'|Files]).
 
@@ -100,7 +104,7 @@ write_program :-
 flags to allows the generation of multiples models in the interaction
 and top-level mode (even when the query is ground). Returns in
 @var{TotalQuery} a list with the sub_goals in @var{Q} and
-@em{global_constraints} to run the nmr_check".
+@em{o_nmr_check} to run the global constraints".
 
 process_query(Q,Query,TotalQuery) :-
     revar(Q,A),
@@ -120,7 +124,7 @@ process_query(Q,Query,TotalQuery) :-
     ( current_option(no_nmr,on) ->
         append(Query, [true], TotalQuery)
     ;
-        append(Query, [global_constraints], TotalQuery)
+        append(Query, [o_nmr_check], TotalQuery)
     ).
 
 :- pred ask_for_more_models/0 #"Ask if the user want to generate more
@@ -190,8 +194,12 @@ using @var{Model}.".
 % TODO: use the StackOut instead of the model.
 print_model(Model) :-
     format('\nMODEL:\n',[]),
-    select_printable_literals(Model,Printable),
-    print_model_(Printable), nl.
+    print_model_(Model).
+
+print_model_(Model):-
+    select_printable_literals(Model,[],Selected),
+    reverse(Selected, Printable),
+    printable_model_(Printable), nl.
 
 :- pred print_unifier(Vars,PVars) #" Predicate to print @var{PVars} =
 @var{Vars} the binding of the variables in the query".
@@ -219,27 +227,26 @@ print_unifier_([Binding|Bs],[PV|PVars]) :-
 
 
 
-select_printable_literals([],[]) :- !.
-select_printable_literals([X|Xs],NSs) :-
-    select_printable_literals(X,S), !,
-    select_printable_literals(Xs,Ss),
-    append(S,Ss,NSs).
-select_printable_literals(X,[X]) :-
-    printable_literal(X), !.
-select_printable_literals(_,[]).
+select_printable_literals([],Ac,Ac) :- !.
+select_printable_literals([X|Xs],Ac0,Ac1) :- !,
+    select_printable_literals(X,Ac0,Acm), 
+    select_printable_literals(Xs,Acm,Ac1).
+select_printable_literals(X,Ac0,[X|Ac0]) :-
+    printable_literal(X),
+    \+ member(X,Ac0), !.   %% Remove repeated literals.
+select_printable_literals(_,Ac0,Ac0).
 
 
-print_model_([]).
-print_model_([Last]) :- 
+printable_model_([]).
+printable_model_([Last]) :- 
     print(Last).
-print_model_([First,Second|Rest]) :-
+printable_model_([First,Second|Rest]) :-
     print(First),
-    display(' ,  '),
-    print_model_([Second|Rest]).
+    display('   '),
+    printable_model_([Second|Rest]).
 
 %printable_literal(not(X)) :- printable_literal(X).
 printable_literal(X) :-
-    X \= 'global_constraints',
     X \= 'o_nmr_check',
     X \= chs(_),
     (
@@ -359,14 +366,10 @@ print_s_([A|As],I,I0) :- !,
         print_human(',')
     ),
 %    nl,tab(I),
-    ( [A|As] == [global_constraints,o_nmr_check,[],[],[]] ->
+    ( [A|As] == [o_nmr_check,[],[],[]] ->
         print_zero_nmr(A,I,I1)
     ;
-        ( [A|As] == [o_nmr_check,[],[],[]] ->
-            print_zero_nmr(A,I,I1)
-        ;
-            print_human_term(A,I,I1)
-        )
+        print_human_term(A,I,I1)
     ),
     print_s_(As,I1,I).
 
@@ -389,11 +392,7 @@ print_zero_nmr(A,I,I1) :-
     ;
         nl,tab(I),
         (   current_option(human,on) ->
-            (  A = global_constraints ->
-                format('The global constraints hold',[])
-            ;
-                format('There are no non-monotonic-rules to be checked',[])
-            )
+            format('There are no nmr to be checked',[])
         ;
             print(A)
         ),
@@ -422,7 +421,7 @@ pr_human_term((A::Human),Type) :-
             Type = pred
         ;
             (   pr_pred_default(A::Human) ->
-                (   member(A,[global_constraints]) ->
+                (   member(A,[o_nmr_check]) ->
                     Type = pred
                 ;
                     Type = default
@@ -450,6 +449,7 @@ human(',','').
 human(' :-','').
 
 %% Predefine human rules  & introduced during execution (forall...)
+:- use_module(library(formulae)).
 :- dynamic new_pr_pred_default/1.
 pr_pred_default( proved(A)    :: (B,format(', already justified',[]))) :- !,
     pr_human_term(A::B,_).
@@ -467,39 +467,40 @@ pr_pred_default(Operation     :: format('~w is ~w ~w',[HA,HOp,B])) :-
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Aux|Args],
     atom_chars(Aux,['o','_'|Rs]),
-    append(Pred,['.'|Num],Rs),
+    append(Pred,['_'|Num],Rs),
     number_chars(N,Num),
     atom_chars(Pr,Pred),
     (   Pr == chk ->
-        Human = format('For the rule number ~w ',[N])
+        Human = format('the nmr-check number ~w holds',[N])
     ;
-        ( Pr == '_chk' ->
-            Human = format('There is no contradiction ',[])
+        ( append(['_','c','h','k'],Suffix,Rs) ->
+            atom_chars(Suff,['n','m','r'|Suffix]),
+            Predicate =.. [Suff|Args],
+            pr_human_term(not(Predicate)::Human,_)            
         ;
             Predicate =.. [Pr|Args],
             pr_human_term(not(Predicate)::PrH,_),
-            Human = (format('~w) ',[N]),PrH)
+            Human = ( PrH, format(', from rule ~w',[N]) )
         )
     ).
 pr_pred_default(Forall        :: Human) :-
     Forall = forall(_,_),
-    find_vars_description(Forall,[Var|_],Descripcion),
+    find_forall_description(Forall,_,[Var|_],Descripcion),
     (  member(@(Var:VHuman),Descripcion), VHuman \= '' ->
-        Human = format('For any possible ~p',[VHuman])
+        Human = format('for any possible ~p ~p',[VHuman,Var])
     ;
-        Human = format('For any possible value',[])
+        Human = format('for any possible value ~p',[Var])
     ).
 pr_pred_default(CHS        :: (format('Assume: ',[]),Human)) :-
     CHS = chs(Pred),
     pr_human_term(Pred::Human,_).
-pr_pred_default(global_constraints :: format('The global constraints hold',[])).
-pr_pred_default(o_nmr_check        :: format('Let\'s check the non-monotonic-rules',[])).
+pr_pred_default(o_nmr_check        :: format('The nmr-checks and global constraint hold',[])).
 pr_pred_default(Other              :: format(F,[Name|NArgs])) :-
     ( Other = not(Pre) ->
-        F0 = 'There is no conclusion of'
+        F0 = 'there is no conclusion of'
     ;
         Pre = Other,
-        F0 = 'There is a conclusion of'
+        F0 = 'there is a conclusion of'
     ),
     Pre =.. [Name|Args],
     F1 = ' ~w',
@@ -513,8 +514,8 @@ other_format([V|Vs],[@(V:'')|NVs],F) :-
                 
     
 
-find_vars_description(Forall,Vars,Descripcion) :-
-    find_vars_description_(Forall,Vars,not(Call),Descripcion),
+find_forall_description(Forall,not(Call),Vars,Descripcion) :-
+    find_forall_description_(Forall,Vars,not(Call),Descripcion),
     Call =.. [Name|Args], append(Prev,Vars,Args),
     length(Args,Len),length(FreeArgs,Len),
     FreeCall =.. [Name|FreeArgs],
@@ -527,7 +528,7 @@ find_vars_description(Forall,Vars,Descripcion) :-
         assert(new_pr_pred_default(not(NewFreeCall)::(Human01,Human02)))
     ).
 
-process_new_call01(_,[],[],format('There is no contradiction',[])) :- !.
+process_new_call01(_,[],[],format('there is no conclusion of this nmr-check',[])) :- !.
 process_new_call01(Name,Prev,FreePrev,Human1) :-
     atom_chars(Name,[o,'_'|Names]), append(Preds,['.'|Nums],Names), number_chars(_,Nums),atom_chars(Pred,Preds),
     length(Prev,Len), length(FreePrev,Len), PrevCall =.. [Pred|FreePrev],
@@ -548,9 +549,9 @@ process_new_call02([V0,V1|Vars],Descripcion,[F|Fs],(H,Hs)) :-
     process_new_call02([V1|Vars],Descripcion,Fs,Hs).
 
 
-find_vars_description_(forall(V,Rs),[V|Vs],Call,Description) :- !,
-    find_vars_description_(Rs,Vs,Call,Description).
-find_vars_description_(Rs,[],Rs,Description) :-
+find_forall_description_(forall(V,Rs),[V|Vs],Call,Description) :- !,
+    find_forall_description_(Rs,Vs,Call,Description).
+find_forall_description_(Rs,[],Rs,Description) :-
     find_last_description(Rs,Description).
 
 find_last_description(Rs,Description) :-
@@ -592,8 +593,8 @@ human_protray_default(X) :- write(X).
 human_protray((A '│' B):NX) :- !,
     format('a ~w ~w ',[NX,A]),
     human_protray_(B).
-human_protray('$'(_X):NX) :- !,
-    format('any ~w',[NX]).
+human_protray('$'(X):NX) :- !,
+    format('any ~w ~w',[NX,X]).
 human_protray(X:NX) :-
     format('the ~w ~w',[NX,X]).
 
@@ -778,7 +779,7 @@ check_compatibilities :-
     current_option(check_calls,on),
     current_option(human,on), !,
     format('ERROR: verboser and human output do not allowed together!\n\n',[]),
-    help,
+    help, abort,
     fail.
 check_compatibilities.
 
@@ -790,13 +791,14 @@ set_user_options([O | Os]) :-
         set_user_options(Os)
     ;
         format('ERROR: The option ~w is not supported!\n\n',[O]),
-        help,
+        help, abort,
         fail
     ).
 
-set_user_option('-h') :- help.
-set_user_option('-?') :- help.
-set_user_option('--help') :- help.
+set_user_option('-h') :- help, abort.
+set_user_option('-?') :- help, abort.
+set_user_option('--help') :- help, abort.
+set_user_option('--help_all') :- help_all, abort.
 set_user_option('-i') :- set(interactive, on).
 set_user_option('--interactive') :- set(interactive, on).
 set_user_option('-a').
@@ -805,10 +807,6 @@ set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),se
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option('-v') :- set(check_calls, on).
 set_user_option('--verbose') :- set(check_calls, on).
-set_user_option('-w') :- set(warning, on).
-set_user_option('--warning') :- set(warning, on).
-set_user_option('-no') :- set(no_nmr, on).
-set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('-j') :- set(print_tree, on), set(process_stack, on).
 set_user_option('-j0') :- set(print_tree, on), set(process_stack, on).
 set_user_option('--justification') :- set(print_tree, on), set(process_stack, on).
@@ -817,6 +815,14 @@ set_user_option('--human_short') :- set(human, on), set(short,on),set(print_tree
 set_user_option('--html') :- set(html, on), set(process_stack, on).
 set_user_option('--server') :- set(server, on), set(html, on), set(process_stack, on).
 set_user_option('-d0') :- set(write_program, on).
+set_user_option('-d0_human_short') :- set(write_program,on), set(human, on).
+set_user_option('-d0_human_all') :- set(write_program,on), set(human, on), set(all_program, on).
+%% Development
+set_user_option('-w') :- set(warning, on).
+set_user_option('--warning') :- set(warning, on).
+set_user_option('-no') :- set(no_nmr, on).
+set_user_option('--no_nmr') :- set(no_nmr, on).
+set_user_option('--variant') :- set(no_fail_loop, on).
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
 #"If the flag @var{Name} is on them the call @var{Call} is executed".
@@ -845,17 +851,21 @@ help :-
     display('  -a, --auto            Run in automatic mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.\n'),
     display('  -v, --verbose         Enable verbose progress messages.\n'),
-    display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  -j, --justification   Print proof tree for each solution.\n'),
     display('  --human_all           Print the whole proof tree in (predefine) natural language.\n'),
     display('  --human_short         Print the proof tree in natural language (only annotated predicates).\n'),
     display('  --html                Generate the proof tree in a file named InputFiles(s).html.\n'),
     display('  --server              Generate the proof tree in the file named justification.html.\n'),
     display('  -d0                   Print the program translated (with duals and nmr_check).\n'),
-    display('\n'),
-    abort.
+    display('\n').
 
-
+help_all :-
+    help,
+    display('  --no_mnr              Does not run NMR checks - for debugging purposes.\n'),
+    display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
+    display('  --variant             Does not fail due to positive loops.\n'),
+    display('\n').
+    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parse arguments
@@ -901,8 +911,7 @@ print_html(Query, Model, StackOut) :-
             print_html_query(Query),nl,
             br,br,nl,
             print('<h3>Model</h3>'),nl,
-            select_printable_literals(Model,Printable),
-            print_model_(Printable),
+            print_model_(Model),
             br,br,
             nl,print('<h3> Justification <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>'),nl,nl,
             nl,print(' <ul class="tree">'),nl,nl,
@@ -1092,3 +1101,102 @@ close_output_file(Stream,Current) :-
     
 br :- print('<br>').
 
+
+
+
+:- pred print_human_program #"Output pretty print of the program +
+dual rules + nmr-checks".
+
+print_human_program :-
+    pr_query(Query),
+    pretty_term([],D1,Query,PrettyQuery),
+    findall(rule(Head,Body), pr_rule(Head,Body),Rules),
+    pretty_term(D1,_D2,Rules,PrettyRules),
+    filter(PrettyRules, UserRules, DualRules, NMRChecks),
+    print_human_program_('QUERY',PrettyQuery),
+    print_human_program_('USER PREDICATES',UserRules),
+    (  current_option(all_program,on) ->
+        print_human_program_('DUAL RULES',DualRules),
+        print_human_program_('NMR-Checks',NMRChecks)
+    ;
+        true
+    ),
+    nl.
+
+filter([],[],[],[]).
+filter([R|Rs], Us, Ds, [R|Ns]) :-
+    R = rule(Head,_),
+    Head =.. [Pred|_],
+    atom_concat(_,'_check',Pred), !,
+    filter(Rs,Us,Ds,Ns).
+filter([R|Rs], Us, [R|Ds], Ns) :-
+    R = rule(not(_),_), !,
+    filter(Rs,Us,Ds,Ns).
+filter([R|Rs], [R|Us], Ds, Ns) :-
+    filter(Rs,Us,Ds,Ns).
+
+
+print_human_program_(Title,Rules) :-
+    format('\n~p:',[Title]),
+    (  Title == 'QUERY' ->
+        print_human_query(Rules)
+    ;
+        print_human_rules(Rules)
+    ).
+
+
+print_human_query(Query) :-
+    nl,
+    print('I would like to know if'),
+    print_human_body(Query).
+
+
+print_human_rules([]).
+print_human_rules([R|Rs]) :-
+    R = rule(Head,Body),
+    print_human_head(Head),
+    ( Body == [] ->
+        nl
+    ;
+        print(' if'),
+        print_human_body(Body)
+    ),
+    print_human_rules(Rs).
+
+print_human_head(Head) :-
+    pr_human_term(Head::Format,_),
+    nl,
+    call(Format).
+
+print_human_body([Last]) :- !,
+    print_human_body_(Last),
+    nl.
+print_human_body([L|Ls]) :-
+    print_human_body_(L),
+    print(' and'),
+    print_human_body(Ls).
+
+
+print_human_body_(Forall) :-
+    Forall = forall(_,_), !,
+    print_human_body_forall(Forall,5).
+print_human_body_(L) :-
+    pr_human_term(L::Format,_),
+    nl,tab(5),
+    call(Format).
+
+print_human_body_forall(Forall,I) :-
+    Forall = forall(_,InForall), !,
+    pr_human_term(Forall::Format,_),
+    nl,tab(I),
+    call(Format),
+    I1 is I + 3,
+    print_human_body_forall(InForall,I1).
+
+print_human_body_forall(InForall,I) :-
+    pr_human_term(InForall::Format,_),
+    nl,tab(I),
+    call(Format).
+
+
+    

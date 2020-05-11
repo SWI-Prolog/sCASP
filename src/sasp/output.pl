@@ -1246,13 +1246,13 @@ process_pr_pred_([C|Cs],[C|Rs],Var) :-
     process_pr_pred_(Cs,Rs,Var).
 process_pr_pred_var([':'|R0],Rs,VAc0,VAc1,NAc) :- !,
     reverse(VAc0,VAc1),
-    process_pr_pred_name(R0,Rs,[],NAc).
+    process_pr_pred_name(R0,Rs,['\''],NAc).
 process_pr_pred_var([')'|Rs],Rs,Ac0,Ac1,['\'','\'']) :- !,
     reverse(Ac0,Ac1).
 process_pr_pred_var([V0|R0],Rs,Ac0,Ac1,NVar) :-
     process_pr_pred_var(R0,Rs,[V0|Ac0],Ac1,NVar).
 process_pr_pred_name([')'|Rs],Rs,NAc0,NAc1) :- !,
-    reverse(NAc0,NAc1).
+    reverse(['\''|NAc0],NAc1).
 process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
     process_pr_pred_name(R0,Rs,[NV0|NAc0],NAc1).
 

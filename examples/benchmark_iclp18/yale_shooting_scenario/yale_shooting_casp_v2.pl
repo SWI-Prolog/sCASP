@@ -1,5 +1,6 @@
 
-duration(load,25).
+duration(load,D) :-
+    D .<. 23/3, D .>. 10/3.
 duration(shoot,5).
 duration(wait,36).
 
@@ -27,6 +28,6 @@ transition(shoot, state(alive, loaded, PrevArmed), state(alive, unloaded, 0)) :-
 spoiled(Armed) :- Armed .>. 35.   
 prohibited(shoot, T) :- T .<. 35.
 
-?- T .<. 100, holds(T, state(dead,_,_), List).
+?- T .<. 40, holds(T, state(dead,_,_), List).
 
 #show holds/3.
