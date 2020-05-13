@@ -92,11 +92,11 @@ translation of the programs already loaded by @pred{load_program/1}".
 
 write_program :-
     loaded_file(_Files),
-    current_option(human,on), !,
+%    current_option(human,on), !,
     print_human_program.
-write_program :-
-    loaded_file(Files),
-    main(['-d0'|Files]).
+%% write_program :-
+%%     loaded_file(Files),
+%%     main(['-d0'|Files]).
 
 :- dynamic cont/0.
 
@@ -863,7 +863,7 @@ set_user_option('-a').
 set_user_option('--auto').
 set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
-set_user_option('-code') :- set(write_program, on).
+set_user_option('-code') :- set(write_program, on), set(all_program,on).
 set_user_option('-code:human-long') :- set(write_program,on), set(human, on), set(all_program, on).
 set_user_option('-code:human-middle') :- set(write_program,on), set(human, on).
 set_user_option('-tree') :- set(print_tree, on), set(process_stack, on).
@@ -1246,6 +1246,7 @@ filter([R|Rs], [R|Us], Ds, Ns) :-
 
 print_human_program_(Title,Rules) :-
     format('\n~p:',[Title]),
+    nl,
     (  Title == 'QUERY' ->
         print_human_query(Rules)
     ;
@@ -1255,39 +1256,67 @@ print_human_program_(Title,Rules) :-
 
 print_human_query(Query) :-
     nl,
-    print('I would like to know if'),
+    ( current_option(human,on) ->
+        print('I would like to know if')
+    ;
+        print('?-')
+    ),
     print_human_body(Query).
 
 
-print_human_rules([]).
-print_human_rules([R|Rs]) :-
+print_human_rules([R]) :-
+    print_human_rules_(R).
+print_human_rules([R0,R1|Rs]) :-
+    print_human_rules_(R0),
+    (  rule_eq(R0,R1) ->  true ; nl ),
+    print_human_rules([R1|Rs]).
+print_human_rules_(R) :-
     R = rule(Head,Body),
     print_human_head(Head),
     ( Body == [] ->
         nl
     ;
-        print(' if'),
+        (  current_option(human,on) ->
+            print(' if')
+        ;
+            print(' :-')
+        ),
         print_human_body(Body)
-    ),
-    print_human_rules(Rs).
+    ).
+    
+rule_eq(rule(H,_),rule(H,_)) :- !.
+rule_eq(rule(not(H),_),rule(not(H1),_)) :- !, rule_eq_(H,H1).
+rule_eq(rule(-H,_),rule(-H1,_)) :- !, rule_eq_(H,H1).
+rule_eq(rule(H,_),rule(H1,_)) :- !, rule_eq_(H,H1).
+
+rule_eq_(H,H1) :-
+    H =.. [Name|A], H1 =.. [Name|A1], length(A,L), length(A1,L).
 
 print_human_head(Head) :-
     pr_human_term(Head::Format,_),
-    nl,
     call(Format).
 
 print_human_body([Last]) :- !,
     print_human_body_(Last),
+    print('.'),
     nl.
 print_human_body([L|Ls]) :-
     print_human_body_(L),
-    print(' and'),
+    ( current_option(human,on) ->
+        print(' and')
+    ;
+        print(',')
+    ),
     print_human_body(Ls).
 
 
 print_human_body_(Forall) :-
     Forall = forall(_,_), !,
-    print_human_body_forall(Forall,5).
+    (  current_option(human,on) ->
+        print_human_body_forall(Forall,5)
+    ;
+        print(Forall)
+    ).
 print_human_body_(L) :-
     pr_human_term(L::Format,_),
     nl,tab(5),
