@@ -134,7 +134,7 @@ main_solve(Q0) :-
     pretty_term([],D1,par(Vars,Q),par(PVars,PQ)),
     list_to_conj(PQ,ConjPQ),
 
-    format('QUERY:\t?- ~p.\n',ConjPQ),
+    format('QUERY:\n?- ~p.\n',ConjPQ),
 
     statistics(runtime,_),
     if(solve(Query, [], StackOut, Model),nl,(print('\nfalse\n\n'),fail)),

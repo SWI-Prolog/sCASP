@@ -423,10 +423,23 @@ pr_pred_short(proved(A)::(Human,format(', already justified',[]))) :-
 pr_pred_short(chs(A)::(format('Assume: ',[]), Human)) :-
     pr_pred_predicate(A::Human).
 
-user_predicate(A) :-
+
+user_predicate(not(A)) :- !,
+    user_predicate(A).
+user_predicate(proved(A)) :- !,
+    user_predicate(A).
+user_predicate(chs(A)) :- !,
+    user_predicate(A).
+user_predicate(A) :- !,
     A =.. [Name|Args],
+    \+ auxiliary(Name),
     length(Args,La),
     pr_user_predicate(Name/La).
+
+auxiliary(-(o_,_)) :- !.
+auxiliary(Name) :-
+    length(Name,L), L > 2,
+    atom_chars(Name,['o','_'|_]).
 
 
 pr_human_term((A::Human),Type) :-
@@ -471,16 +484,18 @@ human(',','').
 human(' :-','').
 
 pr_pred_negated(not(Auxiliar) :: Human,pred) :-
-    Auxiliar =.. [Aux|_],
+    Auxiliar =.. [Aux|Args],
     atom_chars(Aux,['o','_'|Rs]),
     append(Pred,['_'|Num],Rs),
     number_chars(N,Num),
     atom_chars(Pr,Pred),
     Pr == chk, !,
-    Human = format('the nmr-check number ~w holds',[N]).
+    H0 = format('the nmr-check number ~p holds',[N]),
+    pr_var_default(Args,H1),
+    Human = (H0, H1).
 pr_pred_negated(not(Predicate) :: Human,Type) :-
     pr_human_term(Predicate::PrH,Type), !,
-    Human = ( format('can not be proven that ',[]), PrH ).
+    Human = ( format('it can not be proven that ',[]), PrH ).
 pr_pred_negated(NegPredicate :: Human,Type) :-
     NegPredicate =.. [NegName|Arg],
     atom_concat('-',Name,NegName),
@@ -489,14 +504,14 @@ pr_pred_negated(NegPredicate :: Human,Type) :-
     Human = ( format('it is not the case that ',[]), PrH ).
 
 %% Predefine human rules  & introduced during execution (forall...)
-:- use_module(library(formulae)).
+%% :- use_module(library(formulae)).
 :- dynamic new_pr_pred_default/1.
 pr_pred_default( proved(A)    :: (B,format(', already justified',[]))) :- !,
     pr_human_term(A::B,_).
-pr_pred_default(A) :- new_pr_pred_default(A),!.
-pr_pred_default( (A=A)        :: format('~w is ~w',[A,A])).
+%% pr_pred_default(A) :- new_pr_pred_default(A),!.
+pr_pred_default( (A=A)        :: format('~p is ~p',[A,A])).
 pr_pred_default(true          :: format('\r',[])).
-pr_pred_default(Operation     :: format('~w is ~w ~w',[HA,HOp,B])) :-
+pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
     Operation =.. [Op,A,B],
     human_op(Op,HOp),
     ( A = '$'(Var) ->
@@ -511,104 +526,106 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     number_chars(N,Num),
     atom_chars(Pr,Pred),
     (   Pr == chk ->
-        Human = format('the nmr-check number ~w holds',[N])
+        H0 = format('the nmr-check number ~p holds',[N])
     ;
         ( append(['_','c','h','k'],Suffix,Rs) ->
-            atom_chars(Suff,['n','m','r'|Suffix]),
-            Predicate =.. [Suff|Args],
-            pr_human_term(not(Predicate)::Human,_)            
+            atom_chars(Rule,['n','m','r'|Suffix])
         ;
-            Predicate =.. [Pr|Args],
-            pr_human_term(not(Predicate)::PrH,_),
-            Human = ( PrH, format(', from rule ~w',[N]) )
-        )
-    ).
-pr_pred_default(Forall        :: Human) :-
-    Forall = forall(_,_),
-    find_forall_description(Forall,_,[Var|_],Descripcion),
-    (  member(@(Var:VHuman),Descripcion), VHuman \= '' ->
-        Human = format('for any possible ~p ~p',[VHuman,Var])
-    ;
-        Human = format('for any possible value ~p',[Var])
-    ).
+            Rule = N
+        ),
+        H0 = format('> rule ~p holds',[Rule])
+    ),
+    pr_var_default(Args,H1),
+    Human = (H0, H1).
+pr_pred_default(Forall  :: format('for any possible value ~p',[Var])) :-
+    Forall = forall(Var,_), !.
+%% Quite complex and not useful
+%% pr_pred_default(Forall        :: Human) :-
+%%     Forall = forall(_,_),
+%%     find_forall_description(Forall,_,[Var|_],Descripcion),
+%%     (  member(@(Var:VHuman),Descripcion), VHuman \= '' ->
+%%         Human = format('for any possible ~p ~p',[VHuman,Var])
+%%     ;
+%%         Human = format('for any possible value ~p',[Var])
+%%     ).
 pr_pred_default(CHS        :: (format('Assume: ',[]),Human)) :-
     CHS = chs(Pred),
     pr_human_term(Pred::Human,_).
 pr_pred_default(o_nmr_check        :: format('The nmr-checks and global constraint hold',[])).
-pr_pred_default(Other              :: format(F,[Name|NArgs])) :-
-    ( Other = not(Pre) ->
-        F0 = 'there is no evidence that ~w holds'
-    ;
-        Pre = Other,
-        F0 = 'there is an evidence that ~w holds'
-    ),
-    Pre =.. [Name|Args],
-    other_format(Args,NArgs,F1),
-    atom_concat(F0,F1,F).
+pr_pred_default(Negated            :: Human) :-
+    pr_pred_negated(Negated :: Human, _).
+pr_pred_default(Other              :: (H0, H1)) :-
+    Other =.. [Name|Args],
+    H0 = format('there is an evidence that \'~p\' holds',Name),
+    pr_var_default(Args,H1).
 
-other_format([],[],'').
-other_format([V|Vs],[@(V:'')|NVs],F) :-
-    other_format(Vs,NVs,F0),
-    atom_concat(', for ~p',F0,F).
-                
-    
+pr_var_default([],(format('',[]))) :- !.
+pr_var_default([V|Vs],(format(', for ~p',[@(V:'')]),Fs)) :-
+    pr_var_default(Vs,Fs).
+%% other_format([],[],'').
+%% other_format([V|Vs],[@(V:'')|NVs],F) :-
+%%     other_format(Vs,NVs,F0),
+%%     atom_concat(', for ~p',F0,F).
 
-find_forall_description(Forall,not(Call),Vars,Descripcion) :-
-    find_forall_description_(Forall,Vars,not(Call),Descripcion),
-    Call =.. [Name|Args], append(Prev,Vars,Args),
-    length(Args,Len),length(FreeArgs,Len),
-    FreeCall =.. [Name|FreeArgs],
-    (  new_pr_pred_default(not(FreeCall) :: _) ->
-        true
-    ;
-        process_new_call01(Name,Prev,NewPrev,Human01),
-        process_new_call02(Vars,Descripcion,Free,Human02),
-        append(NewPrev,Free,NewFreeArgs), NewFreeCall =.. [Name|NewFreeArgs],
-        assert(new_pr_pred_default(not(NewFreeCall)::(Human01,Human02)))
-    ).
 
-process_new_call01(Name,[],[],Human) :- !,
-    pr_pred_default(not(Name) :: Human).
 
-process_new_call01(Name,Prev,FreePrev,Human1) :-
-    atom_chars(Name,[o,'_'|Names]), append(Preds,['.'|Nums],Names), number_chars(_,Nums),atom_chars(Pred,Preds),
-    length(Prev,Len), length(FreePrev,Len), PrevCall =.. [Pred|FreePrev],
-    (  pr_pred_predicate(not(PrevCall)::Human1) ->
-        true
-    ;
-        pr_pred_default(not(PrevCall)::Human1)
-    ).
+%% Quite complex and not useful
+%% find_forall_description(Forall,not(Call),Vars,Descripcion) :-
+%%     find_forall_description_(Forall,Vars,not(Call),Descripcion),
+%%     Call =.. [Name|Args], append(Prev,Vars,Args),
+%%     length(Args,Len),length(FreeArgs,Len),
+%%     FreeCall =.. [Name|FreeArgs],
+%%     (  new_pr_pred_default(not(FreeCall) :: _) ->
+%%         true
+%%     ;
+%%         process_new_call01(Name,Prev,NewPrev,Human01),
+%%         process_new_call02(Vars,Descripcion,Free,Human02),
+%%         append(NewPrev,Free,NewFreeArgs), NewFreeCall =.. [Name|NewFreeArgs],
+%%         assert(new_pr_pred_default(not(NewFreeCall)::(Human01,Human02)))
+%%     ).
+
+%% process_new_call01(Name,[],[],Human) :- !,
+%%     pr_pred_default(not(Name) :: Human).
+
+%% process_new_call01(Name,Prev,FreePrev,Human1) :-
+%%     atom_chars(Name,[o,'_'|Names]), append(Preds,['_'|Nums],Names), number_chars(_,Nums),atom_chars(Pred,Preds),
+%%     length(Prev,Len), length(FreePrev,Len), PrevCall =.. [Pred|FreePrev],
+%%     (  pr_pred_predicate(not(PrevCall)::Human1) ->
+%%         true
+%%     ;
+%%         pr_pred_default(not(PrevCall)::Human1)
+%%     ).
             
-process_new_call02([V],Descripcion,[F],(H)) :- !,
-    (  member(@(V:VHuman),Descripcion) ->
-        H = format(', for ~p',[@(F:VHuman)])
-    ;
-        H = format(', for ~p',[@(F:'')])
-    ).
-process_new_call02([V0,V1|Vars],Descripcion,[F|Fs],(H,Hs)) :-
-    process_new_call02([V0],Descripcion,[F],H),
-    process_new_call02([V1|Vars],Descripcion,Fs,Hs).
+%% process_new_call02([V],Descripcion,[F],(H)) :- !,
+%%     (  member(@(V:VHuman),Descripcion) ->
+%%         H = format(', for ~p',[@(F:VHuman)])
+%%     ;
+%%         H = format(', for ~p',[@(F:'')])
+%%     ).
+%% process_new_call02([V0,V1|Vars],Descripcion,[F|Fs],(H,Hs)) :-
+%%     process_new_call02([V0],Descripcion,[F],H),
+%%     process_new_call02([V1|Vars],Descripcion,Fs,Hs).
 
 
-find_forall_description_(forall(V,Rs),[V|Vs],Call,Description) :- !,
-    find_forall_description_(Rs,Vs,Call,Description).
-find_forall_description_(Rs,[],Rs,Description) :-
-    find_last_description(Rs,Description).
+%% find_forall_description_(forall(V,Rs),[V|Vs],Call,Description) :- !,
+%%     find_forall_description_(Rs,Vs,Call,Description).
+%% find_forall_description_(Rs,[],Rs,Description) :-
+%%     find_last_description(Rs,Description).
 
-find_last_description(Rs,Description) :-
-    findall(Body, pr_rule(Rs,Body), Cls),
-    reverse(Cls,[Body|_]), %% the last clause has all the literals of a forall
-    find_description(Body,Description).
+%% find_last_description(Rs,Description) :-
+%%     findall(Body, pr_rule(Rs,Body), Cls),
+%%     reverse(Cls,[Body|_]), %% the last clause has all the literals of a forall
+%%     find_description(Body,Description).
 
-find_description([],[]).  %% no more var description
-find_description([L|Ls],D) :-
-    ( pr_pred_predicate(L::format(_,D0)) ->
-        true
-    ;
-        D0 = []
-    ),
-    find_description(Ls,Ds),
-    append(D0,Ds,D).
+%% find_description([],[]).  %% no more var description
+%% find_description([L|Ls],D) :-
+%%     ( pr_pred_predicate(L::format(_,D0)) ->
+%%         true
+%%     ;
+%%         D0 = []
+%%     ),
+%%     find_description(Ls,Ds),
+%%     append(D0,Ds,D).
     
 
 :- multifile portray/1.
@@ -618,12 +635,12 @@ portray(@(X:'')) :- !,
     human_protray_default(X).
 portray(@(X:NX)) :- !,
     human_protray(X:NX).
-portray('$'(X)) :-
+portray('$'(X)) :- !,
         write(X).
 portray(Constraint) :-
     Constraint =.. [Op,A,B],
     pretty_clp(_,Op), !,
-    format("~p ~w ~p",[A,Op,B]).
+    format("~p ~p ~p",[A,Op,B]).
 
 % para la conclusion xx no tentemos texto.
 human_protray_default(A '│' B) :- !,
@@ -632,12 +649,12 @@ human_protray_default('$'(X)) :- !, write(X).
 human_protray_default(X) :- write(X).
 
 human_protray((A '│' B):NX) :- !,
-    format('a ~w ~w ',[NX,A]),
+    format('a ~p ~p ',[NX,A]),
     human_protray_(B).
 human_protray('$'(X):NX) :- !,
-    format('~w, a ~w,',[X,NX]).
+    format('~p, a ~p,',[X,NX]).
 human_protray(X:NX) :-
-    format('the ~w ~w',[NX,X]).
+    format('the ~p ~p',[NX,X]).
 
 human_protray_({X,Y,Z}) :- !,
     print_c(X), print(', '), human_protray_({Y,Z}).
@@ -649,7 +666,7 @@ human_protray_({X}) :-
 print_c(Operation) :-
     Operation =.. [Op,_,B],
     human_op(Op,HOp),
-    format('~w ~w',[HOp,B]).
+    format('~p ~p',[HOp,B]).
 
 human_op(#= ,'equal').
 human_op(#<>,'not equal').
@@ -836,29 +853,27 @@ set_user_options([O | Os]) :-
         fail
     ).
 
+set_user_option('--help_all') :- help_all, abort.
 set_user_option('-h') :- help, abort.
 set_user_option('-?') :- help, abort.
 set_user_option('--help') :- help, abort.
-set_user_option('--help_all') :- help_all, abort.
 set_user_option('-i') :- set(interactive, on).
 set_user_option('--interactive') :- set(interactive, on).
 set_user_option('-a').
 set_user_option('--auto').
 set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
-set_user_option('-v') :- set(check_calls, on).
-set_user_option('--verbose') :- set(check_calls, on).
-set_user_option('-j') :- set(print_tree, on), set(process_stack, on).
-set_user_option('-j0') :- set(print_tree, on), set(process_stack, on).
-set_user_option('--justification') :- set(print_tree, on), set(process_stack, on).
-set_user_option('--human_all') :- set(human, on), set(print_tree, on), set(process_stack, on).
-set_user_option('--human_mid') :- set(human, on), set(mid,on), set(print_tree, on), set(process_stack, on).
-set_user_option('--human_short') :- set(human, on), set(mid,on), set(short,on), set(print_tree, on), set(process_stack, on).
+set_user_option('-code') :- set(write_program, on).
+set_user_option('-code:human-long') :- set(write_program,on), set(human, on), set(all_program, on).
+set_user_option('-code:human-middle') :- set(write_program,on), set(human, on).
+set_user_option('-tree') :- set(print_tree, on), set(process_stack, on).
+set_user_option('-tree:human-long') :- set(human, on), set(print_tree, on), set(process_stack, on).
+set_user_option('-tree:human-middle') :- set(human, on), set(mid,on), set(print_tree, on), set(process_stack, on).
+set_user_option('-tree:human-short') :- set(human, on), set(mid,on), set(short,on), set(print_tree, on), set(process_stack, on).
 set_user_option('--html') :- set(html, on), set(process_stack, on).
 set_user_option('--server') :- set(server, on), set(html, on), set(process_stack, on).
-set_user_option('-d0') :- set(write_program, on).
-set_user_option('-d0_human_short') :- set(write_program,on), set(human, on).
-set_user_option('-d0_human_all') :- set(write_program,on), set(human, on), set(all_program, on).
+set_user_option('-v') :- set(check_calls, on).
+set_user_option('--verbose') :- set(check_calls, on).
 %% Development
 set_user_option('-w') :- set(warning, on).
 set_user_option('--warning') :- set(warning, on).
@@ -885,23 +900,23 @@ set(Option, Value) :-
 
 help :-
     display('Usage: scasp [options] InputFile(s)\n\n'),
-    display('s(CASP) computes stable models of ungrounded normal logic programs.\n'),
+    display('s(CASP) computes stable models of predicate normal logic programs with contraints.\n'),
     display('Command-line switches are case-sensitive!\n\n'),
-    display(' General Options:\n\n'),
+    display('General Options:\n\n'),
     display('  -h, -?, --help        Print this help message and terminate.\n'),
     display('  -i, --interactive     Run in user / interactive mode.\n'),
     display('  -a, --auto            Run in automatic mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.\n'),
+    display('  -code,                Print the program with duals and nmr_check.\n'),
+    display('  -code:human-long      Print the program in natural language.\n'),
+    display('  -code:human-middle    Print the program in NL, only user predicates.\n'),
+    display('  -tree,                Print justification tree.\n'),
+    display('  -tree:human-long      Print justification tree in natural language.\n'),
+    display('  -tree:human-middle    Print justification tree in NL, only user predicates + negations.\n'),
+    display('  -tree:human-short     Print justification tree in NL, only predicates w. assertions.\n'),
+    display('     --html             Generate a fila named InputFiles(s).html with the selected tree.\n'),
+    display('     --server           Generate a fila named justification.html with the selected tree.\n'),
     display('  -v, --verbose         Enable verbose progress messages.\n'),
-    display('  -j, --justification   Print proof tree for each solution.\n'),
-    display('  --human_all           Print the whole proof tree in (predefine) natural language.\n'),
-    display('  --human_mid           Print the proof tree in natural language (annotated predicates + its negated).\n'),
-    display('  --human_short         Print the proof tree in natural language (only annotated predicates).\n'),
-    display('  --html                Generate the (selected) proof tree in a file named InputFiles(s).html.\n'),
-    display('  --server              Generate the (selected) proof tree in the file named justification.html.\n'),
-    display('  -d0                   Print the DUAL program (with duals and nmr_check).\n'),
-    display('  -d0_human_short       Print the asserted predicates of the program in natural langauge.\n'),
-    display('  -d0_human_all         Print the DUAL program in natural language.\n'),
     display('\n').
 
 help_all :-
@@ -1009,7 +1024,7 @@ print_html_human_query([PQ,PAnswer,Bindings,PVars]) :-
     br,nl,
     print('<h3>Answer:</h3>'),nl,
     tab_html(5),
-    print('Yes, I found that for'),br,
+    print('Yes, I found that'),br,
     print_html_unifier(Bindings,PVars),
     print_html_human_body(PAnswer),
     br,nl.
@@ -1021,13 +1036,13 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
     ;
         (   Binding =.. [_,PB,{PConst}], PV = $(PB) ->
             (   current_option(human,on) ->
-                tab_html(15),format('~p',[@(Binding:'')]),br,nl
+                tab_html(15),format('for ~p',[@(Binding:'')]),br,nl
             ;
                 tab_html(15),format("~p",[PConst]),br,nl
             )
         ;
             (   current_option(human,on) ->
-                tab_html(15),format('~p equal ~p',[PV,@(Binding:'')]),br,nl
+                tab_html(15),format('for ~p equal ~p',[PV,@(Binding:'')]),br,nl
             ;
                 tab_html(15),format("~p = ~p",[PV,Binding]),br,nl
             )
@@ -1188,20 +1203,27 @@ dual rules + nmr-checks".
 
 print_human_program :-
     pr_query(Query),
-    pretty_term([],D1,Query,PrettyQuery),
+    pretty_term([],_,Query,PrettyQuery),
     findall(rule(Head,Body), pr_rule(Head,Body),Rules),
-    pretty_term(D1,_D2,Rules,PrettyRules),
+    pretty_term_rules(Rules,PrettyRules),
     filter(PrettyRules, UserRules, DualRules, NMRChecks),
     print_human_program_('QUERY',PrettyQuery),
     print_human_program_('USER PREDICATES',UserRules),
     (  current_option(all_program,on) ->
-        print_human_program_('DUAL RULES',DualRules),
+        dual_reverse(DualRules,R_DualRules),
+        print_human_program_('DUAL RULES',R_DualRules),
         nmr_reverse(NMRChecks,R_NMRChecks),
         print_human_program_('NMR-Checks',R_NMRChecks)
     ;
         true
     ),
     nl.
+
+pretty_term_rules([],[]).
+pretty_term_rules([R|Rs],[P|Ps]) :-
+    pretty_term([],_,R,P),
+    pretty_term_rules(Rs,Ps).
+    
 
 filter([],[],[],[]).
 filter([R|Rs], Us, Ds, [R|Ns]) :-
@@ -1286,6 +1308,57 @@ print_human_body_forall(InForall,I) :-
 
     
    
+:- pred dual_reverse/2 #"Auxiliary predicate to sort the DUAL rules".
+dual_reverse(L,R):-
+    dual_reverse_(L,[],R).
+
+dual_reverse_([], Ac, Ac).
+dual_reverse_([A|As], Ac0, Ac) :-
+    dual_pred(A, _), !,
+    dual_eq([A|As], [], Eq, Rest),
+    append(Eq, Ac0, Ac1),
+    dual_reverse_(Rest, Ac1, Ac).
+dual_reverse_([A|Rs], Ac0, Ac1) :-
+    dual_reverse_(Rs, [A|Ac0], Ac1).
+
+dual_pred(rule(not(-(o_, A)), _), L) :-
+    A =.. [_|Args],
+    length(Args, L).
+dual_pred(rule(not(A), _), L) :-
+    A =.. [Name|Args],
+    length(Args, L),
+    atom_chars(Name, ['o', '_'|_]).
+
+dual_eq([A, B|As], Eq0, Eq, Rest) :-
+    dual_pred(A, La),
+    dual_pred(B, Lb), !,
+    ( La = Lb ->
+        append(Eq0,[A],Eq1),
+        dual_eq([B|As], Eq1, Eq, Rest)
+    ;
+        La > Lb, %% B is forall del paquete Eq0 se pone primero
+        dual_eq(As, [], Eq1, Rest),
+        append(Eq1, [B|Eq0], Eqm),
+        append(Eqm, [A], Eq)
+    ;
+        La < Lb, %% Hay que hace un paquete para el proximo forall
+        forall_eq([B|As], Forall, [F|RestForall]),
+        append([A|Eq0], [F|Forall], Eq1),
+        dual_eq(RestForall, [], Eq2, Rest),
+        append(Eq1,Eq2,Eq)
+    ).
+dual_eq([A|As], Eq0, Eq, As) :-
+    append(Eq0,[A],Eq),
+    dual_pred(A, _), !.
+dual_eq(As, Eq, Eq, As).
+
+forall_eq([A,B|As],[A|Eq],Rest) :-
+    dual_pred(A,L),
+    dual_pred(B,L),!,
+    forall_eq([B|As],Eq,Rest).
+forall_eq([B|As],[B],As).
+
+   
 :- pred nmr_reverse/2 #"Auxiliary predicate to sort the NMR checks".
 nmr_reverse(L,[A|Rs]) :-
     nmr_check(A),
@@ -1311,3 +1384,4 @@ nmr_eq([A,B|As],[A|Eq],Rest) :-
     \+ \+ A = B, !,
     nmr_eq([B|As],Eq,Rest).
 nmr_eq([A|As],[A],As).
+
