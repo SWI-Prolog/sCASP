@@ -336,17 +336,33 @@ predicate is executed when the flag @var{check_calls} is
 @em{on}. NOTE: use check_calls/0 to activate the flag".
 
 print_check_calls_calling(Goal,I) :-
-    reverse([('¿'+Goal+'?')|I],RI),
+    reverse(I,RI),
     format('\n---------------------Calling ~w-------------',[Goal]),
-    print_s(RI),!.
-
-:- data sp_tab/1, pr_repeat/2.
-print_s([A|Stack]) :-
+    print_check_stack(RI,4), !,
+    nl,print(('¿'+Goal+'?')),nl,
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
-%    nl,tab(0),
-    print_human_term(A,0,_),
-    print_s_(Stack,4,0).
+    retractall(pr_print(_)).
+
+:- pred print_check_stack/2 #"simple output to run faster".
+
+print_check_stack([],_).
+print_check_stack([[]|As],I) :- !,
+    I1 is I - 4,
+    print_check_stack(As,I1).
+print_check_stack([A|As],I) :-
+    nl, tab(I), print(A),
+    I1 is I + 4,
+    print_check_stack(As,I1).
+        
+
+:- pred print_s/1 #"output tree by the terminal".
+:- data sp_tab/1, pr_repeat/2, pr_print/1.
+print_s(Stack) :-
+    retractall(sp_tab(_)),
+    retractall(pr_repeat(_,_)),
+    retractall(pr_print(_)),    
+    print_s_(Stack,0,0).
 
 print_s_([],_,_) :-
     print_human('.'), nl.
@@ -359,17 +375,11 @@ print_s_([[]|As],I,I0) :- !,
     ),
     print_s_(As,I1,I0).
 print_s_([A|As],I,I0) :- !,
-    (
-        I0 > I ->
-        retractall(pr_repeat(I0,_)),
-        print_human('.')
+    (  I0 > I ->
+        retractall(pr_repeat(I0,_))
     ;
-        I0 < I ->
-        print_human(' :-')
-    ;
-        print_human(',')
+        true
     ),
-%    nl,tab(I),
     ( [A|As] == [o_nmr_check,[],[],[]] ->
         print_zero_nmr(A,I,I1)
     ;
@@ -384,19 +394,32 @@ print_human_term(A,I,I1) :-
         asserta(sp_tab(I)),
         I1 = I
     ;
-        current_option(short,on), Type \= pred ->
-        asserta(sp_tab(I)),
-        I1 = I
-    ;            
-        nl,tab(I),call(Human),
-        I1 is I + 4
+        (   current_option(short,on), Type \= pred ->
+            asserta(sp_tab(I)),
+            I1 = I
+        ;
+            (   retract(pr_print(Sp)) ->
+                (   Sp > I ->
+                    print_human('.')
+                ;
+                    Sp < I,
+                    print_human(' :-')
+                ;
+                    print_human(',')
+                )
+            ;
+                true
+            ),
+            nl,tab(I),call(Human),
+            I1 is I + 4,
+            asserta(pr_print(I))
+        )
     ).
         
 print_zero_nmr(A,I,I1) :-
-    ( current_option(short,on) ->
+    (   current_option(short,on) ->
         asserta(sp_tab(I)),
-        I1 = I,
-        nl
+        I1 = I
     ;
         nl,tab(I),
         (   current_option(human,on) ->
@@ -406,22 +429,6 @@ print_zero_nmr(A,I,I1) :-
         ),
         I1 is I + 4
     ).
-
-pr_pred_short(A) :-
-    pr_pred_predicate(A), !.
-pr_pred_short(proved(A)::(Human,format(', already justified',[]))) :-
-    pr_pred_predicate(A::Human),
-    (   sp_tab(I) ->
-        (  pr_repeat(I,A) ->
-            fail
-        ;
-            assert(pr_repeat(I,A))
-        )
-    ;
-        true
-    ).
-pr_pred_short(chs(A)::(format('assuming that ',[]), Human)) :-
-    pr_pred_predicate(A::Human).
 
 
 user_predicate(not(A)) :- !,
@@ -442,33 +449,45 @@ auxiliary(Name) :-
     atom_chars(Name,['o','_'|_]).
 
 
-pr_human_term((A::Human),Type) :-
-    ( current_option(human,on) ->
-        (   pr_pred_short(A::Human) ->
-            Type = pred
+pr_pred_term(A, pred) :-
+    pr_pred_predicate(A), !.
+pr_pred_term(chs(A)::(format('assuming that ',[]), Human), Type) :- !,
+    pr_pred_term(A::Human, Type).
+pr_pred_term(proved(A)::(Human,format(', already justified',[])), Type) :- !,
+    pr_pred_term(A::Human, T),
+    (   sp_tab(I) ->
+        (  pr_repeat(I,A) ->
+            Type = default
         ;
-            (
-                pr_pred_negated(A::Human,T), (T=pred;T=mid) ->
-                Type = mid 
-            ;
-                (   pr_pred_default(A::Human) ->
-                    (   member(A,[o_nmr_check]) ->
-                        Type = pred
-                    ;
-                        user_predicate(A),
-                        Type = mid
-                    ;
-                        Type = default
-                    )
-                ;
-                    Type = error,
-                    Human = write(A)
-                )
-            )
+            assert(pr_repeat(I,A)),
+            Type = T
         )
     ;
-        Type = plain,
-        Human = print(A)
+        true
+    ).
+pr_pred_term(A, pred) :-
+    A = (o_nmr_check::_), !,
+    pr_pred_default(A).
+pr_pred_term(A, Type) :-
+    current_option(neg,on),
+    pr_pred_negated(A, Type), !.
+pr_pred_term(A, default) :-
+    pr_pred_negated(A, _), !.
+pr_pred_term(A, mid) :-
+    A = (Term::_),
+    user_predicate(Term),
+    pr_pred_default(A), !.
+pr_pred_term(A, default) :-
+    pr_pred_default(A), !.
+pr_pred_term((Error :: print(Error)), default).
+    
+
+pr_human_term((Term::TermHuman), Type) :-
+    pr_pred_term(Term::Human, Type), !,  %% To capture the detail
+    (   current_option(human,on) ->
+        TermHuman = Human
+    ;
+        TermHuman = print(Term)
     ).
 
 print_human(Conector) :-
@@ -479,9 +498,10 @@ print_human(Conector) :-
     ),
     write(A).
 
-human('.','').
-human(',','').
-human(' :-','').
+human('.','.').
+human(',',', and').
+human(' :-',' because').
+
 
 pr_pred_negated(not(Auxiliar) :: Human,pred) :-
     Auxiliar =.. [Aux|Args],
@@ -494,6 +514,7 @@ pr_pred_negated(not(Auxiliar) :: Human,pred) :-
     pr_var_default(Args,H1),
     Human = (H0, H1).
 pr_pred_negated(not(Predicate) :: Human, Type ) :-
+    user_predicate(Predicate),
     pr_human_term( Predicate::PrH , Type ), !,
     Human = ( format('there is no evidence that ',[]), PrH ).
 pr_pred_negated(NegPredicate :: Human,Type) :-
@@ -938,17 +959,24 @@ set_user_option('-a').
 set_user_option('--auto').
 set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
-set_user_option('-code') :- set(write_program, on), set(all_program,on).
-set_user_option('-code:human-long') :- set(write_program,on), set(human, on), set(all_program, on).
-set_user_option('-code:human-middle') :- set(write_program,on), set(human, on).
-set_user_option('-tree') :- set(print_tree, on), set(process_stack, on).
-set_user_option('-tree:human-long') :- set(human, on), set(print_tree, on), set(process_stack, on).
-set_user_option('-tree:human-middle') :- set(human, on), set(mid,on), set(print_tree, on), set(process_stack, on).
-set_user_option('-tree:human-short') :- set(human, on), set(mid,on), set(short,on), set(print_tree, on), set(process_stack, on).
-set_user_option('--html') :- set(html, on), set(process_stack, on).
-set_user_option('--server') :- set(server, on), set(html, on), set(process_stack, on).
-set_user_option('-v') :- set(check_calls, on).
-set_user_option('--verbose') :- set(check_calls, on).
+
+set_user_option('--code')               :- set(write_program, on).
+set_user_option('--tree')               :- set(process_stack, on), set(print_tree, on).
+
+set_user_option('--plain')              .
+set_user_option('--human')              :- set(human, on).
+
+set_user_option('--long')               .
+set_user_option('--mid')                :- set(mid,on).               
+set_user_option('--short')              :- set(mid,on), set(short,on).
+
+set_user_option('--neg')                :- set(neg,on).
+
+set_user_option('--html')               :- set(process_stack, on), set(html, on).
+set_user_option('--server')             :- set(process_stack, on), set(html, on), set(server, on).
+
+set_user_option('-v')                   :- set(check_calls, on).
+set_user_option('--verbose')            :- set(check_calls, on).
 %% Development
 set_user_option('-w') :- set(warning, on).
 set_user_option('--warning') :- set(warning, on).
@@ -982,15 +1010,22 @@ help :-
     display('  -i, --interactive     Run in user / interactive mode.\n'),
     display('  -a, --auto            Run in automatic mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.\n'),
-    display('  -code,                Print the program with duals and nmr_check.\n'),
-    display('  -code:human-long      Print the program in natural language.\n'),
-    display('  -code:human-middle    Print the program in NL, only user predicates.\n'),
-    display('  -tree,                Print justification tree.\n'),
-    display('  -tree:human-long      Print justification tree in natural language.\n'),
-    display('  -tree:human-middle    Print justification tree in NL, only user predicates + negations.\n'),
-    display('  -tree:human-short     Print justification tree in NL, only predicates w. assertions.\n'),
-    display('     --html             Generate a fila named InputFiles(s).html with the selected tree.\n'),
-    display('     --server           Generate a fila named justification.html with the selected tree.\n'),
+    display('\n'),
+    display('  --code,               Print the program.\n'),
+    display('  --tree,               Print the justification tree.\n'),
+    display('\n'),    
+    display('  --plain               Output the literals of [code,tree] as code.\n'),
+    display('  --human               Output the literals of [code,tree] in natural language.\n'),
+    display('\n'),
+    display('  --long                Long  version in [plain,human] of [code,tree].\n'),
+    display('  --mid                 Mid   version in [plain,human] of [code,tree].\n'),
+    display('  --short               Short version in [plain,human] of [code,tree].\n'),
+    display('\n'),
+    display('  --neg                 Add the negated literal in the [mid,short] in [plain,human] of [tree].\n'),
+    display('\n'),
+    display('  --html                Generate the InputFile(s).html  file in HTML of [long,mid,short] in [plain,human] of [code,tree].\n'),
+    display('  --server              Generate the justification.html file in HTML of [long,mid,short] in [plain,human] of [code,tree].\n'),
+    display('\n'),
     display('  -v, --verbose         Enable verbose progress messages.\n'),
     display('\n').
 
@@ -1052,9 +1087,7 @@ print_html(Query, Model, StackOut) :-
             ),
             br,br,nl,
             print('<h3> Justification: <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>'),nl,nl,
-            nl,print(' <ul class="tree">'),nl,nl,
             print_html_stack(StackOut),
-            nl,print('</ul>'),nl,nl,
             load_jquery_tree(Jquery_tree),
             print(Jquery_tree),nl,nl,
             load_html_tail(Tail),
@@ -1126,20 +1159,21 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
     print_html_unifier(Bs,PVars).
 
 %% let's reuse sp_tab and pr_repeat from print_s/1.
-print_html_stack([A|StackOut]) :-
+print_html_stack(StackOut) :-
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
-    nl,tab(5),print('<li> '),
-%    nl,tab(5),print('  '),
-    print_html_term(A,5,_),     
-    print_html_stack_(StackOut,9,5).
+    retractall(pr_print(_)),
+    nl, print(' <ul class="tree">'),nl,nl,
+    print_html_stack_(StackOut,5,5),
+    nl, print(' </ul> '),nl,nl.
 
-print_html_stack_([],I,I0) :-
+print_html_stack_([],_,_) :-
     print_human('.'),
-    nl,tab(I0), print('</li> '),
-    close_ul(I0,I).
+    retract(pr_print(Sp)),
+    nl,tab(Sp), print('</li> '),
+    close_ul(Sp,5).
 print_html_stack_([[]|As],I,I0) :- !,
-    (  sp_tab(I) ->
+    (   sp_tab(I) ->
         retract(sp_tab(I)),
         I1 = I
     ;
@@ -1147,22 +1181,11 @@ print_html_stack_([[]|As],I,I0) :- !,
     ),
     print_html_stack_(As,I1,I0).
 print_html_stack_([A|As],I,I0) :- !,
-    (
-        I0 > I ->
-            retractall(pr_repeat(I0,_)),
-            print_human('.'),
-            nl,tab(I0), print('</li> '),
-            close_ul(I0,I)
+    (  I0 > I ->
+        retractall(pr_repeat(I0,_))
     ;
-        I0 < I ->
-            print_human(' :-'),
-            nl,tab(I0), print('  <ul>')
-    ;
-        print_human(','),
-        nl,tab(I0), print('</li>')
+        true
     ),
-    %    nl,tab(I),print('<li> '),
-    %    nl,tab(I),print('  '),
     ( [A|As] == [o_nmr_check,[],[],[]] ->
         print_html_zero_nmr(A,I,I1)
     ;
@@ -1171,22 +1194,40 @@ print_html_stack_([A|As],I,I0) :- !,
     print_html_stack_(As,I1,I).
 
 print_html_term(A,I,I1) :-
-    pr_human_term((A::Human),Type),
+    pr_human_term((A::Human),Type), !,
     (   current_option(mid,on), Type \= pred, Type \= mid ->
         asserta(sp_tab(I)),
         I1 = I
     ;
-        current_option(short,on), Type \= pred ->
-        asserta(sp_tab(I)),
-        I1 = I
-    ;
-        nl,tab(I),print('<li> '),
-        nl,tab(I),call(Human),
-        I1 is I + 4
+        (   current_option(short,on), Type \= pred ->
+            asserta(sp_tab(I)),
+            I1 = I
+        ;
+            (   retract(pr_print(Sp)) ->
+                (   Sp > I ->
+                    print_human('.'),
+                    nl,tab(Sp), print('</li> '),
+                    close_ul(Sp,I)
+                ;
+                    Sp < I,
+                    print_human(' :-'),
+                    nl,tab(I), print('<ul>')
+                ;
+                    print_human(','),
+                    nl,tab(Sp), print('</li> ')
+                )
+            ;
+                true
+            ),
+            nl,tab(I),print('<li> '),
+            nl,tab(I),call(Human),
+            I1 is I + 4,
+            asserta(pr_print(I))
+        )
     ).
 
 print_html_zero_nmr(A,I,I1) :-
-    ( current_option(short,on) ->
+    (   current_option(short,on) ->
         asserta(sp_tab(I)),
         I1 = I
     ;
@@ -1201,32 +1242,13 @@ print_html_zero_nmr(A,I,I1) :-
     ).
 
 
-%% print_html_term(Constraint) :-
-%%     Constraint =.. [Op,A,B],
-%%     pretty_clp(_,Op), !,
-%%     format("~w ~w ~w",[A,Op,B]).
-%% print_html_term(A) :- print(A).
-
-close_ul(I,I) :- !.
+close_ul(I0,I) :- I0 = I, !.
 close_ul(I0,I) :-
-    I0 > I,
     I1 is I0 - 4,
-    ( I1 > 2 ->
-        nl,tab(I1), print('</ul> '),
-        nl,tab(I1), print('</li> ')
-    ;
-        true
-    ),
+    nl,tab(I0), print('</ul> '),
+    nl,tab(I1), print('</li> '),
     close_ul(I1,I).
-
-
-%% print_list([],_).
-%% print_list([X|Xs],L) :-
-%%     tabs(L),
-%%     print('<li> '),
-%%     print_item(X,L),
-%%     print('</li>'),nl,
-%%     print_list(Xs,L).
+    
 
 %! tab_html(+Level:int) is det
 % Write Level spaces.
@@ -1284,13 +1306,17 @@ print_human_program :-
     filter(PrettyRules, UserRules, DualRules, NMRChecks),
     print_human_program_('QUERY',PrettyQuery),
     print_human_program_('USER PREDICATES',UserRules),
-    (  current_option(all_program,on) ->
+    (  current_option(short,on) ->
+        true
+    ;
+        current_option(mid,on),
+        dual_reverse(DualRules,[_|R_DualRules]),
+        print_human_program_('DUAL RULES',R_DualRules)
+    ;
         dual_reverse(DualRules,[_|R_DualRules]),
         print_human_program_('DUAL RULES',R_DualRules),
         nmr_reverse(NMRChecks,R_NMRChecks),
         print_human_program_('GLOBAL CONSTRAINTS',R_NMRChecks)
-    ;
-        true
     ),
     nl.
 
