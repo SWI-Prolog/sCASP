@@ -517,6 +517,9 @@ pr_pred_negated(not(Predicate) :: Human, Type ) :-
     user_predicate(Predicate),
     pr_human_term( Predicate::PrH , Type ), !,
     Human = ( format('there is no evidence that ',[]), PrH ).
+pr_pred_negated(not(Predicate) :: Human, default ) :-
+    pr_human_term( Predicate::PrH , _ ), !,
+    Human = ( format('there is no evidence that ',[]), PrH ).
 pr_pred_negated(NegPredicate :: Human,Type) :-
     NegPredicate =.. [NegName|Arg],
     atom_concat('-',Name,NegName),
@@ -752,6 +755,10 @@ human_op(#> ,'greater than').
 human_op(#=<,'less or equal').
 human_op(#>=,'greater or equal').
 human_op(=,  '').
+human_op(< ,'less than').       
+human_op(> ,'greater than').    
+human_op(=<,'less or equal').   
+human_op(>=,'greater or equal').
 
 
 human_portray_args([V]) :- !,
@@ -911,6 +918,11 @@ pretty_clp_(.>.,  '#>' ).
 pretty_clp_(.=<., '#=<').
 pretty_clp_(.>=., '#>=').
 pretty_clp_(\=, \=).
+pretty_clp_(= ,= ).
+pretty_clp_(< ,< ).
+pretty_clp_(> ,> ).
+pretty_clp_(=<,=<).
+pretty_clp_(>=,>=).
     
         
 
@@ -1465,14 +1477,15 @@ dual_eq([A, B|As], Eq0, Eq, Rest) :-
     ;
         La > Lb, %% B is forall del paquete Eq0 se pone primero
         dual_eq(As, [], Eq1, Rest),
-        append(Eq1, [B|Eq0], Eqm),
-        append(Eqm, [A], Eq)
+        append([B|Eq0], [A], Eqm),
+        append(Eqm, Eq1, Eq)
     ;
         La < Lb, %% Hay que hace un paquete para el proximo forall
         forall_eq([B|As], Forall, [F|RestForall]),
-        append([A|Eq0], [F|Forall], Eq1),
-        dual_eq(RestForall, [], Eq2, Rest),
-        append(Eq1,Eq2,Eq)
+        append(Eq0,[A],Eq1),
+        append(Eq1, [F|Forall], Eq2),
+        dual_eq(RestForall, [], Eq3, Rest),
+        append(Eq2,Eq3,Eq)
     ).
 dual_eq([A|As], Eq0, Eq, As) :-
     append(Eq0,[A],Eq),
