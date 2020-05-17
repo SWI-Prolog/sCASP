@@ -372,7 +372,7 @@ print_human_term(A,I,I1) :-
         )
     ).
         
-print_zero_nmr(A,I,I1) :-
+print_zero_nmr(_,I,I1) :-
     (   current_option(short,on) ->
         asserta(sp_tab(I)),
         I1 = I
@@ -381,7 +381,7 @@ print_zero_nmr(A,I,I1) :-
         (   current_option(human,on) ->
             format('There are no nmr to be checked',[])
         ;
-            print(A)
+            print(global_constraint)
         ),
         I1 is I + 4
     ).
@@ -455,6 +455,9 @@ pr_human_term((Term :: TermHuman), Type) :-
     (   current_option(human,on) ->
         TermHuman = Human
     ;
+        Term = o_nmr_check,
+        TermHuman = print(global_constraint)
+    ;
         TermHuman = print(Term)
     ).
 
@@ -516,14 +519,22 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     atom_chars(Code, Chars_Code),
     append(C_N,['_'|_],Chars_Code),
     number_chars(N,C_N),
-    Human = format('\'G.Const. ~p\' holds (for ~p)',[N,@(Args)]).    
+    ( Args == [] ->
+        Human = format('\'G.Const. ~p\' holds',[N])
+    ;
+        Human = format('\'G.Const. ~p\' holds (for ~p)',[N,@(Args)])
+    ).    
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Aux|Args],
     %% For o_PRED_N 
     atom_chars(Aux,['o','_'|C_Aux]), !,
     append(__C_Pred,['_'|C_Num],C_Aux),
     number_chars(N,C_Num),
-    Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)]).
+    ( Args == [] ->
+        Human = format('\'G.Const. ~p\' holds',[N])
+    ;
+        Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)])
+    ).
 pr_pred_default(Forall  :: Human) :-
     Forall = forall(_,_), !,
     pr_pred_default_forall(Forall, Human).
@@ -1100,7 +1111,7 @@ print_html_term(A,I,I1) :-
         )
     ).
 
-print_html_zero_nmr(A,I,I1) :-
+print_html_zero_nmr(_,I,I1) :-
     (   current_option(short,on) ->
         asserta(sp_tab(I)),
         I1 = I
@@ -1110,7 +1121,7 @@ print_html_zero_nmr(A,I,I1) :-
         (   current_option(human,on) ->
             format('There are no nmr to be checked',[])
         ;
-            print(A)
+            print(global_constraint)
         ),
         I1 is I + 4
     ).
