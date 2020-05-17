@@ -423,11 +423,15 @@ pr_pred_term(proved(A)::(Human,format(', already justified',[])), Type) :- !,
             Type = T
         )
     ;
-        true
+        Type = T
     ).
 pr_pred_term(GlobalConstraint :: Human, pred) :-
     GlobalConstraint = o_nmr_check, !,
     Human = format('The global constraints hold',[]).
+pr_pred_term(A, pred) :-
+    pr_pred_global_constraint(A, pred), !.
+pr_pred_term(A, Type) :-
+    pr_pred_classical_neg(A, Type), !.
 pr_pred_term(A, Type) :-
     pr_pred_negated(A, T), !,
     (   current_option(neg,on) ->
@@ -435,10 +439,10 @@ pr_pred_term(A, Type) :-
     ;
         Type = default
     ).
-pr_pred_term(A, mid) :-
+pr_pred_term(A, Type) :-
     pr_pred_default(A), !,
     A = (Term::_),
-    (   user_predicate(Term) ->
+    (   Term \= not(_), user_predicate(Term) ->
         Type = mid
     ;
         Type = default
@@ -446,8 +450,8 @@ pr_pred_term(A, mid) :-
 pr_pred_term( Error :: print(Error) , default ).
     
 
-pr_human_term((Term::TermHuman), Type) :-
-    pr_pred_term(Term::Human, Type), !,  %% To obtain the Type
+pr_human_term((Term :: TermHuman), Type) :-
+    pr_pred_term(Term :: Human, Type), !,  %% To obtain the Type
     (   current_option(human,on) ->
         TermHuman = Human
     ;
@@ -455,7 +459,7 @@ pr_human_term((Term::TermHuman), Type) :-
     ).
 
 print_human(Conector) :-
-    ( current_option(human,on) ->
+    (   current_option(human,on) ->
         human(Conector,A)
     ;
         A = Conector
@@ -467,7 +471,14 @@ human(',',', and').
 human(' :-',' because').
 
 
-pr_pred_negated(not(Global_Constraint) :: Human,pred) :-
+pr_pred_classical_neg(ClassicalNeg :: Human , Type) :-
+    ClassicalNeg =.. [NegName|Arg],
+    atom_concat('-',Name,NegName), !,
+    Predicate =.. [Name|Arg],
+    pr_human_term( Predicate :: PrH , Type ),
+    Human = ( format('it is not the case that ',[]), PrH ).
+
+pr_pred_global_constraint(not(Global_Constraint) :: Human,pred) :-
     Global_Constraint =.. [Aux|Args],
     atom_chars(Aux,['o','_'|Rs]),
     append(Pred,['_'|Num],Rs),
@@ -477,15 +488,10 @@ pr_pred_negated(not(Global_Constraint) :: Human,pred) :-
     H0 = format('the global constraint number ~p holds',[N]),
     pr_var_default(Args,H1),
     Human = (H0, H1).
-pr_pred_negated(ClassicalNeg :: Human,Type) :-
-    ClassicalNeg =.. [NegName|Arg],
-    atom_concat('-',Name,NegName), !,
-    Predicate =.. [Name|Arg],
-    pr_human_term( Predicate::PrH , Type ),
-    Human = ( format('it is not the case that ',[]), PrH ).
+
 pr_pred_negated(not(Predicate) :: Human, Type ) :-
     \+ aux_predicate(Predicate),
-    pr_human_term( Predicate::PrH , Type ), !,
+    pr_human_term( Predicate :: PrH , Type ), !,
     Human = ( format('there is no evidence that ',[]), PrH ).
 
 
