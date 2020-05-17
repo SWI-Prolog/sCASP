@@ -6,11 +6,9 @@
     allways_ask_for_more_models/0,
     init_counter/0,
     increase_counter/0,
-%    print_output/1,
     print_justification_tree/1, % justification tree
     print_model/1,      % model
     print_unifier/2,    % bindings
-%    print_term/3,
     pretty_term/4,
     print_check_calls_calling/2,
     if_user_option/2,
@@ -91,12 +89,11 @@ load_program(X) :-
 translation of the programs already loaded by @pred{load_program/1}".
 
 write_program :-
-    loaded_file(_Files),
-%    current_option(human,on), !,
     print_human_program.
-%% write_program :-
-%%     loaded_file(Files),
-%%     main(['-d0'|Files]).
+%% Hiden option for debugging
+write_program_sasp :-
+    loaded_file(Files),
+    main(['-d0'|Files]).
 
 :- dynamic cont/0.
 
@@ -170,21 +167,13 @@ increase_counter :-
     retractall(answer_counter(N)),
     assert(answer_counter(N1)).
 
-%% :- pred print_output(StackOut) #"Print the justification tree using
-%% @var{StackOut}, the final call stack".
-
-%% Print output predicates to presaent the results of the query
-%% print_output(StackOut) :-
-%%     print_stack([],_,StackOut), nl,
-%%     true.
-
 :- pred print_justification_tree(StackOut) #"Print the justification
 tree using @var{StackOut}, the final call stack".
 
 %% Print output predicates to presaent the results of the query
 print_justification_tree(StackOut) :-
     format('\nJUSTIFICATION_TREE:',[]),
-    print_tree_stack(StackOut),
+    print_s(StackOut), !,
     true.
 
 :- pred print_model(Model) #"Print the partial model of the program
@@ -260,42 +249,8 @@ printable_literal(X) :-
         X \= proved(_)
     ).
 
-%% print_j(Justification,I) :-
-%%     print_model(Justification),
-%%     nl,
-%%     print_j_(Justification,I).
-%% print_j_([],_).
-%% print_j_([A,[]],I):- !,
-%%     tab(I), print(A), print('.'), nl.
-%% print_j_([A,[]|B],I):- !,
-%%     tab(I), print(A), print(','), nl,
-%%     print_j_(B,I).
-%% print_j_([A,ProofA|B],I):-
-%%     tab(I), print(A), print(' :-'), nl,
-%%     I1 is I + 4, print_j_(ProofA,I1),
-%%     print_j_(B,I).
 
-%% The stack is generated adding the last calls in the head (to avoid
-%% the use of append/3). To print the stack, it is reversed.
-
-%% NOTE that a model could be generated during the search with some
-%% calls in the stack which are not present in the model (e.g. the
-%% model of path(1,4) for the path/2 program - more details in the
-%% file README)
-
-%% print_stack(Stack) :-
-%%     reverse(Stack, RStack),
-%%     nl,
-%%     nl,nl,
-%%     %    print(RStack),nl.
-%%     print_s(RStack).
-
-print_tree_stack(Stack) :-
-    print_s(Stack),!.
-
-
-
-
+% TODO: remove if it is not needed
 %% Initial interpreters...
 query2([]).
 query2([X|Xs]) :-
@@ -306,6 +261,7 @@ query2(X) :-
     query2(Body).
 
 
+% TODO: remove if it is not needed
 %:- table query3/3.
 query3([X|Xs], I, O) :-
     format('Calling ~w \t with stack = ~w', [X, I]), nl,
@@ -317,7 +273,7 @@ query3(X,  I, O) :-
     query3(Body, I, O).
 
 
-
+% TODO: remove if it is not needed
 print_constraints('│',_,Const) :-
     format("~w",[Const]).
 print_constraints('∉',PB,(Const)) :- !,
@@ -344,8 +300,8 @@ print_check_calls_calling(Goal,I) :-
     retractall(pr_repeat(_,_)),
     retractall(pr_print(_)).
 
-:- pred print_check_stack/2 #"simple output to run faster".
-
+:- pred print_check_stack/2 #"simple output of the stack to run faster
+during verboser".
 print_check_stack([],_).
 print_check_stack([[]|As],I) :- !,
     I1 is I - 4,
@@ -431,21 +387,25 @@ print_zero_nmr(A,I,I1) :-
     ).
 
 
-user_predicate(not(A)) :- !,
+user_neg_predicate(not(A)) :- !,
     user_predicate(A).
+user_neg_predicate(A) :- !,
+    A =.. [Name|_],
+    atom_concat('-',_,Name).
+
 user_predicate(proved(A)) :- !,
     user_predicate(A).
 user_predicate(chs(A)) :- !,
     user_predicate(A).
 user_predicate(A) :- !,
+    \+ aux_predicate(A),
     A =.. [Name|Args],
-    \+ auxiliary(Name),
     length(Args,La),
     pr_user_predicate(Name/La).
 
-auxiliary(-(o_,_)) :- !.
-auxiliary(Name) :-
-    length(Name,L), L > 2,
+aux_predicate(-(o_,_)) :- !.
+aux_predicate(A) :-
+    A =.. [Name|_],
     atom_chars(Name,['o','_'|_]).
 
 
@@ -465,25 +425,29 @@ pr_pred_term(proved(A)::(Human,format(', already justified',[])), Type) :- !,
     ;
         true
     ).
-pr_pred_term(A, pred) :-
-    A = (o_nmr_check::_), !,
-    pr_pred_default(A).
+pr_pred_term(GlobalConstraint :: Human, pred) :-
+    GlobalConstraint = o_nmr_check, !,
+    Human = format('The global constraints hold',[]).
 pr_pred_term(A, Type) :-
-    current_option(neg,on),
-    pr_pred_negated(A, Type), !.
-pr_pred_term(A, default) :-
-    pr_pred_negated(A, _), !.
+    pr_pred_negated(A, T), !,
+    (   current_option(neg,on) ->
+        Type = T
+    ;
+        Type = default
+    ).
 pr_pred_term(A, mid) :-
+    pr_pred_default(A), !,
     A = (Term::_),
-    user_predicate(Term),
-    pr_pred_default(A), !.
-pr_pred_term(A, default) :-
-    pr_pred_default(A), !.
-pr_pred_term((Error :: print(Error)), default).
+    (   user_predicate(Term) ->
+        Type = mid
+    ;
+        Type = default
+    ).
+pr_pred_term( Error :: print(Error) , default ).
     
 
 pr_human_term((Term::TermHuman), Type) :-
-    pr_pred_term(Term::Human, Type), !,  %% To capture the detail
+    pr_pred_term(Term::Human, Type), !,  %% To obtain the Type
     (   current_option(human,on) ->
         TermHuman = Human
     ;
@@ -503,8 +467,8 @@ human(',',', and').
 human(' :-',' because').
 
 
-pr_pred_negated(not(Auxiliar) :: Human,pred) :-
-    Auxiliar =.. [Aux|Args],
+pr_pred_negated(not(Global_Constraint) :: Human,pred) :-
+    Global_Constraint =.. [Aux|Args],
     atom_chars(Aux,['o','_'|Rs]),
     append(Pred,['_'|Num],Rs),
     number_chars(N,Num),
@@ -513,26 +477,21 @@ pr_pred_negated(not(Auxiliar) :: Human,pred) :-
     H0 = format('the global constraint number ~p holds',[N]),
     pr_var_default(Args,H1),
     Human = (H0, H1).
-pr_pred_negated(not(Predicate) :: Human, Type ) :-
-    user_predicate(Predicate),
-    pr_human_term( Predicate::PrH , Type ), !,
-    Human = ( format('there is no evidence that ',[]), PrH ).
-pr_pred_negated(not(Predicate) :: Human, default ) :-
-    pr_human_term( Predicate::PrH , _ ), !,
-    Human = ( format('there is no evidence that ',[]), PrH ).
-pr_pred_negated(NegPredicate :: Human,Type) :-
-    NegPredicate =.. [NegName|Arg],
-    atom_concat('-',Name,NegName),
+pr_pred_negated(ClassicalNeg :: Human,Type) :-
+    ClassicalNeg =.. [NegName|Arg],
+    atom_concat('-',Name,NegName), !,
     Predicate =.. [Name|Arg],
     pr_human_term( Predicate::PrH , Type ),
     Human = ( format('it is not the case that ',[]), PrH ).
+pr_pred_negated(not(Predicate) :: Human, Type ) :-
+    \+ aux_predicate(Predicate),
+    pr_human_term( Predicate::PrH , Type ), !,
+    Human = ( format('there is no evidence that ',[]), PrH ).
 
-%% Predefine human rules  & introduced during execution (forall...)
-%% :- use_module(library(formulae)).
-:- dynamic new_pr_pred_default/1.
+
+
 pr_pred_default( proved(A)    :: (B,format(', already justified',[]))) :- !,
     pr_human_term(A::B,_).
-%% pr_pred_default(A) :- new_pr_pred_default(A),!.
 pr_pred_default( (A=A)        :: format('~p is ~p',[A,A])).
 pr_pred_default(true          :: format('\r',[])).
 pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
@@ -543,51 +502,25 @@ pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
     ;
         HA = A
     ).
-%% Note o_chk_N are handled by pr_pred_negated
-%% Next for 0__chk_N1_N2 
+%% Note o_chk_N are handled by pr_pred_negated as global constraints
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Chk|Args],
+    %% For o__chk_N1_N2 
     atom_concat(o__chk_,Code,Chk),
     atom_chars(Code, Chars_Code),
-    append(C_N1,['_'|_],Chars_Code),
-    atom_chars(N1,C_N1),
-    atom_concat('rule ',N1,Pred),
-    AuxPr =.. [Pred|Args],
-    pr_human_term( AuxPr :: Human , _ ).
-%% Next for o_PRED_N 
+    append(C_N,['_'|_],Chars_Code),
+    number_chars(N,C_N),
+    Human = format('\'G.Const. ~p\' holds (for ~p)',[N,@(Args)]).    
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Aux|Args],
+    %% For o_PRED_N 
     atom_chars(Aux,['o','_'|C_Aux]), !,
-    append(C_Pred,['_'|C_Num],C_Aux),
+    append(__C_Pred,['_'|C_Num],C_Aux),
     number_chars(N,C_Num),
-    atom_chars(Pred,C_Pred), 
-    NegPred =.. [Pred|Args],
-    (   user_predicate(NegPred) ->
-        H0 = format('rule ~p holds',[N]),
-        pr_var_default(Args,H1)
-    ;
-        H0 = format('rule ~p of ',[N]),
-        pr_human_term( NegPred::H1 , _ )
-    ),
-    Human = (H0, H1).
+    Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)]).
 pr_pred_default(Forall  :: Human) :-
     Forall = forall(_,_), !,
     pr_pred_default_forall(Forall, Human).
-%% Quite complex and not useful
-%% pr_pred_default(Forall        :: Human) :-
-%%     Forall = forall(_,_),
-%%     find_forall_description(Forall,_,[Var|_],Descripcion),
-%%     (  member(@(Var:VHuman),Descripcion), VHuman \= '' ->
-%%         Human = format('for any possible ~p ~p',[VHuman,Var])
-%%     ;
-%%         Human = format('for any possible value ~p',[Var])
-%%     ).
-pr_pred_default(CHS        :: (format('Assume: ',[]),Human)) :-
-    CHS = chs(Pred),
-    pr_human_term(Pred::Human,_).
-pr_pred_default(o_nmr_check        :: format('The global constraints hold',[])).
-pr_pred_default(Negated            :: Human) :-
-    pr_pred_negated(Negated :: Human, _).
 pr_pred_default(Other              :: (H0, H1)) :-
     Other =.. [Name|Args],
     ( Args = [] ->
@@ -596,6 +529,7 @@ pr_pred_default(Other              :: (H0, H1)) :-
         H0 = format('\'~p\' holds (for ~p)',[Name,@(Args)])
     ),
     pr_var_default(Args,H1).
+
 
 pr_var_default(Args,H1) :-
     take_constraints(Args,Vars),
@@ -621,72 +555,13 @@ pr_pred_default_forall(Forall, ( H0, H1 ) ) :-
     pr_pred_default_forall_(Forall, Vars, InForall),
     H0 = format('forall ~p, ',[@(Vars)]),
     pr_human_term(InForall :: H1, _ ).
-
 pr_pred_default_forall_(forall(V,Rest), [V|Vs], InForall) :- !,
     pr_pred_default_forall_(Rest, Vs, InForall).
 pr_pred_default_forall_(InForall, [], InForall).
     
    
 
-%% Quite complex and not useful
-%% find_forall_description(Forall,not(Call),Vars,Descripcion) :-
-%%     find_forall_description_(Forall,Vars,not(Call),Descripcion),
-%%     Call =.. [Name|Args], append(Prev,Vars,Args),
-%%     length(Args,Len),length(FreeArgs,Len),
-%%     FreeCall =.. [Name|FreeArgs],
-%%     (  new_pr_pred_default(not(FreeCall) :: _) ->
-%%         true
-%%     ;
-%%         process_new_call01(Name,Prev,NewPrev,Human01),
-%%         process_new_call02(Vars,Descripcion,Free,Human02),
-%%         append(NewPrev,Free,NewFreeArgs), NewFreeCall =.. [Name|NewFreeArgs],
-%%         assert(new_pr_pred_default(not(NewFreeCall)::(Human01,Human02)))
-%%     ).
-
-%% process_new_call01(Name,[],[],Human) :- !,
-%%     pr_pred_default(not(Name) :: Human).
-
-%% process_new_call01(Name,Prev,FreePrev,Human1) :-
-%%     atom_chars(Name,[o,'_'|Names]), append(Preds,['_'|Nums],Names), number_chars(_,Nums),atom_chars(Pred,Preds),
-%%     length(Prev,Len), length(FreePrev,Len), PrevCall =.. [Pred|FreePrev],
-%%     (  pr_pred_predicate(not(PrevCall)::Human1) ->
-%%         true
-%%     ;
-%%         pr_pred_default(not(PrevCall)::Human1)
-%%     ).
-            
-%% process_new_call02([V],Descripcion,[F],(H)) :- !,
-%%     (  member(@(V:VHuman),Descripcion) ->
-%%         H = format(', for ~p',[@(F:VHuman)])
-%%     ;
-%%         H = format(', for ~p',[@(F:'')])
-%%     ).
-%% process_new_call02([V0,V1|Vars],Descripcion,[F|Fs],(H,Hs)) :-
-%%     process_new_call02([V0],Descripcion,[F],H),
-%%     process_new_call02([V1|Vars],Descripcion,Fs,Hs).
-
-
-%% find_forall_description_(forall(V,Rs),[V|Vs],Call,Description) :- !,
-%%     find_forall_description_(Rs,Vs,Call,Description).
-%% find_forall_description_(Rs,[],Rs,Description) :-
-%%     find_last_description(Rs,Description).
-
-%% find_last_description(Rs,Description) :-
-%%     findall(Body, pr_rule(Rs,Body), Cls),
-%%     reverse(Cls,[Body|_]), %% the last clause has all the literals of a forall
-%%     find_description(Body,Description).
-
-%% find_description([],[]).  %% no more var description
-%% find_description([L|Ls],D) :-
-%%     ( pr_pred_predicate(L::format(_,D0)) ->
-%%         true
-%%     ;
-%%         D0 = []
-%%     ),
-%%     find_description(Ls,Ds),
-%%     append(D0,Ds,D).
-    
-
+%% PORTRAY - capture human output of the variables
 :- multifile portray/1.
 portray(@(Var:_)) :- var(Var), !,
     print(Var).
@@ -704,13 +579,13 @@ portray(Constraint) :-
     pretty_clp(_,Op), !,
     format("~p ~p ~p",[A,Op,B]).
 
-% no description for the variable
+% W.o. description for the variable
 human_portray_default(A '│' B) :- !,
     print(A), print(' '), human_portray_(B).
 human_portray_default('$'(X)) :- !, write(X).
 human_portray_default(X) :- write(X).
 
-% the variable has NX as description
+% W. NX description for he variable
 human_portray((A '│' B):NX) :- !,
     format('a ~p ~p ',[NX,A]),
     human_portray_(B).
@@ -719,7 +594,7 @@ human_portray('$'(X):NX) :- !,
 human_portray(X:NX) :-
     format('the ~p ~p',[NX,X]).
 
-%% Capture disequality constraint
+% Human output for constraint
 human_portray_(Disequality) :-
     Disequality = {_ \= _ , _}, !,
     print('not equal '),
@@ -727,6 +602,7 @@ human_portray_(Disequality) :-
 human_portray_(CLPQ) :- !,
     print_c(CLPQ).
 
+%% For CLP(\=)
 print_d({_ \= A,Y,Z}) :- !,
     print(A), print(', '), print_d({Y,Z}).
 print_d({_ \= A,Z}) :- !,
@@ -734,7 +610,7 @@ print_d({_ \= A,Z}) :- !,
 print_d({_ \= A}) :- !,
     print(A).
 
-%% For CLP-Q
+%% For CLP(Q/R)
 print_c({X,Y,Z}) :- !,
     print_c_(X), print(', '), print_c({Y,Z}).
 print_c({X,Z}) :- !,
@@ -761,6 +637,7 @@ human_op(=<,'less or equal').
 human_op(>=,'greater or equal').
 
 
+%% Human output of a list of arguments @(Args)
 human_portray_args([V]) :- !,
     human_portray_arg(V).
 human_portray_args([V1,V2]) :- !,
@@ -784,22 +661,6 @@ human_portray_arg(A) :- print(A).
 %% Print pretty term
 %% (Also variables with attributes)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-%% print_term(D0,D1,A) :-
-%%     pretty_term(D0,D1,A,P),
-%%     print(P).
-
-%% :- data next_letra/1.
-%% %% init_mydict :-
-%% %%     retractall(next_letra(_)),
-%% %%     assert(next_letra(1)).
-
-%% next_letra(L1) :-
-%%     retract(next_letra(L0)),!,
-%%     L1 is L0 + 1,
-%%     assert(next_letra(L1)).
-%% next_letra(0).
 
 lookup_mydict(D0,D1,A,L) :-
     ( lookup_mydict_(D0,A,L) ->
@@ -854,11 +715,6 @@ simple_operands([A,B],[SA,SB]) :-
     simple_operand(B,SB).
 simple_operand(Operand,'$'(Var)) :-
     Operand =.. ['│', Var, _], !.
-%% simple_operand(Operand,SOperand) :-
-%%     struct(Operand),
-%%     Operand =.. [Op|Args], !,
-%%     simple_operands(Args,SArgs),
-%%     SOperand =.. [Op|SArgs].
 simple_operand(A,A).
  
 
@@ -867,7 +723,6 @@ pretty_portray_attribute(Att,A,PVar,PA) :-
     pretty_portray_attribute_(Att,A,PVar,PA),!.
 pretty_portray_attribute(_Att,_,PVar,PVar).
 
-%:- use_module(library(formulae)).
 pretty_portray_attribute_(att(_,false,att(clp_disequality_rt,neg(List),_)),_,PVar,PA) :-
     (  List == [] ->
         PA=PVar
@@ -972,7 +827,7 @@ set_user_option('--auto').
 set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
 
-set_user_option('--code')               :- set(write_program, on).
+set_user_option('--code')               :- set(write_program, on), set(neg,on).
 set_user_option('--tree')               :- set(process_stack, on), set(print_tree, on).
 
 set_user_option('--plain')              .
@@ -995,6 +850,7 @@ set_user_option('--warning') :- set(warning, on).
 set_user_option('-no') :- set(no_nmr, on).
 set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
+
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
 #"If the flag @var{Name} is on them the call @var{Call} is executed".
@@ -1422,11 +1278,6 @@ print_human_body([L|Ls]) :-
     ),
     print_human_body(Ls).
 
-
-%% print_human_body_(Forall) :-
-%%     current_option(human,on),
-%%     Forall = forall(_,_), !,
-%%     print_human_body_forall(Forall,5).
 print_human_body_(L) :-
     pr_human_term(L::Format,_),
     nl,tab(5),
