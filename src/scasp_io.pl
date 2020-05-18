@@ -344,6 +344,22 @@ print_s_([A|As],I,I0) :- !,
     print_s_(As,I1,I).
 
 
+:- pred print_zero_nmr/3 #"".
+print_zero_nmr(_,I,I1) :-
+    (   current_option(short,on) ->
+        asserta(sp_tab(I)),
+        I1 = I
+    ;
+        nl,tab(I),
+        (   current_option(human,on) ->
+            format('There are no nmr to be checked',[])
+        ;
+            print(global_constraint)
+        ),
+        I1 is I + 4
+    ).
+
+:- pred print_human_term/3 #"".
 print_human_term(A,I,I1) :-
     pr_human_term((A::Human),Type), !,
     (   current_option(mid,on), Type \= pred, Type \= mid ->
@@ -372,49 +388,35 @@ print_human_term(A,I,I1) :-
         )
     ).
         
-print_zero_nmr(_,I,I1) :-
-    (   current_option(short,on) ->
-        asserta(sp_tab(I)),
-        I1 = I
+
+
+pr_human_term((Term :: TermHuman), Type) :-
+    pr_pred_term(Term :: Human, T), !,  %% To obtain the Type
+    (   T = pred ->
+        Type = pred
     ;
-        nl,tab(I),
-        (   current_option(human,on) ->
-            format('There are no nmr to be checked',[])
-        ;
-            print(global_constraint)
-        ),
-        I1 is I + 4
+        pr_show_predicate(Term),    %% Output predicates selected by #show
+        Type = pred
+    ;
+        Type = T
+    ),
+    (   current_option(human,on) ->
+        TermHuman = Human
+    ;
+        Term = o_nmr_check,
+        TermHuman = print(global_constraint)
+    ;
+        TermHuman = print(Term)
     ).
 
-
-user_neg_predicate(not(A)) :- !,
-    user_predicate(A).
-user_neg_predicate(A) :- !,
-    A =.. [Name|_],
-    atom_concat('-',_,Name).
-
-user_predicate(proved(A)) :- !,
-    user_predicate(A).
-user_predicate(chs(A)) :- !,
-    user_predicate(A).
-user_predicate(A) :- !,
-    \+ aux_predicate(A),
-    A =.. [Name|Args],
-    length(Args,La),
-    pr_user_predicate(Name/La).
-
-aux_predicate(-(o_,_)) :- !.
-aux_predicate(A) :-
-    A =.. [Name|_],
-    atom_chars(Name,['o','_'|_]).
 
 
 pr_pred_term(A, pred) :-
     pr_pred_predicate(A), !.
-pr_pred_term(chs(A)::(format('assuming that ',[]), Human), Type) :- !,
-    pr_pred_term(A::Human, Type).
-pr_pred_term(proved(A)::(Human,format(', already justified',[])), Type) :- !,
-    pr_pred_term(A::Human, T),
+pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type) :- !,
+    pr_human_term(A::Human, Type).
+pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
+    pr_human_term(A::Human, T),
     (   sp_tab(I) ->
         (  pr_repeat(I,A) ->
             Type = default
@@ -430,8 +432,8 @@ pr_pred_term(GlobalConstraint :: Human, pred) :-
     Human = format('The global constraints hold',[]).
 pr_pred_term(A, pred) :-
     pr_pred_global_constraint(A, pred), !.
-pr_pred_term(A, Type) :-
-    pr_pred_classical_neg(A, Type), !.
+pr_pred_term(A, mid) :-
+    pr_pred_classical_neg(A, _), !.
 pr_pred_term(A, Type) :-
     pr_pred_negated(A, T), !,
     (   current_option(neg,on) ->
@@ -449,17 +451,6 @@ pr_pred_term(A, Type) :-
     ).
 pr_pred_term( Error :: print(Error) , default ).
     
-
-pr_human_term((Term :: TermHuman), Type) :-
-    pr_pred_term(Term :: Human, Type), !,  %% To obtain the Type
-    (   current_option(human,on) ->
-        TermHuman = Human
-    ;
-        Term = o_nmr_check,
-        TermHuman = print(global_constraint)
-    ;
-        TermHuman = print(Term)
-    ).
 
 print_human(Conector) :-
     (   current_option(human,on) ->
@@ -499,8 +490,6 @@ pr_pred_negated(not(Predicate) :: Human, Type ) :-
 
 
 
-pr_pred_default( proved(A)    :: (B,format(', already justified',[]))) :- !,
-    pr_human_term(A::B,_).
 pr_pred_default( (A=A)        :: format('~p is ~p',[A,A])).
 pr_pred_default(true          :: format('\r',[])).
 pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
@@ -576,7 +565,30 @@ pr_pred_default_forall_(forall(V,Rest), [V|Vs], InForall) :- !,
     pr_pred_default_forall_(Rest, Vs, InForall).
 pr_pred_default_forall_(InForall, [], InForall).
     
-   
+
+%% To detect user/neg/aux predicates
+user_predicate(proved(A)) :- !,
+    user_predicate(A).
+user_predicate(chs(A)) :- !,
+    user_predicate(A).
+user_predicate(A) :- !,
+    \+ aux_predicate(A),
+    A =.. [Name|Args],
+    length(Args,La),
+    pr_user_predicate(Name/La).
+%%
+user_neg_predicate(not(A)) :- !,
+    user_predicate(A).
+user_neg_predicate(A) :- !,
+    A =.. [Name|_],
+    atom_concat('-',_,Name).
+%%
+aux_predicate(-(o_,_)) :- !.
+aux_predicate(A) :-
+    A =.. [Name|_],
+    atom_chars(Name,['o','_'|_]).
+
+
 
 %% PORTRAY - capture human output of the variables
 :- multifile portray/1.
