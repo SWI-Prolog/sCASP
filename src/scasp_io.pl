@@ -6,6 +6,7 @@
     allways_ask_for_more_models/0,
     init_counter/0,
     increase_counter/0,
+    print_query/1,      % query
     print_justification_tree/1, % justification tree
     print_model/1,      % model
     print_unifier/2,    % bindings
@@ -166,6 +167,20 @@ increase_counter :-
     N1 is N + 1,
     retractall(answer_counter(N)),
     assert(answer_counter(N1)).
+
+:- pred print_query(Query) #"Print the  @var{Query}".
+
+:- use_module(library(formulae)).
+print_query(Query) :-
+    format('QUERY:\n',[]),    
+    (   current_option(human,on) ->
+        print('I would like to know if'),
+        print_human_body(Query)
+    ;
+        list_to_conj(Query,ConjPQ),
+        format('?- ~p.\n',[ConjPQ])
+    ).
+
 
 :- pred print_justification_tree(StackOut) #"Print the justification
 tree using @var{StackOut}, the final call stack".

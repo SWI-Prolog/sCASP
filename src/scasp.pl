@@ -64,8 +64,6 @@ program under the stable model semantic.
 
 :- use_module(clp_clpq).
 
-:- use_module(library(formulae)).
-
 :- op(700, fx,  [not,(?=), (??), (?)]).
 
 %% ------------------------------------------------------------- %%
@@ -132,9 +130,8 @@ main_solve(Q0) :-
     process_query(Q0,Q,Query), varset(Q,Vars),
 
     pretty_term([],D1,par(Vars,Q),par(PVars,PQ)),
-    list_to_conj(PQ,ConjPQ),
 
-    format('QUERY:\n?- ~p.\n',ConjPQ),
+    print_query(PQ),
 
     statistics(runtime,_),
     if(solve(Query, [], StackOut, Model),nl,(print('\nfalse\n\n'),fail)),
