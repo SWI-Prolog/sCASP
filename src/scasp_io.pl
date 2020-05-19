@@ -413,8 +413,8 @@ pr_human_term((Term :: TermHuman), Type) :-
 
 pr_pred_term(A, pred) :-
     pr_pred_predicate(A), !.
-pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type) :- !,
-    pr_human_term(A::Human, Type).
+pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), default) :- !,
+    pr_human_term(A::Human, _).
 pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
     pr_human_term(A::Human, T),
     (   sp_tab(I) ->
