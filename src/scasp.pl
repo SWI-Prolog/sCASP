@@ -112,7 +112,7 @@ main_loop :-
             main_solve(Q) ->
             nl, main_loop
         ;
-            print('\nfalse'),
+            % print('\nfalse'),
             main_loop
         )
     ).
@@ -134,7 +134,7 @@ main_solve(Q0) :-
     print_query(PQ),
 
     statistics(runtime,_),
-    if(solve(Query, [], StackOut, Model),nl,(print('\nfalse\n\n'),fail)),
+    if(solve(Query, [], StackOut, Model),nl,(print('\nno models\n\n'),fail)),
     statistics(runtime, [_|[T]]),
 
     increase_counter,

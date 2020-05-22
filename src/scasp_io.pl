@@ -860,6 +860,7 @@ set_user_options([O | Os]) :-
         fail
     ).
 
+:- dynamic html_name/1.
 set_user_option('--help_all') :- help_all, abort.
 set_user_option('-h') :- help, abort.
 set_user_option('-?') :- help, abort.
@@ -884,7 +885,7 @@ set_user_option('--short')              :- set(mid,on), set(short,on).
 set_user_option('--neg')                :- set(neg,on).
 
 set_user_option('--html')               :- set(process_stack, on), set(html, on).
-set_user_option('--server')             :- set(process_stack, on), set(html, on), set(server, on).
+set_user_option(Option)                 :- atom_concat('--html=',File,Option),asserta(html_name(File)),set(process_stack, on), set(html, on).
 
 set_user_option('-v')                   :- set(check_calls, on).
 set_user_option('--verbose')            :- set(check_calls, on).
@@ -923,11 +924,11 @@ help :-
     display('  -a, --auto            Run in automatic mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.\n'),
     display('\n'),
-    display('  --code,               Print the program.\n'),
-    display('  --tree,               Print the justification tree.\n'),
+    display('  --code,               Print the program and exit.\n'),
+    display('  --tree,               Print justification tree for each answer (if any).\n'),
     display('\n'),    
-    display('  --plain               Output the literals of [code,tree] as code.\n'),
-    display('  --human               Output the literals of [code,tree] in natural language.\n'),
+    display('  --plain               Output the [code,tree] as literals.\n'),
+    display('  --human               Output the [code,tree] in natural language.\n'),
     display('\n'),
     display('  --long                Long  version in [plain,human] of [code,tree].\n'),
     display('  --mid                 Mid   version in [plain,human] of [code,tree].\n'),
@@ -935,8 +936,8 @@ help :-
     display('\n'),
     display('  --neg                 Add the negated literal in the [mid,short] in [plain,human] of [tree].\n'),
     display('\n'),
-    display('  --html                Generate the InputFile(s).html  file in HTML of [long,mid,short] in [plain,human] of [code,tree].\n'),
-    display('  --server              Generate the justification.html file in HTML of [long,mid,short] in [plain,human] of [code,tree].\n'),
+    display('  --html[=name]         Generate a file in HTML of [long,mid,short] in [plain,human] of [code,tree].\n'),
+    display('                        [=name] optional it creates \'name.html\'. If not it uses first InputFile name.\n'),
     display('\n'),
     display('  -v, --verbose         Enable verbose progress messages.\n'),
     display('\n').
@@ -976,14 +977,16 @@ for the @var{Query} using @var{Model} and @var{StackOut} resp.".
 %% Print output predicates to presaent the results of the query
 print_html(Query, Model, StackOut) :-
     write('\nBEGIN HTML JUSTIFICATION'),
-    ( current_option(server,on) ->
-        Name=justification
+    (   html_name(F) ->
+        (   atom_concat(_,'.html',F) ->
+            File = F
+        ;
+            atom_concat(F,',html',File)
+        )
     ;
-        loaded_file(Sources),
-        create_file_name(Sources,Name)
+        loaded_file([S|_Sources]),
+        create_file_name(S,File)
     ),
-    atom_concat(Name,'.html',File),
-%    File = 'html/justification.html',
     open_output_file(Stream,File,Current),
     if(
         (
@@ -1010,20 +1013,17 @@ print_html(Query, Model, StackOut) :-
     !.
 
 
-create_file_name([Ss],F) :-
-    name(Ss,StringS),
-    create_file_name_(StringS,StringF),
-    name(F,StringF).
-create_file_name([A,B|Ss],Fs) :-
-    create_file_name([A],F),
-    create_file_name([B|Ss],Fm),
-    atom_concat(F,'-',F1),
-    atom_concat(F1,Fm,Fs).
-create_file_name_([46|_],[]) :- !.
-create_file_name_([],[]) :- !.
-create_file_name_([L|Ls],[L|F2]) :-
-    create_file_name_(Ls,F2).
-
+create_file_name(Source,File) :-
+    atom_chars(Source,C_S),
+    reverse(C_S,RC_S),
+    remove_ext(RC_S,RC_Name),
+    reverse(RC_Name,C_Name),
+    atom_chars(Name,C_Name),
+    atom_concat(Name,'html',File).
+remove_ext([C|Rs],S) :-
+    C \= '.', !,
+    remove_ext(Rs,S).
+remove_ext(Rs,Rs).
 
 :- use_module(library(terms_check)).
 print_html_query([PQ,_,Bindings,PVars]) :-
