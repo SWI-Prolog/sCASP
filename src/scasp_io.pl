@@ -477,7 +477,7 @@ print_human(Conector) :-
 
 human('.','.').
 human(',',', and').
-human(' :-',' because').
+human(' :-',', because').
 
 
 pr_pred_classical_neg(ClassicalNeg :: Human , Type) :-
@@ -505,8 +505,8 @@ pr_pred_negated(not(Predicate) :: Human, Type ) :-
 
 
 
-pr_pred_default( (A=A)        :: format('~p is ~p',[A,A])).
-pr_pred_default(true          :: format('\r',[])).
+pr_pred_default( (A=A)        :: format('~p is ~p',[A,A])) :- !.
+pr_pred_default(true          :: format('\r',[])) :- !.
 pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
     Operation =.. [Op,A,B],
     human_op(Op,HOp),
@@ -514,12 +514,12 @@ pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
         HA = Var
     ;
         HA = A
-    ).
+    ), !.
 %% Note o_chk_N are handled by pr_pred_negated as global constraints
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Chk|Args],
     %% For o__chk_N1_N2 
-    atom_concat(o__chk_,Code,Chk),
+    atom_concat(o__chk_,Code,Chk), !,
     atom_chars(Code, Chars_Code),
     append(C_N,['_'|_],Chars_Code),
     number_chars(N,C_N),
@@ -556,8 +556,8 @@ pr_var_default(Args,H1) :-
     take_constraints(Args,Vars),
     pr_var_default_(Vars,H1).
 pr_var_default_([], format('',[]) ).
-pr_var_default_([V], format(', with ~p',[@(V:'')]) ) :- !.
-pr_var_default_([V1,V2], ( HV1, format(', and with ~p',[@(V2:'')])) ) :- !,
+pr_var_default_([V], format(', when ~p',[@(V:store)]) ) :- !.
+pr_var_default_([V1,V2], ( HV1, format(', and when ~p',[@(V2:store)])) ) :- !,
     pr_var_default_([V1], HV1).
 pr_var_default_([V|Vs], (HV,HVs) ) :-
     pr_var_default_([V],HV),
@@ -611,6 +611,8 @@ portray(@(Var:_)) :- var(Var), !,
     print(Var).
 portray(@(X:'')) :- !,
     human_portray_default(X).
+portray(@(X:store)) :- !,
+    human_portray_store(X).
 portray(@(X:NX)) :- !,
     human_portray(X:NX).
 portray(@(Args)) :-
@@ -625,23 +627,32 @@ portray(Constraint) :-
 
 % W.o. description for the variable
 human_portray_default(A '│' B) :- !,
-    print(A), print(' '), human_portray_(B).
+    format('\"~p ',[A]), human_portray_(B),
+    print('\"').
 human_portray_default('$'(X)) :- !, write(X).
 human_portray_default(X) :- write(X).
 
+% Special case for constraint stores
+human_portray_store((A '│' B)) :-
+    format('~p is ',[A]),
+    human_portray_(B).
+
 % W. NX description for he variable
 human_portray((A '│' B):NX) :- !,
-    format('a ~p ~p ',[NX,A]),
-    human_portray_(B).
+    format('a ~p \"~p ',[NX,A]),
+    human_portray_(B),
+    print('\"').
 human_portray('$'(X):NX) :- !,
     format('~p, a ~p,',[X,NX]).
 human_portray(X:NX) :-
     format('the ~p ~p',[NX,X]).
 
 % Human output for constraint
+human_portray_({_ \= B}) :- !,
+    format('not ~p',[B]).
 human_portray_(Disequality) :-
     Disequality = {_ \= _ , _}, !,
-    print('not equal '),
+    print('not '),
     print_d(Disequality).
 human_portray_(CLPQ) :- !,
     print_c(CLPQ).
@@ -650,7 +661,7 @@ human_portray_(CLPQ) :- !,
 print_d({_ \= A,Y,Z}) :- !,
     print(A), print(', '), print_d({Y,Z}).
 print_d({_ \= A,Z}) :- !,
-    print(A), print(', or '), print_d({Z}).
+    print(A), print(', nor '), print_d({Z}).
 print_d({_ \= A}) :- !,
     print(A).
 
