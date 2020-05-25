@@ -556,8 +556,8 @@ pr_var_default(Args,H1) :-
     take_constraints(Args,Vars),
     pr_var_default_(Vars,H1).
 pr_var_default_([], format('',[]) ).
-pr_var_default_([V], format(', when ~p',[@(V:store)]) ) :- !.
-pr_var_default_([V1,V2], ( HV1, format(', and when ~p',[@(V2:store)])) ) :- !,
+pr_var_default_([V], format(', with ~p',[@(V:'')]) ) :- !.
+pr_var_default_([V1,V2], ( HV1, format(', and with ~p',[@(V2:'')])) ) :- !,
     pr_var_default_([V1], HV1).
 pr_var_default_([V|Vs], (HV,HVs) ) :-
     pr_var_default_([V],HV),
@@ -627,8 +627,7 @@ portray(Constraint) :-
 
 % W.o. description for the variable
 human_portray_default(A '│' B) :- !,
-    format('\"~p ',[A]), human_portray_(B),
-    print('\"').
+    format('~p ',[A]), human_portray_(B).
 human_portray_default('$'(X)) :- !, write(X).
 human_portray_default(X) :- write(X).
 
@@ -639,9 +638,8 @@ human_portray_store((A '│' B)) :-
 
 % W. NX description for he variable
 human_portray((A '│' B):NX) :- !,
-    format('a ~p \"~p ',[NX,A]),
-    human_portray_(B),
-    print('\"').
+    format('a ~p ~p ',[NX,A]),
+    human_portray_(B).
 human_portray('$'(X):NX) :- !,
     format('~p, a ~p,',[X,NX]).
 human_portray(X:NX) :-
@@ -649,10 +647,10 @@ human_portray(X:NX) :-
 
 % Human output for constraint
 human_portray_({_ \= B}) :- !,
-    format('not ~p',[B]).
+    format('not equal ~p',[B]).
 human_portray_(Disequality) :-
     Disequality = {_ \= _ , _}, !,
-    print('not '),
+    print('not equal '),
     print_d(Disequality).
 human_portray_(CLPQ) :- !,
     print_c(CLPQ).
@@ -1067,13 +1065,13 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
     ;
         (   Binding =.. [_,PB,{PConst}], PV = $(PB) ->
             (   current_option(human,on) ->
-                tab_html(15),format('for ~p',[@(Binding:'')]),br,nl
+                tab_html(15),format('when ~p',[@(Binding:store)]),br,nl
             ;
                 tab_html(15),format("~p",[PConst]),br,nl
             )
         ;
             (   current_option(human,on) ->
-                tab_html(15),format('for ~p equal ~p',[PV,@(Binding:'')]),br,nl
+                tab_html(15),format('when ~p is ~p',[PV,@(Binding:'')]),br,nl
             ;
                 tab_html(15),format("~p = ~p",[PV,Binding]),br,nl
             )
