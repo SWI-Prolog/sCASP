@@ -641,7 +641,7 @@ human_portray((A '│' B):NX) :- !,
     format('a ~p ~p ',[NX,A]),
     human_portray_(B).
 human_portray('$'(X):NX) :- !,
-    format('~p, a ~p,',[X,NX]).
+    format('~p, a ~p',[X,NX]).
 human_portray(X:NX) :-
     format('the ~p ~p',[NX,X]).
 
@@ -1192,10 +1192,10 @@ print_html_human_body([L|Ls]) :-
     pr_human_term(L::Format,_),
     tab_html(15),
     call(Format),
-    print(' and'),br,nl,
+    print(', and'),br,nl,
     print_html_human_body(Ls).
 
-print_html_body([]) :- print('true.').
+print_html_body([]) :- print('.').
 print_html_body([X]):-
     print(X),print('.').
 print_html_body([X,Y|Xs]):-
@@ -1296,10 +1296,10 @@ print_human_rules_(R) :-
     R = rule(Head,Body),
     print_human_head(Head),
     ( Body == [] ->
-        nl
+        print('.')
     ;
         (  current_option(human,on) ->
-            print(' if')
+            print(', if')
         ;
             print(' :-')
         ),
