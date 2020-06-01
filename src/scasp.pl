@@ -1,5 +1,5 @@
 :- module(scasp, [
-    test/2,
+    scasp_test/2,
     main/1,
     load/1,
     run_defined_query/0,
@@ -81,17 +81,20 @@ load(X) :-
     load_program(X),
     true.
 
-:- pred test(Args,Result) : list(Args) #"Used to test s(CASP) from
+:- pred scasp_test(Args,Result) : list(Args) #"Used to test s(CASP) from
 test.pl module".
 
-test(Args,Results) :-
+scasp_test(Args,Results) :-
     parse_args(Args, Options, Sources),
     set_options(Options),
     load(Sources),
     defined_query(Q),
-    process_query(_Q0,Q,Query),
-    solve(Query, [], StackOut, Model),
-    Results = [StackOut,Model].
+    process_query(Q,_,Query),
+    if(
+        solve(Query, [], StackOut, Model),
+        pretty_term([],_,StackOut, Results),
+        Results = fail
+    ).
 
 
 :- pred main(Args) : list(Args) #"Used when calling from command line
