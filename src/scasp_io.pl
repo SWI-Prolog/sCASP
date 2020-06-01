@@ -172,7 +172,7 @@ increase_counter :-
 
 :- use_module(library(formulae)).
 print_query(Query) :-
-    format('QUERY:\n',[]),    
+    format('QUERY:',[]),    
     (   current_option(human,on) ->
         print('I would like to know if'),
         print_human_body(Query)
@@ -203,7 +203,9 @@ print_model(Model) :-
 print_model_(Model):-
     select_printable_literals(Model,[],Selected),
     reverse(Selected, Printable),
-    printable_model_(Printable), nl.
+    print('{ '),
+    printable_model_(Printable),
+    print(' }'), nl.
 
 :- pred print_unifier(Vars,PVars) #" Predicate to print @var{PVars} =
 @var{Vars} the binding of the variables in the query".
@@ -250,7 +252,12 @@ printable_model_([Last]) :-
     print(Last).
 printable_model_([First,Second|Rest]) :-
     print(First),
-    display('   '),
+    (  printingHTML ->
+        display(',  '),
+        tab_html(5)
+    ;
+        display(',  ')
+    ),
     printable_model_([Second|Rest]).
 
 %printable_literal(not(X)) :- printable_literal(X).
@@ -1202,14 +1209,17 @@ print_html_body([X,Y|Xs]):-
     print(X),print(','),tab_html(2),nl,
     print_html_body([Y|Xs]).
 
+:- data printingHTML/0.
 open_output_file(Stream,File,Current) :-
     current_output(Current),
     open(File,append,_F),close(_F), %% if File does not exists open it
     open(File,write,Stream),
-    set_output(Stream).
+    set_output(Stream),
+    asserta(printingHTML).
 close_output_file(Stream,Current) :-
     set_output(Current),
-    close(Stream).
+    close(Stream),
+    retractall(printingHTML).
     
 br :- print('<br>').
 
@@ -1226,17 +1236,21 @@ print_human_program :-
     pretty_term_rules(Rules,PrettyRules),
     filter(PrettyRules, UserRules, DualRules, NMRChecks),
     print_human_program_('QUERY',PrettyQuery),
+    nl,
     print_human_program_('USER PREDICATES',UserRules),
     (  current_option(short,on) ->
         true
     ;
         current_option(mid,on),
         dual_reverse(DualRules,[_|R_DualRules]),
+        nl,nl,
         print_human_program_('DUAL RULES',R_DualRules)
     ;
         dual_reverse(DualRules,[_|R_DualRules]),
+        nl,nl,
         print_human_program_('DUAL RULES',R_DualRules),
         nmr_reverse(NMRChecks,R_NMRChecks),
+        nl,nl,
         print_human_program_('GLOBAL CONSTRAINTS',R_NMRChecks)
     ),
     nl.
@@ -1267,7 +1281,7 @@ filter([R|Rs], [R|Us], Ds, Ns) :-
 
 
 print_human_program_(Title,Rules) :-
-    format('\n~p:',[Title]),
+    format('~p:',[Title]),
     nl,
     (  Title == 'QUERY' ->
         print_human_query(Rules)
@@ -1277,13 +1291,14 @@ print_human_program_(Title,Rules) :-
 
 
 print_human_query(Query) :-
-    nl,
     ( current_option(human,on) ->
-        print('I would like to know if')
+        nl,
+        print('I would like to know if'),
+        print_human_body(Query)
     ;
-        print('?-')
-    ),
-    print_human_body(Query).
+        list_to_conj(Query,ConjPQ),
+        format('?- ~p.\n',[ConjPQ])
+    ).
 
 
 print_human_rules([R]) :-

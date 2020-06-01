@@ -1,4 +1,5 @@
 :- module(scasp, [
+    test/2,
     main/1,
     load/1,
     run_defined_query/0,
@@ -79,6 +80,19 @@ load(X) :-
 %       abolish_all_tables,
     load_program(X),
     true.
+
+:- pred test(Args,Result) : list(Args) #"Used to test s(CASP) from
+test.pl module".
+
+test(Args,Results) :-
+    parse_args(Args, Options, Sources),
+    set_options(Options),
+    load(Sources),
+    defined_query(Q),
+    process_query(_Q0,Q,Query),
+    solve(Query, [], StackOut, Model),
+    Results = [StackOut,Model].
+
 
 :- pred main(Args) : list(Args) #"Used when calling from command line
 by passing the command line options and the input files".
