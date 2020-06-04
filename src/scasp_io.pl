@@ -78,7 +78,7 @@ scasp_update :-
     shell('ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),
     display('Done, s(CASP) has been updated'),nl,
     fail.
-scasp_updated :-
+scasp_update :-
     halt.
 
 
