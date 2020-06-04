@@ -67,6 +67,22 @@ Arias} in the folder @file{./src/sasp/}.
 
 %% ------------------------------------------------------------- %%
 
+:- pred scasp_update/0 #"update the bundle sCASP using ciao".
+update :-
+    display('First, ciao would remove the bundle sCASP - ciao rm sCASP'),nl,
+    shell('ciao rm sCASP'),
+    display('Done'),nl,
+    fail.
+update :-
+    display('Then, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),nl,
+    shell('ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),
+    display('Done, s(CASP) has been updated'),nl,
+    fail.
+updated :-
+    halt.
+
+
+
 :- pred load_program(Files) : list(Files) #"Call s(aso) to generate
     and assert the translation of the progam (with dual and
     nmr_check)".
@@ -85,6 +101,7 @@ load_program(X) :-
     ),
     main(['-g'| Files]),
     assert(loaded_file(Files)).
+
 
 :- pred write_program/0 #"Call c(asp) to print the source code of the
 translation of the programs already loaded by @pred{load_program/1}".
@@ -913,13 +930,7 @@ set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
 :- use_module(library(system)).
 set_user_option('--update') :-
-    display('First, ciao would remove the bundle sCASP - ciao rm sCASP'),nl,
-    shell('ciao rm sCASP'),
-    display('Done'),nl,
-    display('Then, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),nl,
-    shell('ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),
-    display('Done, s(CASP) has been updated'),nl,
-    halt.
+    scasp_update.
 
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
