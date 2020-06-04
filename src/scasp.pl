@@ -91,7 +91,7 @@ scasp_test(Args,Results) :-
     defined_query(Q),
     process_query(Q,_,Query),
     if(
-        solve(Query, [], StackOut, Model),
+        solve(Query, [], StackOut, _Model),
         pretty_term([],_,StackOut, Results),
         Results = fail
     ).
