@@ -911,6 +911,11 @@ set_user_option('--warning') :- set(warning, on).
 set_user_option('-no') :- set(no_nmr, on).
 set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
+:- use_module(library(system)).
+set_user_option('--update') :-
+    shell('ciao rm sCASP'),
+    shell('ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),
+    halt.
 
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
