@@ -68,17 +68,17 @@ Arias} in the folder @file{./src/sasp/}.
 %% ------------------------------------------------------------- %%
 
 :- pred scasp_update/0 #"update the bundle sCASP using ciao".
-update :-
+scasp_update :-
     display('First, ciao would remove the bundle sCASP - ciao rm sCASP'),nl,
     shell('ciao rm sCASP'),
     display('Done'),nl,
     fail.
-update :-
+scasp_update :-
     display('Then, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),nl,
     shell('ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),
     display('Done, s(CASP) has been updated'),nl,
     fail.
-updated :-
+scasp_updated :-
     halt.
 
 
