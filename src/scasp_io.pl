@@ -913,8 +913,12 @@ set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
 :- use_module(library(system)).
 set_user_option('--update') :-
+    display('First, ciao would remove the bundle sCASP - ciao rm sCASP'),nl,
     shell('ciao rm sCASP'),
+    display('Done'),nl,
+    display('Then, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),nl,
     shell('ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),
+    display('Done, s(CASP) has been updated'),nl,
     halt.
 
 
