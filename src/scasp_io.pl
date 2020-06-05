@@ -68,19 +68,23 @@ Arias} in the folder @file{./src/sasp/}.
 %% ------------------------------------------------------------- %%
 
 :- pred scasp_update/0 #"update the bundle sCASP using ciao".
+:- use_module(library(process)).
 scasp_update :-
-    display('First, ciao would remove the bundle sCASP - ciao rm sCASP'),nl,
-    shell('ciao rm sCASP'),
-    display('Done'),nl,
+    format('\nFirst, ciao would remove the bundle sCASP - ciao rm sCASP\n\n',[]),
+    
+    process_call(path(ciao), [rm, 'sCASP'], []),
+
+    format('\nDone\n\n',[]),
     fail.
 scasp_update :-
-    display('Then, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),nl,
-    shell('ciao get gitlab.software.imdea.org/ciao-lang/sCASP'),
-    display('Done, s(CASP) has been updated'),nl,
+    format('\nThen, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP\n\n',[]),
+
+    process_call(path(ciao), [get, 'gitlab.software.imdea.org/ciao-lang/sCASP'], []),
+
+    format('\nDone, s(CASP) has been updated\n\n',[]),
     fail.
 scasp_update :-
     halt.
-
 
 
 :- pred load_program(Files) : list(Files) #"Call s(aso) to generate
@@ -928,7 +932,6 @@ set_user_option('--warning') :- set(warning, on).
 set_user_option('-no') :- set(no_nmr, on).
 set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
-:- use_module(library(system)).
 set_user_option('--update') :-
     scasp_update.
 
