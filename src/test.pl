@@ -46,12 +46,14 @@ list_files([
     '../test/hanoi.pl',
     '../test/pq.pl',
     '../test/queens.pl',
-    '../test/classic_negation_incostistent.pl'
+    '../test/classic_negation_incostistent.pl',
+    '../test/bec_light.pl'
 ]).
 
 generate :-
     list_files(Files),
     generate_test(Files).
+
 generate_test([]).
 generate_test([F|Ts]) :-
     scasp_test([F], Result),

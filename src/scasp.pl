@@ -90,11 +90,12 @@ scasp_test(Args,Results) :-
     load(Sources),
     defined_query(Q),
     process_query(Q,_,Query),
-    if(
-        solve(Query, [], StackOut, _Model),
-        pretty_term([],_,StackOut, Results),
-        Results = fail
-    ).
+    findall(
+        Result,
+        ( solve(Query, [], StackOut, _Model),
+          pretty_term([],_,StackOut, Result)
+        ),
+        Results).
 
 
 :- pred main(Args) : list(Args) #"Used when calling from command line
