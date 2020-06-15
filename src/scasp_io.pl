@@ -70,18 +70,24 @@ Arias} in the folder @file{./src/sasp/}.
 :- pred scasp_update/0 #"update the bundle sCASP using ciao".
 :- use_module(library(process)).
 scasp_update :-
-    format('\nFirst, ciao would remove the bundle sCASP - ciao rm sCASP\n\n',[]),
-    
-    process_call(path(ciao), [rm, 'sCASP'], []),
+    format('\n=> First, ciao would remove the bundle sCASP - ciao rm sCASP\n\n',[]),
 
-    format('\nDone\n\n',[]),
+    (  catch(process_call(path(ciao), [rm, 'sCASP'], []),_,fail) ->
+        format('\n=> Done.\n\n',[])
+    ;
+        format('\n=> Don\'t worry, let\'s try to install s(CAPS) anyway.\n\n',[])
+    ),
+    
     fail.
 scasp_update :-
-    format('\nThen, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP\n\n',[]),
+    format('\n=> Secondly, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP\n\n',[]),
 
-    process_call(path(ciao), [get, 'gitlab.software.imdea.org/ciao-lang/sCASP'], []),
-
-    format('\nDone, s(CASP) has been updated\n\n',[]),
+    (  catch(process_call(path(ciao), [get, 'gitlab.software.imdea.org/ciao-lang/sCASP'], []),_,fail) ->
+        format('\n=> Done, s(CASP) has been updated.\n\n',[])
+    ;
+        format('\n=> Something went wrong. Try again.\n\n',[])
+    ),
+       
     fail.
 scasp_update :-
     halt.

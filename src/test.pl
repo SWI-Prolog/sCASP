@@ -19,6 +19,7 @@
 
 
 :- include(test_results).
+%list_tests(_).
 
 main(_) :-
     list_tests(Tests),
