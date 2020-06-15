@@ -18,8 +18,8 @@
 :- op(700, fx, [not,'$']). %% such as
 
 
-:- include(test_results).
-%list_tests(_).
+%:- include(test_results).
+list_tests(_).
 
 main(_) :-
     list_tests(Tests),
