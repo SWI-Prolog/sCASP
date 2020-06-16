@@ -1,0 +1,10 @@
+stages:
+  - test
+
+basic_test:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - export "PATH=/ciao/build/bin:$PATH"
+    - ciaosh --version
