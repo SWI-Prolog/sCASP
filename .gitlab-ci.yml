@@ -1,10 +1,24 @@
 stages:
+  - install
   - test
 
-basic_test:
+install:
+  stage: install
+  script:
+    - echo # Creating artifact
+  artifacts:
+    expire_in: 2h
+    untracked: true
+    paths:
+      - build-boot
+      - build/
+
+test_01:
   stage: test
   tags:
     - ciao
   script:
     - export "PATH=/ciao/build/bin:$PATH"
-    - ciaosh --version
+    - cd /builds/ciao-lang/sCASP/src/
+    - ciaoc -o run_test01 test.pl
+    - ./run_test01
