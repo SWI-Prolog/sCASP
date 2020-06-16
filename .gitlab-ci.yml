@@ -8,19 +8,32 @@ install:
     - ciao
   script:
     - echo # Creating artifact
+    - export "PATH=/ciao/build/bin:$PATH"
+    - cd /builds/ciao-lang/sCASP/src/
+    - ciaoc -o run_test01 test.pl
   artifacts:
     expire_in: 2h
     untracked: true
     paths:
-      - build-boot
-      - build/
+      - builds/ciao-lang/sCASP/src/
+
 
 test_01:
   stage: test
   tags:
     - ciao
   script:
-    - export "PATH=/ciao/build/bin:$PATH"
     - cd /builds/ciao-lang/sCASP/src/
-    - ciaoc -o run_test01 test.pl
     - ./run_test01
+  dependencies:
+    - install
+
+test_02:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test01
+  dependencies:
+    - install
