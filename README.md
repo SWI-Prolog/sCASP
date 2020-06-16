@@ -16,7 +16,9 @@ This work was presented at ICLP'18 ([Arias et al. 2018](https://www.cambridge.or
 constraint logic programming. Unlike similar systems, it does not
 employ any form of grounding. This allows `s(CASP)` to execute programs
 that are not finitely groundable, including those which make use of
-lists and terms. 
+lists and terms.
+
+[![pipeline status](https://gitlab.software.imdea.org/ciao-lang/sCASP/badges/master/pipeline.svg)](https://gitlab.software.imdea.org/ciao-lang/sCASP/-/commits/master)
 
 ## Installation of s(CASP) 
 
