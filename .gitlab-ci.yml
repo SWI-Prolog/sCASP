@@ -4,6 +4,8 @@ stages:
 
 install:
   stage: install
+  tags:
+    - ciao
   script:
     - echo # Creating artifact
   artifacts:
