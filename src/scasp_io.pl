@@ -62,7 +62,7 @@ Arias} in the folder @file{./src/sasp/}.
 
 :- op(700, xfx, ['::']).
 
-:- op(700, xfx, ['│']). %% such as
+:- op(700, xfx, ['| ']). %% such as
 
 
 %% ------------------------------------------------------------- %%
@@ -323,7 +323,7 @@ query3(X,  I, O) :-
 
 
 % TODO: remove if it is not needed
-print_constraints('│',_,Const) :-
+print_constraints('| ',_,Const) :-
     format("~w",[Const]).
 print_constraints('∉',PB,(Const)) :- !,
     print_constraints_not(PB,Const).
@@ -599,7 +599,7 @@ pr_var_default_([V|Vs], (HV,HVs) ) :-
 
 take_constraints([],[]).
 take_constraints([V|As],[V|Vs]) :-
-    V = (_ '│' _), !,
+    V = (_ '| ' _), !,
     take_constraints(As,Vs).
 take_constraints([_|As], Vs) :-
     take_constraints(As,Vs).
@@ -660,18 +660,18 @@ portray(Constraint) :-
     format("~p ~p ~p",[A,Op,B]).
 
 % W.o. description for the variable
-human_portray_default(A '│' B) :- !,
+human_portray_default(A '| ' B) :- !,
     format('~p ',[A]), human_portray_(B).
 human_portray_default('$'(X)) :- !, write(X).
 human_portray_default(X) :- write(X).
 
 % Special case for constraint stores
-human_portray_store((A '│' B)) :-
+human_portray_store((A '| ' B)) :-
     format('~p is ',[A]),
     human_portray_(B).
 
 % W. NX description for he variable
-human_portray((A '│' B):NX) :- !,
+human_portray((A '| ' B):NX) :- !,
     format('a ~p ~p ',[NX,A]),
     human_portray_(B).
 human_portray('$'(X):NX) :- !,
@@ -737,7 +737,7 @@ human_portray_args([V|As]) :-
     human_portray_args(As).
 
 human_portray_arg(A) :- var(A), !, print(A).
-human_portray_arg(A '│' _) :- !, print(A).
+human_portray_arg(A '| ' _) :- !, print(A).
 human_portray_arg('$'(A)) :- !, print(A).
 human_portray_arg(A) :- print(A).
     
@@ -801,7 +801,7 @@ simple_operands([A,B],[SA,SB]) :-
     simple_operand(A,SA),
     simple_operand(B,SB).
 simple_operand(Operand,'$'(Var)) :-
-    Operand =.. ['│', Var, _], !.
+    Operand =.. ['| ', Var, _], !.
 simple_operand(A,A).
  
 
@@ -815,7 +815,7 @@ pretty_portray_attribute_(att(_,false,att(clp_disequality_rt,neg(List),_)),_,PVa
         PA=PVar
     ;
         pretty_disequality(PVar,List,Const),
-        PA =.. ['│', PVar, {Const}]
+        PA =.. ['| ', PVar, {Const}]
     ).
 pretty_portray_attribute_(_,A,PVar,PA) :-
     clpqr_dump_constraints(A, PVar, Constraints),
@@ -825,7 +825,7 @@ pretty_portray_attribute_(_,A,PVar,PA) :-
         sort(Constraints,Sort),
         reverse(Sort,RConstraints),
         pretty_constraints(RConstraints,Const),
-        PA =.. ['│', PVar, {Const}]
+        PA =.. ['| ', PVar, {Const}]
     ).
 
 pretty_disequality(PVar,[A],(PVar \= A)) :- !.
