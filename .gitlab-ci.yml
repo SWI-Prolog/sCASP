@@ -10,30 +10,107 @@ install:
     - echo # Creating artifact
     - export "PATH=/ciao/build/bin:$PATH"
     - cd /builds/ciao-lang/sCASP/src/
-    - ciaoc -o run_test01 test.pl
+    - ciaoc -o run_test test.pl
   artifacts:
     expire_in: 2h
     untracked: true
-    paths:
-      - builds/ciao-lang/sCASP/src/
 
-
-test_01:
+test_pq:
   stage: test
   tags:
     - ciao
   script:
     - cd /builds/ciao-lang/sCASP/src/
-    - ./run_test01
+    - ./run_test '../test/pq.pl'
   dependencies:
     - install
 
-test_02:
+test_vars:
   stage: test
   tags:
     - ciao
   script:
     - cd /builds/ciao-lang/sCASP/src/
-    - ./run_test01
+    - ./run_test '../test/vars.pl'
+  dependencies:
+    - install
+
+test_birds:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/birds.pl'
+  dependencies:
+    - install
+
+test_family:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/family.pl'
+  dependencies:
+    - install
+
+test_hamcycle:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/hamcycle.pl'
+  dependencies:
+    - install
+
+test_hamcycle_two:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/hamcycle_two.pl'
+  dependencies:
+    - install
+
+test_hanoi:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/hanoi.pl'
+  dependencies:
+    - install
+
+test_queens:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/queens.pl'
+  dependencies:
+    - install
+
+test_classic_negation_incostistent:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/classic_negation_incostistent.pl'
+  dependencies:
+    - install
+
+test_bec_light:
+  stage: test
+  tags:
+    - ciao
+  script:
+    - cd /builds/ciao-lang/sCASP/src/
+    - ./run_test '../test/bec_light.pl'
   dependencies:
     - install

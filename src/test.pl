@@ -21,9 +21,14 @@
 :- include(test_results).
 %list_tests(_).
 
-main(_) :-
+main([]) :- 
     list_tests(Tests),
     test(Tests).
+
+main([Test]) :- 
+    list_tests(Tests),
+    member(Test=Result,Tests),
+    test([Test=Result]).
 
 test([]).
 test([F=R|Ts]) :-
