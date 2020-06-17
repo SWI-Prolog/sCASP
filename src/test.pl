@@ -23,23 +23,30 @@
 
 main([]) :- 
     list_tests(Tests),
-    test(Tests).
+    test(Tests,St),
+    end(St).
 
 main([Test]) :- 
     list_tests(Tests),
     member(Test=Result,Tests),
-    test([Test=Result]).
+    test([Test=Result], St),
+    end(St).
 
-test([]).
-test([F=R|Ts]) :-
+end(Var) :- var(Var), !.
+end(fail) :- fail.
+
+test([],_).
+test([F=R|Ts],St1) :-
     scasp_test([F], Result),
 %    display(a(R,Result)),nl,nl,
     ( R = Result ->
-        format("~p \tpassed\n", [F])
+        format("~p \tpassed\n", [F]),
+        St1 = St0
     ;
-        format("~p \tfailed\n", [F])
+        format("~p \tfailed\n", [F]),
+        St1 = fail
     ),
-    test(Ts).
+    test(Ts,St0).
 
 
 list_files([
