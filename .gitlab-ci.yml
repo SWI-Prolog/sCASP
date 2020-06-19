@@ -13,7 +13,7 @@ install:
     - ciaoc -o run_test test.pl
     - cd ..
     - make
-    - scasp --version
+    - ./scasp --version
   artifacts:
     expire_in: 2h
     untracked: true
