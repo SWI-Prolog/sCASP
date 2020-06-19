@@ -67,6 +67,9 @@ program under the stable model semantic.
 
 :- op(700, fx,  [not,(?=), (??), (?)]).
 
+%% naf_builtin(findall)
+:- use_module(library(aggregates)).
+
 %% ------------------------------------------------------------- %%
 :- doc(section, "Main predicates").
 
@@ -482,12 +485,19 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     prolog_builtin(Op), !,
     exec_goal(Goal),
     Model = [Goal].
+solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
+    Goal = findall(_,_,_), !,
+    exec_findall(Goal,StackIn),
+    Model = [Goal].
+solve_goal_builtin(not(Goal), StackIn, StackIn, Model) :-
+    Goal = findall(_,_,_), !,
+   exec_neg_findall(Goal, StackIn),
+    Model = [Goal].
 %% The predicate is not defined as user_predicates neither builtin
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     if_user_option(check_calls,
     format('The predicate ~p is not user_defined / builtin\n',[Goal])),
-    (
-        Goal = not(_) ->
+    (   Goal = not(_) ->
         Model = [Goal]     %% the negation of a not defined predicate success.
     ;
         fail               %% a not defined predicate allways fails.
@@ -509,6 +519,19 @@ capture_rational(St, NSt) :-
     capture_rational(B,Nb),
     NSt =.. [Op,Na,Nb].
 capture_rational(A, A) :- ground(A).
+
+
+% TODO: Peding StackOut to carry the literal involved in the findall (if needed)
+exec_findall(findall(Var, Call, List), StackIn) :-
+    if_user_option(check_calls, format('execution of findall(~p, ~p, _) \n',[Var,Call])),
+    findall(Var, solve([Call], StackIn, _, _), List),
+    if_user_option(check_calls, format('Result execution = ~p \n',[List])).
+
+% TODO: What to do with the negation of findall/3 (if required)
+exec_neg_findall(Goal, _) :-
+    if_user_option(check_calls, format('PENDING: execution of not ~p \n',[Goal])),
+    fail.
+
 
 :- pred check_CHS(Goal, StackIn, Result) #"Checks the @var{StackIn}
 and returns in @var{Result} if the goal @var{Goal} is a coinductive
@@ -800,7 +823,7 @@ shown_predicate(Goal) :-
 
 
 :- pred prolog_builtin(Goal) #"Success if @var{Goal} is a builtin
-    prolog predicate".
+    prolog predicate (the compiler introduced its dual)".
 
 prolog_builtin(true).
 prolog_builtin(fail).
@@ -810,6 +833,11 @@ prolog_builtin(<).
 prolog_builtin(>).
 prolog_builtin(>=).
 prolog_builtin(=<).
+
+
+%% :- pred naf_builtin(Goal) #"Success if @var{Goal} is a builtin
+%%     prolog predicate (there is no dual and NAF is used)".
+%% naf_builtin(findall).
 
 
 :- pred clp_builtin(Goal) #"Success if @var{Goal} is a builtin

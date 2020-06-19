@@ -92,6 +92,11 @@ scasp_update :-
 scasp_update :-
     halt.
 
+:- pred scasp_version/0 #"print the current version of s(CASP)".
+scasp_version :-
+    format('s(CASP) version ~p\n',['0.20.06.19']),
+    halt.
+
 
 :- pred load_program(Files) : list(Files) #"Call s(aso) to generate
     and assert the translation of the progam (with dual and
@@ -938,8 +943,8 @@ set_user_option('--warning') :- set(warning, on).
 set_user_option('-no') :- set(no_nmr, on).
 set_user_option('--no_nmr') :- set(no_nmr, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
-set_user_option('--update') :-
-    scasp_update.
+set_user_option('--update') :- scasp_update.
+set_user_option('--version') :- scasp_version.
 
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
@@ -985,6 +990,8 @@ help :-
     display('                        [=name] optional it creates \'name.html\'. If not it uses first InputFile name.\n'),
     display('\n'),
     display('  -v, --verbose         Enable verbose progress messages.\n'),
+    display('  --update              Automatically update s(CASP).\n'),
+    display('  --version             Output the current version of s(CASP)\n'),
     display('\n').
 
 help_all :-
