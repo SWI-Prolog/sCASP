@@ -11,6 +11,7 @@ install:
     - export "PATH=/ciao/build/bin:$PATH"
     - cd /builds/ciao-lang/sCASP/src/
     - ciaoc -o run_test test.pl
+    - scasp --version
   artifacts:
     expire_in: 2h
     untracked: true
