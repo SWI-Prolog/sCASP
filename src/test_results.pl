@@ -1,6 +1,6 @@
 list_tests([
 	'../test/pq.pl' = 
-	[[[],[],o_nmr_check,[],[],[],[],chs(p($'A')),not o_q_1($'A'),not q($'A'),p($'A')]],
+	[[[],[a],o_nmr_check,[],[],[],[],chs(p($'A')),not o_q_1($'A'),not q($'A'),p($'A')]],
 	'../test/vars.pl' = 
 	[[[],[],o_nmr_check,[],[],($'A')#>1,[],($'A')#<5,p(a,b,c,d,'A' '| '{'A'#>1,'A'#<5})]],
 	'../test/birds.pl' = 
