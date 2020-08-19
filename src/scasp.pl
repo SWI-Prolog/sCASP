@@ -475,6 +475,11 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     exec_goal(apply_clpq_constraints(Goal)),
     Model = [Goal].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
+    Goal =.. [Op|_],
+    clp_interval(Op), !,
+    exec_goal(Goal),
+    Model = [Goal].
+solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Goal =.. [Op|Operands],
     clp_builtin_translate(Op,Op_T), !,
     Goal_T =.. [Op_T|Operands],
@@ -491,7 +496,7 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Model = [Goal].
 solve_goal_builtin(not(Goal), StackIn, StackIn, Model) :-
     Goal = findall(_,_,_), !,
-   exec_neg_findall(Goal, StackIn),
+    exec_neg_findall(Goal, StackIn),
     Model = [Goal].
 %% The predicate is not defined as user_predicates neither builtin
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
@@ -860,6 +865,12 @@ clp_builtin_translate('#>',  .>.).
 clp_builtin_translate('#>=', .>=.).
 clp_builtin_translate('#=<', .=<.).
 
+:- use_module(library(clpq/solver_q), [inf/2, sup/2]).
+:- pred clp_interval(Goal) #"Success if @var{Goal} is a builtin
+    constraint predicate to extract interval limits".
+
+clp_interval(inf).
+clp_interval(sup).
 
 :- pred my_copy_term(Var, Term, NewVar, NewTerm) #"Its behaviour is
 similar to @pred{copy_term/2}. It returns in @var{NewTerm} a copy of
