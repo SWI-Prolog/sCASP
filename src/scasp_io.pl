@@ -39,6 +39,7 @@ Arias} in the folder @file{./src/sasp/}.
 
 %% ------------------------------------------------------------- %%
 
+:- use_module('./sasp/comp_duals').
 :- use_module('./sasp/output').
 :- reexport('./sasp/output', [
     pr_rule/2,
@@ -920,6 +921,9 @@ set_user_option('--auto').
 set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
 
+set_user_option('-d')                   :- assert(plain_dual(on)).
+set_user_option('--plaindual')          :- assert(plain_dual(on)).
+
 set_user_option('--code')               :- set(write_program, on), set(neg,on).
 set_user_option('--tree')               :- set(process_stack, on), set(print_tree, on).
 
@@ -973,6 +977,7 @@ help :-
     display('  -i, --interactive     Run in user / interactive mode.\n'),
     display('  -a, --auto            Run in automatic mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.\n'),
+    display('  -d, --plaindual       Dual with single-goal clauses (for propositional programs).\n'),
     display('\n'),
     display('  --code,               Print the program and exit.\n'),
     display('  --tree,               Print justification tree for each answer (if any).\n'),
@@ -996,7 +1001,7 @@ help :-
 
 help_all :-
     help,
-    display('  --no_mnr              Does not run NMR checks - for debugging purposes.\n'),
+    display('  --no_nmr              Does not run NMR checks - for debugging purposes.\n'),
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  --variant             Does not fail due to positive loops.\n'),
     display('\n').

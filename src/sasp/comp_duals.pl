@@ -1,7 +1,8 @@
 :- module(comp_duals, [
                     comp_duals/0,
                     comp_duals3/2,
-                    define_forall/3
+                    define_forall/3,
+                    plain_dual/1
                   ]).
 
 /** <module> Dual rule computation
@@ -164,6 +165,7 @@ comp_dual2(Hn, Bg, []) :-
     !, % no body variables
     comp_dual3(Hn, Bg, []).
 
+:- dynamic plain_dual/1. % see scasp_io
 %! comp_dual3(+DualHead:compound, +Body:list, +UsedGoals:list) is det
 % Compute the innermost dual for a single rule by negating each goal in turn.
 % Unlike grounded ASP, it is not enough to have a single-goal clause for each
@@ -176,12 +178,20 @@ comp_dual2(Hn, Bg, []) :-
 %        order.
 comp_dual3(Hn, [X | T], U) :-
     X = builtin_1(_), % handle built-ins specially
-    append(U, [X], U2),
+    (  plain_dual(on) ->  
+        append([], [X], U2)
+    ;
+        append(U, [X], U2)
+    ),
     !,
     comp_dual3(Hn, T, U2).
 comp_dual3(Hn, [X | T], U) :-
     dual_goal(X, X2),
-    append(U, [X2], Db), % Keep all goals prior to the dual one.
+    (  plain_dual(on) ->
+        append([], [X2], Db)
+    ;
+        append(U, [X2], Db) % Keep all goals prior to the dual one.
+    ),
     rule(Rd, Hn, Db), % Clause for negation of body goal
     assert_rule(Rd),
     append(U, [X], U2),
