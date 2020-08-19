@@ -348,9 +348,10 @@ predicate is executed when the flag @var{check_calls} is
 
 print_check_calls_calling(Goal,I) :-
     reverse(I,RI),
-    format('\n---------------------Calling ~w-------------',[Goal]),
+    format('\n--------------------- Calling:  ~w -------------',[Goal]),
     print_check_stack(RI,4), !,
-    nl,print(('¿'+Goal+'?')),nl,
+    nl,
+%    print(('¿'+Goal+'?')),nl,
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
     retractall(pr_print(_)).
@@ -941,6 +942,8 @@ set_user_option(Option)                 :- atom_concat('--html=',File,Option),as
 
 set_user_option('-v')                   :- set(check_calls, on).
 set_user_option('--verbose')            :- set(check_calls, on).
+set_user_option('-f')                   :- set(trace_failures, on).
+set_user_option('--tracefails')         :- set(trace_failures, on).
 %% Development
 set_user_option('-w') :- set(warning, on).
 set_user_option('--warning') :- set(warning, on).
@@ -995,6 +998,7 @@ help :-
     display('                        [=name] optional it creates \'name.html\'. If not it uses first InputFile name.\n'),
     display('\n'),
     display('  -v, --verbose         Enable verbose progress messages.\n'),
+    display('  -f, --tracefails      Trace user-predicate failures.\n'),
     display('  --update              Automatically update s(CASP).\n'),
     display('  --version             Output the current version of s(CASP)\n'),
     display('\n').

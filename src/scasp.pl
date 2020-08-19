@@ -340,8 +340,22 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
 solve_goal(Goal, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_,_)),Goal \= builtin(_),
     \+ table_predicate(Goal),
-    predicate(Goal), 
-    solve_goal_predicate(Goal, [Goal|StackIn], StackOut, Model).
+    predicate(Goal),
+    if(
+        solve_goal_predicate(Goal, [Goal|StackIn], StackOut, Model),
+        true,
+        (
+            shown_predicate(Goal),
+            if_user_option(
+                trace_failures,
+                (
+                    print_check_calls_calling(Goal,[Goal|StackIn]),
+                    format("\nFAILURE to prove the literal:   ~w -------------\n\n",[Goal])
+                )
+            ),
+            fail
+        )
+    ).
 solve_goal(Goal, StackIn, [[],Goal|StackOut], Model) :-
     Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_,_)), \+ predicate(Goal),
     \+ table_predicate(Goal),
