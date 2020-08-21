@@ -55,95 +55,95 @@ attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 %% ------------------------------------------------------------- %%
 :- doc(section, "TCLP interface").
 
-%% TCLP interface %%
-call_domain_projection([],[]).
-call_domain_projection([X|Xs], [D|Ds]) :-
-    call_domain_projection_(X, D), !,
-    call_domain_projection(Xs,Ds).
-call_entail([], []).
-call_entail([D1|D1s], [D2|D2s]) :-
-    call_entail_(D1,D2),
-    call_entail(D1s,D2s).
-call_store_projection(_, St, St).
+%% %% TCLP interface %%
+%% call_domain_projection([],[]).
+%% call_domain_projection([X|Xs], [D|Ds]) :-
+%%     call_domain_projection_(X, D), !,
+%%     call_domain_projection(Xs,Ds).
+%% call_entail([], []).
+%% call_entail([D1|D1s], [D2|D2s]) :-
+%%     call_entail_(D1,D2),
+%%     call_entail(D1s,D2s).
+%% call_store_projection(_, St, St).
 
-answer_domain_projection([],     []). 
-answer_domain_projection([X|Xs], [D|Ds]) :-
-    answer_domain_projection_(X, D), !,
-    answer_domain_projection(Xs, Ds).
-answer_check_entail([],       [],       _).
-answer_check_entail([D1|D1s], [D2|D2s], R) :-
-    answer_check_entail_( D1, D2, R, _),
-    answer_check_entail(D1s, D2s, R).
-answer_store_projection(_, St, St).
+%% answer_domain_projection([],     []). 
+%% answer_domain_projection([X|Xs], [D|Ds]) :-
+%%     answer_domain_projection_(X, D), !,
+%%     answer_domain_projection(Xs, Ds).
+%% answer_check_entail([],       [],       _).
+%% answer_check_entail([D1|D1s], [D2|D2s], R) :-
+%%     answer_check_entail_( D1, D2, R, _),
+%%     answer_check_entail(D1s, D2s, R).
+%% answer_store_projection(_, St, St).
 
-apply_answer([],     []).
-apply_answer([V|Vs], [A|Ans]) :- 
-    apply_answer_(V, A),
-    apply_answer(Vs, Ans).
-%% TCLP interface %%
+%% apply_answer([],     []).
+%% apply_answer([V|Vs], [A|Ans]) :- 
+%%     apply_answer_(V, A),
+%%     apply_answer(Vs, Ans).
+%% %% TCLP interface %%
 
-:- discontiguous
-    call_domain_projection_/2,
-    call_entail_/2,
-    answer_domain_projection_/2,
-    answer_check_entail_/4,
-    apply_answer_/2.
+%% :- discontiguous
+%%     call_domain_projection_/2,
+%%     call_entail_/2,
+%%     answer_domain_projection_/2,
+%%     answer_check_entail_/4,
+%%     apply_answer_/2.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% call_stack TCLP interface %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %% call_stack TCLP interface %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-call_domain_projection_(X, D) :- X ~> D.
-call_entail_(stack(D1), stack(D2)) :-
-    sub_list(D2,D1).
+%% call_domain_projection_(X, D) :- X ~> D.
+%% call_entail_(stack(D1), stack(D2)) :-
+%%     sub_list(D2,D1).
 
-answer_domain_projection_(X, D) :- X ~> D.
-answer_check_entail_( stack(D1), stack(D2), 1,  _) :- sub_list(D2,D1).
-answer_check_entail_( model(_), _, 1, _).
+%% answer_domain_projection_(X, D) :- X ~> D.
+%% answer_check_entail_( stack(D1), stack(D2), 1,  _) :- sub_list(D2,D1).
+%% answer_check_entail_( model(_), _, 1, _).
 
-apply_answer_(X, model(P)) :- X <~ model(P).
-apply_answer_(X, stack(P)) :- \+ X ~> _, X <~ stack(P).
-apply_answer_(X, stack(_)) :- X ~> _.
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% disequality TCLP interface %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-call_domain_projection_(X, List) :- dump_neg_list(X, List).
-call_entail_( neg(List), neg(List)).
-
-answer_domain_projection_(X, List) :- dump_neg_list(X, List).
-answer_check_entail_( neg(List), neg(List), 1, _).
-%% To use entailment...
-% answer_check_entail_(_, neg(List1), neg(List2), 1, _) :-
-%       entail_neg_list(List2, List1), !.
-% answer_check_entail_(_, neg(List1), neg(List2), -1, _) :-
-%       entail_neg_list(List1, List2).
-
-apply_answer_(X, neg(List)) :- not_unify(X, List).
+%% apply_answer_(X, model(P)) :- X <~ model(P).
+%% apply_answer_(X, stack(P)) :- \+ X ~> _, X <~ stack(P).
+%% apply_answer_(X, stack(_)) :- X ~> _.
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% CLP(Q) TCLP interface %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %% disequality TCLP interface %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
-:- use_package(clpq).
-call_domain_projection_(X, st(X,S)) :- clpqr_dump_constraints(X, X, S).
-call_entail_(st(X,_S), st(X,S2)) :- clpq_entailed(S2).
+%% call_domain_projection_(X, List) :- dump_neg_list(X, List).
+%% call_entail_( neg(List), neg(List)).
 
-answer_domain_projection_(X, st(X,S1)) :- clpqr_dump_constraints(X, X, S1).
-answer_check_entail_(st(X,_S1), st(X,S2), 1, _) :- clpq_entailed(S2).
-%% To use entailment...
-% answer_check_entail_(_, neg(List1), neg(List2), 1, _) :-
-%       entail_neg_list(List2, List1), !.
-% answer_check_entail_(_, neg(List1), neg(List2), -1, _) :-
-%       entail_neg_list(List1, List2).
+%% answer_domain_projection_(X, List) :- dump_neg_list(X, List).
+%% answer_check_entail_( neg(List), neg(List), 1, _).
+%% %% To use entailment...
+%% % answer_check_entail_(_, neg(List1), neg(List2), 1, _) :-
+%% %       entail_neg_list(List2, List1), !.
+%% % answer_check_entail_(_, neg(List1), neg(List2), -1, _) :-
+%% %       entail_neg_list(List1, List2).
 
-apply_answer_(X, st(X,S1)) :- clpq_meta(S1).
+%% apply_answer_(X, neg(List)) :- not_unify(X, List).
+
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %% CLP(Q) TCLP interface %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
+%% :- use_package(clpq).
+%% call_domain_projection_(X, st(X,S)) :- clpqr_dump_constraints(X, X, S).
+%% call_entail_(st(X,_S), st(X,S2)) :- clpq_entailed(S2).
+
+%% answer_domain_projection_(X, st(X,S1)) :- clpqr_dump_constraints(X, X, S1).
+%% answer_check_entail_(st(X,_S1), st(X,S2), 1, _) :- clpq_entailed(S2).
+%% %% To use entailment...
+%% % answer_check_entail_(_, neg(List1), neg(List2), 1, _) :-
+%% %       entail_neg_list(List2, List1), !.
+%% % answer_check_entail_(_, neg(List1), neg(List2), -1, _) :-
+%% %       entail_neg_list(List1, List2).
+
+%% apply_answer_(X, st(X,S1)) :- clpq_meta(S1).
 
 %% ------------------------------------------------------------- %%
 

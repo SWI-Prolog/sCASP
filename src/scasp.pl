@@ -145,6 +145,11 @@ fail_main_loop :-
 :- use_module(library(terms_vars)).
 :- use_module(library(formulae)).
 main_solve(Q0) :-
+    current_option(minimal_model,on), !,
+    collect_min_models(Q0),
+    fail.
+
+main_solve(Q0) :-
     current_option(answers,Number),
     init_counter,
 
@@ -155,7 +160,11 @@ main_solve(Q0) :-
     print_query(PQ),
 
     statistics(runtime,_),
-    if(solve(Query, [], StackOut, Model),nl,(print('\nno models\n\n'),fail)),
+    if(
+        solve(Query, [], StackOut, Model),
+        nl,
+        (print('\nno models\n\n'),fail)
+    ),
     statistics(runtime, [_|[T]]),
 
     increase_counter,
@@ -209,6 +218,90 @@ defined_query(_) :-
     fail.
 defined_query(Q) :-
     pr_query(Q).
+
+:- pred collect_min_models(Query) #"Collect the minimal models of a query
+        @var{Query}".
+
+%% %% USE Tabling to collect the minimal models (Uncomment next two lines) %%
+%% :- use_package(tclp_aggregates).
+%% :- agg_entail take_min(_,ord_subset,nt,nt,nt).
+%% %% USE Tabling to collect the minimal models
+
+%% Define aggregate modes
+:- use_module(library(sets)).
+nt(_A,_B).
+
+%% Predicate aggregated
+take_min(Query, MinModel, Model, StackOut, T) :-
+    statistics(runtime,_),
+    solve(Query, [], StackOut, Model),
+    statistics(runtime, [_|[T]]),
+    select_printable_literals(Model, [], PrintableModel),
+    sort(PrintableModel, MinModel).
+
+collect_min_models(Q0) :-
+    init_counter,
+
+    process_query(Q0,Q,Query), varset(Q,Vars),
+
+    pretty_term([],D1,par(Vars,Q),par(PVars,PQ)),
+
+    print_query(PQ),
+
+    if(
+        take_min(Query, _MinModel, Model, StackOut, T),
+        nl,
+        (print('\nno models\n\n'),fail)
+    ),
+
+    increase_counter,
+    answer_counter(Counter),
+    format('\tANSWER:\t~w (in ~w ms)\n',[Counter,T]),
+
+    pretty_term(D1,D2,par(Q,Vars,Model),par(PAnswer,Bindings,P_Model)),
+
+    if_user_option(process_stack,(
+        reverse(StackOut, Reverse_StackOut),
+        pretty_term(D2,_D3,Reverse_StackOut,P_StackOut)
+    )),
+
+    if_user_option(html,print_html([PQ,PAnswer,Bindings,PVars],P_Model,P_StackOut)),
+    if_user_option(print_tree,print_justification_tree(P_StackOut)),
+    print_model(P_Model),nl,
+
+    print_unifier(Bindings,PVars),
+
+    nl,nl.
+
+
+%% collect_min_models(Query) :-
+%%     findall(
+%%         tuple(SortModel,StackOut),
+%%         (
+%%             solve(Query, [], StackOut, Model),
+%%             select_printable_literals(Model, [], PrintableModel),
+%%             sort(PrintableModel,SortModel),
+%%             display(SortModel),nl,nl
+%%         ),        
+%%         Ls),
+%%     take_min(Ls,MinLs),
+%%     display(MinLs),nl.
+
+%% take_min([],[no_models]).
+%% take_min([A|Ts],M) :-
+%%     take_min_(Ts,A,M).
+
+%% take_min_([],M,M).
+%% take_min_([tuple(B,_)|Ts],tuple(A,As),M):-
+%%     ord_subset(A,B),
+%%     take_min_(Ts,tuple(A,As),M).
+%% take_min_([tuple(B,Bs)|Ts],tuple(A,_),M):-
+%%     ord_subset(B,A),
+%%     take_min_(Ts,tuple(B,Bs),M).
+
+
+
+
 
 %% ------------------------------------------------------------- %%
 :- doc(section, "Top Level Predicates").

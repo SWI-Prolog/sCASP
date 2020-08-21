@@ -9,6 +9,7 @@
     print_query/1,      % query
     print_justification_tree/1, % justification tree
     print_model/1,      % model
+    select_printable_literals/3,
     print_unifier/2,    % bindings
     pretty_term/4,
     print_check_calls_calling/2,
@@ -944,14 +945,19 @@ set_user_option('-v')                   :- set(check_calls, on).
 set_user_option('--verbose')            :- set(check_calls, on).
 set_user_option('-f')                   :- set(trace_failures, on).
 set_user_option('--tracefails')         :- set(trace_failures, on).
-%% Development
-set_user_option('-w') :- set(warning, on).
-set_user_option('--warning') :- set(warning, on).
-set_user_option('-no') :- set(no_nmr, on).
-set_user_option('--no_nmr') :- set(no_nmr, on).
-set_user_option('--variant') :- set(no_fail_loop, on).
 set_user_option('--update') :- scasp_update.
 set_user_option('--version') :- scasp_version.
+%% Development
+set_user_option('-no') :- set(no_nmr, on).
+set_user_option('--no_nmr') :- set(no_nmr, on).
+set_user_option('-w') :- set(warning, on).
+set_user_option('--warning') :- set(warning, on).
+set_user_option('--variant') :- set(no_fail_loop, on).
+%% Only with tabling
+set_user_option('-m')                   :- set(minimal_model,on).
+set_user_option('--minimal_model')      :- set(minimal_model,on).
+
+
 
 
 :- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
@@ -1008,6 +1014,8 @@ help_all :-
     display('  --no_nmr              Does not run NMR checks - for debugging purposes.\n'),
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  --variant             Does not fail due to positive loops.\n'),
+    display('\n'),
+    display('  -m, --minimal_models  Collect the minimal models (TABLING required).\n'),
     display('\n').
     
 
