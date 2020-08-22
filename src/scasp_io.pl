@@ -646,9 +646,14 @@ aux_predicate(A) :-
     atom_chars(Name,['o','_'|_]).
 
 
+truncate_(X,Y) :-
+    current_option(decimals,D),
+    Z is X * 10**D, ZA is truncate(Z), Y is ZA / 10**D.
 
 %% PORTRAY - capture human output of the variables
 :- multifile portray/1.
+portray(rat(A,B)) :-
+    if_user_option( real,( C is A/B, truncate_(C,R), write(R) ) ), !.
 portray(@(Var:_)) :- var(Var), !,
     print(Var).
 portray(@(X:'')) :- !,
@@ -790,7 +795,12 @@ pretty_term(D0,D0,[],[]) :- !.
 pretty_term(D0,D2,[A|As],[PA|PAs]) :- !,
     pretty_term(D0,D1,A,PA),
     pretty_term(D1,D2,As,PAs).
-pretty_term(D0,D0,rat(A,B),A/B) :- !.
+pretty_term(D0,D0,rat(A,B),C) :-
+    (   current_option(real, on) ->
+        C = rat(A,B)
+    ;
+        C = A/B
+    ), !.
 pretty_term(D0,D1,Functor,PF) :-
     Functor =..[Name|Args], !,
     pretty_term(D0,D1,Args,PArgs),
@@ -926,6 +936,9 @@ set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),se
 set_user_option('-d')                   :- assert(plain_dual(on)).
 set_user_option('--plaindual')          :- assert(plain_dual(on)).
 
+set_user_option('-r')                   :- set(real, on), set(decimals,5).
+set_user_option(Option)                 :- atom_concat('-r=',Ns,Option),atom_number(Ns,D),set(real,on), set(decimals,D).
+
 set_user_option('--code')               :- set(write_program, on), set(neg,on).
 set_user_option('--tree')               :- set(process_stack, on), set(print_tree, on).
 
@@ -943,8 +956,9 @@ set_user_option(Option)                 :- atom_concat('--html=',File,Option),as
 
 set_user_option('-v')                   :- set(check_calls, on).
 set_user_option('--verbose')            :- set(check_calls, on).
-set_user_option('-f')                   :- set(trace_failures, on).
-set_user_option('--tracefails')         :- set(trace_failures, on).
+set_user_option('-f0')                  :- set(trace_failures, on).
+set_user_option('-f')                   :- set(trace_failures, on), set(show_tree,on).
+set_user_option('--tracefails')         :- set(trace_failures, on), set(show_tree,on).
 set_user_option('--update') :- scasp_update.
 set_user_option('--version') :- scasp_version.
 %% Development
@@ -987,6 +1001,8 @@ help :-
     display('  -a, --auto            Run in automatic mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.\n'),
     display('  -d, --plaindual       Dual with single-goal clauses (for propositional programs).\n'),
+    display('  -r[=d]                Output rational numbers as real numbers.\n'),
+    display('                        [=d] optional determines precision. If not it output 5 decimals.\n'),
     display('\n'),
     display('  --code,               Print the program and exit.\n'),
     display('  --tree,               Print justification tree for each answer (if any).\n'),

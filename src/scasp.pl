@@ -442,7 +442,7 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
             if_user_option(
                 trace_failures,
                 (
-                    print_check_calls_calling(Goal,[Goal|StackIn]),
+                    if_user_option(show_tree, print_check_calls_calling(Goal,[Goal|StackIn])),
                     format("\nFAILURE to prove the literal:   ~w -------------\n\n",[Goal])
                 )
             ),
