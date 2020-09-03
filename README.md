@@ -61,7 +61,7 @@ If you have any problem contact
 ## Usage of s(CASP)
 
 Usage:
-2```
+```
 scasp [options] InputFile(s)
 ```
 
