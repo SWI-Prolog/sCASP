@@ -5,12 +5,13 @@ constraints.
 
 This work was presented at ICLP'18 ([Arias et al. 2018](https://www.cambridge.org/core/journals/theory-and-practice-of-logic-programming/article/constraint-answer-set-programming-without-grounding/55A678C618EF54487777F021D89B3FE7)), also available [here](https://arxiv.org/abs/1804.11162).
 
+And extended description of the justification trees was presented at ICLP'20 ([Arias et al. 2020](http://www.cliplab.org/papers/sCASP-ICLP2020/TC-explainCASP.pdf)).
 
 ## Introduction
 
 `s(CASP)` by [Joaquin Arias](mailto:joaquin.arias@imdea.org), is based on
 [`s(ASP)`](https://sourceforge.net/projects/sasp-system/) by
-[Kyle Marple](mailto:kmarple1@hotmail.com).
+Kyle Marple.
 
 `s(CASP)` is an implementation of the stable model semantics of
 constraint logic programming. Unlike similar systems, it does not
@@ -60,7 +61,7 @@ If you have any problem contact
 ## Usage of s(CASP)
 
 Usage:
-```
+2```
 scasp [options] InputFile(s)
 ```
 
@@ -71,12 +72,29 @@ scasp [options] InputFile(s)
   -i, --interactive     Run in user / interactive mode.
   -a, --auto            Run in automatic mode (no user interaction).
   -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.
+  -d, --plaindual       Dual with single-goal clauses (for propositional programs).
+  -r[=d]                Output rational numbers as real numbers.
+                        [=d] optional determines precision. If not it output 5 decimals.
+
+  --code,               Print the program and exit.
+  --tree,               Print justification tree for each answer (if any).
+
+  --plain               Output the [code,tree] as literals.
+  --human               Output the [code,tree] in natural language.
+
+  --long                Long  version in [plain,human] of [code,tree].
+  --mid                 Mid   version in [plain,human] of [code,tree].
+  --short               Short version in [plain,human] of [code,tree].
+
+  --neg                 Add the negated literal in the [mid,short] in [plain,human] of [tree].
+
+  --html[=name]         Generate a file in HTML of [long,mid,short] in [plain,human] of [code,tree].
+                        [=name] optional it creates 'name.html'. If not it uses first InputFile name.
+
   -v, --verbose         Enable verbose progress messages.
-  -w, --warning         Enable warning messages (failing in variant loops).
-  -j, --justification   Print proof tree for each solution.
-  --html                Generate the proof tree in a file named InputFiles(s).html.
-  --server              Generate the proof tree in the file named justification.html.
-  -d0                   Print the program translated (with duals and nmr_check).
+  -f, --tracefails      Trace user-predicate failures.
+  --update              Automatically update s(CASP).
+  --version             Output the current version of s(CASP)
 ```
 
 ### Using the principal options
@@ -121,20 +139,23 @@ q(A) ,  not p(A)
  ? 
 ```
 
-### Debuging options
+### Explanation and debugging
 
 * To print the "translation" of the code (with duals predicates and
-check-rules) use `-d0`:
+check-rules) use `--code`:
 
 ```
-$ scasp -d0 test.pl
+$ scasp --code test.pl
 ```
 
-* To obtain the justification tree for each model use `-j`.
+* To obtain the justification tree for each model use `--tree`.
 ```
-$ scasp -j test.pl
+$ scasp --tree test.pl
 ```
 
+To generate the code/justification tree in English use `--human` and
+to control which literals should appear check the instructions in the
+following paper: ([Arias et al. 2020](http://www.cliplab.org/papers/sCASP-ICLP2020/TC-explainCASP.pdf)).
 
 ## Examples & Benchmarks & Event Calculus
 
