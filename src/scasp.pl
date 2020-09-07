@@ -449,6 +449,12 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
             fail
         )
     ).
+solve_goal(Goal, StackIn, StackOut, [Goal|Model]) :-
+    Goal=findall(_,_,_), !,
+    exec_findall(Goal,StackIn,StackOut,Model).
+solve_goal(not(Goal), StackIn, StackIn, [Goal]) :-
+    Goal=findall(_,_,_), !,
+    exec_neg_findall(Goal,StackIn).
 solve_goal(Goal, StackIn, [[],Goal|StackOut], Model) :-
     Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_,_)), \+ predicate(Goal),
     \+ table_predicate(Goal),
@@ -597,14 +603,6 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     prolog_builtin(Op), !,
     exec_goal(Goal),
     Model = [Goal].
-solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
-    Goal = findall(_,_,_), !,
-    exec_findall(Goal,StackIn),
-    Model = [Goal].
-solve_goal_builtin(not(Goal), StackIn, StackIn, Model) :-
-    Goal = findall(_,_,_), !,
-    exec_neg_findall(Goal, StackIn),
-    Model = [Goal].
 %% The predicate is not defined as user_predicates neither builtin
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     if_user_option(check_calls,
@@ -634,10 +632,31 @@ capture_rational(A, A) :- ground(A).
 
 
 % TODO: Peding StackOut to carry the literal involved in the findall (if needed)
-exec_findall(findall(Var, Call, List), StackIn) :-
+exec_findall(findall(Var, Call, List), StackIn, StackOut, Model) :-
+
     if_user_option(check_calls, format('execution of findall(~p, ~p, _) \n',[Var,Call])),
-    findall(Var, solve([Call], StackIn, _, _), List),
+
+    findall(t(Var,S,M), (
+        solve([Call], StackIn, S0, M),
+        append(S,StackIn,S0)
+        ), VSMList),
+
+    process_vsmlist(VSMList, List, SOut, Model),
+    append(SOut, [findall(Var,Call,List)|StackIn], StackOut),
+
     if_user_option(check_calls, format('Result execution = ~p \n',[List])).
+
+process_vsmlist(VSMList, List, [[]|StackOut], Model) :-
+    process_vsmlist_(VSMList, List, StackOut, Model).
+
+process_vsmlist_([], [], [], []).
+process_vsmlist_([t(V,[[]|S],M)|Rs], [V|Vs], S1, M1) :-
+    process_vsmlist_(Rs, Vs, S0, M0),
+    append(S0,S,S1),
+    append(M,M0,M1).
+
+
+
 
 % TODO: What to do with the negation of findall/3 (if required)
 exec_neg_findall(Goal, _) :-
