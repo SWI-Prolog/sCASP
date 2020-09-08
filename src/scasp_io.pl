@@ -205,6 +205,10 @@ increase_counter :-
 :- pred print_query(Query) #"Print the  @var{Query}".
 
 :- use_module(library(formulae)).
+print_query([not(o_false)]) :- !,
+    print('QUERY: Query not defined'), nl.
+print_query([true,A|As]) :- !,
+    print_query([A|As]).
 print_query(Query) :-
     format('QUERY:',[]),    
     (   current_option(human,on) ->
@@ -1116,6 +1120,8 @@ remove_ext([C|Rs],S) :-
 remove_ext(Rs,Rs).
 
 :- use_module(library(terms_check)).
+print_html_query([[true|PQ],_,Bindings,PVars]) :- !,
+    print_html_query([PQ,_,Bindings,PVars]).
 print_html_query([PQ,_,Bindings,PVars]) :-
     print('<h3>Query:</h3>'),nl,
     tab_html(5),
@@ -1123,9 +1129,15 @@ print_html_query([PQ,_,Bindings,PVars]) :-
     print_html_body(PQ),
     br,nl,br,nl,
     print('<h3>Answer:</h3>'),
-    print_html_unifier(Bindings,PVars),
+    ( Bindings = [] ->
+        format('yes',[])
+    ;
+        print_html_unifier(Bindings,PVars)
+    ),
     br,nl.
 
+print_html_human_query([[true|PQ],[true|PAnswer],Bindings,PVars]) :- !,
+    print_html_human_query([PQ,PAnswer,Bindings,PVars]).
 print_html_human_query([PQ,PAnswer,Bindings,PVars]) :-
     print('<h3>Query:</h3>'),
     tab_html(5),
@@ -1366,7 +1378,7 @@ print_human_program_(Title,Rules) :-
 
 print_human_query([not(o_false)]) :- !,
     print('Query not defined'), nl.
-print_human_query([true,A|As]) :-
+print_human_query([true,A|As]) :- !,
     print_human_query([A|As]).
 print_human_query(Query) :-
     ( current_option(human,on) ->
