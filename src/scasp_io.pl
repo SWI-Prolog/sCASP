@@ -452,7 +452,11 @@ pr_human_term((Term :: TermHuman), Type) :-
     (   T = pred ->
         Type = pred
     ;
-        pr_show_predicate(Term),    %% Output predicates selected by #show
+        pr_show_predicate(Term), !,   %% Output predicates selected by #show
+        Type = pred
+    ;
+        Term = chs(Chs),
+        pr_show_predicate(Chs), !,
         Type = pred
     ;
         Type = T
@@ -470,8 +474,8 @@ pr_human_term((Term :: TermHuman), Type) :-
 
 pr_pred_term(A, pred) :-
     pr_pred_predicate(A), !.
-pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), default) :- !,
-    pr_human_term(A::Human, _).
+pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type) :- !,
+    pr_human_term(A::Human, Type).
 pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
     pr_human_term(A::Human, T),
     (   sp_tab(I) ->
@@ -689,7 +693,7 @@ human_portray((A '| ' B):NX) :- !,
     format('a ~p ~p ',[NX,A]),
     human_portray_(B).
 human_portray('$'(X):NX) :- !,
-    format('~p, a ~p',[X,NX]).
+    format('~p, a ~p,',[X,NX]).
 human_portray(X:NX) :-
     format('the ~p ~p',[NX,X]).
 
@@ -1360,6 +1364,10 @@ print_human_program_(Title,Rules) :-
     ).
 
 
+print_human_query([not(o_false)]) :- !,
+    print('Query not defined'), nl.
+print_human_query([true,A|As]) :-
+    print_human_query([A|As]).
 print_human_query(Query) :-
     ( current_option(human,on) ->
         nl,
