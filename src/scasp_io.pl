@@ -502,7 +502,11 @@ pr_pred_term(A, mid) :-
 pr_pred_term(A, Type) :-
     pr_pred_negated(A, T), !,
     (   current_option(neg,on) ->
-        Type = T
+        ( T = pred ->
+            Type = pred
+        ;
+            Type = mid
+        )
     ;
         Type = default
     ).
@@ -978,7 +982,7 @@ set_user_option('--warning') :- set(warning, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
 %% Only with tabling
 set_user_option('-m')                   :- set(minimal_model,on).
-set_user_option('--minimal_model')      :- set(minimal_model,on).
+set_user_option('--minimal')      :- set(minimal_model,on).
 
 
 
@@ -1040,7 +1044,7 @@ help_all :-
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  --variant             Does not fail due to positive loops.\n'),
     display('\n'),
-    display('  -m, --minimal_models  Collect the minimal models (TABLING required).\n'),
+    display('  -m, --minimal         Collect the minimal models (TABLING required).\n'),
     display('\n').
     
 
