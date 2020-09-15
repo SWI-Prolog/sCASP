@@ -636,6 +636,7 @@ pr_pred_default_forall_(InForall, [], InForall).
     
 
 %% To detect user/neg/aux predicates
+user_predicate(is(_,_)) :- !.
 user_predicate(findall(_,_,_)) :- !.
 user_predicate(proved(A)) :- !,
     user_predicate(A).
