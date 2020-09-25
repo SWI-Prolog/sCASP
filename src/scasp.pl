@@ -422,6 +422,8 @@ solve_goal(Goal, StackIn, [[],Goal|StackIn], GoalModel) :-
     NV is Expresion,
     V .\=. NV,
     GoalModel = [Goal].
+solve_goal(Goal, _, _, _) :-
+    Goal = not(true), !, fail.
 solve_goal(Goal, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_,_)),Goal \= builtin(_),
     table_predicate(Goal),
@@ -925,6 +927,8 @@ predicate".
 %% Check if the goal Goal is a user defined predicate
 predicate(builtin(_)) :- !, fail.
 predicate(not(_ is _)) :- !, fail.
+predicate(not(true)) :- !, fail.
+predicate(not(fail)) :- !, fail.
 predicate(not(_)) :- !.
 predicate(Goal) :-
     Goal =.. [Name|Args],
