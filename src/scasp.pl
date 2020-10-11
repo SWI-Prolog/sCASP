@@ -124,7 +124,8 @@ main(_).
 main_loop :-
     print('\n?- '),
     catch(read(R),_,fail_main_loop),
-    conj_to_list(R,Q),
+    conj_to_list(R,RQ),
+    capture_classical_neg(RQ,Q),
     (
         member(exit, Q) ->
         halt
@@ -141,6 +142,15 @@ main_loop :-
 fail_main_loop :-
     print('\nno'),
     main_loop.
+
+capture_classical_neg([],[]) :- !.
+capture_classical_neg([-S|Ss],[N|NSs]) :- !,
+    S =.. [Name|Args],
+    atom_concat('-',Name,NegName),
+    N =.. [NegName|Args],
+    capture_classical_neg(Ss,NSs).
+capture_classical_neg([S|Ss],[S|NSs]) :-
+    capture_classical_neg(Ss,NSs).
 
 :- use_module(library(terms_vars)).
 :- use_module(library(formulae)).
