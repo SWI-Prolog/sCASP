@@ -300,6 +300,9 @@ printable_model_([First,Second|Rest]) :-
 
 %printable_literal(not(X)) :- printable_literal(X).
 printable_literal(X) :-
+    X \= abducible(_),
+    \+ aux_predicate(X),
+    \+ neg_aux_predicate(X),
     X \= 'o_nmr_check',
     X \= chs(_),
     (
@@ -659,6 +662,7 @@ aux_predicate(A) :-
     A =.. [Name|_],
     atom_chars(Name,['o','_'|_]).
 
+neg_aux_predicate(not(Pred)) :- aux_predicate(Pred).
 
 truncate_(X,Y) :-
     current_option(decimals,D),
