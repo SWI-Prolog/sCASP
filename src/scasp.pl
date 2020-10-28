@@ -425,7 +425,10 @@ support the sub-goals".
 
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
     Goal = forall(_,_),
-    solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model),
+    if(current_option(new_forall,on),
+       solve_new_forall(Goal, [Goal|StackIn], StackOut, Model),
+       solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model)
+      ),
     GoalModel = [Goal|Model].
 solve_goal(Goal, StackIn, [[],Goal|StackIn], GoalModel) :-
     Goal = not(is(V,Expresion)), 
@@ -1032,3 +1035,15 @@ my_copy_list(Var,[T|Ts],NewVar,[NewT|NewTs]) :-
     my_copy_list(Var, Ts, NewVar,NewTs).
 
 
+
+
+
+
+%%% Work in progress %%%
+
+:- pred solve_new_forall(forall(Var,Goal), StackIn, StackOut,
+GoalModel) #"In progress".
+
+solve_new_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
+    display(test),nl,
+    solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model).

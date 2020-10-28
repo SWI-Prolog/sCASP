@@ -988,6 +988,7 @@ set_user_option('--variant') :- set(no_fail_loop, on).
 %% Only with tabling
 set_user_option('-m')                   :- set(minimal_model,on).
 set_user_option('--minimal')      :- set(minimal_model,on).
+set_user_option('-')      :- set(new_forall,on).
 
 
 
