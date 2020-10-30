@@ -604,6 +604,11 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     clp_interval(Op), !,
     exec_goal(Goal),
     Model = [Goal].
+solve_goal_builtin(not(Goal), _StackIn, _StackIn, _Model) :-
+    Goal =.. [Op|_],
+    clp_interval(Op), !,
+    if_user_option(warning,format("\nWARNING: Failure calling negation of ~p\n",[Goal])),
+    fail.
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Goal =.. [Op|Operands],
     clp_builtin_translate(Op,Op_T), !,
