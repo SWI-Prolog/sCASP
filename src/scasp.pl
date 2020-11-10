@@ -398,7 +398,13 @@ check_goal(Goal, StackIn, StackOut, Model) :-
 
 %% coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
-    StackOut = [[],chs(Goal)|StackIn],
+    if(current_option(assume,on),
+       (
+           mark_prev_goal(Goal,StackIn, StackMark),
+           StackOut = [[],chs(Goal)|StackMark]),
+       (
+           StackOut = [[],chs(Goal)|StackIn]
+       )),
     JGoal = [],
     AddGoal = chs(Goal),
     Model = [AddGoal|JGoal].
@@ -416,6 +422,10 @@ check_goal_(cont, Goal, StackIn, StackOut, Model) :-
 %% coinduction fails <- the negation of a call unifies with a call in the call stack
 check_goal_(co_failure, _Goal, _StackIn, _StackOut, _Model) :-
     fail.
+
+mark_prev_goal(Goal,[I|In],[assume(Goal)|In]) :- Goal == I, !.
+mark_prev_goal(Goal,[I|In],[I|Mk]) :- mark_prev_goal(Goal,In,Mk).
+mark_prev_goal(_Goal,[],[]).
 
 :- pred solve_goal(Goal, StackIn, StackOut, GoalModel) #"Solve a
 simple sub-goal @var{Goal} where @var{StackIn} is the list of goals

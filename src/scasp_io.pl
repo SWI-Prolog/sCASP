@@ -466,6 +466,10 @@ pr_human_term((Term :: TermHuman), Type) :-
         pr_show_predicate(Chs), !,
         Type = pred
     ;
+        Term = assume(Chs),
+        pr_show_predicate(Chs), !,
+        Type = pred
+    ;
         Type = T
     ),
     (   current_option(human,on) ->
@@ -481,7 +485,9 @@ pr_human_term((Term :: TermHuman), Type) :-
 
 pr_pred_term(A, pred) :-
     pr_pred_predicate(A), !.
-pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type) :- !,
+pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), default) :- !,
+    pr_human_term(A::Human, _Type).
+pr_pred_term(assume(A)::(format('we assume that ',[]), Human), Type) :- !,
     pr_human_term(A::Human, Type).
 pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
     pr_human_term(A::Human, T),
@@ -644,6 +650,8 @@ user_predicate(findall(_,_,_)) :- !.
 user_predicate(proved(A)) :- !,
     user_predicate(A).
 user_predicate(chs(A)) :- !,
+    user_predicate(A).
+user_predicate(assume(A)) :- !,
     user_predicate(A).
 user_predicate(A) :- !,
     \+ aux_predicate(A),
@@ -913,11 +921,28 @@ pretty_clp_(>=,>=).
 set_options(Options) :-
     set_default_options,
     set_user_options(Options),
+    set_default_tree_options,
     check_compatibilities.
 
 set_default_options :-
     set(answers,-1),
     set(verbose,0).
+
+set_default_tree_options :-
+    ( current_option(print_tree,on) ->
+        ( \+ current_option(short,on), \+ current_option(long,on) ->
+            set(mid,on)
+        ;
+            true
+        ),
+        ( \+ current_option(pos,on) ->
+            set(neg,on)
+        ;
+            true
+        )
+    ;
+        true
+    ).
 
 check_compatibilities :-
     current_option(check_calls,on),
@@ -959,15 +984,17 @@ set_user_option(Option)                 :- atom_concat('-r=',Ns,Option),atom_num
 
 set_user_option('--code')               :- set(write_program, on), set(neg,on).
 set_user_option('--tree')               :- set(process_stack, on), set(print_tree, on).
+set_user_option('--tree*')              :- set(process_stack, on), set(print_tree, on), set(assume,on).
 
 set_user_option('--plain')              .
 set_user_option('--human')              :- set(human, on).
 
-set_user_option('--long')               .
+set_user_option('--long')               :- set(long,on).
 set_user_option('--mid')                :- set(mid,on).               
 set_user_option('--short')              :- set(mid,on), set(short,on).
 
 set_user_option('--neg')                :- set(neg,on).
+set_user_option('--pos')                :- set(pos,on).
 
 set_user_option('--html')               :- set(process_stack, on), set(html, on).
 set_user_option(Option)                 :- atom_concat('--html=',File,Option),asserta(html_name(File)),set(process_stack, on), set(html, on).
@@ -1025,14 +1052,15 @@ help :-
     display('  --code,               Print the program and exit.\n'),
     display('  --tree,               Print justification tree for each answer (if any).\n'),
     display('\n'),    
-    display('  --plain               Output the [code,tree] as literals.\n'),
+    display('  --plain               (default) Output the [code,tree] as literals.\n'),
     display('  --human               Output the [code,tree] in natural language.\n'),
     display('\n'),
     display('  --long                Long  version in [plain,human] of [code,tree].\n'),
-    display('  --mid                 Mid   version in [plain,human] of [code,tree].\n'),
+    display('  --mid                 (default) Mid   version in [plain,human] of [code,tree].\n'),
     display('  --short               Short version in [plain,human] of [code,tree].\n'),
     display('\n'),
-    display('  --neg                 Add the negated literal in the [mid,short] in [plain,human] of [tree].\n'),
+    display('  --pos                 Only display the selected literals in the [mid,short] in [plain,human] of [tree].\n'),
+    display('  --neg                 (default) Add the negated literals in the [mid,short] in [plain,human] of [tree].\n'),
     display('\n'),
     display('  --html[=name]         Generate a file in HTML of [long,mid,short] in [plain,human] of [code,tree].\n'),
     display('                        [=name] optional it creates \'name.html\'. If not it uses first InputFile name.\n'),
