@@ -41,6 +41,7 @@ Arias} in the folder @file{./src/sasp/}.
 %% ------------------------------------------------------------- %%
 
 :- use_module('./sasp/comp_duals').
+:- use_module('./sasp/nmr_check').
 :- use_module('./sasp/output').
 :- reexport('./sasp/output', [
     pr_rule/2,
@@ -464,7 +465,7 @@ pr_human_term((Term :: TermHuman), Type) :-
     ;
         Term = chs(Chs),
         pr_show_predicate(Chs), !,
-        Type = pred
+        if(current_option(assume,on), Type = T, Type = pred)
     ;
         Term = assume(Chs),
         pr_show_predicate(Chs), !,
@@ -1008,8 +1009,9 @@ set_user_option('--tracefails')         :- set(trace_failures, on), set(show_tre
 set_user_option('--update') :- scasp_update.
 set_user_option('--version') :- scasp_version.
 %% Development
-set_user_option('-no') :- set(no_nmr, on).
-set_user_option('--no_nmr') :- set(no_nmr, on).
+set_user_option('-no') :- set(no_nmr, on).         %% skip the evaluation of nmr-checks (but compile them).
+set_user_option('--no_nmr') :- assert(no_nmr(on)), assert(no_olon(on)).     %% skip the compilation of nmr-checks.
+set_user_option('--no_olon') :- assert(no_olon(on)).  %% skip the compilation of olon-rules
 set_user_option('-w') :- set(warning, on).
 set_user_option('--warning') :- set(warning, on).
 set_user_option('--variant') :- set(no_fail_loop, on).
@@ -1074,7 +1076,8 @@ help :-
 
 help_all :-
     help,
-    display('  --no_nmr              Does not run NMR checks - for debugging purposes.\n'),
+    display('  --no_olon             Does not compile olon rules - for debugging purposes.\n'),
+    display('  --no_nmr              Does not compile NMR checks - for debugging purposes.\n'),
     display('  -w, --warning         Enable warning messages (failing in variant loops).\n'),
     display('  --variant             Does not fail due to positive loops.\n'),
     display('\n'),
