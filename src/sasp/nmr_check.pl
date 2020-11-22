@@ -1,4 +1,8 @@
-:- module(nmr_check, [generate_nmr_check/0]).
+:- module(nmr_check, [
+    generate_nmr_check/0,
+    no_olon/1,
+    no_nmr/1
+]).
 
 /** <module> Detect OLON rules and construct nmr_check
 
@@ -81,6 +85,7 @@ nmr_check(Rc, Nmrchk) :-
     olon_chks(Rc, Nmrchk, 1).
 nmr_check([], []).
 
+:- dynamic no_olon/1, no_nmr/1. % see scasp_io
 %! olon_rules(+Rules:list, -OLONrules:list, +ExcludeList:list) is det
 % Determine which of the original rules are part of odd loops, and return them
 % in a list.
@@ -99,9 +104,17 @@ olon_rules(R, Rc, E) :-
     once(build_call_graph(R2, Ns, E, 1)), % build call graph, skipping duals.
     dfs(Ns, Pc, _, _),
     !,
-    extract_ids(Pc, Ic),
-    divide_rules(R2, Ic, Rc1, _), % get OLON rules
-    get_headless_rules(R2, Rc1, Rc),
+    (   no_olon(on) ->
+        Rc1 = []
+    ;
+        extract_ids(Pc, Ic),
+        divide_rules(R2, Ic, Rc1, _) % get OLON rules
+    ),
+    (  no_nmr(on) ->
+        Rc = []
+    ;
+        get_headless_rules(R2, Rc1, Rc)
+    ),
     destroy_call_graph.
 
 %! dfs(+Nodes:list, -OLONs:list, -OrdinaryPaths:list, -PositiveLoops:list) is det

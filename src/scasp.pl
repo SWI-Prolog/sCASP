@@ -399,7 +399,13 @@ check_goal(Goal, StackIn, StackOut, Model) :-
 
 %% coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
-    StackOut = [[], chs(Goal)|StackIn],
+    if(current_option(assume,on),
+       (
+           mark_prev_goal(Goal,StackIn, StackMark),
+           StackOut = [[],chs(Goal)|StackMark]),
+       (
+           StackOut = [[],chs(Goal)|StackIn]
+       )),
     JGoal = [],
     AddGoal = chs(Goal),
     Model = [AddGoal|JGoal].
@@ -418,7 +424,11 @@ check_goal_(cont, Goal, StackIn, StackOut, Model) :-
 check_goal_(co_failure, _Goal, _StackIn, _StackOut, _Model) :-
     fail.
 
-:- pred solve_goal(Goal, StackIn, StackOut, GoalModel) # "Solve a
+mark_prev_goal(Goal,[I|In],[assume(Goal)|In]) :- Goal == I, !.
+mark_prev_goal(Goal,[I|In],[I|Mk]) :- mark_prev_goal(Goal,In,Mk).
+mark_prev_goal(_Goal,[],[]).
+
+:- pred solve_goal(Goal, StackIn, StackOut, GoalModel) #"Solve a
 simple sub-goal @var{Goal} where @var{StackIn} is the list of goals
 already visited and returns in @var{StackOut} the list of goals
 visited to prove the sub-goals and in @var{Model} the model with
@@ -608,6 +618,11 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     clp_interval(Op), !,
     exec_goal(Goal),
     Model = [Goal].
+solve_goal_builtin(not(Goal), _StackIn, _StackIn, _Model) :-
+    Goal =.. [Op|_],
+    clp_interval(Op), !,
+    if_user_option(warning,format("\nWARNING: Failure calling negation of ~p\n",[Goal])),
+    fail.
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Goal =.. [Op|Operands],
     clp_builtin_translate(Op, Op_T), !,
