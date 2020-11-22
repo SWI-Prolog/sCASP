@@ -36,9 +36,9 @@ is_clpq_var(X) :-
 
 apply_clpq_constraints(A .<>. B) :- !,
     (
-        clpq_meta(A .<. B)
+        apply_clpq_constraints(A .<. B)
     ;
-        clpq_meta(A .>. B)
+        apply_clpq_constraints(A .>. B)
     ).
 apply_clpq_constraints(Constraints) :-
     clpq_meta(Constraints).
