@@ -1,4 +1,4 @@
-:- module(clp_clpq,_).
+:- module(clp_clpq, _).
 
 
 %% ------------------------------------------------------------- %%
@@ -31,24 +31,24 @@ constraints of a variable.
 
 is_clpq_var(X) :-
     var(X),
-    get_attribute(X,A),
-    A \= att(_,_,_).
+    get_attribute(X, A),
+    A \= att(_, _, _).
 
 apply_clpq_constraints(A .<>. B) :- !,
     (
-        clpq_meta(A .<. B)
+        apply_clpq_constraints(A .<. B)
     ;
-        clpq_meta(A .>. B)
+        apply_clpq_constraints(A .>. B)
     ).
 apply_clpq_constraints(Constraints) :-
     clpq_meta(Constraints).
 
-dump_clpq_var([Ground],[NewVar],Constraints) :-
+dump_clpq_var([Ground], [NewVar], Constraints) :-
     ground(Ground),
     Constraints = [NewVar .=. Ground].
-dump_clpq_var(Var,NewVar,Constraints) :-
+dump_clpq_var(Var, NewVar, Constraints) :-
     \+ ground(Var),
-    clpqr_dump_constraints([Var],[NewVar],Constraints).
+    clpqr_dump_constraints([Var], [NewVar], Constraints).
 
 dual_clpq([Unique], [Dual]) :-
     dual_clpq_(Unique, Dual).
@@ -57,7 +57,7 @@ dual_clpq([Init, Next|Is], Dual) :-
         dual_clpq([Init], Dual)
     ;
         dual_clpq([Next|Is], NextDual),
-        Dual = [Init| NextDual]
+        Dual = [Init|NextDual]
     ).
 dual_clpq_(A .<. B, A .>=. B).
 dual_clpq_(A .=<. B, A .>. B).
@@ -69,7 +69,7 @@ dual_clpq_(A .=. B, A .>. B).
 dual_clpq_(A .=. B, A .<. B).
 
 
-disequality_clpq(A,B) :-
+disequality_clpq(A, B) :-
     \+ is_clpq_var(B), !,
     (
         apply_clpq_constraints([A .>. B])
@@ -116,7 +116,7 @@ disequality_clpq(A,B) :-
 
 
 % Success if StoreA >= StoreB
-entails(VarA, (VarB,StoreB)) :-
+entails(VarA, (VarB, StoreB)) :-
     dump_clpq_var(VarA, VarB, StoreA),
     clpq_meta(StoreB),
     clpq_entailed(StoreA).
@@ -127,15 +127,32 @@ store_entails(StoreA, StoreB) :-
     clpq_entailed(StoreA).
 
 % Success if B >= A
-entail_list(A,B) :-
-    dump_clpq_var(A,X,StoreA),
+entail_list(A, B) :-
+    dump_clpq_var(A, X, StoreA),
     StoreA \= [],
-    dump_clpq_var(B,X,StoreB),
+    dump_clpq_var(B, X, StoreB),
     StoreB \= [],
     clpq_meta(StoreA),
     clpq_entailed(StoreB).
 
+%% Success if S >= Goal
+:- use_module(library(terms_vars)).
+:- use_module(library(terms_check)).
+entail_terms(Goal, S) :-
+    \+ \+ Goal = S,
+    clp_varset(Goal, VsGoal),
+    VsGoal \= [],
+    clp_varset(S, VsS),
+    clpqr_dump_constraints(VsGoal, DumpVars, StoreGoal),
+    clpqr_dump_constraints(VsS, DumpVars, StoreVsS),
+    store_entails(StoreVsS,StoreGoal).
 
+clp_varset(Term, ClpVars) :-
+    varset(Term, Vars),
+    clp_vars(Vars, ClpVars).
+clp_vars([], []).
+clp_vars([C|Vs], [C|Rs]) :- is_clpq_var(C), !, clp_vars(Vs, Rs).
+clp_vars([_|Vs], Rs) :- clp_vars(Vs, Rs).
 
 :- multifile portray_attribute/2.
 % portray_attribute(_,A) :-
@@ -151,7 +168,7 @@ entail_list(A,B) :-
 %           display(' }')
 %       ).
 
-portray_attribute(_,A) :-
+portray_attribute(_, A) :-
     clpqr_dump_constraints(A, A, Constraints),
     (
         Constraints == [] ->
@@ -160,27 +177,26 @@ portray_attribute(_,A) :-
         display(' {'),
         display(A),
         display('~['),
-        reverse(Constraints,RC),
+        reverse(Constraints, RC),
         pretty_print(RC),
         display(']} ')
     ).
 
-    
+
 pretty_print([]).
 pretty_print([C]) :- pretty_print_(C).
-pretty_print([C1,C2|Cs]) :- pretty_print_(C1), display(', '), pretty_print([C2|Cs]).
+pretty_print([C1, C2|Cs]) :- pretty_print_(C1), display(', '), pretty_print([C2|Cs]).
 pretty_print_(nonzero(Var)) :- display(nonzero(Var)), !.
-pretty_print_(R) :- struct(R), R =.. [rat,A,B], display(A),!, display(/), display(B).
-pretty_print_(C) :- struct(C), C =.. [Op,A,B], pretty_print_(A), display(' '), display_op(Op), display(' '), pretty_print_(B), !.
+pretty_print_(R) :- struct(R), R =.. [rat, A, B], display(A), !, display(/), display(B).
+pretty_print_(C) :- struct(C), C =.. [Op, A, B], pretty_print_(A), display(' '), display_op(Op), display(' '), pretty_print_(B), !.
 pretty_print_(A) :- display(A).
 
-display_op(Op) :- pretty_op(Op,Pop), !, display(Pop).
+display_op(Op) :- pretty_op(Op, Pop), !, display(Pop).
 display_op(Op) :- display(Op).
 
-pretty_op(.<.,<).
-pretty_op(.=<.,=<).
-pretty_op(.>.,>).
-pretty_op(.>=.,>=).
-pretty_op(.=.,=).
-pretty_op(.\=.,\=).
-
+pretty_op(.<., <).
+pretty_op(.=<., =<).
+pretty_op(.>., >).
+pretty_op(.>=., >=).
+pretty_op(.=., =).
+pretty_op(.\=., \=).
