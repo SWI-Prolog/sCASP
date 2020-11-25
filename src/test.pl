@@ -50,16 +50,16 @@ test([F=R|Ts],St1) :-
 
 
 list_files([
-    '../test/pq.pl',
-    '../test/vars.pl',
-    '../test/birds.pl',
-    '../test/family.pl',
-    '../test/hamcycle.pl',
-    '../test/hamcycle_two.pl',
-    '../test/hanoi.pl',
-    '../test/pq.pl',
-    '../test/queens.pl',
-    '../test/classic_negation_incostistent.pl',
+    %% '../test/pq.pl',
+    %% '../test/vars.pl',
+    %% '../test/birds.pl',
+    %% '../test/family.pl',
+    %% '../test/hamcycle.pl',
+    %% '../test/hamcycle_two.pl',
+    %% '../test/hanoi.pl',
+    %% '../test/pq.pl',
+    %% '../test/queens.pl',
+    %% '../test/classic_negation_incostistent.pl',
     '../test/bec_light.pl'
 ]).
 

@@ -926,6 +926,7 @@ type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
 
 type_loop_(Goal, 0, 0, [S|_], fail_pos(S)) :- \+ \+ Goal == S.
 type_loop_(Goal, 0, 0, [S|_], fail_pos(S)) :- \+ \+ variant(Goal, S), if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a variant call (tabling required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, S])).
+type_loop_(Goal, 0, 0, [S|_], fail_pos(S)) :- \+ \+ entail_terms(Goal, S), if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, S])).
 %type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal = S.
 type_loop_(Goal, 0, 0, [S|_], pos(S)) :- \+ \+ Goal = S.
 
