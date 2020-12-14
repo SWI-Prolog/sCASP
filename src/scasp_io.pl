@@ -696,6 +696,12 @@ portray(@(Args)) :-
 portray('$'(X)) :- !,
         write(X).
 portray(Constraint) :-
+    Constraint =.. [Op,A,N/D],
+    current_option(real,on),
+    C is N/D, truncate_(C,R),
+    pretty_clp(_,Op), !,
+    format("~p ~p ~p",[A,Op,R]).
+portray(Constraint) :-
     Constraint =.. [Op,A,B],
     pretty_clp(_,Op), !,
     format("~p ~p ~p",[A,Op,B]).
