@@ -509,9 +509,11 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
         exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3,[]), DualList, StackMid, StackOut, ModelList), !,
         append(ModelMid, ModelList, Model)
     ;
-        !,
+        !,   %% Position of the cut in s(CASP) - remove answers in max.lp
         if_user_option(check_calls, format('Executing ~p with clp_disequality list = ~p\n', [Goal, List])),
-        exec_with_neg_list(NewVar2, NewGoal2, List, StackMid, StackOut, ModelList), 
+        exec_with_neg_list(NewVar2, NewGoal2, List, StackMid, StackOut, ModelList),
+        %% !,   %% Position of the cut in s(ASP) - remove answers in hamcycle_two.lp
+        %% Without cuts the evaluation may loop - e.g. queens.lp
         append(ModelMid, ModelList, Model)
     ).
 
