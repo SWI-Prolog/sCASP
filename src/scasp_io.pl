@@ -1018,7 +1018,8 @@ set_user_option('--variant') :- set(no_fail_loop, on).
 %% Only with tabling
 set_user_option('-m')                   :- set(minimal_model,on).
 set_user_option('--minimal')      :- set(minimal_model,on).
-set_user_option('-')      :- set(new_forall,on).
+set_user_option('--c_forall')      :- set(new_forall,on).
+set_user_option('--once_c_forall')      :- set(new_forall,on), set(once_forall,on).
 
 
 
@@ -1073,6 +1074,9 @@ help :-
     display('  -f, --tracefails      Trace user-predicate failures.\n'),
     display('  --update              Automatically update s(CASP).\n'),
     display('  --version             Output the current version of s(CASP)\n'),
+    display('\n'),
+    display('  --c_forall            Exhaustive evaluation of c_forall/2.\n'),
+    display('  --once_c_forall       Only the first solultion for c_forall/2.\n'),
     display('\n').
 
 help_all :-

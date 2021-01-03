@@ -1063,23 +1063,157 @@ my_diff_term(Term, Vars, Others) :-
 
 
 
-%%% Work in progress %%%
+%%% Work almost DONE but still in progress %%%
 
+% TODO: Improve the efficiency by removing redundant justifications w.o. losing solutions.
 :- pred solve_new_forall(forall(Var, Goal), StackIn, StackOut,
-        GoalModel) # "In progress".
+        GoalModel) # "Solve a sub-goal of the form
+        @var{c_forall(Vars,Goal)} and succeeds if the goal @var(Goal)
+        succeeds covering the domain of all the vars in the list of
+        vars @var{Vars}. It calls @pred{solve/4}".
 
 solve_new_forall(Forall, StackIn, [[]|StackOut], Model) :-
-    display(test), nl,
     collect_vars(Forall, c_forall(Vars0, Goal0)),    % c_forall([F,G], not q_1(F,G))
+
+    if_user_option(check_calls,format('\nc_forall(~p,\t~p)\n\n',[Vars0, Goal0])),
+
     my_copy_vars(Vars0, Goal0, Vars1, Goal1),        % Vars should remain free
-    my_diff_term(Goal0, Vars0, OtherVars),
-    Initial_Const = [[]],                            %% Constraint store = top
-    solve_new_forall_(Goal1, 'entry'(Vars1, Initial_Const), OtherVars, StackIn, StackOut, Model).
+    my_diff_term(Goal1, Vars1, OtherVars),
+    Initial_Const = [],                            %% Constraint store = top
+    solve_new_forall_(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars, StackIn, StackOut, Model),
+    if(current_option(once_forall,on), ! ,true).
 
-solve_new_forall_(_Goal, 'entry'(_Vars, []), _OtherVars, StackIn, StackIn, []).
-%solve_new_forall_(Goal, 'entry'(C_Vars,C_Store), OtherVars, StackIn, StackOut, Model) :-
+solve_new_forall_(_Goal, _, 'dual'(_, []), _OtherVars, StackIn, StackIn, []) :- !.
+solve_new_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stores]), OtherVars, StackIn, StackOut, Model) :- 
+
+    if_user_option(check_calls,format("solve forall:
+\tPrev_Store \t~p
+\tC_St       \t~p
+\tC_Stores   \t~p
+\tStackIn    \t~p\n\n",[Prev_Store,C_St,C_Stores,StackIn])),
+
+    my_copy_vars(C_Vars, [Goal, Prev_Store, C_St], C_Vars1, [Goal1, Prev_Store1, C_St1]),
+    my_copy_vars(C_Vars, [Goal, Prev_Store, C_Stores], C_Vars2, [Goal2, Prev_Store2, C_Stores2]),
+
+    apply_const_store(Prev_Store),
+    (   apply_const_store(C_St) ->                         %% apply a Dual
+
+        solve([Goal], StackIn, [[]|StackOut1], Model1),
+
+        find_duals(C_Vars-C_Vars1, OtherVars, Duals),       %% New Duals
+        if_user_option(check_calls,format('Duals = \t ~p\n',[Duals])),
+        append_set(Prev_Store1, C_St1, Current_Store1),
+        solve_new_forall_(Goal1, 'entry'(C_Vars1, Current_Store1), 'dual'(C_Vars1, Duals), OtherVars, StackOut1, StackOut2, Model2),
+        append(Model1,Model2,Model3)
+    ;
+       if_user_option(check_calls,format('Entail: Fail  applying \t ~p\n',[C_St])),
+        %% The dual C_St is not consistent with Prev_Store -> already checked (entails)
+        StackOut2 = StackIn,
+        Model3 = []
+    ),
+    solve_new_forall_(Goal2, 'entry'(C_Vars2, Prev_Store2), 'dual'(C_Vars2, C_Stores2), OtherVars, StackOut2, StackOut, Model4),
+    append(Model3, Model4, Model).
 
 
+
+
+
+append_set([],X,X):- !.
+append_set([A|As],Bs,Cs) :-
+    \+ \+ member(A,Bs), !, append_set(As,Bs,Cs).
+append_set([A|As],Bs,[A|Cs]) :-
+    append_set(As,Bs,Cs).
+
+apply_const_store([]) :- !.
+apply_const_store([C|Cs]) :-
+    apply_constraint(C),
+    apply_const_store(Cs).
+
+%% apply_constraint(A \= B) :-
+%%     ( number(A) ; number(B) ), !,
+%%     (
+%%         apply_clpq_constraints(.<.(A, B))
+%%     ;
+%%         apply_clpq_constraints(.>.(A, B))
+%%     ).
+apply_constraint(A \= B) :-
+    call(.\=.(A,B)), !.
+apply_constraint(A = B) :-
+    call(=(A,B)), !.
+apply_constraint(CLPConstraint) :-
+    apply_clpq_constraints(CLPConstraint).
+
+
+:- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
+find_duals(C_Vars-C_Vars1, OtherVars, Duals) :-
+    dump_constraint(C_Vars, C_Vars1, Dump, []-[], Pending-Pending1), !, %% disequality and clp for numbers
+    clp_vars_in(OtherVars, OtherCLPVars),
+    append(Pending, OtherCLPVars, CLPVars),
+    append(Pending1, OtherCLPVars, CLPVars1),
+    clpqr_dump_constraints(CLPVars, CLPVars1, CLP),
+    append(CLP, Dump, Constraints),
+    make_duals(Constraints,Duals), !.
+
+make_duals(Ls,Ds) :-
+    make_duals_([],Ls,[],Ds).
+
+make_duals_(_,[],Ds,Ds).
+make_duals_(Prev,[A|As],D0,Ds) :-
+    append(Prev,[A],Prev1),
+    make_duals_(Prev1,As,D0,D1),
+    dual(A,Duals_A),
+    combine(Duals_A,Prev,As,Ls),
+    append(Ls,D1,Ds).
+
+combine([A],Prev,Post,[Rs]) :-
+    append(Prev,[A|Post],Rs).
+combine([A,B|As],Prev,Post,[RA|RAs]) :-
+    append(Prev,[A|Post],RA),
+    combine([B|As],Prev,Post,RAs).
+
+dual(.=.(A,B), [.<.(A,B), .>.(A,B)]).
+dual(.<.(A,B), [.>=.(A,B)]).
+dual(.>.(A,B), [.=<.(A,B)]).
+dual(.=<.(A,B), [.>.(A,B)]).
+dual(.>=.(A,B), [.<.(A,B)]).
+
+dual(=(A,B), [\=(A,B)]).
+dual(\=(A,B), [=(A,B)]).
+dual('$neg'(_,[]), []).
+dual('$neg'(A,[V|Vs]), [A=V|Ds]) :-
+    dual('$neg'(A,Vs), Ds).
+
+
+dump_constraint([], [], [], Pending, Pending).
+dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
+    ground(V),
+    \+ number(V), !,
+    dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
+dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
+    ground(V),
+    number(V), !,
+    dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
+%% dump_constraint([V|Vs], [V1|V1s], ['$neg'(V1,List)| Vs_Dump], P0, P1) :-
+%%     get_neg_var(V, List),
+%%     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
+dump_constraint([V|Vs], [V1|V1s], Rs_Dump, P0, P1) :-
+    get_neg_var(V, List),
+    List \= [], !,
+    dump_neg_list(V1, List, V_Dump),
+    dump_constraint(Vs, V1s, Vs_Dump, P0, P1),
+    append(V_Dump, Vs_Dump, Rs_Dump).
+dump_constraint([V|Vs], [V1|V1s], Vs_Dump, PV-PV1, P1) :-
+    dump_constraint(Vs, V1s, Vs_Dump, [V|PV]-[V1|PV1], P1).
+
+dump_neg_list(_,[],[]) :- !.
+dump_neg_list(V,[L|Ls],[V \= L|Rs]) :- dump_neg_list(V,Ls,Rs).
+
+clp_vars_in([],[]) :- !.
+clp_vars_in([V|Vs], [V|Rs]) :-
+    is_clpq_var(V), !,
+    clp_vars_in(Vs,Rs).
+clp_vars_in([_|Vs], Rs) :-
+    clp_vars_in(Vs,Rs).
 
 
 
