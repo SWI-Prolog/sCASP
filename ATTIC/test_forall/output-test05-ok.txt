@@ -1,0 +1,1356 @@
+
+scasp -n0 --c_forall --tree --long test05-ok.pl
+
+QUERY:?- not q.
+
+	ANSWER:	1 (in 3.525 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	2 (in 2.331 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	3 (in 4.884 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	4 (in 2.514 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	5 (in 4.879 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	6 (in 2.508 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	7 (in 4.265 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	8 (in 2.896 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	9 (in 6.356 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(S,forall(T,forall(U,not o_q_1(S,T,U)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+            not o_q_1(P,Q,R) :-
+                p(P,Q,R) :-
+                    all_pos(P,Q) :-
+                        P #> Q.
+                    all_pos(Q,R) :-
+                        Q #=< R.
+                    all_pos(P,R) :-
+                        P #=< R.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O),  p(P,Q,R),  all_pos(P,Q),  all_pos(Q,R),  all_pos(P,R) }
+
+BINDINGS:
+
+
+	ANSWER:	10 (in 2.771 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	11 (in 6.511 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(V,forall(W,forall(X,not o_q_1(V,W,X)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #=< O.
+            not o_q_1(P,Q,R) :-
+                p(P,Q,R) :-
+                    all_pos(P,Q) :-
+                        P #=< Q.
+                    all_pos(Q,R) :-
+                        Q #=< R.
+                    all_pos(P,R) :-
+                        P #=< R.
+            not o_q_1(S,T,U) :-
+                p(S,T,U) :-
+                    all_pos(S,T) :-
+                        S #> T.
+                    all_pos(T,U) :-
+                        T #=< U.
+                    all_pos(S,U) :-
+                        S #=< U.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O),  p(P,Q,R),  all_pos(P,Q),  all_pos(Q,R),  all_pos(P,R),  p(S,T,U),  all_pos(S,T),  all_pos(T,U),  all_pos(S,U) }
+
+BINDINGS:
+
+
+	ANSWER:	12 (in 2.702 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(S,forall(T,forall(U,not o_q_1(S,T,U)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #> B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+            not o_q_1(P,Q,R) :-
+                p(P,Q,R) :-
+                    all_pos(P,Q) :-
+                        P #=< Q.
+                    all_pos(Q,R) :-
+                        Q #> R.
+                    all_pos(P,R) :-
+                        P #=< R.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O),  p(P,Q,R),  all_pos(P,Q),  all_pos(Q,R),  all_pos(P,R) }
+
+BINDINGS:
+
+
+	ANSWER:	13 (in 5.96 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	14 (in 2.885 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	15 (in 4.649 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	16 (in 2.454 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #> C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	17 (in 5.881 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	18 (in 2.959 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #> E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	19 (in 4.973 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #=< N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	20 (in 2.703 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #> C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #=< F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #> H.
+                    all_pos(H,I) :-
+                        H #=< I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #=< K.
+                    all_pos(K,L) :-
+                        K #> L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #> O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	21 (in 5.556 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	22 (in 2.361 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #> F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #=< I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	23 (in 4.956 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #> L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #=< O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
+
+	ANSWER:	24 (in 2.072 ms)
+
+JUSTIFICATION_TREE:
+true,
+not q :-
+    not o_q_1 :-
+        forall(P,forall(Q,forall(R,not o_q_1(P,Q,R)))) :-
+            not o_q_1(A,B,C) :-
+                p(A,B,C) :-
+                    all_pos(A,B) :-
+                        A #=< B.
+                    all_pos(B,C) :-
+                        B #=< C.
+                    all_pos(A,C) :-
+                        A #=< C.
+            not o_q_1(D,E,F) :-
+                p(D,E,F) :-
+                    all_pos(D,E) :-
+                        D #=< E.
+                    all_pos(E,F) :-
+                        E #> F.
+                    all_pos(D,F) :-
+                        D #=< F.
+            not o_q_1(G,H,I) :-
+                p(G,H,I) :-
+                    all_pos(G,H) :-
+                        G #=< H.
+                    all_pos(H,I) :-
+                        H #> I.
+                    all_pos(G,I) :-
+                        G #> I.
+            not o_q_1(J,K,L) :-
+                p(J,K,L) :-
+                    all_pos(J,K) :-
+                        J #> K.
+                    all_pos(K,L) :-
+                        K #=< L.
+                    all_pos(J,L) :-
+                        J #=< L.
+            not o_q_1(M,N,O) :-
+                p(M,N,O) :-
+                    all_pos(M,N) :-
+                        M #> N.
+                    all_pos(N,O) :-
+                        N #=< O.
+                    all_pos(M,O) :-
+                        M #> O.
+global_constraint.
+
+MODEL:
+{ not q,  p(A,B,C),  all_pos(A,B),  all_pos(B,C),  all_pos(A,C),  p(D,E,F),  all_pos(D,E),  all_pos(E,F),  all_pos(D,F),  p(G,H,I),  all_pos(G,H),  all_pos(H,I),  all_pos(G,I),  p(J,K,L),  all_pos(J,K),  all_pos(K,L),  all_pos(J,L),  p(M,N,O),  all_pos(M,N),  all_pos(N,O),  all_pos(M,O) }
+
+BINDINGS:
+
