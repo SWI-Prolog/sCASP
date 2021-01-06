@@ -60,12 +60,18 @@ comp_duals :-
     !,
     fail.
 
+scasp_builtin('call_1').
+scasp_builtin('findall_3').
 %! comp_duals2(+Predicates:list) is det
 % For each predicate in Predicates, get matching rules and call comp_duals3/2.
 %
 % @param Predicates List of predicates in the program.
 comp_duals2([X | T]) :-
     X = '_false_0', % skip headless rules; handled by NMR check
+    !,
+    comp_duals2(T).
+comp_duals2([X | T]) :-
+    scasp_builtin(X),  % skip dual of scasp builtins
     !,
     comp_duals2(T).
 comp_duals2([X | T]) :-

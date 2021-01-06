@@ -475,10 +475,14 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
             fail
         )
     ).
+solve_goal(call(Goal),StackIn,StackOut,[call(Goal)|Model]) :- !,
+    solve_goal(Goal,StackIn,StackOut,Model).
+solve_goal(not(call(Goal)),StackIn,StackOut,[not(call(Goal))|Model]) :- !,
+    solve_goal(not(Goal),StackIn,StackOut,Model).
 solve_goal(Goal, StackIn, StackOut, [Goal|Model]) :-
     Goal=findall(_, _, _), !,
     exec_findall(Goal, StackIn, StackOut, Model).
-solve_goal(not(Goal), StackIn, StackIn, [Goal]) :-
+solve_goal(not(Goal), StackIn, StackIn, [not(Goal)]) :-
     Goal=findall(_, _, _), !,
     exec_neg_findall(Goal, StackIn).
 solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
