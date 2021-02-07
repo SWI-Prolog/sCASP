@@ -1004,6 +1004,8 @@ prolog_builtin(<).
 prolog_builtin(>).
 prolog_builtin(>=).
 prolog_builtin(=<).
+ %% prolog_builtin(display).
+ %% prolog_builtin(nl).
 
 
 %% :- pred naf_builtin(Goal) #"Success if @var{Goal} is a builtin
