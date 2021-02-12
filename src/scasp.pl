@@ -110,9 +110,11 @@ scasp_exec(Args, [PQ, PAnswer, PVars, Bindings, Printable_Model]) :-
     set_options(Options),
     load(Sources),
     defined_query(Q0),
-    process_query(Q0, Q, Query), varset(Q, Vars),
 
-    pretty_term([], D1, par(Vars, Q), par(PVars, PQ)),
+    process_query(Q0, Q, Query), varset(Q, Vars),
+    unifiable(Q0, Q, D0),
+
+    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     solve(Query, [], _StackOut, Model),
 
@@ -184,8 +186,9 @@ main_solve(Q0) :-
     init_counter,
 
     process_query(Q0, Q, Query), varset(Q, Vars),
-
-    pretty_term([], D1, par(Vars, Q), par(PVars, PQ)),
+    unifiable(Q0, Q, D0),
+    
+    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     print_query(PQ),
 
@@ -273,8 +276,9 @@ collect_min_models(Q0) :-
     init_counter,
 
     process_query(Q0, Q, Query), varset(Q, Vars),
+    unifiable(Q0, Q, D0),
 
-    pretty_term([], D1, par(Vars, Q), par(PVars, PQ)),
+    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     print_query(PQ),
 

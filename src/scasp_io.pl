@@ -796,30 +796,24 @@ human_portray_arg(A) :- print(A).
 %% (Also variables with attributes)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-lookup_mydict(D0,D1,A,L) :-
-    ( lookup_mydict_(D0,A,L) ->
+lookup_mydict(D0,D1,A,PVar) :-
+    (   lookup_mydict_(D0,A,PVar) ->
         D1 = D0
     ;
         length(D0,L),
-        D1 = [(A,L)|D0]
+        atom_number(AtomL,L),
+        atom_concat('Var',AtomL,PVar),
+        D1 = [(A=PVar)|D0]
     ).
 
 lookup_mydict_([],_,_) :- !, fail.
-lookup_mydict_([(V,L)|_],A,L) :- V == A, !.
-lookup_mydict_([_|Rs],A,L) :- lookup_mydict_(Rs,A,L).
+lookup_mydict_([(V=PVar)|_],A,PVar) :- V == A, !.
+lookup_mydict_([_|Rs],A,PVar) :- lookup_mydict_(Rs,A,PVar).
 
 :- use_module(engine(attributes)).
 pretty_term(D0,D1,A,PA) :-
     var(A), !,
-    lookup_mydict(D0,D1,A,N),
-    Letter is N mod 26 + 0'A,
-    atom_codes(L,[Letter]),
-    (   N>=26 ->
-        Rest is N//26,
-        atom_number(AtomRest,Rest),
-        atom_concat(L,AtomRest,PVar)
-    ;   PVar=L
-    ),
+    lookup_mydict(D0,D1,A,PVar),
     ( get_attribute(A,Att) ->
         pretty_portray_attribute(Att,A,PVar,PA)
     ;
