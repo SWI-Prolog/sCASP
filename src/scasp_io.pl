@@ -146,7 +146,8 @@ process_query(Q,Query,TotalQuery) :-
     ),
     (
         As = [not(_)|_] ->
-        Query = [true|As]
+            %        Query = [true|As]
+            Query = As
     ;
         Query = As
     ),
