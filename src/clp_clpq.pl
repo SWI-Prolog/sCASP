@@ -22,6 +22,8 @@ constraints of a variable.
 
 %% ------------------------------------------------------------- %%
 
+:- use_module(clp_disequality_rt).
+
 :- use_module(engine(attributes)).
 
 :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
@@ -34,6 +36,10 @@ is_clpq_var(X) :-
     get_attribute(X, A),
     A \= att(_, _, _).
 
+apply_clpq_constraints(A .<>. B + C) :- 
+    get_neg_var(A,[Num]),
+    num(Num),
+    Num is B + C, !.
 apply_clpq_constraints(A .<>. B) :- !,
     (
         apply_clpq_constraints(A .<. B)
