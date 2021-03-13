@@ -97,7 +97,7 @@ scasp_update :-
 
 :- pred scasp_version/0 #"print the current version of s(CASP)".
 scasp_version :-
-    format('s(CASP) version ~p\n',['0.20.12.04']),
+    format('s(CASP) version ~p\n',['0.21.03.13']),
     halt.
 
 
@@ -1019,8 +1019,8 @@ set_user_option('--variant') :- set(no_fail_loop, on).
 %% Only with tabling
 set_user_option('-m')                   :- set(minimal_model,on).
 set_user_option('--minimal')      :- set(minimal_model,on).
-set_user_option('--c_forall')      :- set(new_forall,on).
-set_user_option('--once_c_forall')      :- set(new_forall,on), set(once_forall,on).
+set_user_option('--all_c_forall')      :- set(all_forall,on).
+set_user_option('--prev_forall')      :- set(prev_forall,on).
 
 
 
@@ -1079,8 +1079,8 @@ help :-
     display('  --update              Automatically update s(CASP).\n'),
     display('  --version             Output the current version of s(CASP)\n'),
     display('\n'),
-    display('  --c_forall            Exhaustive evaluation of c_forall/2.\n'),
-    display('  --once_c_forall       Only the first solultion for c_forall/2.\n'),
+    display('  --all_c_forall        Exhaustive evaluation of c_forall/2.\n'),
+    display('  --prev_forall         Deprecated evaluation of forall/2.\n'),
     display('\n').
 
 help_all :-
