@@ -9,7 +9,7 @@ And extended description of the justification trees was presented at ICLP'20 ([A
 
 ## Introduction
 
-`s(CASP)` by [Joaquin Arias](mailto:joaquin.arias@imdea.org), is based on
+`s(CASP)` by [Joaquin Arias](mailto:joaquin.arias@urjc.es), is based on
 [`s(ASP)`](https://sourceforge.net/projects/sasp-system/) by
 Kyle Marple.
 
@@ -56,7 +56,7 @@ ciao get gitlab.software.imdea.org/ciao-lang/sCASP
 ```
 
 If you have any problem contact
-[this mail](mailto:joaquin.arias@imdea.org?subject=[s(CASP)%20Help]).
+[this mail](mailto:joaquin.arias@urjc.es?subject=[s(CASP)%20Help]).
 
 ## Usage of s(CASP)
 
@@ -69,32 +69,38 @@ scasp [options] InputFile(s)
 
 ```
   -h, -?, --help        Print this help message and terminate.
-  -i, --interactive     Run in user / interactive mode.
-  -a, --auto            Run in automatic mode (no user interaction).
-  -sN, -nN              Compute N answer sets, where N >= 0. 0 for all.
-  -d, --plaindual       Dual with single-goal clauses (for propositional programs).
+  --help_all            Print extended help.
+  -i, --interactive     Run in interactive mode (REP loop).
+  -a, --auto            Run in batch mode (no user interaction).
+  -sN, -nN              Compute N answer sets, where N >= 0. N = 0 means 'all'.
+  -d, --plaindual       Generate dual program with single-goal clauses
+                        (for propositional programs).
   -r[=d]                Output rational numbers as real numbers.
-                        [=d] optional determines precision. If not it output 5 decimals.
+                        [d] determines precision. Defaults to d = 5.
 
-  --code,               Print the program and exit.
-  --tree,               Print justification tree for each answer (if any).
+  --code                Print program with dual clauses and exit.
+  --tree                Print justification tree for each answer (if any).
 
-  --plain               Output the [code,tree] as literals.
-  --human               Output the [code,tree] in natural language.
+  --plain               Output code / justification tree as literals (default).
+  --human               Output code / justification tree in natural language.
 
-  --long                Long  version in [plain,human] of [code,tree].
-  --mid                 Mid   version in [plain,human] of [code,tree].
-  --short               Short version in [plain,human] of [code,tree].
+  --long                Output long version of justification.
+  --mid                 Output mid-sized version of justification (default) .
+  --short               Short version of justification.
 
-  --neg                 Add the negated literal in the [mid,short] in [plain,human] of [tree].
+  --pos                 Only display the selected literals in the justification.
+  --neg                 Add the negated literals in the justification (default).
 
-  --html[=name]         Generate a file in HTML of [long,mid,short] in [plain,human] of [code,tree].
-                        [=name] optional it creates 'name.html'. If not it uses first InputFile name.
+  --html[=name]         Generate HTML file for the justification. [name]:
+                        use 'name.html'. Default: first InputFile name.
 
   -v, --verbose         Enable verbose progress messages.
   -f, --tracefails      Trace user-predicate failures.
   --update              Automatically update s(CASP).
   --version             Output the current version of s(CASP)
+
+  --all_c_forall        Exhaustive evaluation of c_forall/2.
+  --prev_forall         Deprecated evaluation of forall/2.
 ```
 
 ### Using the principal options

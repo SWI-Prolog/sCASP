@@ -21,7 +21,7 @@
             check_calls/0,
             pos_loops/0,
             print_on/0,
-            solve_new_forall/4
+            solve_c_forall/4
         ]).
 
 %% ------------------------------------------------------------- %%
@@ -110,9 +110,11 @@ scasp_exec(Args, [PQ, PAnswer, PVars, Bindings, Printable_Model]) :-
     set_options(Options),
     load(Sources),
     defined_query(Q0),
-    process_query(Q0, Q, Query), varset(Q, Vars),
 
-    pretty_term([], D1, par(Vars, Q), par(PVars, PQ)),
+    process_query(Q0, Q, Query), varset(Q, Vars),
+    unifiable(Q0, Q, D0),
+
+    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     solve(Query, [], _StackOut, Model),
 
@@ -184,8 +186,9 @@ main_solve(Q0) :-
     init_counter,
 
     process_query(Q0, Q, Query), varset(Q, Vars),
-
-    pretty_term([], D1, par(Vars, Q), par(PVars, PQ)),
+    unifiable(Q0, Q, D0),
+    
+    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     print_query(PQ),
 
@@ -273,8 +276,9 @@ collect_min_models(Q0) :-
     init_counter,
 
     process_query(Q0, Q, Query), varset(Q, Vars),
+    unifiable(Q0, Q, D0),
 
-    pretty_term([], D1, par(Vars, Q), par(PVars, PQ)),
+    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     print_query(PQ),
 
@@ -455,9 +459,9 @@ support the sub-goals".
 
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
-    if(current_option(new_forall, on),
-        solve_new_forall(Goal, [Goal|StackIn], StackOut, Model),
-        solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model)
+    if(current_option(prev_forall, on),
+        solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model),
+        solve_c_forall(Goal, [Goal|StackIn], StackOut, Model)
     ),
     GoalModel = [Goal|Model].
 solve_goal(Goal, StackIn, [[], Goal|StackIn], GoalModel) :-
@@ -488,7 +492,7 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
                 trace_failures,
                 (
                     if_user_option(show_tree, print_check_calls_calling(Goal, [Goal|StackIn])),
-                    format("\nFAILURE to prove the literal:   ~w -------------\n\n", [Goal])
+                    format("\nFAILURE to prove the literal:   ~p -------------\n\n", [Goal])
                 )
             ),
             fail
@@ -509,6 +513,8 @@ solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
     \+ table_predicate(Goal),
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
+
+%% deprecated -- use flag: '--prev_forall' %%
 :- pred solve_goal_forall(forall(Var, Goal), StackIn, StackOut,
         GoalModel) # "Solve a sub-goal of the form @var{forall(Var,Goal)} and
 success if @var{Var} success in all its domain for the goal
@@ -1093,25 +1099,78 @@ my_diff_term(Term, Vars, Others) :-
 %%% Work almost DONE but still in progress %%%
 
 % TODO: Improve the efficiency by removing redundant justifications w.o. losing solutions.
-:- pred solve_new_forall(forall(Var, Goal), StackIn, StackOut,
+:- pred solve_c_forall(forall(Var, Goal), StackIn, StackOut,
         GoalModel) # "Solve a sub-goal of the form
         @var{c_forall(Vars,Goal)} and succeeds if the goal @var(Goal)
         succeeds covering the domain of all the vars in the list of
         vars @var{Vars}. It calls @pred{solve/4}".
 
-solve_new_forall(Forall, StackIn, [[]|StackOut], Model) :-
+solve_c_forall(Forall, StackIn, [[]|StackOut], Model) :-
     collect_vars(Forall, c_forall(Vars0, Goal0)),    % c_forall([F,G], not q_1(F,G))
 
     if_user_option(check_calls,format('\nc_forall(~p,\t~p)\n\n',[Vars0, Goal0])),
 
     my_copy_vars(Vars0, Goal0, Vars1, Goal1),        % Vars should remain free
     my_diff_term(Goal1, Vars1, OtherVars),
-    Initial_Const = [],                            %% Constraint store = top
-    solve_new_forall_(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars, StackIn, StackOut, Model),
-    if(current_option(once_forall,on), ! ,true).
+    Initial_Const = [],                              %% Constraint store = top
+    if(current_option(all_forall,on),
+       solve_var_forall_(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars, StackIn, StackOut, Model)
+       ,
+       solve_other_forall(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars, StackIn, StackOut, Model)
+      ).
 
-solve_new_forall_(_Goal, _, 'dual'(_, []), _OtherVars, StackIn, StackIn, []) :- !.
-solve_new_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stores]), OtherVars, StackIn, StackOut, Model) :- 
+%% if(current_option(once_forall,on), ! ,true).
+
+
+solve_other_forall(Goal, 'entry'(Vars, Initial_Const), 'dual'(Vars, [Initial_Const]), OtherVars, StackIn, StackOutExit, ModelExit) :-
+
+    append(Vars,OtherVars,AllVars),
+    my_copy_vars(AllVars, [Goal,StackIn,OtherVars,Vars], _AllVars1, [Goal1,StackIn1,OtherVars1,Vars1]),        % Vars should remain free
+    my_copy_vars(AllVars, [Goal,StackIn,OtherVars,Vars], _AllVars2, [Goal2,StackIn2,OtherVars2,Vars2]),        % Vars should remain free
+
+    if_user_option(check_calls,format("solve other forall:
+\t Goal \t~p
+\t Vars1       \t~p
+\t OtherVars   \t~p
+\t StackIn    \t~p\n\n",[Goal,Vars1,OtherVars,StackIn])),
+
+    dump_constraint(OtherVars, OtherVars1, Dump, []-[], Pending-Pending1), !, %% disequality and clp for numbers
+    clpqr_dump_constraints(Pending, Pending1, CLP),
+    append(CLP, Dump, Constraints1),
+    my_copy_vars(OtherVars1, Constraints1, OtherVars2, Constraints2), 
+    
+    if_user_option(check_calls,format("solve other forall:
+\t OtherVars1   \t~p
+\t OtherVars2   \t~p
+\t Constraints1   \t~p
+\t Constraints2 \t~p\n\n",[OtherVars, OtherVars1, Constraints1, Constraints2])),
+    
+    apply_const_store(Constraints1),!,
+    
+    solve_var_forall_(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars1, StackIn1, StackOut, Model), !, 
+    (
+        true, %%%%% the cut is jumped due to attributed variables.
+        OtherVars = OtherVars1,
+        StackOutExit = StackOut,
+        ModelExit = Model
+    ;
+        \+ ground(OtherVars),
+        apply_const_store(Constraints2),
+        dump_constraint(OtherVars1, OtherVars2, Dump1, []-[], Pend-Pend1), !, %% disequality and clp for numbers
+        clpqr_dump_constraints(Pend, Pend1, CLP1),
+        append(CLP1, Dump1, AnsConstraints2),
+        make_duals(AnsConstraints2, Duals),
+        member(Dual, Duals),
+        apply_const_store(Dual),
+        solve_other_forall(Goal2, 'entry'(Vars2, Initial_Const), 'dual'(Vars2, [Initial_Const]), OtherVars2, StackIn2, StackOutExit, ModelExit), !,
+        OtherVars = OtherVars2
+    ).
+    
+
+    
+
+solve_var_forall_(_Goal, _, 'dual'(_, []), _OtherVars, StackIn, StackIn, []) :- !.
+solve_var_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stores]), OtherVars, StackIn, StackOut, Model) :- 
 
     if_user_option(check_calls,format("solve forall:
 \tPrev_Store \t~p
@@ -1130,7 +1189,7 @@ solve_new_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stor
         find_duals(C_Vars-C_Vars1, OtherVars, Duals),       %% New Duals
         if_user_option(check_calls,format('Duals = \t ~p\n',[Duals])),
         append_set(Prev_Store1, C_St1, Current_Store1),
-        solve_new_forall_(Goal1, 'entry'(C_Vars1, Current_Store1), 'dual'(C_Vars1, Duals), OtherVars, StackOut1, StackOut2, Model2),
+        solve_var_forall_(Goal1, 'entry'(C_Vars1, Current_Store1), 'dual'(C_Vars1, Duals), OtherVars, StackOut1, StackOut2, Model2),
         append(Model1,Model2,Model3)
     ;
        if_user_option(check_calls,format('Entail: Fail  applying \t ~p\n',[C_St])),
@@ -1138,7 +1197,7 @@ solve_new_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stor
         StackOut2 = StackIn,
         Model3 = []
     ),
-    solve_new_forall_(Goal2, 'entry'(C_Vars2, Prev_Store2), 'dual'(C_Vars2, C_Stores2), OtherVars, StackOut2, StackOut, Model4),
+    solve_var_forall_(Goal2, 'entry'(C_Vars2, Prev_Store2), 'dual'(C_Vars2, C_Stores2), OtherVars, StackOut2, StackOut, Model4),
     append(Model3, Model4, Model).
 
 
