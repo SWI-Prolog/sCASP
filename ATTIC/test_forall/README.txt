@@ -3,7 +3,7 @@
 
 To test the c_forall/2 use the following command:
 
-a) to obtain all the solutions (including redundant justificatioins)
+a) to obtain all the solutions (including redundant justifications)
 
    scasp -n0 --c_forall test05-ok.pl
 
