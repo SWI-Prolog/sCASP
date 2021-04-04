@@ -492,7 +492,7 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
                 trace_failures,
                 (
                     if_user_option(show_tree, print_check_calls_calling(Goal, [Goal|StackIn])),
-                    format("\nFAILURE to prove the literal:   ~p -------------\n\n", [Goal])
+                    format("\nFAILURE to prove the literal:   ~p \n\n", [Goal])
                 )
             ),
             fail
@@ -652,7 +652,7 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
 solve_goal_builtin(not(Goal), _StackIn, _StackIn, _Model) :-
     Goal =.. [Op|_],
     clp_interval(Op), !,
-    if_user_option(warning,format("\nWARNING: Failure calling negation of ~p\n",[Goal])),
+    if_user_option(warning,format("\nWARNING s(CASP): Failure calling negation of ~p\n",[Goal])),
     fail.
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Goal =.. [Op|Operands],

@@ -53,6 +53,8 @@ Arias} in the folder @file{./src/sasp/}.
                             ]).
 :- use_module('./sasp/main').
 
+:- use_module('scasp_load_compiled').
+
 %% ------------------------------------------------------------- %%
 
 :- op(700, xfx, ['#=' ,
@@ -97,7 +99,7 @@ scasp_update :-
 
 :- pred scasp_version/0 #"print the current version of s(CASP)".
 scasp_version :-
-    format('s(CASP) version ~p\n',['0.21.03.13']),
+    format('s(CASP) version ~p\n',['0.21.04.04']),
     halt.
 
 
@@ -109,6 +111,16 @@ scasp_version :-
 load_program([]) :-
     display('ERROR: No imput file specified!'),nl,nl,
     help, abort. %% halt.
+load_program(C) :-
+    retractall(loaded_file(_)),
+    current_option(compiled, on), !,
+    (  list(C) ->
+        Files = C
+    ;
+        Files = [C]
+    ),
+    read_compiled_source(C), 
+    assert(loaded_file(Files)).
 load_program(X) :-
     retractall(loaded_file(_)),
     (
@@ -119,7 +131,6 @@ load_program(X) :-
     ),
     main(['-g'| Files]),
     assert(loaded_file(Files)).
-
 
 :- pred write_program/0 #"Call c(asp) to print the source code of the
 translation of the programs already loaded by @pred{load_program/1}".
@@ -208,11 +219,11 @@ increase_counter :-
 
 :- use_module(library(formulae)).
 print_query([not(o_false)]) :- !,
-    print('QUERY: Query not defined'), nl.
+    print('% QUERY: Query not defined'), nl.
 print_query([true,A|As]) :- !,
     print_query([A|As]).
 print_query(Query) :-
-    format('QUERY:',[]),    
+    format('% QUERY:',[]),    
     (   current_option(human,on) ->
         print('I would like to know if'),
         print_human_body(Query)
@@ -968,16 +979,18 @@ set_user_options([O | Os]) :-
     ).
 
 :- dynamic html_name/1.
-set_user_option('--help_all') :- help_all, abort.
-set_user_option('-h') :- help, abort.
-set_user_option('-?') :- help, abort.
-set_user_option('--help') :- help, abort.
-set_user_option('-i') :- set(interactive, on).
-set_user_option('--interactive') :- set(interactive, on).
+set_user_option('--help_all')           :- help_all, abort.
+set_user_option('-h')                   :- help, abort.
+set_user_option('-?')                   :- help, abort.
+set_user_option('--help')               :- help, abort.
+set_user_option('-i')                   :- set(interactive, on).
+set_user_option('--interactive')        :- set(interactive, on).
 set_user_option('-a').
 set_user_option('--auto').
 set_user_option(Option) :- atom_chars(Option,['-','s'|Ns]),number_chars(N,Ns),set(answers,N).
 set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),set(answers,N).
+set_user_option('-c')                   :- set(compiled, on).
+set_user_option('--compiled')           :- set(compiled, on).
 
 set_user_option('-d')                   :- assert(plain_dual(on)).
 set_user_option('--plaindual')          :- assert(plain_dual(on)).
@@ -1007,20 +1020,22 @@ set_user_option('--verbose')            :- set(check_calls, on).
 set_user_option('-f0')                  :- set(trace_failures, on).
 set_user_option('-f')                   :- set(trace_failures, on), set(show_tree,on).
 set_user_option('--tracefails')         :- set(trace_failures, on), set(show_tree,on).
-set_user_option('--update') :- scasp_update.
-set_user_option('--version') :- scasp_version.
+set_user_option('--update')             :- scasp_update.
+set_user_option('--version')            :- scasp_version.
 %% Development
-set_user_option('-no') :- set(no_nmr, on).         %% skip the evaluation of nmr-checks (but compile them).
-set_user_option('--no_nmr') :- assert(no_nmr(on)), assert(no_olon(on)).     %% skip the compilation of nmr-checks.
-set_user_option('--no_olon') :- assert(no_olon(on)).  %% skip the compilation of olon-rules
-set_user_option('-w') :- set(warning, on).
-set_user_option('--warning') :- set(warning, on).
-set_user_option('--variant') :- set(no_fail_loop, on).
+set_user_option('-no')                  :- set(no_nmr, on).         %% skip the evaluation of nmr-checks (but compile them).
+set_user_option('--no_nmr')             :- assert(no_nmr(on)), assert(no_olon(on)).     %% skip the compilation of nmr-checks.
+set_user_option('--no_olon')            :- assert(no_olon(on)).  %% skip the compilation of olon-rules
+set_user_option('-w')                   :- set(warning, on).
+set_user_option('--warning')            :- set(warning, on).
+set_user_option('--variant')            :- set(no_fail_loop, on).
 %% Only with tabling
 set_user_option('-m')                   :- set(minimal_model,on).
-set_user_option('--minimal')      :- set(minimal_model,on).
-set_user_option('--all_c_forall')      :- set(all_forall,on).
-set_user_option('--prev_forall')      :- set(prev_forall,on).
+set_user_option('--minimal')            :- set(minimal_model,on).
+set_user_option('--all_c_forall')       :- set(all_forall,on).
+set_user_option('--prev_forall')        :- set(prev_forall,on).
+set_user_option('--raw')                :- set(raw,on).
+
 
 
 
@@ -1053,6 +1068,7 @@ help :-
     display('  -i, --interactive     Run in interactive mode (REP loop).\n'),
     display('  -a, --auto            Run in batch mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. N = 0 means ''all''.\n'),
+    display('  -c, --compiled        Load compiled files (e.g. extracted using --code).\n'),    
     display('  -d, --plaindual       Generate dual program with single-goal clauses\n'),
     display('                        (for propositional programs).\n'),
     display('  -r[=d]                Output rational numbers as real numbers.\n'),
@@ -1087,10 +1103,11 @@ help_all :-
     help,
     display('  --no_olon             Do not compile olon rules (for debugging purposes).\n'),
     display('  --no_nmr              Do not compile NMR checks (for debugging purposes).\n'),
-    display('  -w, --warning         Enable warning messages (for failures in variant loops).\n'),
-    display('  --variant             Do not fail due to positive loops.\n'),
+    display('  -w, --warning         Enable warning messages (failures in variant loops / disequality).\n'),
+    display('  --variant             Do not fail in the presence of variant loops.\n'),
     display('\n'),
     display('  -m, --minimal         Collect only the minimal models (TABLING required).\n'),
+    display('  --raw                 Sort the clauses as s(ASP) does (use with --code).\n'),
     display('\n').
     
 
@@ -1371,23 +1388,23 @@ print_human_program :-
     findall(rule(Head,Body), pr_rule(Head,Body),Rules),
     pretty_term_rules(Rules,PrettyRules),
     filter(PrettyRules, UserRules, DualRules, NMRChecks),
-    print_human_program_('QUERY',PrettyQuery),
+    print_human_program_('% QUERY',PrettyQuery),
     nl,
-    print_human_program_('USER PREDICATES',UserRules),
+    print_human_program_('% USER PREDICATES',UserRules),
     (  current_option(short,on) ->
         true
     ;
         current_option(mid,on),
         dual_reverse(DualRules,[_|R_DualRules]),
         nl,nl,
-        print_human_program_('DUAL RULES',R_DualRules)
+        print_human_program_('% DUAL RULES',R_DualRules)
     ;
         dual_reverse(DualRules,[_|R_DualRules]),
         nl,nl,
-        print_human_program_('DUAL RULES',R_DualRules),
+        print_human_program_('% DUAL RULES',R_DualRules),
         nmr_reverse(NMRChecks,R_NMRChecks),
         nl,nl,
-        print_human_program_('GLOBAL CONSTRAINTS',R_NMRChecks)
+        print_human_program_('% INTEGRITY CONSTRAINTS',R_NMRChecks)
     ),
     nl.
 
@@ -1419,7 +1436,7 @@ filter([R|Rs], [R|Us], Ds, Ns) :-
 print_human_program_(Title,Rules) :-
     format('~p:',[Title]),
     nl,
-    (  Title == 'QUERY' ->
+    (  Title == '% QUERY' ->
         print_human_query(Rules)
     ;
         print_human_rules(Rules)
@@ -1451,7 +1468,7 @@ print_human_rules_(R) :-
     R = rule(Head,Body),
     print_human_head(Head),
     ( Body == [] ->
-        print('.')
+        print('.'),nl
     ;
         (  current_option(human,on) ->
             print(', if')
@@ -1507,6 +1524,8 @@ print_human_body_forall(InForall,I) :-
     
    
 :- pred dual_reverse/2 #"Auxiliary predicate to sort the DUAL rules".
+dual_reverse(L,[_|L]) :- current_option(raw,on), !.
+
 dual_reverse(L,R):-
     dual_reverse_(L,[],R).
 
@@ -1559,6 +1578,8 @@ forall_eq([B|As],[B],As).
 
    
 :- pred nmr_reverse/2 #"Auxiliary predicate to sort the NMR checks".
+nmr_reverse(L,L) :- current_option(raw,on), !.
+
 nmr_reverse(L,[A|Rs]) :-
     nmr_check(A),
     append(Chks,[A],L),
