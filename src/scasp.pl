@@ -1276,6 +1276,7 @@ dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
     \+ number(V), !,
     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
 dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
+%dump_constraint([V|Vs], [V1|V1s], [V1 .=. V | Vs_Dump], P0, P1) :-
     ground(V),
     number(V), !,
     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).

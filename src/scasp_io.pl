@@ -53,7 +53,7 @@ Arias} in the folder @file{./src/sasp/}.
                             ]).
 :- use_module('./sasp/main').
 
-:- use_module('scasp_load_compiled').
+:- use_module('./scasp_load_compiled').
 
 %% ------------------------------------------------------------- %%
 
