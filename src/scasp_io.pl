@@ -1424,7 +1424,7 @@ filter([R|Rs], Us, Ds, [R|Ns]) :-
     R = rule(o_nmr_check,_), !,
     filter(Rs,Us,Ds,Ns).
 filter([R|Rs], Us, Ds, Ns) :-
-    R = rule(global_constraints,_), !,
+    R = rule(global_constraint,_), !,
     filter(Rs,Us,Ds,Ns).
 filter([R|Rs], Us, [R|Ds], Ns) :-
     R = rule(not(_),_), !,
@@ -1444,7 +1444,7 @@ print_human_program_(Title,Rules) :-
 
 
 print_human_query([not(o_false)]) :- !,
-    print('Query not defined'), nl.
+    print('% Query not defined'), nl.
 print_human_query([true,A|As]) :- !,
     print_human_query([A|As]).
 print_human_query(Query) :-
