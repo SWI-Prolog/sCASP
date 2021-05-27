@@ -612,7 +612,7 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     append(__C_Pred,['_'|C_Num],C_Aux),
     number_chars(N,C_Num),
     ( Args == [] ->
-        Human = format('\'G.Const. ~p\' holds',[N])
+        Human = format('\'rule ~p\' holds',[N])
     ;
         Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)])
     ).
