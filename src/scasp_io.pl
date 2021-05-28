@@ -99,7 +99,7 @@ scasp_update :-
 
 :- pred scasp_version/0 #"print the current version of s(CASP)".
 scasp_version :-
-    format('s(CASP) version ~p\n',['0.21.04.04']),
+    format('s(CASP) version ~p\n',['0.21.05.28']),
     halt.
 
 
