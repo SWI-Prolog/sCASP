@@ -37,7 +37,7 @@
 
 
 /*
-    
+
     This code implements Red-Black trees as described in:
 
     "Introduction to Algorithms", Second Edition
@@ -378,16 +378,14 @@ insert2(black('',_,_,''), K, V, Nil, T, Status) :- !,
     T = red(Nil,K,V,Nil),
     Status = not_done.
 insert2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
-    ( K @< K0
-    -> NR = R,
-      NT = red(NL,K0,V0,R),
-      insert2(L, K, V, Nil, NL, Flag)
-    ; K == K0 ->
-      NT = red(L,K0,V,R),
-      Flag = done
-    ;
-      NT = red(L,K0,V0,NR),
-      insert2(R, K, V, Nil, NR, Flag)
+    (   K @< K0
+    ->  NT = red(NL,K0,V0,R),
+        insert2(L, K, V, Nil, NL, Flag)
+    ;   K == K0
+    ->  NT = red(L,K0,V,R),
+        Flag = done
+    ;   NT = red(L,K0,V0,NR),
+        insert2(R, K, V, Nil, NR, Flag)
     ).
 insert2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     ( K @< K0
@@ -423,15 +421,13 @@ insert_new_2(black('',_,_,''), K, V, Nil, T, Status) :- !,
     T = red(Nil,K,V,Nil),
     Status = not_done.
 insert_new_2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
-    ( K @< K0
-    -> NR = R,
-      NT = red(NL,K0,V0,R),
-      insert_new_2(L, K, V, Nil, NL, Flag)
-    ; K == K0 ->
-      fail
-    ;
-      NT = red(L,K0,V0,NR),
-      insert_new_2(R, K, V, Nil, NR, Flag)
+    (   K @< K0
+    ->  NT = red(NL,K0,V0,R),
+        insert_new_2(L, K, V, Nil, NL, Flag)
+    ;   K == K0
+    ->  fail
+    ;   NT = red(L,K0,V0,NR),
+        insert_new_2(R, K, V, Nil, NR, Flag)
     ).
 insert_new_2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     ( K @< K0
@@ -1036,521 +1032,521 @@ check_red_child(red(_,K,_,_)) :-
 
 %% CIAO TEST -XA        % between(1,16,X), format("deleting ~d~n",[X]), rb_new(1,a,T0), rb_insert(T0,2,b,T1), rb_insert(T1,3,c,T2), rb_insert(T2,4,c,T3), rb_insert(T3,5,c,T4), rb_insert(T4,6,c,T5), rb_insert(T5,7,c,T6), rb_insert(T6,8,c,T7), rb_insert(T7,9,c,T8), rb_insert(T8,10,c,T9),rb_insert(T9,11,c,T10), rb_insert(T10,12,c,T11),rb_insert(T11,13,c,T12),rb_insert(T12,14,c,T13),rb_insert(T13,15,c,T14), rb_insert(T14,16,c,T15),rb_delete(T15,X,T16),pretty_print(T16),fail.
 % deleting 1
-% b:2               
-% r:3                     
-% b:4         
-% b:5                     
-% r:6               
-% b:7                     
-% b:8   
-% b:9                     
-% r:10              
-% b:11                    
-% b:12        
-% b:13                    
-% r:14              
-% b:15                    
-% r:16                          
+% b:2
+% r:3
+% b:4
+% b:5
+% r:6
+% b:7
+% b:8
+% b:9
+% r:10
+% b:11
+% b:12
+% b:13
+% r:14
+% b:15
+% r:16
 % deleting 2
-% r:1                     
-% b:3               
-% b:4         
-% b:5                     
-% r:6               
-% b:7                     
-% b:8   
-% b:9                     
-% r:10              
-% b:11                    
-% b:12        
-% b:13                    
-% r:14              
-% b:15                    
-% r:16                          
+% r:1
+% b:3
+% b:4
+% b:5
+% r:6
+% b:7
+% b:8
+% b:9
+% r:10
+% b:11
+% b:12
+% b:13
+% r:14
+% b:15
+% r:16
 % deleting 3
-% r:1                     
-% b:2               
-% b:4         
-% b:5                     
-% r:6               
-% b:7                     
-% b:8   
-% b:9                     
-% r:10              
-% b:11                    
-% b:12        
-% b:13                    
-% r:14              
-% b:15                    
-% r:16                          
+% r:1
+% b:2
+% b:4
+% b:5
+% r:6
+% b:7
+% b:8
+% b:9
+% r:10
+% b:11
+% b:12
+% b:13
+% r:14
+% b:15
+% r:16
 % deleting 4
-% b:1               
-% b:2         
-% b:3               
-% b:5   
-% b:6                     
-% r:7                           
-% b:8               
-% b:9                           
-% r:10                    
-% b:11                          
-% r:12        
-% b:13                    
-% b:14              
-% b:15                    
-% r:16                          
+% b:1
+% b:2
+% b:3
+% b:5
+% b:6
+% r:7
+% b:8
+% b:9
+% r:10
+% b:11
+% r:12
+% b:13
+% b:14
+% b:15
+% r:16
 % deleting 5
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:6                     
-% r:7                           
-% b:8               
-% b:9                           
-% r:10                    
-% b:11                          
-% r:12        
-% b:13                    
-% b:14              
-% b:15                    
-% r:16                          
+% b:1
+% b:2
+% b:3
+% b:4
+% b:6
+% r:7
+% b:8
+% b:9
+% r:10
+% b:11
+% r:12
+% b:13
+% b:14
+% b:15
+% r:16
 % deleting 6
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% r:5                           
-% b:7                     
-% b:8               
-% b:9                           
-% r:10                    
-% b:11                          
-% r:12        
-% b:13                    
-% b:14              
-% b:15                    
-% r:16                          
+% b:1
+% b:2
+% b:3
+% b:4
+% r:5
+% b:7
+% b:8
+% b:9
+% r:10
+% b:11
+% r:12
+% b:13
+% b:14
+% b:15
+% r:16
 % deleting 7
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% r:5                           
-% b:6                     
-% b:8               
-% b:9                           
-% r:10                    
-% b:11                          
-% r:12        
-% b:13                    
-% b:14              
-% b:15                    
-% r:16                          
+% b:1
+% b:2
+% b:3
+% b:4
+% r:5
+% b:6
+% b:8
+% b:9
+% r:10
+% b:11
+% r:12
+% b:13
+% b:14
+% b:15
+% r:16
 % deleting 8
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:9         
-% b:10                    
-% r:11                          
-% b:12              
-% b:13                          
-% r:14                    
-% b:15                          
-% r:16                                
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:9
+% b:10
+% r:11
+% b:12
+% b:13
+% r:14
+% b:15
+% r:16
 % deleting 9
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% b:10                    
-% r:11                          
-% b:12              
-% b:13                          
-% r:14                    
-% b:15                          
-% r:16                                
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% b:10
+% r:11
+% b:12
+% b:13
+% r:14
+% b:15
+% r:16
 % deleting 10
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% r:9                           
-% b:11                    
-% b:12              
-% b:13                          
-% r:14                    
-% b:15                          
-% r:16                                
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% r:9
+% b:11
+% b:12
+% b:13
+% r:14
+% b:15
+% r:16
 % deleting 11
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% r:9                           
-% b:10                    
-% b:12              
-% b:13                          
-% r:14                    
-% b:15                          
-% r:16                                
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% r:9
+% b:10
+% b:12
+% b:13
+% r:14
+% b:15
+% r:16
 % deleting 12
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% b:9                           
-% r:10                    
-% b:11                          
-% b:13              
-% b:14                          
-% r:15                    
-% b:16                          
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% b:9
+% r:10
+% b:11
+% b:13
+% b:14
+% r:15
+% b:16
 % deleting 13
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% b:9                           
-% r:10                    
-% b:11                          
-% b:12              
-% b:14                          
-% r:15                    
-% b:16                          
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% b:9
+% r:10
+% b:11
+% b:12
+% b:14
+% r:15
+% b:16
 % deleting 14
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% b:9                           
-% r:10                    
-% b:11                          
-% b:12              
-% b:13                          
-% r:15                    
-% b:16                          
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% b:9
+% r:10
+% b:11
+% b:12
+% b:13
+% r:15
+% b:16
 % deleting 15
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% b:9                           
-% r:10                    
-% b:11                          
-% b:12              
-% b:13                          
-% r:14                    
-% b:16                          
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% b:9
+% r:10
+% b:11
+% b:12
+% b:13
+% r:14
+% b:16
 % deleting 16
-% b:1               
-% b:2         
-% b:3               
-% b:4   
-% b:5                     
-% b:6               
-% b:7                     
-% r:8         
-% b:9                           
-% r:10                    
-% b:11                          
-% b:12              
-% b:13                          
-% r:14                    
-% b:15                          
+% b:1
+% b:2
+% b:3
+% b:4
+% b:5
+% b:6
+% b:7
+% r:8
+% b:9
+% r:10
+% b:11
+% b:12
+% b:13
+% r:14
+% b:15
 
 % count(1,16,X0), X is -X0, format("deleting ~d~n",[X]), new(-1,a,T0), insert(T0,-2,b,T1), insert(T1,-3,c,T2), insert(T2,-4,c,T3), insert(T3,-5,c,T4), insert(T4,-6,c,T5), insert(T5,-7,c,T6), insert(T6,-8,c,T7), insert(T7,-9,c,T8), insert(T8,-10,c,T9),insert(T9,-11,c,T10), insert(T10,-12,c,T11),insert(T11,-13,c,T12),insert(T12,-14,c,T13),insert(T13,-15,c,T14), insert(T14,-16,c,T15),delete(T15,X,T16),pretty_print(T16),rbtree(T16),fail.
 
 %% CIAO TEST -XA        % ?- between(1,16,X0), X is -X0, format("deleting ~d~n",[X]), rb_new(-1,a,T0), rb_insert(T0,-2,b,T1), rb_insert(T1,-3,c,T2), rb_insert(T2,-4,c,T3), rb_insert(T3,-5,c,T4), rb_insert(T4,-6,c,T5), rb_insert(T5,-7,c,T6), rb_insert(T6,-8,c,T7), rb_insert(T7,-9,c,T8), rb_insert(T8,-10,c,T9),rb_insert(T9,-11,c,T10), rb_insert(T10,-12,c,T11),rb_insert(T11,-13,c,T12),rb_insert(T12,-14,c,T13),rb_insert(T13,-15,c,T14), rb_insert(T14,-16,c,T15),rb_delete(T15,X,T16),pretty_print(T16),fail.
 % deleting -1
-% r:-16                         
-% b:-15                   
-% r:-14             
-% b:-13                   
-% b:-12       
-% b:-11                   
-% r:-10             
-% b:-9                    
-% b:-8  
-% b:-7                    
-% r:-6              
-% b:-5                    
-% b:-4        
-% r:-3                    
-% b:-2              
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-8
+% b:-7
+% r:-6
+% b:-5
+% b:-4
+% r:-3
+% b:-2
 % deleting -2
-% r:-16                         
-% b:-15                   
-% r:-14             
-% b:-13                   
-% b:-12       
-% b:-11                   
-% r:-10             
-% b:-9                    
-% b:-8  
-% b:-7                    
-% r:-6              
-% b:-5                    
-% b:-4        
-% r:-3                    
-% b:-1              
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-8
+% b:-7
+% r:-6
+% b:-5
+% b:-4
+% r:-3
+% b:-1
 % deleting -3
-% r:-16                         
-% b:-15                   
-% r:-14             
-% b:-13                   
-% b:-12       
-% b:-11                   
-% r:-10             
-% b:-9                    
-% b:-8  
-% b:-7                    
-% r:-6              
-% b:-5                    
-% b:-4        
-% b:-2              
-% r:-1                    
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-8
+% b:-7
+% r:-6
+% b:-5
+% b:-4
+% b:-2
+% r:-1
 % deleting -4
-% r:-16                         
-% b:-15                   
-% r:-14             
-% b:-13                   
-% b:-12       
-% b:-11                   
-% r:-10             
-% b:-9                    
-% b:-8  
-% b:-7                    
-% r:-6              
-% b:-5                    
-% b:-3        
-% b:-2              
-% r:-1                    
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-8
+% b:-7
+% r:-6
+% b:-5
+% b:-3
+% b:-2
+% r:-1
 % deleting -5
-% r:-16                         
-% b:-15                   
-% b:-14             
-% b:-13                   
-% r:-12       
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% b:-8              
-% r:-7                          
-% b:-6                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% b:-14
+% b:-13
+% r:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-8
+% r:-7
+% b:-6
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -6
-% r:-16                         
-% b:-15                   
-% b:-14             
-% b:-13                   
-% r:-12       
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% b:-8              
-% r:-7                          
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% b:-14
+% b:-13
+% r:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-8
+% r:-7
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -7
-% r:-16                         
-% b:-15                   
-% b:-14             
-% b:-13                   
-% r:-12       
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% b:-8              
-% b:-6                    
-% r:-5                          
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% b:-14
+% b:-13
+% r:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-8
+% b:-6
+% r:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -8
-% r:-16                         
-% b:-15                   
-% b:-14             
-% b:-13                   
-% r:-12       
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% b:-7              
-% b:-6                    
-% r:-5                          
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% b:-14
+% b:-13
+% r:-12
+% b:-11
+% r:-10
+% b:-9
+% b:-7
+% b:-6
+% r:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -9
-% r:-16                               
-% b:-15                         
-% r:-14                   
-% b:-13                         
-% b:-12             
-% r:-11                         
-% b:-10                   
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% r:-11
+% b:-10
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -10
-% r:-16                               
-% b:-15                         
-% r:-14                   
-% b:-13                         
-% b:-12             
-% r:-11                         
-% b:-9                    
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% r:-11
+% b:-9
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -11
-% r:-16                               
-% b:-15                         
-% r:-14                   
-% b:-13                         
-% b:-12             
-% b:-10                   
-% r:-9                          
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% b:-10
+% r:-9
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -12
-% r:-16                               
-% b:-15                         
-% r:-14                   
-% b:-13                         
-% b:-11             
-% b:-10                   
-% r:-9                          
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% r:-16
+% b:-15
+% r:-14
+% b:-13
+% b:-11
+% b:-10
+% r:-9
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -13
-% b:-16                         
-% r:-15                   
-% b:-14                         
-% b:-12             
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% b:-16
+% r:-15
+% b:-14
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -14
-% b:-16                         
-% r:-15                   
-% b:-13                         
-% b:-12             
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% b:-16
+% r:-15
+% b:-13
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -15
-% b:-16                         
-% r:-14                   
-% b:-13                         
-% b:-12             
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% b:-16
+% r:-14
+% b:-13
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 % deleting -16
-% b:-15                         
-% r:-14                   
-% b:-13                         
-% b:-12             
-% b:-11                         
-% r:-10                   
-% b:-9                          
-% r:-8        
-% b:-7                    
-% b:-6              
-% b:-5                    
-% b:-4  
-% b:-3              
-% b:-2        
-% b:-1              
+% b:-15
+% r:-14
+% b:-13
+% b:-12
+% b:-11
+% r:-10
+% b:-9
+% r:-8
+% b:-7
+% b:-6
+% b:-5
+% b:-4
+% b:-3
+% b:-2
+% b:-1
 
 count(I,_,I).
 count(I,M,L) :-
@@ -1628,6 +1624,7 @@ build_ntree(X1,X,T0,TF) :-
 
 END TEST */
 
+:- if(\+current_predicate(call/2)).
 
 call(Goal, Arg1, Arg2) :-
     Goal =.. [Name| Args],
@@ -1641,3 +1638,5 @@ call(Goal, Arg1) :-
     append(Args,Arg1,Final),
     NewGoal =.. [Name| Final],
     call(NewGoal).
+
+:- endif.
