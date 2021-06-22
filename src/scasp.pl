@@ -23,8 +23,9 @@
             print_on/0,
             solve_c_forall/4
         ]).
-
-%% ------------------------------------------------------------- %%
+:- expects_dialect(ciao).
+:- style_check(-singleton).
+% ------------------------------------------------------------- %%
 :- use_package(assertions).
 :- doc(title, "Meta interpreter under stable model semantics").
 :- doc(author, "Joaquin Arias").
@@ -42,7 +43,7 @@ program under the stable model semantic.
 
 ").
 
-%% ------------------------------------------------------------- %%
+% ------------------------------------------------------------- %%
 :- use_module(scasp_io).
 :- reexport(scasp_io, [
             pr_rule/2,
@@ -69,15 +70,15 @@ program under the stable model semantic.
 
 :- op(700, fx, [not, (?=), (??), (?)]).
 
-%% naf_builtin(findall)
+% naf_builtin(findall)
 :- use_module(library(aggregates)).
 
-%% ------------------------------------------------------------- %%
+% ------------------------------------------------------------- %%
 :- doc(section, "Main predicates").
 
-%% :- use_package(tabling).  
-%% :- active_tclp.
-%% :- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
+% :- use_package(tabling).
+% :- active_tclp.
+% :- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
 
 :- pred load(Files) : list(Files) # "Loads a list of files".
 
@@ -187,7 +188,7 @@ main_solve(Q0) :-
 
     process_query(Q0, Q, Query), varset(Q, Vars),
     unifiable(Q0, Q, D0),
-    
+
     pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     print_query(PQ),
@@ -255,16 +256,16 @@ defined_query(Q) :-
 :- pred collect_min_models(Query) # "Collect the minimal models of a query
         @var{Query}".
 
-%% %% USE Tabling to collect the minimal models (Uncomment next two lines) %%
-%% :- use_package(tclp_aggregates).
-%% :- agg_entail take_min(_,ord_subset,nt,nt,nt).
-%% %% USE Tabling to collect the minimal models
+% %% USE Tabling to collect the minimal models (Uncomment next two lines) %%
+% :- use_package(tclp_aggregates).
+% :- agg_entail take_min(_,ord_subset,nt,nt,nt).
+% %% USE Tabling to collect the minimal models
 
-%% Define aggregate modes
+% Define aggregate modes
 :- use_module(library(sets)).
 nt(_A, _B).
 
-%% Predicate aggregated
+% Predicate aggregated
 take_min(Query, MinModel, Model, StackOut, T) :-
     statistics(runtime, _),
     solve(Query, [], StackOut, Model),
@@ -308,36 +309,36 @@ collect_min_models(Q0) :-
     nl, nl.
 
 
-%% collect_min_models(Query) :-
-%%     findall(
-%%         tuple(SortModel,StackOut),
-%%         (
-%%             solve(Query, [], StackOut, Model),
-%%             select_printable_literals(Model, [], PrintableModel),
-%%             sort(PrintableModel,SortModel),
-%%             display(SortModel),nl,nl
-%%         ),        
-%%         Ls),
-%%     take_min(Ls,MinLs),
-%%     display(MinLs),nl.
+% collect_min_models(Query) :-
+%     findall(
+%         tuple(SortModel,StackOut),
+%         (
+%             solve(Query, [], StackOut, Model),
+%             select_printable_literals(Model, [], PrintableModel),
+%             sort(PrintableModel,SortModel),
+%             display(SortModel),nl,nl
+%         ),
+%         Ls),
+%     take_min(Ls,MinLs),
+%     display(MinLs),nl.
 
-%% take_min([],[no_models]).
-%% take_min([A|Ts],M) :-
-%%     take_min_(Ts,A,M).
+% take_min([],[no_models]).
+% take_min([A|Ts],M) :-
+%     take_min_(Ts,A,M).
 
-%% take_min_([],M,M).
-%% take_min_([tuple(B,_)|Ts],tuple(A,As),M):-
-%%     ord_subset(A,B),
-%%     take_min_(Ts,tuple(A,As),M).
-%% take_min_([tuple(B,Bs)|Ts],tuple(A,_),M):-
-%%     ord_subset(B,A),
-%%     take_min_(Ts,tuple(B,Bs),M).
-
-
+% take_min_([],M,M).
+% take_min_([tuple(B,_)|Ts],tuple(A,As),M):-
+%     ord_subset(A,B),
+%     take_min_(Ts,tuple(A,As),M).
+% take_min_([tuple(B,Bs)|Ts],tuple(A,_),M):-
+%     ord_subset(B,A),
+%     take_min_(Ts,tuple(B,Bs),M).
 
 
 
-%% ------------------------------------------------------------- %%
+
+
+% ------------------------------------------------------------- %%
 :- doc(section, "Top Level Predicates").
 
 :- pred check_calls/0 # "Turn on the flag @var{check_calls}".
@@ -387,7 +388,7 @@ solve_query(Q) :-
 
     ask_for_more_models.
 
-%% ------------------------------------------------------------- %%
+% ------------------------------------------------------------- %%
 :- doc(section, "Predicates to solve the query").
 
 :- pred solve(Goals, StackIn, StackOut, Model) # "Solve the list of
@@ -420,7 +421,7 @@ check_goal(Goal, StackIn, StackOut, Model) :-
     check_CHS(Goal, StackIn, Check), %% Check condition for coinductive success
     check_goal_(Check, Goal, StackIn, StackOut, Model).
 
-%% coinduction success <- cycles containing even loops may succeed
+% coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
     if(current_option(assume,on),
        (
@@ -432,18 +433,18 @@ check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
     JGoal = [],
     AddGoal = chs(Goal),
     Model = [AddGoal|JGoal].
-%% already proved in the stack
+% already proved in the stack
 check_goal_(proved, Goal, StackIn, StackOut, Model) :-
     StackOut = [[], proved(Goal)|StackIn],
     JGoal = [],
     AddGoal = proved(Goal),
     Model = [AddGoal|JGoal].
-%% coinduction does neither success nor fails <- the execution continues inductively
+% coinduction does neither success nor fails <- the execution continues inductively
 check_goal_(cont, Goal, StackIn, StackOut, Model) :-
     solve_goal(Goal, StackIn, StackOut, Modelx), Modelx = [Goal|JGoal],
     AddGoal = Goal,
     Model = [AddGoal|JGoal].
-%% coinduction fails <- the negation of a call unifies with a call in the call stack
+% coinduction fails <- the negation of a call unifies with a call in the call stack
 check_goal_(co_failure, _Goal, _StackIn, _StackOut, _Model) :-
     fail.
 
@@ -514,7 +515,7 @@ solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
 
-%% deprecated -- use flag: '--prev_forall' %%
+% deprecated -- use flag: '--prev_forall' %%
 :- pred solve_goal_forall(forall(Var, Goal), StackIn, StackOut,
         GoalModel) # "Solve a sub-goal of the form @var{forall(Var,Goal)} and
 success if @var{Var} success in all its domain for the goal
@@ -612,14 +613,14 @@ exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
 should be defined in the program using the directive @em{#table
 pred/n.}".
 
-%% TABLED to avoid loops and repeated answers
+% TABLED to avoid loops and repeated answers
 solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel) :-
     pr_rule(Goal, Body),
     AttStackIn ~> stack(StackIn),
     solve(Body, StackIn, StackOut, Model),
     AttStackOut <~ stack(StackOut),
     AttModel <~ model([Goal|Model]).
-%% TABLED to avoid loops and repeated answers
+% TABLED to avoid loops and repeated answers
 
 :- pred solve_goal_predicate(Goal, StackIn, StackOut, GoalModel)
 # "Used to evaluate a user predicate".
@@ -665,7 +666,7 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     prolog_builtin(Op), !,
     exec_goal(Goal),
     Model = [Goal].
-%% The predicate is not defined as user_predicates neither builtin
+% The predicate is not defined as user_predicates neither builtin
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     if_user_option(check_calls,
         format('The predicate ~p is not user_defined / builtin\n', [Goal])),
@@ -731,23 +732,23 @@ and returns in @var{Result} if the goal @var{Goal} is a coinductive
 success, a coinductive failure or an already proved goal. Otherwise it
 is constraint against its negation atoms already visited".
 
-%% inmediate success if the goal has already been proved.
+% inmediate success if the goal has already been proved.
 check_CHS(Goal, I, proved) :-
     predicate(Goal),
     ground(Goal),
     \+ \+ proved_in_stack(Goal, I), !.
-%% coinduction success <- cycles containing even loops may succeed
+% coinduction success <- cycles containing even loops may succeed
 check_CHS(Goal, I, co_success) :-
     predicate(Goal),
     type_loop(Goal, I, even), !.
-%% coinduction fails <- the goal is entailed by its negation in the
-%% call stack
+% coinduction fails <- the goal is entailed by its negation in the
+% call stack
 check_CHS(Goal, I, co_failure) :-
     predicate(Goal),
     \+ \+ neg_in_stack(Goal, I), !,
     if_user_option(check_calls, format('Negation of the goal in the stack, failling (Goal = ~w)\n', [Goal])).
-%% coinduction fails <- cycles containing positive loops can be solve
-%% using tabling
+% coinduction fails <- cycles containing positive loops can be solve
+% using tabling
 check_CHS(Goal, I, co_failure) :-
     predicate(Goal),
     \+ table_predicate(Goal),
@@ -765,8 +766,8 @@ check_CHS(Goal, I, _cont) :-
         if_user_option(check_calls, format('Positive loop, continuing (Goal = ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nNote: positive loop continuing (Goal ~w = ~w)\n', [Goal, S]))
     ), fail.
-%% coinduction does not success or fails <- the execution continues
-%% inductively
+% coinduction does not success or fails <- the execution continues
+% inductively
 check_CHS(Goal, I, cont) :-
     if(
         (
@@ -785,8 +786,8 @@ check_CHS(Goal, I, cont) :-
         true, true
     ).
 
-%% check if the negation is in the stack -> coinductive failure
-%% extended to check if the negation in the stack entails the current call -> failure
+% check if the negation is in the stack -> coinductive failure
+% extended to check if the negation in the stack entails the current call -> failure
 neg_in_stack(not(Goal), [NegGoal|_]) :-
     Goal == NegGoal, !.
 neg_in_stack(Goal, [not(NegGoal)|_]) :-
@@ -801,12 +802,12 @@ neg_in_stack(Goal, [not(NegGoal)|_]) :-
     instance(Goal, NegGoal),
     instance(NegGoal, Goal), !,
     if_user_option(warning, format("\nWARNING: Co-Failing in a negated loop due to a variant call (extension clp-disequality required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, NegGoal])).
-%% neg_in_stack(not(Goal), [NegGoal|_]) :-
-%%       Goal =.. [Name|ArgGoal],
-%%       NegGoal =.. [Name|NegArgGoal],
-%%       if_user_option(check_calls, format('\t\tCheck if not(~p) entails (is more particular than) ~p\n',[Goal,NegGoal])),
-%%       entail_list(ArgGoal, NegArgGoal), !,
-%%       if_user_option(check_calls, format('\t\tOK\n',[])).
+% neg_in_stack(not(Goal), [NegGoal|_]) :-
+%       Goal =.. [Name|ArgGoal],
+%       NegGoal =.. [Name|NegArgGoal],
+%       if_user_option(check_calls, format('\t\tCheck if not(~p) entails (is more particular than) ~p\n',[Goal,NegGoal])),
+%       entail_list(ArgGoal, NegArgGoal), !,
+%       if_user_option(check_calls, format('\t\tOK\n',[])).
 % neg_in_stack(Goal, [not(NegGoal)|_]) :-
 %       Goal =.. [Name|ArgGoal],
 %       NegGoal =.. [Name|NegArgGoal],
@@ -816,7 +817,7 @@ neg_in_stack(Goal, [not(NegGoal)|_]) :-
 neg_in_stack(Goal, [_|Ss]) :-
     neg_in_stack(Goal, Ss).
 
-%% ground_neg_in_stack
+% ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
     if_user_option(check_calls, format('Enter ground_neg_in_stack for ~p\n', [Goal])),
     ground_neg_in_stack_(Goal, S, 0, 0, Flag),
@@ -890,7 +891,7 @@ constrained_neg_in_stack(Goal, [_|Ss]) :-
 
 
 
-%% proved_in_stack
+% proved_in_stack
 proved_in_stack(Goal, S) :-
     proved_in_stack_(Goal, S, 0, -1),
     if_user_option(check_calls, format('\tGoal ~p is already in the stack\n', [Goal])).
@@ -914,7 +915,7 @@ proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
 % neg_proved_in_stack(Goal, S) :-
 %       neg_proved_in_stack_(Goal, S, 0, -1),
 %       if_user_option(check_calls, format('\tThe negation of ~p is already in the stack\n',[Goal])).
-% neg_proved_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :- 
+% neg_proved_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :-
 %       NewInter is Intervening - 1,
 %       neg_proved_in_stack_(Goal, Ss, NewInter, MaxInter).
 % neg_proved_in_stack_(Goal, [not(S)|_], Intervening, MaxInter) :-
@@ -936,7 +937,7 @@ max(A, B, A) :-
 max(A, B, B) :-
     A < B.
 
-%% check if it is a even loop -> coinductive success
+% check if it is a even loop -> coinductive success
 type_loop(Goal, Stack, Type) :-
     Goal \= not(_),
     Intervening = 0,
@@ -963,7 +964,7 @@ type_loop_(Goal, 0, 0, [S|_], pos(S)) :- \+ \+ Goal = S.
 
 % avoid loops due to repeated negated goal... this is not the right solution ->
 % It should be solved using tabling !!
-%% type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(S)) :- Goal == S, N > 0, 0 is mod(N, 2).
+% type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(S)) :- Goal == S, N > 0, 0 is mod(N, 2).
 
 type_loop_(not(Goal), 0, _N, [not(S)|_], even) :- \+ \+ Goal == S. %% redundant, for debugging proposals
 type_loop_(not(Goal), 0, _N, [not(S)|_], even) :- variant(Goal, S), Goal = S.
@@ -979,13 +980,13 @@ type_loop_(Goal, 0, N, [S|Ss], Type) :-
     S \= not(_),
     type_loop_(Goal, 0, N, Ss, Type).
 
-%% ------------------------------------------------------------- %%
+% ------------------------------------------------------------- %%
 :- doc(section, "Auxiliar Predicates").
 
 :- pred predicate(Goal) # "Success if @var{Goal} is a user
 predicate".
 
-%% Check if the goal Goal is a user defined predicate
+% Check if the goal Goal is a user defined predicate
 predicate(builtin(_)) :- !, fail.
 predicate(not(_ is _)) :- !, fail.
 predicate(not(true)) :- !, fail.
@@ -996,7 +997,7 @@ predicate(Goal) :-
     length(Args, La),
     pr_user_predicate(Name/La), !.
 
-%% predicate(-_Goal) :- !. %% NOTE that -goal is translated as '-goal' 
+% predicate(-_Goal) :- !. %% NOTE that -goal is translated as '-goal'
 
 :- pred table_predicate(Goal) # "Success if @var{Goal} is defined as
 a tabled predicate with the directive @em{table pred/n.}".
@@ -1006,10 +1007,10 @@ table_predicate(Goal) :-
     Goal =.. [Name|Args],
     length(Args, La),
     pr_table_predicate(Name/La).
-%% table_predicate(not(Goal)) :-
-%%     Goal =.. [Name|Args],
-%%     length(Args,La),
-%%     pr_table_predicate(Name/La).
+% table_predicate(not(Goal)) :-
+%     Goal =.. [Name|Args],
+%     length(Args,La),
+%     pr_table_predicate(Name/La).
 
 shown_predicate(not(Goal)) :-
     predicate(Goal).
@@ -1033,9 +1034,9 @@ prolog_builtin(=<).
  %% prolog_builtin(nl).
 
 
-%% :- pred naf_builtin(Goal) #"Success if @var{Goal} is a builtin
-%%     prolog predicate (there is no dual and NAF is used)".
-%% naf_builtin(findall).
+% :- pred naf_builtin(Goal) #"Success if @var{Goal} is a builtin
+%     prolog predicate (there is no dual and NAF is used)".
+% naf_builtin(findall).
 
 
 :- pred clp_builtin(Goal) # "Success if @var{Goal} is a builtin
@@ -1096,7 +1097,7 @@ my_diff_term(Term, Vars, Others) :-
 
 
 
-%%% Work almost DONE but still in progress %%%
+%% Work almost DONE but still in progress %%%
 
 % TODO: Improve the efficiency by removing redundant justifications w.o. losing solutions.
 :- pred solve_c_forall(forall(Var, Goal), StackIn, StackOut,
@@ -1119,7 +1120,7 @@ solve_c_forall(Forall, StackIn, [[]|StackOut], Model) :-
        solve_other_forall(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars, StackIn, StackOut, Model)
       ).
 
-%% if(current_option(once_forall,on), ! ,true).
+% if(current_option(once_forall,on), ! ,true).
 
 
 solve_other_forall(Goal, 'entry'(Vars, Initial_Const), 'dual'(Vars, [Initial_Const]), OtherVars, StackIn, StackOutExit, ModelExit) :-
@@ -1137,17 +1138,17 @@ solve_other_forall(Goal, 'entry'(Vars, Initial_Const), 'dual'(Vars, [Initial_Con
     dump_constraint(OtherVars, OtherVars1, Dump, []-[], Pending-Pending1), !, %% disequality and clp for numbers
     clpqr_dump_constraints(Pending, Pending1, CLP),
     append(CLP, Dump, Constraints1),
-    my_copy_vars(OtherVars1, Constraints1, OtherVars2, Constraints2), 
-    
+    my_copy_vars(OtherVars1, Constraints1, OtherVars2, Constraints2),
+
     if_user_option(check_calls,format("solve other forall:
 \t OtherVars1   \t~p
 \t OtherVars2   \t~p
 \t Constraints1   \t~p
 \t Constraints2 \t~p\n\n",[OtherVars, OtherVars1, Constraints1, Constraints2])),
-    
+
     apply_const_store(Constraints1),!,
-    
-    solve_var_forall_(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars1, StackIn1, StackOut, Model), !, 
+
+    solve_var_forall_(Goal1, 'entry'(Vars1, Initial_Const), 'dual'(Vars1, [Initial_Const]), OtherVars1, StackIn1, StackOut, Model), !,
     (
         true, %%%%% the cut is jumped due to attributed variables.
         OtherVars = OtherVars1,
@@ -1165,12 +1166,12 @@ solve_other_forall(Goal, 'entry'(Vars, Initial_Const), 'dual'(Vars, [Initial_Con
         solve_other_forall(Goal2, 'entry'(Vars2, Initial_Const), 'dual'(Vars2, [Initial_Const]), OtherVars2, StackIn2, StackOutExit, ModelExit), !,
         OtherVars = OtherVars2
     ).
-    
 
-    
+
+
 
 solve_var_forall_(_Goal, _, 'dual'(_, []), _OtherVars, StackIn, StackIn, []) :- !.
-solve_var_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stores]), OtherVars, StackIn, StackOut, Model) :- 
+solve_var_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stores]), OtherVars, StackIn, StackOut, Model) :-
 
     if_user_option(check_calls,format("solve forall:
 \tPrev_Store \t~p
@@ -1215,13 +1216,13 @@ apply_const_store([C|Cs]) :-
     apply_constraint(C),
     apply_const_store(Cs).
 
-%% apply_constraint(A \= B) :-
-%%     ( number(A) ; number(B) ), !,
-%%     (
-%%         apply_clpq_constraints(.<.(A, B))
-%%     ;
-%%         apply_clpq_constraints(.>.(A, B))
-%%     ).
+% apply_constraint(A \= B) :-
+%     ( number(A) ; number(B) ), !,
+%     (
+%         apply_clpq_constraints(.<.(A, B))
+%     ;
+%         apply_clpq_constraints(.>.(A, B))
+%     ).
 apply_constraint(A \= B) :-
     call(.\=.(A,B)), !.
 apply_constraint(A = B) :-
@@ -1280,9 +1281,9 @@ dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
     ground(V),
     number(V), !,
     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
-%% dump_constraint([V|Vs], [V1|V1s], ['$neg'(V1,List)| Vs_Dump], P0, P1) :-
-%%     get_neg_var(V, List),
-%%     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
+% dump_constraint([V|Vs], [V1|V1s], ['$neg'(V1,List)| Vs_Dump], P0, P1) :-
+%     get_neg_var(V, List),
+%     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
 dump_constraint([V|Vs], [V1|V1s], Rs_Dump, P0, P1) :-
     get_neg_var(V, List),
     List \= [], !,
@@ -1312,4 +1313,4 @@ collect_vars_(forall(Var, Goal), Vars, [Var|Vars], Goal) :-
     Goal \= forall(_, _), !.
 collect_vars_(forall(Var, Forall), V0, V1, Goal) :-
     collect_vars_(Forall, [Var|V0], V1, Goal).
- 
+
