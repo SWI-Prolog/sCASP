@@ -1,6 +1,6 @@
 :- module(common, [
                     predicate/3,
-                    rule/3,
+                    c_rule/3,
                     rule/4,
                     negate_functor/2,
                     is_atom/3,
@@ -31,7 +31,7 @@ Common and utility predicates that may be called from multiple locations.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -42,7 +42,7 @@ Common and utility predicates that may be called from multiple locations.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -75,7 +75,7 @@ predicate(Predicate, Name, Args) :-
     Name \= 'not',
     !.
 
-%! rule(?Rule:compound, ?Head:compound, ?Body:list) is det
+%! c_rule(?Rule:compound, ?Head:compound, ?Body:list) is det
 % Convert a rule structure into its head and body, or vice-versa. Note that if
 % an ID has been attached, it will be paired with the head as
 % =|Head = -(RealHead, ID)|=. This can be taken advantage of if the head and ID
@@ -83,8 +83,8 @@ predicate(Predicate, Name, Args) :-
 %
 % @param Rule Rule struct.
 % @param Head Rule head.
-% @param Body Rule body. 
-rule(-(H, B), H, B).
+% @param Body Rule body.
+c_rule(-(H, B), H, B).
 
 %! rule(?Rule:compound, ?Head:compound, ?ID:int, ?Body:list) is det
 % Convert a rule structure with an id into its head, ID and body, or vice-versa.
@@ -130,7 +130,7 @@ is_atom(G, _, G) :-
     \+is_var(G),
     !,
     G =.. [G | []].
-    
+
 %! is_compound(+Goal:compound, +Vars:list, -Value:compound) is det
 % Given a goal, succeed if it is a compound term or a variable bound to a
 % compound term.
