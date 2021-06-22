@@ -20,6 +20,7 @@
 %                       refunct/3,
                     print_abducibles/2
                  ]).
+:- expects_dialect(ciao).
 
 /** <module> Output formatting and printing.
 
@@ -34,7 +35,7 @@ that may be used for warning and error output.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -45,7 +46,7 @@ that may be used for warning and error output.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -127,7 +128,7 @@ print_chs(CHS, V, Flag) :-
 print_chs(_, _, _) :-
     write_error('could not print CHS'),
     !,
-    fail.        
+    fail.
 
 %! rb_visit_to_list(+RBvisit:list, +ListIn:list, -ListOut:list) is det
 % Given the results of rb_visit/2, strip the keys from each member.
@@ -1054,7 +1055,7 @@ print_html(X,[Q,CHSo,Qv,Vo]) :-
     print('</ul>'),nl,nl,
     print(' <script src="js/jquery-1.11.2.js"></script>\n <script src="js/jquery.treemenu.js"></script>\n \n <script>\n $(function(){\n        $(".tree").treemenu({delay:100}).openActive();\n    });\n </script>\n \n </body>\n </html>'),
     close_output_file(Stream,Current),
-    write('\nEND HTML JUSTIFICATION'), 
+    write('\nEND HTML JUSTIFICATION'),
     !.
 
 print_query(Q) :-
@@ -1077,13 +1078,12 @@ print_body([X,Y|Xs]):-
 
 open_output_file(Stream,File,Current) :-
     current_output(Current),
-    open(File,append,_F),close(_F), %% if File does not exists open it
     open(File,write,Stream),
     set_output(Stream).
 close_output_file(Stream,Current) :-
     set_output(Current),
     close(Stream).
-    
+
 br :- print('<br>').
 
 print_item([],_) :- !.
@@ -1107,7 +1107,7 @@ print_item(X,L) :-
     print_list(X,L2),
     indent(L),
     print('  </ul>'),nl,indent(L).
-    
+
 print_list([],_).
 print_list([X|Xs],L) :-
     indent(L),
@@ -1256,7 +1256,7 @@ process_pr_pred_name([')'|Rs],Rs,NAc0,NAc1) :- !,
 process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
     process_pr_pred_name(R0,Rs,[NV0|NAc0],NAc1).
 
-    
+
 
 assert_pr_rules([]).
 assert_pr_rules([-(Head, Body)|Rs]) :-
