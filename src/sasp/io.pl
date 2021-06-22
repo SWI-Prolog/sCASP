@@ -1,8 +1,7 @@
-:- module(io, _).
-    % [
-    %         load_source_files/1,
-    %         read_query/2
-    % ]).
+:- module(io,
+          [ load_source_files/1,
+            read_query/2
+          ]).
 
 /** <module> Handle opening and closing files and directing output
 
@@ -18,7 +17,7 @@ even if an error occurs.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -29,7 +28,7 @@ even if an error occurs.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -111,7 +110,7 @@ process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
     absolute_file_name(X, X2, [relative_to(C)]), % resolve relative to current file
     !, % include directive
     process_directives(T, C, Si, So, Fsi, Fso).
-:- dynamic table/1, show/1, pred/1.
+:- dynamic (table)/1, show/1, pred/1.
 process_directives([table(X) | T], C, Si, So, Fsi, Fso) :-
     assertz(table(X)),
     !, % include directive
@@ -133,7 +132,7 @@ process_directives([abducible(X) | T], C, Si, So, Fsi, Fso) :-
     Xn =.. [Fn | A],
     atom_chars(F2, Fc2),
     atom_chars(Fn2, ['_' | Fc2]), % user predicates with an underscore will have a dummy prefix, so this is guaranteed to be unused.
-    Xn2 =.. [Fn2 | A2], 
+    Xn2 =.. [Fn2 | A2],
     rule(R1, X, [not(Xn), X2]), % set abducible(X) true iff X succeeds via this rule.
     rule(R2, Xn, [not(X)]), % A simple even loop
     rule(R3, X2, [not(Xn2)]), % rule to allow abducible(X) to be true or false.
@@ -207,7 +206,7 @@ open_input(File, Stream) :-
         write_error('file \'~w\' does not exist or cannot be open for reading', [File]),
         !,
         fail
-    ).          
+    ).
 open_input(File, current_input) :-
     var(File),
     !.
@@ -347,7 +346,7 @@ add_positions(Cin, Source, Cout) :-
 % @param Source Input source. Stored with token position info.
 % @param Line The current line in the input file, determined by counting
 %        newlines.
-% @param Col The character position on the current row of the input file. 
+% @param Col The character position on the current row of the input file.
 add_positions2([C | T], [C2 | T2], Source, Line, Col) :-
     C = '\n',
     !,
