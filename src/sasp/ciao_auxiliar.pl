@@ -2,7 +2,7 @@
     absolute_file_name/3,
     get_dir_name_ext/4,
     get_single_char/1,
-    
+
     writef/1,
     writef/2,
     swritef/2,
@@ -17,10 +17,20 @@
     c_name/2,
     char_type/2
                      ]).
+:- if(current_prolog_flag(version_data, swi(_,_,_,_))).
+:- use_module(library(writef)).
 
+get_dir_name_ext(File, Dir, Name, Ext) :-
+    file_directory_name(File, Dir),
+    file_base_name(File, Base),
+    file_name_extension(Name, Ext, Base).
+
+c_name(Name, X) :-
+    name(Name, X).
+
+:- else.                                % Ciao
 
 :- set_prolog_flag(multi_arity_warnings,off).
-
 
 absolute_file_name(File, Abs, [relative_to(Rel)]) :-
     get_dir_name_ext(Rel, Dir, _, _),
@@ -95,19 +105,12 @@ c_code_list([X|Xs],[C|Cs]) :-
     char_code(X,C),
     c_code_list(Xs,Cs).
 
-
-
-max(X,Y,X) :-
-    X >= Y, !.
-max(_,Y,Y).
-
-
 nb_setval(X,Y) :- set_global(X,Y).
 b_setval(X,Y) :- set_global(X,Y).
 b_getval(X,Y) :- get_global(X,Y).
 :- use_package(library(assertions)).
-:- data set/2.
-set_global(N, T) :- 
+:- data(set/2).
+set_global(N, T) :-
     nonvar(N),
     (retract_fact(set(N, _)) -> true ; true),
     asserta_fact(set(N, T)).
@@ -117,7 +120,7 @@ get_global(N, T) :-
     T = T1.
 
 
-char_type(-1, end_of_file) :- !.        
+char_type(-1, end_of_file) :- !.
 char_type(X,Type) :-
     char_code(X,C),
     code_type(C,Type).
@@ -632,5 +635,12 @@ code_type(253,lower).
 code_type(254,lower).
 code_type(255,lower).
 
+:- endif.
 
-    
+max(X,Y,M) :-
+    (   X >= Y
+    ->  M = X
+    ;   Y = Y
+    ).
+
+
