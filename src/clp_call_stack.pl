@@ -1,4 +1,8 @@
-:- module(clp_call_stack, _).
+:- module(clp_call_stack,
+          [ ~> / 2,
+            <~ / 2,
+            dump_rules/3
+          ]).
 
 %% ------------------------------------------------------------- %%
 :- use_package(assertions).
@@ -66,7 +70,7 @@ attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 %%     call_entail(D1s,D2s).
 %% call_store_projection(_, St, St).
 
-%% answer_domain_projection([],     []). 
+%% answer_domain_projection([],     []).
 %% answer_domain_projection([X|Xs], [D|Ds]) :-
 %%     answer_domain_projection_(X, D), !,
 %%     answer_domain_projection(Xs, Ds).
@@ -77,7 +81,7 @@ attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 %% answer_store_projection(_, St, St).
 
 %% apply_answer([],     []).
-%% apply_answer([V|Vs], [A|Ans]) :- 
+%% apply_answer([V|Vs], [A|Ans]) :-
 %%     apply_answer_(V, A),
 %%     apply_answer(Vs, Ans).
 %% %% TCLP interface %%
@@ -147,8 +151,10 @@ attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 
 %% ------------------------------------------------------------- %%
 
+:- if(\+ current_predicate(subsumes_term/2)).
 :- use_module(library(terms_check)).
+:- endif.
 sub_list(D1,D2) :-
     append(_, X, D2), subsumes_term(D1,X).
 
-    
+

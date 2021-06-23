@@ -82,7 +82,7 @@ scasp_update :-
     ;
         format('\n=> Don\'t worry, let\'s try to install s(CAPS) anyway.\n\n',[])
     ),
-    
+
     fail.
 scasp_update :-
     format('\n=> Secondly, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP\n\n',[]),
@@ -92,7 +92,7 @@ scasp_update :-
     ;
         format('\n=> Something went wrong. Try again.\n\n',[])
     ),
-       
+
     fail.
 scasp_update :-
     halt.
@@ -119,7 +119,7 @@ load_program(C) :-
     ;
         Files = [C]
     ),
-    read_compiled_source(C), 
+    read_compiled_source(C),
     assert(loaded_file(Files)).
 load_program(X) :-
     retractall(loaded_file(_)),
@@ -223,7 +223,7 @@ print_query([not(o_false)]) :- !,
 print_query([true,A|As]) :- !,
     print_query([A|As]).
 print_query(Query) :-
-    format('% QUERY:',[]),    
+    format('% QUERY:',[]),
     (   current_option(human,on) ->
         print('I would like to know if'),
         print_human_body(Query)
@@ -264,7 +264,7 @@ print_model_(Model):-
 print_unifier(Bindings,PVars) :-
     format('BINDINGS:',[]),
     print_unifier_(Bindings,PVars).
-    
+
 print_unifier_([],[]).
 print_unifier_([Binding|Bs],[PV|PVars]) :-
     ( PV == Binding ->
@@ -290,7 +290,7 @@ print_unifier_([Binding|Bs],[PV|PVars]) :-
 
 select_printable_literals([],Ac,Ac) :- !.
 select_printable_literals([X|Xs],Ac0,Ac1) :- !,
-    select_printable_literals(X,Ac0,Acm), 
+    select_printable_literals(X,Ac0,Acm),
     select_printable_literals(Xs,Acm,Ac1).
 select_printable_literals(X,Ac0,[X|Ac0]) :-
     printable_literal(X),
@@ -299,7 +299,7 @@ select_printable_literals(_,Ac0,Ac0).
 
 
 printable_model_([]).
-printable_model_([Last]) :- 
+printable_model_([Last]) :-
     print(Last).
 printable_model_([First,Second|Rest]) :-
     print(First),
@@ -359,7 +359,7 @@ print_constraints('∉',PB,(Const,Cs)) :-
     format(", ",[]),
     print_constraints('∉',PB,Cs).
 print_constraints_not(PB,Const) :-
-    format("~w \= ~w",[PB,Const]).
+    format("~w \\= ~w",[PB,Const]).
 
 
 :- pred print_check_calls_calling(Goal, StackIn) #"Auxiliar predicate
@@ -387,14 +387,14 @@ print_check_stack([A|As],I) :-
     nl, tab(I), print(A),
     I1 is I + 4,
     print_check_stack(As,I1).
-        
+
 
 :- pred print_s/1 #"output tree by the terminal".
-:- data sp_tab/1, pr_repeat/2, pr_print/1.
+:- data((sp_tab/1, pr_repeat/2, pr_print/1)).
 print_s(Stack) :-
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
-    retractall(pr_print(_)),    
+    retractall(pr_print(_)),
     print_s_(Stack,0,0).
 
 print_s_([],_,_) :-
@@ -439,11 +439,11 @@ print_zero_nmr(_,I,I1) :-
 :- pred print_human_term/3 #"".
 print_human_term(A,I,I1) :-
     pr_human_term((A::Human),Type), !,
-    (   current_option(mid,on), Type \= pred, Type \= mid ->
+    (   current_option(mid,on), Type \= (pred), Type \= mid ->
         asserta(sp_tab(I)),
         I1 = I
     ;
-        (   current_option(short,on), Type \= pred ->
+        (   current_option(short,on), Type \= (pred) ->
             asserta(sp_tab(I)),
             I1 = I
         ;
@@ -464,16 +464,16 @@ print_human_term(A,I,I1) :-
             asserta(pr_print(I))
         )
     ).
-        
+
 
 
 pr_human_term((Term :: TermHuman), Type) :-
     pr_pred_term(Term :: Human, T), !,  %% To obtain the Type
-    (   T = pred ->
-        Type = pred
+    (   T = (pred) ->
+        Type = (pred)
     ;
         pr_show_predicate(Term), !,   %% Output predicates selected by #show
-        Type = pred
+        Type = (pred)
     ;
         Term = chs(Chs),
         pr_show_predicate(Chs), !,
@@ -481,7 +481,7 @@ pr_human_term((Term :: TermHuman), Type) :-
     ;
         Term = assume(Chs),
         pr_show_predicate(Chs), !,
-        Type = pred
+        Type = (pred)
     ;
         Type = T
     ),
@@ -525,8 +525,8 @@ pr_pred_term(A, mid) :-
 pr_pred_term(A, Type) :-
     pr_pred_negated(A, T), !,
     (   current_option(neg,on) ->
-        ( T = pred ->
-            Type = pred
+        ( T = (pred) ->
+            Type = (pred)
         ;
             Type = mid
         )
@@ -542,7 +542,7 @@ pr_pred_term(A, Type) :-
         Type = default
     ).
 pr_pred_term( Error :: print(Error) , default ).
-    
+
 
 print_human(Conector) :-
     (   current_option(human,on) ->
@@ -595,7 +595,7 @@ pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
 %% Note o_chk_N are handled by pr_pred_negated as global constraints
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Chk|Args],
-    %% For o__chk_N1_N2 
+    %% For o__chk_N1_N2
     atom_concat(o__chk_,Code,Chk), !,
     atom_chars(Code, Chars_Code),
     append(C_N,['_'|_],Chars_Code),
@@ -604,10 +604,10 @@ pr_pred_default(not(Auxiliar) :: Human) :-
         Human = format('\'G.Const. ~p\' holds',[N])
     ;
         Human = format('\'G.Const. ~p\' holds (for ~p)',[N,@(Args)])
-    ).    
+    ).
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Aux|Args],
-    %% For o_PRED_N 
+    %% For o_PRED_N
     atom_chars(Aux,['o','_'|C_Aux]), !,
     append(__C_Pred,['_'|C_Num],C_Aux),
     number_chars(N,C_Num),
@@ -646,7 +646,7 @@ take_constraints([V|As],[V|Vs]) :-
     take_constraints(As,Vs).
 take_constraints([_|As], Vs) :-
     take_constraints(As,Vs).
-    
+
 
 %% forall
 pr_pred_default_forall(Forall, ( H0, H1 ) ) :-
@@ -656,7 +656,7 @@ pr_pred_default_forall(Forall, ( H0, H1 ) ) :-
 pr_pred_default_forall_(forall(V,Rest), [V|Vs], InForall) :- !,
     pr_pred_default_forall_(Rest, Vs, InForall).
 pr_pred_default_forall_(InForall, [], InForall).
-    
+
 
 %% To detect user/neg/aux predicates
 user_predicate(is(_,_)) :- !.
@@ -777,9 +777,9 @@ human_op(#> ,'greater than').
 human_op(#=<,'less or equal').
 human_op(#>=,'greater or equal').
 human_op(=,  '').
-human_op(< ,'less than').       
-human_op(> ,'greater than').    
-human_op(=<,'less or equal').   
+human_op(< ,'less than').
+human_op(> ,'greater than').
+human_op(=<,'less or equal').
 human_op(>=,'greater or equal').
 
 
@@ -799,7 +799,7 @@ human_portray_arg(A) :- var(A), !, print(A).
 human_portray_arg(A '| ' _) :- !, print(A).
 human_portray_arg('$'(A)) :- !, print(A).
 human_portray_arg(A) :- print(A).
-    
+
 
 
 
@@ -861,7 +861,7 @@ simple_operands([A,B],[SA,SB]) :-
 simple_operand(Operand,'$'(Var)) :-
     Operand =.. ['| ', Var, _], !.
 simple_operand(A,A).
- 
+
 
 :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
 pretty_portray_attribute(Att,A,PVar,PA) :-
@@ -889,7 +889,7 @@ pretty_portray_attribute_(_,A,PVar,PA) :-
 pretty_disequality(PVar,[A],(PVar \= A)) :- !.
 pretty_disequality(PVar,[A|As],(PVar \= A, Cs)) :-
     pretty_disequality(PVar,As,Cs).
-    
+
 pretty_constraints([A],(C)) :- !,
     pretty_constraints_(A,C).
 pretty_constraints([A|As],(C,Cs)) :-
@@ -904,7 +904,7 @@ pretty_constraints_(A,C) :-
     ;
         format("WARNING: clp operator ~w not defined\n",[Op]),
         C =.. [Op,PX,PY]
-    ).    
+    ).
 pretty_constraints_(A,A).
 pretty_rat(rat(A,B),A/B) :- !.
 pretty_rat(A,A).
@@ -923,8 +923,8 @@ pretty_clp_(< ,< ).
 pretty_clp_(> ,> ).
 pretty_clp_(=<,=<).
 pretty_clp_(>=,>=).
-    
-        
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Set options
@@ -1006,7 +1006,7 @@ set_user_option('--plain')              .
 set_user_option('--human')              :- set(human, on).
 
 set_user_option('--long')               :- set(long,on).
-set_user_option('--mid')                :- set(mid,on).               
+set_user_option('--mid')                :- set(mid,on).
 set_user_option('--short')              :- set(mid,on), set(short,on).
 
 set_user_option('--neg')                :- set(neg,on).
@@ -1022,7 +1022,7 @@ set_user_option('-f')                   :- set(trace_failures, on), set(show_tre
 set_user_option('--tracefails')         :- set(trace_failures, on), set(show_tree,on).
 set_user_option('--update')             :- scasp_update.
 set_user_option('--version')            :- scasp_version.
-%% Development
+% Development
 set_user_option('-no')                  :- set(no_nmr, on).         %% skip the evaluation of nmr-checks (but compile them).
 set_user_option('--no_nmr')             :- assert(no_nmr(on)), assert(no_olon(on)).     %% skip the compilation of nmr-checks.
 set_user_option('--no_olon')            :- assert(no_olon(on)).  %% skip the compilation of olon-rules
@@ -1068,7 +1068,7 @@ help :-
     display('  -i, --interactive     Run in interactive mode (REP loop).\n'),
     display('  -a, --auto            Run in batch mode (no user interaction).\n'),
     display('  -sN, -nN              Compute N answer sets, where N >= 0. N = 0 means ''all''.\n'),
-    display('  -c, --compiled        Load compiled files (e.g. extracted using --code).\n'),    
+    display('  -c, --compiled        Load compiled files (e.g. extracted using --code).\n'),
     display('  -d, --plaindual       Generate dual program with single-goal clauses\n'),
     display('                        (for propositional programs).\n'),
     display('  -r[=d]                Output rational numbers as real numbers.\n'),
@@ -1076,7 +1076,7 @@ help :-
     display('\n'),
     display('  --code                Print program with dual clauses and exit.\n'),
     display('  --tree                Print justification tree for each answer (if any).\n'),
-    display('\n'),    
+    display('\n'),
     display('  --plain               Output code / justification tree as literals (default).\n'),
     display('  --human               Output code / justification tree in natural language.\n'),
     display('\n'),
@@ -1109,7 +1109,7 @@ help_all :-
     display('  -m, --minimal         Collect only the minimal models (TABLING required).\n'),
     display('  --raw                 Sort the clauses as s(ASP) does (use with --code).\n'),
     display('\n').
-    
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parse arguments
@@ -1170,7 +1170,7 @@ print_html(Query, Model, StackOut) :-
             print(Tail),nl
         ),true,true),
     close_output_file(Stream,Current),
-    write(' and END\n'), 
+    write(' and END\n'),
     !.
 
 
@@ -1276,11 +1276,11 @@ print_html_stack_([A|As],I,I0) :- !,
 
 print_html_term(A,I,I1) :-
     pr_human_term((A::Human),Type), !,
-    (   current_option(mid,on), Type \= pred, Type \= mid ->
+    (   current_option(mid,on), Type \= (pred), Type \= mid ->
         asserta(sp_tab(I)),
         I1 = I
     ;
-        (   current_option(short,on), Type \= pred ->
+        (   current_option(short,on), Type \= (pred) ->
             asserta(sp_tab(I)),
             I1 = I
         ;
@@ -1329,7 +1329,7 @@ close_ul(I0,I) :-
     nl,tab(I0), print('</ul> '),
     nl,tab(I1), print('</li> '),
     close_ul(I1,I).
-    
+
 
 %! tab_html(+Level:int) is det
 % Write Level spaces.
@@ -1362,7 +1362,7 @@ print_html_body([X,Y|Xs]):-
     print(X),print(','),tab_html(2),nl,
     print_html_body([Y|Xs]).
 
-:- data printingHTML/0.
+:- data(printingHTML/0).
 open_output_file(Stream,File,Current) :-
     current_output(Current),
     open(File,append,_F),close(_F), %% if File does not exists open it
@@ -1373,7 +1373,7 @@ close_output_file(Stream,Current) :-
     set_output(Current),
     close(Stream),
     retractall(printingHTML).
-    
+
 br :- print('<br>').
 
 
@@ -1412,13 +1412,13 @@ pretty_term_rules([],[]).
 pretty_term_rules([R|Rs],[P|Ps]) :-
     pretty_term([],_,R,P),
     pretty_term_rules(Rs,Ps).
-    
+
 
 filter([],[],[],[]).
 filter([R|Rs], Us, Ds, [R|Ns]) :-
     R = rule(not(Head),_),
     Head =.. [Pred|_],
-    ( atom_concat(o_chk,_,Pred), ! ; atom_concat(o__chk,_,Pred), ! ), 
+    ( atom_concat(o_chk,_,Pred), ! ; atom_concat(o__chk,_,Pred), ! ),
     filter(Rs,Us,Ds,Ns).
 filter([R|Rs], Us, Ds, [R|Ns]) :-
     R = rule(o_nmr_check,_), !,
@@ -1477,7 +1477,7 @@ print_human_rules_(R) :-
         ),
         print_human_body(Body)
     ).
-    
+
 rule_eq(rule(H,_),rule(H,_)) :- !.
 rule_eq(rule(not(H),_),rule(not(H1),_)) :- !, rule_eq_(H,H1).
 rule_eq(rule(-H,_),rule(-H1,_)) :- !, rule_eq_(H,H1).
@@ -1521,8 +1521,8 @@ print_human_body_forall(InForall,I) :-
     nl,tab(I),
     call(Format).
 
-    
-   
+
+
 :- pred dual_reverse/2 #"Auxiliary predicate to sort the DUAL rules".
 dual_reverse(L,[_|L]) :- current_option(raw,on), !.
 
@@ -1576,7 +1576,7 @@ forall_eq([A,B|As],[A|Eq],Rest) :-
     forall_eq([B|As],Eq,Rest).
 forall_eq([B|As],[B],As).
 
-   
+
 :- pred nmr_reverse/2 #"Auxiliary predicate to sort the NMR checks".
 nmr_reverse(L,L) :- current_option(raw,on), !.
 

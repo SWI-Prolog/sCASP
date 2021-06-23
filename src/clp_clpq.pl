@@ -1,5 +1,8 @@
-:- module(clp_clpq, _).
-
+:- module(clp_clpq,
+          []).
+:- expects_dialect(ciao).
+% from clpqr_ops.pl
+:- op(700, xfx, [(.=.),(.<>.),(.<.),(.=<.),(.>.),(.>=.)]).
 
 %% ------------------------------------------------------------- %%
 :- use_package(assertions).
@@ -36,7 +39,7 @@ is_clpq_var(X) :-
     get_attribute(X, A),
     A \= att(_, _, _).
 
-apply_clpq_constraints(A .<>. B + C) :- 
+apply_clpq_constraints(A .<>. B + C) :-
     get_neg_var(A,[Num]),
     num(Num),
     Num is B + C, !.
