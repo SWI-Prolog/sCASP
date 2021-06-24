@@ -576,7 +576,7 @@ pr_pred_global_constraint(not(Global_Constraint) :: Human,pred) :-
     Global_Constraint =.. [Aux|Args],
     atom_chars(Aux,['o','_'|Rs]),
     append(Pred,['_'|Num],Rs),
-    number_chars(N,Num),
+    catch(number_chars(N,Num), error(syntax_error(_),_), fail),
     atom_chars(Pr,Pred),
     Pr == chk, !,
     H0 = format('the global constraint number ~p holds',[N]),
