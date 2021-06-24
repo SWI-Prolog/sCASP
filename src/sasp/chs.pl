@@ -18,7 +18,7 @@ Handle CHS-related operations.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -29,7 +29,7 @@ Handle CHS-related operations.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -43,7 +43,11 @@ Handle CHS-related operations.
 */
 
 :- use_module(library(lists)).
+:- if(exists_source(library(rbtrees))).
+:- use_module(library(rbtrees)).
+:- else.
 :- use_module(rbtrees).
+:- endif.
 :- use_module(common).
 :- use_module(debug).
 :- use_module(output). % for fill_in_variable_values/5

@@ -63,7 +63,11 @@ that may be used for warning and error output.
 
 :- use_module(library(lists)).
 :- use_module(engine(basic_props)).
+:- if(exists_source(library(rbtrees))).
+:- use_module(library(rbtrees)).
+:- else.
 :- use_module(rbtrees).
+:- endif.
 %:- use_module(library(writef)).
 :- use_module(ciao_auxiliar).
 :- use_module(chs).

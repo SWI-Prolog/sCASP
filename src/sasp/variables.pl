@@ -31,7 +31,7 @@ Predicates related to storing, accessing and modifying variables.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -42,7 +42,7 @@ Predicates related to storing, accessing and modifying variables.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -58,7 +58,11 @@ Predicates related to storing, accessing and modifying variables.
 :-set_prolog_flag(multi_arity_warnings,off).
 
 :- use_module(library(lists)).
+:- if(exists_source(library(rbtrees))).
+:- use_module(library(rbtrees)).
+:- else.
 :- use_module(rbtrees).
+:- endif.
 %:- use_module(library(writef)).
 :- use_module(ciao_auxiliar).
 :- use_module(common).
@@ -73,7 +77,7 @@ Predicates related to storing, accessing and modifying variables.
 % That is, unified variables should point to a common memory location rather
 % than each-other. This is emulating by giving them the same value ID and
 % storing the actual values in a separate list with the corresponding IDs.
-% This shouldn't be accessed outside of this module. 
+% This shouldn't be accessed outside of this module.
 %
 % @param VarStruct A variable struct pairing a variable list and a value list.
 % @param Variables A list of pairs linking variables with a value ID.
@@ -104,7 +108,7 @@ is_var(X) :-
     atom_chars(X, Xc),
     is_var2(Xc),
     !.
-    
+
 %! is_var2(+TestChars:list) is det
 % Check characters in a list to see if the first non-underscore is an upper-case
 % letter, indicating a variable.
@@ -184,14 +188,14 @@ new_var_struct(-(X, Y, 0, 0)) :-
 %! var_value(+Variable:ground, +VarStruct:compound, -Value:compound) is det
 % Given a variable and a variable struct, get the value for the given
 % variable, if present. Otherwise, return an empty list, indicating that the
-% variable is unbound. Value will be either a binding or a list of values the 
+% variable is unbound. Value will be either a binding or a list of values the
 % variable cannot take (constraints). Any forall variables (loopvar flag = -1)
 % are expected to be in the variable struct. Thus any non-loop variables not
 % present may be given a loop var flag of 0.
 %
 % @param Variable The variable.
 % @param VarStruct The variable struct.
-% @param Value The value of the variable. 
+% @param Value The value of the variable.
 var_value(V, Vs, Val) :- % variable present in list
     is_var(V),
     var_struct(Vs, V1, V2, _, _),
@@ -214,7 +218,7 @@ var_value(V, _, Val) :- % variable not in list; completely unbound
 %
 % @param ID The ID.
 % @param ValStruct The value struct from a variable struct.
-% @param Value The value associated with the ID. 
+% @param Value The value associated with the ID.
 get_val_by_id(I, Vs, Vo) :-
     rb_lookup(I, Val, Vs), % bind Val
     (
@@ -311,7 +315,7 @@ add_var_constraint2(X, [X | T], [X | T]) :- % Already present
 %
 % @param Variable The input variable.
 % @param VarStruct The variable struct.
-% @param ID The ID of the variable. 
+% @param ID The ID of the variable.
 var_id(V, Vs, ID) :-
     is_var(V),
     var_struct(Vs, V1, _, _, _),
