@@ -1449,7 +1449,7 @@ filter([R|Rs], [R|Us], Ds, Ns) :-
 
 
 print_human_program_(Title,Rules) :-
-    format('~p:',[Title]),
+    format('~w:',[Title]),
     nl,
     (  Title == '% QUERY' ->
         print_human_query(Rules)
@@ -1465,7 +1465,7 @@ print_human_query([true,A|As]) :- !,
 print_human_query(Query) :-
     ( current_option(human,on) ->
         nl,
-        print('I would like to know if'),
+        format('I would like to know if'),
         print_human_body(Query)
     ;
         list_to_conj(Query,ConjPQ),
