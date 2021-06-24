@@ -60,6 +60,7 @@ Arias} in the folder @file{./src/sasp/}.
 :- use_module('./sasp/main').
 
 :- use_module('./scasp_load_compiled').
+:- use_module('./clp_disequality_rt').
 
 %% ------------------------------------------------------------- %%
 
@@ -844,7 +845,7 @@ lookup_mydict_([_|Rs],A,PVar) :- lookup_mydict_(Rs,A,PVar).
 pretty_term(D0,D1,A,PA) :-
     var(A), !,
     lookup_mydict(D0,D1,A,PVar),
-    ( get_attribute(A,Att) ->
+    ( neg_vars(A, Att) ->
         pretty_portray_attribute(Att,A,PVar,PA)
     ;
         PA = '$'(PVar)
@@ -873,6 +874,12 @@ pretty_term(D0,D1,Functor,PF) :-
     ).
 pretty_term(D0,D0,A,'?'(A)).
 
+neg_vars(A, neg(List)) :-
+    get_neg_var(A, List), !.
+neg_vars(A, []) :-
+    attvar(A).
+
+
 simple_operands([A,B],[SA,SB]) :-
     simple_operand(A,SA),
     simple_operand(B,SB).
@@ -886,7 +893,7 @@ pretty_portray_attribute(Att,A,PVar,PA) :-
     pretty_portray_attribute_(Att,A,PVar,PA),!.
 pretty_portray_attribute(_Att,_,PVar,PVar).
 
-pretty_portray_attribute_(att(_,false,att(clp_disequality_rt,neg(List),_)),_,PVar,PA) :-
+pretty_portray_attribute_(neg(List),_,PVar,PA) :-
     (  List == [] ->
         PA=PVar
     ;
