@@ -1162,14 +1162,14 @@ generate_pr_rules(_Sources) :-
         true
     ),
     (
-        findall(T, table(T), Ts),
+        findall(T, asp_table(T), Ts),
         format_term_list(Ts, Ts2, _, V),
         assert_pr_table(Ts2) ->
         true
     ;
         true
     ),
-    retractall(table(_)),
+    retractall(asp_table(_)),
     (
         findall(S, show(S), Ss),
         format_term_list(Ss, Ss2, _, V),

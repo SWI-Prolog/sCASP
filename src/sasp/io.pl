@@ -2,7 +2,8 @@
           [ load_source_files/1,
             read_query/2,
             pred/1,
-            show/1
+            show/1,
+            asp_table/1
           ]).
 
 /** <module> Handle opening and closing files and directing output
@@ -112,9 +113,9 @@ process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
     absolute_file_name(X, X2, [relative_to(C)]), % resolve relative to current file
     !, % include directive
     process_directives(T, C, Si, So, Fsi, Fso).
-:- dynamic (table)/1, show/1, pred/1.
+:- dynamic (asp_table)/1, show/1, pred/1.
 process_directives([table(X) | T], C, Si, So, Fsi, Fso) :-
-    assertz(table(X)),
+    assertz(asp_table(X)),
     !, % include directive
     process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([show(X) | T], C, Si, So, Fsi, Fso) :-
