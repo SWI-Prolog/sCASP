@@ -24,6 +24,7 @@
     ]).
 :- expects_dialect(ciao).
 :- style_check(-singleton).
+:- op(900, fy, user:not).
 
 %% ------------------------------------------------------------- %%
 :- use_package(assertions).
@@ -197,7 +198,7 @@ models (execution from console)".
 
 allways_ask_for_more_models :-
     (
-        print(' ? '), get_char(R),true, R \= '\n' ->
+        format(' ? ', []), get_char(R), R \= '\n' ->
         get_char(_),
         nl,
         statistics(runtime,_),
@@ -261,9 +262,9 @@ print_model(Model) :-
 print_model_(Model):-
     select_printable_literals(Model,[],Selected),
     reverse(Selected, Printable),
-    print('{ '),
+    format('{ ', []),
     printable_model_(Printable),
-    print(' }'), nl.
+    format(' }\n', []).
 
 :- pred print_unifier(Vars,PVars) #" Predicate to print @var{PVars} =
 @var{Vars} the binding of the variables in the query".
@@ -311,10 +312,10 @@ printable_model_([Last]) :-
 printable_model_([First,Second|Rest]) :-
     print(First),
     (  printingHTML ->
-        display(',  '),
+        format(',  ', []),
         tab_html(5)
     ;
-        display(',  ')
+        format(',  ', [])
     ),
     printable_model_([Second|Rest]).
 
@@ -698,7 +699,14 @@ truncate_(X,Y) :-
     Z is X * 10**D, ZA is truncate(Z), Y is ZA / 10**D.
 
 %% PORTRAY - capture human output of the variables
+:- if(current_prolog_flag(version_data, swi(_,_,_,_))).
+:- multifile user:portray/1.
+user:portray(Term) :-
+    portray(Term).
+:- else.
 :- multifile portray/1.
+:- endif.
+
 portray(rat(A,B)) :-
     if_user_option( real,( C is A/B, truncate_(C,R), write(R) ) ), !.
 portray(@(Var:_)) :- var(Var), !,
@@ -713,7 +721,7 @@ portray(@(Args)) :-
     Args = [_|_], !,
     human_portray_args(Args).
 portray('$'(X)) :- !,
-        write(X).
+    write(X).
 portray(Constraint) :-
     Constraint =.. [Op,A,N/D],
     current_option(real,on),
