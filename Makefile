@@ -2,7 +2,8 @@
 
 
 compile_scasp:
-	ciaoc -x -o scasp src/scasp.pl
+	swipl -O -o scasp -c src/scasp.pl
+#	ciaoc -x -o scasp src/scasp.pl
 
 
 clean: lpdoc_clean
@@ -25,5 +26,5 @@ lpdoc_clean:
 	cd ..;
 
 # github:
-# 	git remote origin 'https://github.com/Xuaco/sCASP'
-# 	git 
+#	git remote origin 'https://github.com/Xuaco/sCASP'
+#	git
