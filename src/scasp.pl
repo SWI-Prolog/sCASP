@@ -1003,9 +1003,8 @@ predicate(not(true)) :- !, fail.
 predicate(not(fail)) :- !, fail.
 predicate(not(_)) :- !.
 predicate(Goal) :-
-    Goal =.. [Name|Args],
-    length(Args, La),
-    pr_user_predicate(Name/La), !.
+    functor(Goal, Name, Arity),
+    pr_user_predicate(Name/Arity), !.
 
 % predicate(-_Goal) :- !. %% NOTE that -goal is translated as '-goal'
 
