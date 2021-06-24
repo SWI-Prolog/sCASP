@@ -1013,9 +1013,8 @@ a tabled predicate with the directive @em{table pred/n.}".
 
 
 table_predicate(Goal) :-
-    Goal =.. [Name|Args],
-    length(Args, La),
-    pr_table_predicate(Name/La).
+    functor(Goal, Name, Arity),
+    pr_table_predicate(Name/Arity).
 % table_predicate(not(Goal)) :-
 %     Goal =.. [Name|Args],
 %     length(Args,La),
