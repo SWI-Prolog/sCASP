@@ -21,12 +21,12 @@
 :- include(test_results).
 %list_tests(_).
 
-main([]) :- 
+main([]) :-
     list_tests(Tests),
     test(Tests,St),
     end(St).
 
-main([Test]) :- 
+main([Test]) :-
     list_tests(Tests),
     member(Test=Result,Tests),
     test([Test=Result], St),
@@ -39,7 +39,7 @@ test([],_).
 test([F=R|Ts],St1) :-
     scasp_test([F], Result),
 %    display(a(R,Result)),nl,nl,
-    ( R = Result ->
+    ( cmp(R, Result) ->
         format("~p \tpassed\n", [F]),
         St1 = St0
     ;
@@ -47,6 +47,16 @@ test([F=R|Ts],St1) :-
         St1 = fail
     ),
     test(Ts,St0).
+
+cmp(X,X) :- !.
+cmp($(Var), Var) :- !.
+cmp(Var, $(Var)) :- !.
+cmp(C1, C2) :-
+    compound(C1), compound(C2),
+    forall((arg(I,C1,A1),
+            arg(I,C2,A2)),
+           cmp(A1,A2)).
+
 
 
 list_files([
