@@ -37,13 +37,14 @@ end(fail) :- fail.
 
 test([],_).
 test([F=R|Ts],St1) :-
+    statistics(runtime, _),
     scasp_test([F], Result),
-%    display(a(R,Result)),nl,nl,
+    statistics(runtime, [_,Used]),
     ( cmp(R, Result) ->
-        format("~p \tpassed\n", [F]),
+        format("~p \tpassed ~dms\n", [F,Used]),
         St1 = St0
     ;
-        format("~p \tfailed\n", [F]),
+        format("~p \tfailed ~dms\n", [F, Used]),
         St1 = fail
     ),
     test(Ts,St0).
