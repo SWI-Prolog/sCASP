@@ -185,7 +185,7 @@ models (interactive and top-level mode)".
 
 ask_for_more_models :-
     (
-        cont, print('next ? '), get_char(R),true, R \= '\n' ->
+        cont, format('next ? ', []), get_char(R),true, R \= '\n' ->
         get_char(_),
         statistics(runtime,_),
         fail
@@ -227,13 +227,13 @@ increase_counter :-
 
 :- use_module(library(formulae)).
 print_query([not(o_false)]) :- !,
-    print('% QUERY: Query not defined'), nl.
+    format('% QUERY: Query not defined\n', []).
 print_query([true,A|As]) :- !,
     print_query([A|As]).
 print_query(Query) :-
     format('% QUERY:',[]),
     (   current_option(human,on) ->
-        print('I would like to know if'),
+        format('I would like to know if', []),
         print_human_body(Query)
     ;
         list_to_conj(Query,ConjPQ),
@@ -439,7 +439,7 @@ print_zero_nmr(_,I,I1) :-
         (   current_option(human,on) ->
             format('There are no nmr to be checked',[])
         ;
-            print(global_constraint)
+            write(global_constraint)
         ),
         I1 is I + 4
     ).
@@ -497,7 +497,7 @@ pr_human_term((Term :: TermHuman), Type) :-
         TermHuman = Human
     ;
         Term = o_nmr_check,
-        TermHuman = print(global_constraint)
+        TermHuman = write(global_constraint)
     ;
         TermHuman = print(Term)
     ).
@@ -758,24 +758,24 @@ human_portray_({_ \= B}) :- !,
     format('not equal ~p',[B]).
 human_portray_(Disequality) :-
     Disequality = {_ \= _ , _}, !,
-    print('not equal '),
+    format('not equal ', []),
     print_d(Disequality).
 human_portray_(CLPQ) :- !,
     print_c(CLPQ).
 
 %% For CLP(\=)
 print_d({_ \= A,Y,Z}) :- !,
-    print(A), print(', '), print_d({Y,Z}).
+    print(A), format(', ', []), print_d({Y,Z}).
 print_d({_ \= A,Z}) :- !,
-    print(A), print(', nor '), print_d({Z}).
+    print(A), format(', nor ', []), print_d({Z}).
 print_d({_ \= A}) :- !,
     print(A).
 
 %% For CLP(Q/R)
 print_c({X,Y,Z}) :- !,
-    print_c_(X), print(', '), print_c({Y,Z}).
+    print_c_(X), format(', ', []), print_c({Y,Z}).
 print_c({X,Z}) :- !,
-    print_c_(X), print(', and '), print_c({Z}).
+    print_c_(X), format(', and ', []), print_c({Z}).
 print_c({X}) :-
     print_c_(X).
 print_c_(Operation) :-
@@ -803,11 +803,11 @@ human_portray_args([V]) :- !,
     human_portray_arg(V).
 human_portray_args([V1,V2]) :- !,
     human_portray_arg(V1),
-    print(', and '),
+    format(', and ', []),
     human_portray_arg(V2).
 human_portray_args([V|As]) :-
     human_portray_arg(V),
-    print(', '),
+    format(', ', []),
     human_portray_args(As).
 
 human_portray_arg(A) :- var(A), !, print(A).
@@ -1173,11 +1173,11 @@ print_html(Query, Model, StackOut) :-
                 %% Skip output of the model in human mode
             ;
                 print_html_query(Query),nl,
-                print('<h3>Model:</h3>'),nl,
+                format('<h3>Model:</h3>\n', []),
                 print_model_(Model)
             ),
             br,br,nl,
-            print('<h3> Justification: <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>'),nl,nl,
+            format('<h3> Justification: <button onclick="expand()">Expand All</button><button onclick="depth(+1)">+1</button><button onclick="depth(-1)">-1</button><button onclick="collapse()">Collapse All</button></h3>\n\n'),
             print_html_stack(StackOut),
             load_jquery_tree(Jquery_tree),
             print(Jquery_tree),nl,nl,
@@ -1205,12 +1205,12 @@ remove_ext(Rs,Rs).
 print_html_query([[true|PQ],_,Bindings,PVars]) :- !,
     print_html_query([PQ,_,Bindings,PVars]).
 print_html_query([PQ,_,Bindings,PVars]) :-
-    print('<h3>Query:</h3>'),nl,
+    format('<h3>Query:</h3>\n'),
     tab_html(5),
-    print('?-'),tab_html(2),
+    format('?-', []),tab_html(2),
     print_html_body(PQ),
     br,nl,br,nl,
-    print('<h3>Answer:</h3>'),
+    format('<h3>Answer:</h3>', []),
     ( Bindings = [] ->
         format('yes',[])
     ;
@@ -1221,14 +1221,14 @@ print_html_query([PQ,_,Bindings,PVars]) :-
 print_html_human_query([[true|PQ],[true|PAnswer],Bindings,PVars]) :- !,
     print_html_human_query([PQ,PAnswer,Bindings,PVars]).
 print_html_human_query([PQ,PAnswer,Bindings,PVars]) :-
-    print('<h3>Query:</h3>'),
+    format('<h3>Query:</h3>'),
     tab_html(5),
-    print('I would like to know if'),br,nl,
+    format('I would like to know if'),br,nl,
     print_html_human_body(PQ),
     br,nl,
-    print('<h3>Answer:</h3>'),nl,
+    format('<h3>Answer:</h3>'),nl,
     tab_html(5),
-    print('Yes, I found that'),br,
+    format('Yes, I found that'),br,
     print_html_unifier(Bindings,PVars),
     print_html_human_body(PAnswer),
     br,nl.
@@ -1259,14 +1259,14 @@ print_html_stack(StackOut) :-
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
     retractall(pr_print(_)),
-    nl, print(' <ul class="tree">'),nl,nl,
+    format('\n <ul class="tree">\n\n'),
     print_html_stack_(StackOut,5,5),
-    nl, print(' </ul> '),nl,nl.
+    format('\n </ul>\n\n').
 
 print_html_stack_([],_,_) :-
     print_human('.'),
     retract(pr_print(Sp)),
-    nl,tab(Sp), print('</li> '),
+    nl,tab(Sp), format('</li> '),
     close_ul(Sp,5).
 print_html_stack_([[]|As],I,I0) :- !,
     (   sp_tab(I) ->
@@ -1327,7 +1327,7 @@ print_html_zero_nmr(_,I,I1) :-
         asserta(sp_tab(I)),
         I1 = I
     ;
-        nl,tab(I),print('<li> '),
+        nl,tab(I),format('<li> '),
         nl,tab(I),
         (   current_option(human,on) ->
             format('There are no nmr to be checked',[])
@@ -1389,7 +1389,7 @@ close_output_file(Stream,Current) :-
     close(Stream),
     retractall(printingHTML).
 
-br :- print('<br>').
+br :- format('<br>').
 
 
 
@@ -1483,12 +1483,12 @@ print_human_rules_(R) :-
     R = rule(Head,Body),
     print_human_head(Head),
     ( Body == [] ->
-        print('.'),nl
+        format('.\n')
     ;
         (  current_option(human,on) ->
-            print(', if')
+            format(', if')
         ;
-            print(' :-')
+            format(' :-')
         ),
         print_human_body(Body)
     ).
@@ -1507,14 +1507,13 @@ print_human_head(Head) :-
 
 print_human_body([Last]) :- !,
     print_human_body_(Last),
-    print('.'),
-    nl.
+    format('.\n').
 print_human_body([L|Ls]) :-
     print_human_body_(L),
     ( current_option(human,on) ->
-        print(' and')
+        format(' and')
     ;
-        print(',')
+        format(',')
     ),
     print_human_body(Ls).
 
