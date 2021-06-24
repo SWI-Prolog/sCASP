@@ -73,7 +73,7 @@ program under the stable model semantic.
 % naf_builtin(findall)
 :- use_module(library(aggregates)).
 
-:- initialization(mymain, main).
+:- initialization(main, main).
 
 mymain :-
     gtrace,
