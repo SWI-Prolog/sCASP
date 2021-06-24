@@ -732,6 +732,9 @@ portray(Constraint) :-
     C is N/D, truncate_(C,R),
     pretty_clp(_,Op), !,
     format("~p ~w ~p",[A,Op,R]).
+portray('| '(A,B)) :-
+    !,
+    format("~p | ~p",[A,B]).
 portray(Constraint) :-
     Constraint =.. [Op,A,B],
     pretty_clp(_,Op), !,
@@ -948,7 +951,6 @@ pretty_clp_(< ,< ).
 pretty_clp_(> ,> ).
 pretty_clp_(=<,=<).
 pretty_clp_(>=,>=).
-pretty_clp_('| ','| ').
 
 
 
