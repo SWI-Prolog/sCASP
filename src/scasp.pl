@@ -942,10 +942,11 @@ proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
 %       NewInter is Intervening + 1,
 %       neg_proved_in_stack_(Goal, Ss, NewInter, NewMaxInter).
 
-max(A, B, A) :-
-    A >= B.
-max(A, B, B) :-
-    A < B.
+max(A, B, M) :-
+    (   A >= B
+    ->  M = A
+    ;   M = B
+    ).
 
 % check if it is a even loop -> coinductive success
 type_loop(Goal, Stack, Type) :-
