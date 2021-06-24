@@ -16,7 +16,7 @@ Detect OLON rules and construct nmr_check.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -27,7 +27,7 @@ Detect OLON rules and construct nmr_check.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -63,13 +63,13 @@ generate_nmr_check :-
 % the negation of the dummy head (_false_0). Call generate_nmr_check/0 instead
 % of this.
 generate_nmr_check2 :-
-    findall(R, (defined_rule(_, H, B), rule(R, H, B)), Rs), % get all rules
+    findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs), % get all rules
     once(olon_rules(Rs, Rc, [e('_false_0')])),
     once(nmr_check(Rc, Nmrchk)),
     once(retractall(defined_rule('_false_0', _, _))), % remove headless rules
     negate_functor('_false_0', Nf),
     predicate(Np, Nf, []),
-    rule(Nr, Np, []),
+    c_rule(Nr, Np, []),
     assert_rule(Nr), % assert fact for negation of dummy head.
     assert_nmr_check(Nmrchk).
 
@@ -374,7 +374,7 @@ olon_chks([R | T], [not(G) | Nmr], C) :-
     rule(R, X, _, Y),
     predicate(X, '_false_0', _), % headless rule
     !,
-    rule(R2, X, Y), % strip ID for comp_duals3/2
+    c_rule(R2, X, Y), % strip ID for comp_duals3/2
     create_unique_functor('_chk_0', C, H), % Create functor for sub-check head
     comp_duals3(H, [R2]),
     predicate(G, H, []), % Create goal for NMR check
@@ -384,10 +384,10 @@ olon_chks([R | T], [Go | Nmr], C) :-
     rule(R, X, _, Y),
     !,
     (once(member(not(X), Y)) -> % negated head must match exactly, including args
-            rule(R2, X, Y)
+            c_rule(R2, X, Y)
     ;
             append(Y, [not(X)], Y2),
-            rule(R2, X, Y2) % add negated head to body
+            c_rule(R2, X, Y2) % add negated head to body
     ),
     predicate(X, Hi, _),
     split_functor(Hi, _, A), % get arity of head
@@ -422,7 +422,7 @@ assign_unique_ids(Ri, Ro) :-
 % @param ListOut A list of rules or goals with unique IDs attached.
 % @param Counter The next ID to assign.
 assign_unique_ids2([X | T], [X2 | T2], C) :-
-    rule(X, H, B), % rule
+    c_rule(X, H, B), % rule
     !,
     rule(X2, H, C, B),
     C1 is C + 1,

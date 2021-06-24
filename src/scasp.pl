@@ -73,6 +73,16 @@ program under the stable model semantic.
 % naf_builtin(findall)
 :- use_module(library(aggregates)).
 
+:- initialization(mymain, main).
+
+mymain :-
+    gtrace,
+    catch_with_backtrace(
+        main, E,
+        (   print_message(error, E),
+            halt(1)
+        )).
+
 % ------------------------------------------------------------- %%
 :- doc(section, "Main predicates").
 

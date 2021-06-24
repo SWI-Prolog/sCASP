@@ -1144,7 +1144,7 @@ generate_pr_rules(_Sources) :-
     retractall(pr_show_predicate(_)),
     retractall(pr_pred_predicate(_)),
     %% format('\nLoading files: ~w\n',Sources),
-    findall(R, (defined_rule(_, H, B), rule(R, H, B)), Rs),
+    findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
     new_var_struct(V),
     format_term_list(Rs,Rs2,_,V),
     (

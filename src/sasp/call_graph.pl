@@ -17,7 +17,7 @@ Given the input program, build a call graph and assert the components.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -28,7 +28,7 @@ Given the input program, build a call graph and assert the components.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -42,7 +42,7 @@ Given the input program, build a call graph and assert the components.
 */
 
 :-set_prolog_flag(multi_arity_warnings,off).
-    
+
 :- use_module(common).
 
 %! a(?Head:int, ?Goal:int, ?Negation:int, ?ID:int) is det
@@ -140,7 +140,7 @@ get_arcs([R | T], Gi, Go, SD) :-
     get_arcs(T, G1, Go, SD).
 get_arcs([R | T], Gi, Go, SD) :-
     \+rule(R, _, _, _), % Rules do NOT have IDs. Otherwise, dual rules with IDs can trigger an error.
-    rule(R, H, Y), % rules have no IDs attached.
+    c_rule(R, H, Y), % rules have no IDs attached.
     I is -1,
     predicate(H, F, _), % get functor of head
     \+e(F),

@@ -217,6 +217,7 @@ fatal_error(X, Y) :-
 %        term, etc.
 write_error(X) :-
     swritef(Msg, 'ERROR: ~w.\n', [X]),
+    gtrace,
     write(user_error, Msg).
 
 %! write_error(+Format:string, +Arguments:list) is det

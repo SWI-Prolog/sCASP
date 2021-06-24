@@ -24,7 +24,7 @@ the resulting dynamic predicates.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -35,7 +35,7 @@ the resulting dynamic predicates.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -175,7 +175,7 @@ format_program([], P) :-
 % @param ComputeIn compute statement.
 % @param ComputeOut compute statement. Only the final compute statement is kept.
 sort_by_type([X | T], [X | R], Ci, Co) :-
-    rule(X, _, _),
+    c_rule(X, _, _),
     !,
     sort_by_type(T, R, Ci, Co).
 sort_by_type([X | T], R, _, Co) :-
@@ -207,7 +207,7 @@ get_predicates(P, Ps) :-
 % @param PredicatesIn Input list of predicates.
 % @param PredicatesOut Output list of predicates.
 get_predicates2([R | T], Psi, Pso) :-
-    rule(R, H, B),
+    c_rule(R, H, B),
     predicate(H, F, _), % get the functor
     member(F, Psi), % already seen
     !,
@@ -215,13 +215,13 @@ get_predicates2([R | T], Psi, Pso) :-
     !,
     get_predicates2(T, Ps2, Pso).
 get_predicates2([R | T], Psi, Pso) :-
-    rule(R, H, B),
+    c_rule(R, H, B),
     predicate(H, F, _), % get the functor
     !,
     get_predicates3(B, [F | Psi], Ps2),
     !,
     get_predicates2(T, Ps2, Pso).
-get_predicates2([], Ps, Ps) :- 
+get_predicates2([], Ps, Ps) :-
     !.
 
 %! get_predicates3(+Goals:list, +PredicatesIn:list, -PredicatesOut:list) is det
@@ -252,7 +252,7 @@ get_predicates3([G | T], Psi, Pso) :-
 get_predicates3([_ | T], Psi, Pso) :-
     !, % skip non-predicates (expressions)
     get_predicates3(T, Psi, Pso).
-get_predicates3([], Ps, Ps) :- 
+get_predicates3([], Ps, Ps) :-
     !.
 
 %! handle_classical_negations(+Predicates:list, +Seen:list) is det
@@ -274,7 +274,7 @@ handle_classical_negations([X | T], S) :-
     X2 =.. [X | A],
     Xn2 =.. [Xn | A],
     predicate(H, '_false_0', []), % dummy head for headless rules
-    rule(R, H, [X2, Xn2]),
+    c_rule(R, H, [X2, Xn2]),
     assert_rule(R), % assert rule
     !,
     handle_classical_negations(T, [X | S]).
@@ -310,7 +310,7 @@ assert_rules([]).
 %
 % @param Rule A rule struct.
 assert_rule(R) :-
-    rule(R, H2, B),
+    c_rule(R, H2, B),
     predicate(H2, H, _), % get the head without args
     assertz(defined_rule(H, H2, B)),
     !.
@@ -329,7 +329,7 @@ assert_query(Q) :-
 %
 % @param NMR The list of goals in the NMR check.
 assert_nmr_check(NMR) :-
-    rule(R, '_nmr_check_0', NMR),
+    c_rule(R, '_nmr_check_0', NMR),
     assert_rule(R),
     assertz(defined_nmr_check(['_nmr_check_0'])),
     !.

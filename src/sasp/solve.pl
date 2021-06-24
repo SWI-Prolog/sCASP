@@ -19,7 +19,7 @@ set using the provided query.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -30,7 +30,7 @@ set using the provided query.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -95,7 +95,7 @@ solve2(user) :-
     !,
     user_solve(Q).
 
-        
+
 
 %! auto_solve(+MaxAS:int)
 % Use the hard-coded or default query to find the specified number of answer
@@ -441,7 +441,7 @@ expand_call(Cflag, G, Vi, Vo, CHSi, CHSo, Cs, _, Eo, J, NMR) :- % not present
             print_var_constraints(C2),
             write(')'), nl
             )),
-    once(findall(R, (defined_rule(F, H, B), rule(R, H, B)), Rs)), % get potentially matching clauses
+    once(findall(R, (defined_rule(F, H, B), c_rule(R, H, B)), Rs)), % get potentially matching clauses
     (Cflag =:= -1 ->
           fail % !!! REMOVE ONCE CALL BELOW COMPLETE !!!
     %%            strip_used_rules(Cs, Rs, Rs2, G, V1),
@@ -486,7 +486,7 @@ expand_call(Cflag, G, Vi, Vo, CHSi, CHSo, Cs, _, Eo, J, NMR) :- % not present
 % @param InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
 expand_call2(G, [X | _], Vi, Vo, CHSi, CHSo, Cs, E, -(expand__call(G2), C, Js), NMR) :- % match
-    rule(X, H, B),
+    c_rule(X, H, B),
     once(get_unique_vars(H, H2, B, B2, Vi, V1)),
     if_debug(3, (
             format_term(G, G3, C2, V1),
@@ -874,7 +874,7 @@ solve_expression(@=<(G1, G2), V, V) :-
 %! solve_subexpr(+Goal:compound, +Vars:list, -Value:compound)
 % Solve a sub-expression, returning a value. Note that any variables must be
 % bound. Fail otherwise.
-% 
+%
 % @param Goal An expression to solve.
 % @param Vars Variable list.
 % @param Value The value returned.
@@ -1347,7 +1347,7 @@ solve_forall(V, G, Vi, Vo, Ci, Co, Cs, E, -(forall(Vj, Gj), C, Js), NMR) :-
             format_term(G2, G3, _, Vo),
             writef('FORALL CHS marked success via forall for ~w\n', [G3])
             )).
-    
+
 %! solve_forall2(+Var:list, +OldValue, +Goal:compound, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:list, +InNMR:int)
 % Since solve_forall/8 has solved the goals once, the variable should have a
 % value, be it bound, unbound or constrained. If bound, we simply fail. For
@@ -1453,7 +1453,7 @@ get_forall_goal(Gi, Go) :-
 get_forall_goal(Gi, Go) :-
     Gi = not(G2),
     !,
-    G2 =.. [F | A], 
+    G2 =.. [F | A],
     negate_functor(F, Fn), % get dual functor
     Go =.. [Fn | A],
     !.

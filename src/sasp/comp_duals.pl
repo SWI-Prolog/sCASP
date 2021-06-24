@@ -17,7 +17,7 @@ Computation of dual rules (rules for the negation of a literal).
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -28,7 +28,7 @@ Computation of dual rules (rules for the negation of a literal).
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -75,13 +75,13 @@ comp_duals2([X | T]) :-
     !,
     comp_duals2(T).
 comp_duals2([X | T]) :-
-    findall(R, (defined_rule(X, H, B), rule(R, H, B)), Rs), % get rules for a single predicate
+    findall(R, (defined_rule(X, H, B), c_rule(R, H, B)), Rs), % get rules for a single predicate
     comp_duals3(X, Rs),
     !,
     comp_duals2(T).
 comp_duals2([]) :-
     !.
-    
+
 %! comp_duals3(+Predicate:ground, +Rules:list) is det
 % Compute the dual for a single positive literal. Make sure that Predicate is
 % used for the dual head instead of taking the head from one of the rules. This
@@ -101,7 +101,7 @@ comp_duals3(P, R) :-
     !,
     predicate(H, P, []), % create a dummy predicate for outer_dual_head/2.
     outer_dual_head(H, Hd),
-    rule(Rd, Hd, []),
+    c_rule(Rd, Hd, []),
     assert_rule(Rd),
     !.
 
@@ -116,7 +116,7 @@ comp_duals3(P, R) :-
 % @param DualBody The body of the outer dual rule.
 % @param Count Counter used to ensure that new heads are unique.
 comp_dual(Hn, [X | T], Db, C) :-
-    rule(X, H, B),
+    c_rule(X, H, B),
     % get unique head with Hn2 including original args and Hn3 using variable args
     predicate(H, _, A1),
     predicate(Hn, F, A2),
@@ -136,7 +136,7 @@ comp_dual(Hn, [X | T], Db, C) :-
     comp_dual(Hn, T, [Dg | Db], C2).
 comp_dual(Hn, [], Db, _) :-
     reverse(Db, Db2), % restore proper goal order
-    rule(Rd, Hn, Db2),
+    c_rule(Rd, Hn, Db2),
     assert_rule(Rd),
     !.
 
@@ -164,7 +164,7 @@ comp_dual2(Hn, Bg, Bv) :-
     Hn2 =.. [F2 | A2], % add body variables to innermost head.
     define_forall(Hn2, G, Bv), % get the call to the innermost dual
     comp_dual3(Hn2, Bg, []), % create innermost duals
-    rule(Rd, Hn, [G]), % create dual
+    c_rule(Rd, Hn, [G]), % create dual
     assert_rule(Rd),
     !.
 comp_dual2(Hn, Bg, []) :-
@@ -184,7 +184,7 @@ comp_dual2(Hn, Bg, []) :-
 %        order.
 comp_dual3(Hn, [X | T], U) :-
     X = builtin_1(_), % handle built-ins specially
-    (  plain_dual(on) ->  
+    (  plain_dual(on) ->
         append([], [X], U2)
     ;
         append(U, [X], U2)
@@ -198,7 +198,7 @@ comp_dual3(Hn, [X | T], U) :-
     ;
         append(U, [X2], Db) % Keep all goals prior to the dual one.
     ),
-    rule(Rd, Hn, Db), % Clause for negation of body goal
+    c_rule(Rd, Hn, Db), % Clause for negation of body goal
     assert_rule(Rd),
     append(U, [X], U2),
     !,
@@ -212,14 +212,14 @@ comp_dual3(_, [], _) :-
 % @param GoalIn The original goal.
 % @param GoalOut The negated goal.
 
-%% constraint 
+% constraint
 dual_goal(#=(A, B), #<>(A,B)).
 dual_goal(#<>(A, B), #=(A,B)).
 dual_goal(#>(A, B), #=<(A,B)).
 dual_goal(#<(A, B), #>=(A,B)).
 dual_goal(#>=(A, B), #<(A,B)).
 dual_goal(#=<(A, B), #>(A,B)).
-%% clpq/r
+% clpq/r
 dual_goal(.=.(A, B), .<>.(A,B)).
 dual_goal(.<>.(A, B), .=.(A,B)).
 dual_goal(.>.(A, B), .=<.(A,B)).
@@ -262,7 +262,7 @@ define_forall(Gi, Go, [X | T]) :-
     Go = forall(X, G2). % build outer portion
 define_forall(G, G, []) :-
     !.
-    
+
 %! outer_dual_head(+Head:compound, -DualHead:ground) is det
 % Create the dual version of a rule head by negating the predicate name and
 % replacing the args with a variable list of the same arity.

@@ -135,10 +135,10 @@ process_directives([abducible(X) | T], C, Si, So, Fsi, Fso) :-
     atom_chars(F2, Fc2),
     atom_chars(Fn2, ['_' | Fc2]), % user predicates with an underscore will have a dummy prefix, so this is guaranteed to be unused.
     Xn2 =.. [Fn2 | A2],
-    rule(R1, X, [not(Xn), X2]), % set abducible(X) true iff X succeeds via this rule.
-    rule(R2, Xn, [not(X)]), % A simple even loop
-    rule(R3, X2, [not(Xn2)]), % rule to allow abducible(X) to be true or false.
-    rule(R4, Xn2, [not(X2)]), % A simple even loop
+    c_rule(R1, X, [not(Xn), X2]), % set abducible(X) true iff X succeeds via this rule.
+    c_rule(R2, Xn, [not(X)]), % A simple even loop
+    c_rule(R3, X2, [not(Xn2)]), % rule to allow abducible(X) to be true or false.
+    c_rule(R4, Xn2, [not(X2)]), % A simple even loop
     append(Si, [R1, R2, R3, R4], S2), % add to statements
     !, % abducible directive
     process_directives(T, C, S2, So, Fsi, Fso).

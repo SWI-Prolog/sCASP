@@ -255,7 +255,7 @@ rule_clause(X) -->
     !,
     terminal('.'),
     {predicate(G, '_false_0', [])}, % dummy head for headless rules
-    {rule(X, G, Y)}.
+    {c_rule(X, G, Y)}.
 rule_clause(X) -->
     head(Y),
     !,
@@ -291,10 +291,10 @@ asp_rule(X, Y) -->
     [(':-', _)],
     !,
     body(Z),
-    {rule(X, Y, Z)}.
+    {c_rule(X, Y, Z)}.
 asp_rule(X, Y) --> % fact
     follow(['.']),
-    {rule(X, Y, [])}.
+    {c_rule(X, Y, [])}.
 asp_rule(_, _) -->
     syntax_error(rule),
     !,
