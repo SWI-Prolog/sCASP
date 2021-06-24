@@ -1,4 +1,9 @@
-:- module(clp_disequality_rt,_).
+:- module(clp_disequality_rt,
+          [ get_neg_var/2,
+            not_unify/2,
+            loop_list/2,
+            .\=. / 2
+          ]).
 
 %% ------------------------------------------------------------- %%
 :- use_package(assertions).
@@ -15,7 +20,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 
 @pred{.=./2} is the predicate used for equality.
 
-@pred{.\=./2} is the predicate used for disequality.
+@pred{.\\=./2} is the predicate used for disequality.
 
 ").
 
@@ -59,7 +64,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% will always succeed, setting their shared prohibited value list to
 %% the union of their original lists.
 .=.(A,B) :-
-    neg_var(A,NegListA), 
+    neg_var(A,NegListA),
     neg_var(B,NegListB), !,
     ord_union(NegListA,NegListB,NegList),
     update(A,NegList),
@@ -114,7 +119,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %       num(A),
 %       disequality_clpq(B,A).
 
-        
+
 %% - Constructive disunification of a negatively constrained variable
 %% and a non- variable value will always succeed, adding the
 %% "ground" value to the variable’s prohibited value list.
@@ -160,7 +165,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %       \+ var(ListB),
 %       ListA = [A|As],
 %       ListB = [B|Bs], !,
-%       format('disequality ~p \= ~p\n',[ListA,ListB]), 
+%       format('disequality ~p \= ~p\n',[ListA,ListB]),
 %       (
 %           format('\tdisequality ~p \= ~p\n',[A,B]),
 %           A .\=. B
@@ -185,7 +190,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 
 .\=.(A,B) :-
     \+ var(A),
-    \+ var(B), 
+    \+ var(B),
     struct(A),
     struct(B), !,
 %       format('check_dual(~p \= ~p)\n',[A,B]),
@@ -196,7 +201,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
     ;
         true
     ).
-    
+
 % .\=.(A,B) :-
 %       print('vars'),
 %       disequality_clpq(A,B).
@@ -328,7 +333,7 @@ entail_neg_list(L1, L2) :-
 
 %% ------------------------------------------------------------- %%
 :- doc(section, "Auxiliar predicates").
-    
+
 %% Auxiliar predicates %%
 neg_var(A,List) :-
     (
@@ -375,7 +380,7 @@ attr_unify_hook(neg(A),B) :-
         fail
     ).
 
-attribute_goals(X) --> 
+attribute_goals(X) -->
     [.\=.(X, G)],
      {get_attr_local(X,neg(G))}.
 attr_portray_hook(neg(List), Var) :-
@@ -389,11 +394,11 @@ portray_attribute(att(_,false,att(clp_disequality_rt,neg(List),_)),Var) :-
     ;
         format(" {~w ∉ ~w} ",[Var,List])
     ).
-    
+
 %% Auxiliar predicates %%
 
 %% ------------------------------------------------------------- %%
- 
+
 %% Not needed %%
 insert_more_general([A|As],B,[A|As]) :-
     entail(A,B), !.

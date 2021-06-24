@@ -1,9 +1,9 @@
-:- module(scasp_load_compiled,_).
-
-
+:- module(scasp_load_compiled,
+          [ read_compiled_source/1
+          ]).
 
 :- use_module(library(stream_utils)).
-:- use_module(library(assertions/assrt_lib)).
+% :- use_module(library(assertions/assrt_lib)).
 :- use_module(library(formulae)).
 
 :- use_module(scasp_io).
@@ -57,7 +57,7 @@ read_compiled_file(F) :-
 assert_clause(end_of_file) :- !.
 
 %% TODO: Process the compiled files to add directives (e.g., #pred).
-assert_clause('#'(_)) :- !.   
+assert_clause('#'(_)) :- !.
 
 assert_clause('?-'(Query)) :- !,
     conj_to_list(Query, LQuery),

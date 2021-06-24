@@ -30,7 +30,7 @@ Input programs are normal logic programs with the following additions:
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -41,7 +41,7 @@ Input programs are normal logic programs with the following additions:
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -85,6 +85,23 @@ parse_program(_, _, _, _) :-
 parse_query(Toks, Query) :-
     write_verbose(0, 'Parsing user query...\n'),
     once(user_query(Query, Toks, [])),
+    !.
+
+%! syntax_error(+Expected:callable, +TokensIn:list, -TokensOut:list)
+% Print error messages for syntax errors. Gets next token and calls
+% syntax_error2/3 to print the message.
+%
+% @param Expected Expected token.
+% @param TokensIn Input list of tokens.
+% @param TokensOut Output list of tokens.
+syntax_error(Expected) -->
+    [(C, Pos)],
+    {syntax_error2(C, Pos, Expected)},
+    !.
+syntax_error(Expected, [], []) :-
+    syntax_msg(Expected, ExpMsg),
+    swritef(Msg, 'ERROR: Unexpected end of file. ~w.\n', [ExpMsg]),
+    write(user_error, Msg),
     !.
 
 %! asp_program(-Statements:list, -Directives:list, +ErrorsIn:int, -ErrorsOut:int, +TokensIn:list, -TokensOut:list)
@@ -174,6 +191,22 @@ directive(X) -->
     !,
     directive2(X).
 
+%! include(-File:filepath, +TokensIn:list, -TokensOut:list)
+% An include directive's body. Parenthesis are optional.
+%
+% @param File The file to include.
+% @param TokensIn Input list of tokens.
+% @param TokensOut Output list of tokens.
+include(Xo) -->
+    [('(', _)],
+    !,
+    [(str(X), _)],
+    {strip_quotes(X, Xo)},
+    [(')', _)].
+include(Xo) -->
+    [(str(X), _)],
+    {strip_quotes(X, Xo)}.
+
 %! directive2(-Directive:compound, +TokensIn:list, -TokensOut:list)
 % A directive can be be an include statement, an abducible statement or a
 % compute statement.
@@ -208,22 +241,6 @@ directive2(_) --> % invalid statement
     syntax_error(directive),
     !,
     {fail}.
-
-%! include(-File:filepath, +TokensIn:list, -TokensOut:list)
-% An include directive's body. Parenthesis are optional.
-%
-% @param File The file to include.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
-include(Xo) -->
-    [('(', _)],
-    !,
-    [(str(X), _)],
-    {strip_quotes(X, Xo)},
-    [(')', _)].
-include(Xo) -->
-    [(str(X), _)],
-    {strip_quotes(X, Xo)}.
 
 %! rule_clause(-Statement:compound, +TokensIn:list, -TokensOut:list)
 % A clause can be a headless rule or a normal rule.
@@ -384,7 +401,7 @@ get_infix2([X]) -->
 %
 % @param Atom An atom constructed by concatenating the applicable tokens.
 % @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.       
+% @param TokensOut Output list of tokens.
 asp_predicate(X) -->
     [('-', _)], % classical negation
     asp_atom(Y),
@@ -568,7 +585,7 @@ asp_atom(X) -->
     [(id(X), _)].
 asp_atom(X) -->
     [(str(X), _)].
-    
+
 %! infix_to_prefix(-Prefix:compound, +Infix:list) is det
 % Convert an infix expression to a prefix expression.
 %
@@ -744,23 +761,6 @@ replace_underscore(V) :-
     number_chars(I2, Ic),
     atom_chars(V, ['_', 'V' | Ic]),
     b_setval(us_cnt, I2), % update underscore counter
-    !.
-
-%! syntax_error(+Expected:callable, +TokensIn:list, -TokensOut:list)
-% Print error messages for syntax errors. Gets next token and calls
-% syntax_error2/3 to print the message.
-%
-% @param Expected Expected token.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
-syntax_error(Expected) -->
-    [(C, Pos)],
-    {syntax_error2(C, Pos, Expected)},
-    !.
-syntax_error(Expected, [], []) :-
-    syntax_msg(Expected, ExpMsg),
-    swritef(Msg, 'ERROR: Unexpected end of file. ~w.\n', [ExpMsg]),
-    write(user_error, Msg),
     !.
 
 %! syntax_error2(+Token:callable, +Position:compound, +Expected:callable)

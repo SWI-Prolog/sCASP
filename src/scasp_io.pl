@@ -19,9 +19,11 @@
     current_option/2,
     counter/2,
     set_options/1,
-    answer_counter/1
+    answer_counter/1,
+    print_html/3
     ]).
-
+:- expects_dialect(ciao).
+:- style_check(-singleton).
 
 %% ------------------------------------------------------------- %%
 :- use_package(assertions).
@@ -72,6 +74,10 @@ Arias} in the folder @file{./src/sasp/}.
 
 %% ------------------------------------------------------------- %%
 
+:- if(current_prolog_flag(version_data, swi(_,_,_,_))).
+scasp_update :-
+    pack_upgrade(scasp).
+:- else.
 :- pred scasp_update/0 #"update the bundle sCASP using ciao".
 :- use_module(library(process)).
 scasp_update :-
@@ -96,6 +102,7 @@ scasp_update :-
     fail.
 scasp_update :-
     halt.
+:- endif.
 
 :- pred scasp_version/0 #"print the current version of s(CASP)".
 scasp_version :-
@@ -110,11 +117,11 @@ scasp_version :-
 :- dynamic loaded_file/1.
 load_program([]) :-
     display('ERROR: No imput file specified!'),nl,nl,
-    help, abort. %% halt.
+    s_help, abort. % halt.
 load_program(C) :-
     retractall(loaded_file(_)),
     current_option(compiled, on), !,
-    (  list(C) ->
+    (   is_list(C) ->
         Files = C
     ;
         Files = [C]
@@ -124,7 +131,7 @@ load_program(C) :-
 load_program(X) :-
     retractall(loaded_file(_)),
     (
-        list(X) ->
+        is_list(X) ->
         Files = X
     ;
         Files = [X]
@@ -153,7 +160,7 @@ and top-level mode (even when the query is ground). Returns in
 process_query(Q,Query,TotalQuery) :-
     revar(Q,A),
     (
-        list(A) -> As = A ; As = [A]
+        is_list(A) -> As = A ; As = [A]
     ),
     (
         As = [not(_)|_] ->
@@ -863,7 +870,7 @@ simple_operand(Operand,'$'(Var)) :-
 simple_operand(A,A).
 
 
-:- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
+:- use_module(clp_clpq).
 pretty_portray_attribute(Att,A,PVar,PA) :-
     pretty_portray_attribute_(Att,A,PVar,PA),!.
 pretty_portray_attribute(_Att,_,PVar,PVar).
@@ -962,7 +969,7 @@ check_compatibilities :-
     current_option(check_calls,on),
     current_option(human,on), !,
     format('ERROR: verboser and human output do not allowed together!\n\n',[]),
-    help, abort,
+    s_help, abort,
     fail.
 check_compatibilities.
 
@@ -974,15 +981,15 @@ set_user_options([O | Os]) :-
         set_user_options(Os)
     ;
         format('ERROR: The option ~w is not supported!\n\n',[O]),
-        help, abort,
+        s_help, abort,
         fail
     ).
 
 :- dynamic html_name/1.
 set_user_option('--help_all')           :- help_all, abort.
-set_user_option('-h')                   :- help, abort.
-set_user_option('-?')                   :- help, abort.
-set_user_option('--help')               :- help, abort.
+set_user_option('-h')                   :- s_help, abort.
+set_user_option('-?')                   :- s_help, abort.
+set_user_option('--help')               :- s_help, abort.
 set_user_option('-i')                   :- set(interactive, on).
 set_user_option('--interactive')        :- set(interactive, on).
 set_user_option('-a').
@@ -1057,7 +1064,7 @@ set(Option, Value) :-
     retractall(current_option(Option, _)),
     assert(current_option(Option,Value)).
 
-help :-
+s_help :-
     display('Usage: scasp [options] InputFile(s)\n\n'),
     display('s(CASP) computes stable models of predicate normal logic programs with contraints\n'),
     display('  using a top-down evaluation algorihtm.\n'),

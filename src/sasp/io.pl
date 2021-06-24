@@ -1,6 +1,8 @@
 :- module(io,
           [ load_source_files/1,
-            read_query/2
+            read_query/2,
+            pred/1,
+            show/1
           ]).
 
 /** <module> Handle opening and closing files and directing output

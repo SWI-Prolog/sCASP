@@ -1059,7 +1059,9 @@ clp_builtin_translate('#>', .>.).
 clp_builtin_translate('#>=', .>=.).
 clp_builtin_translate('#=<', .=<.).
 
+:- if(exists_source(library(clpq/solver_q))).
 :- use_module(library(clpq/solver_q), [inf/2, sup/2]).
+:- endif.
 :- pred clp_interval(Goal) # "Success if @var{Goal} is a builtin
     constraint predicate to extract interval limits".
 
@@ -1231,7 +1233,7 @@ apply_constraint(CLPConstraint) :-
     apply_clpq_constraints(CLPConstraint).
 
 
-:- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
+:- use_module(clp_clpq).
 find_duals(C_Vars-C_Vars1, OtherVars, Duals) :-
     dump_constraint(C_Vars, C_Vars1, Dump, []-[], Pending-Pending1), !, %% disequality and clp for numbers
     clp_vars_in(OtherVars, OtherCLPVars),

@@ -1,10 +1,18 @@
 :- module(clp_clpq,
-          []).
+          [ is_clpq_var/1,
+            clpqr_dump_constraints/3,
+            disequality_clpq/2,
+            entails/2,
+            entail_terms/2,
+            dual_clpq/2,
+            apply_clpq_constraints/1,
+            dump_clpq_var/3
+          ]).
 :- expects_dialect(ciao).
 % from clpqr_ops.pl
 :- op(700, xfx, [(.=.),(.<>.),(.<.),(.=<.),(.>.),(.>=.)]).
 
-%% ------------------------------------------------------------- %%
+% ------------------------------------------------------------- %%
 :- use_package(assertions).
 :- doc(title, "Extension of the constraint solver CLP(Q)").
 :- doc(author, "Joaquin Arias").
@@ -23,16 +31,65 @@ constraints of a variable.
 
 ").
 
-%% ------------------------------------------------------------- %%
+% ------------------------------------------------------------- %%
 
 :- use_module(clp_disequality_rt).
 
 :- use_module(engine(attributes)).
 
+:- if(exists_source(library(clpqr/dump))).
+:- use_module(library(clpq)).
+:- use_module(library(clpr), []).                                % avoid undef
+:- use_module(library(clpqr/dump), [dump/3]).
+clpqr_dump_constraints(Target, NewVars, Constraints) :-
+    dump(Target, NewVars, Constraints).
+clpq_entailed(C) :-
+    entailed(C).
+clpq_meta(C) :-
+    clpqr_meta(C).
+
+% from Ciao library/clpqr/clpqr_meta.pl
+clpqr_meta(A) :- var(A), !, fail.
+clpqr_meta((A,B)) :- !, clpqr_meta(A), clpqr_meta(B).
+clpqr_meta((A;B)) :- !, ( clpqr_meta(A) ; clpqr_meta(B) ).
+clpqr_meta([]) :- !.
+clpqr_meta(X) :- X = [_|_], !, clpqr_meta_list(X).
+clpqr_meta(A) :-
+        translate_meta_clp(A).
+
+clpqr_meta_list([]) :- !.
+clpqr_meta_list([A|As]) :- !,
+        clpqr_meta(A),
+        clpqr_meta_list(As).
+
+translate_meta_clp(A.=.B) :- !,
+        translate_meta_clp_aux(.=.,  A-B).
+translate_meta_clp(A.<>.B) :- !,
+        translate_meta_clp_aux(.<>., A-B).
+translate_meta_clp(A.<.B) :- !,
+        translate_meta_clp_aux(.<.,  A-B).
+translate_meta_clp(A.=<.B) :- !,
+        translate_meta_clp_aux(.=<., A-B).
+translate_meta_clp(A.>.B) :- !,
+        translate_meta_clp_aux(.<.,  B-A).
+translate_meta_clp(A.>=.B) :- !,
+        translate_meta_clp_aux(.=<., B-A).
+
+translate_meta_clp_aux(Type, Diff) :-
+        normalize(Diff, K, I, H),
+        translate_meta_clp_aux_aux(Type, K, I, H).
+
+translate_meta_clp_aux_aux(.<>., K, I, H) :- var_with_def(_, nz, K, I, H).
+translate_meta_clp_aux_aux(.=. , _, I, H) :- solve_lin(H, I).
+translate_meta_clp_aux_aux( .<., _, I, H) :- solve_ineq_lt(H, I).
+translate_meta_clp_aux_aux(.=<., _, I, H) :- solve_ineq_le(H, I).
+
+:- else.
 :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
 :- use_package(clpq).
+:- endif.
 
-%% ------------------------------------------------------------- %%
+% ------------------------------------------------------------- %%
 
 is_clpq_var(X) :-
     var(X),
@@ -144,7 +201,7 @@ entail_list(A, B) :-
     clpq_meta(StoreA),
     clpq_entailed(StoreB).
 
-%% Success if S >= Goal
+% Success if S >= Goal
 :- use_module(library(terms_vars)).
 :- use_module(library(terms_check)).
 entail_terms(Goal, S) :-
