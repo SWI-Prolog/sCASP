@@ -731,11 +731,11 @@ portray(Constraint) :-
     current_option(real,on),
     C is N/D, truncate_(C,R),
     pretty_clp(_,Op), !,
-    format("~p ~p ~p",[A,Op,R]).
+    format("~p ~w ~p",[A,Op,R]).
 portray(Constraint) :-
     Constraint =.. [Op,A,B],
     pretty_clp(_,Op), !,
-    format("~p ~p ~p",[A,Op,B]).
+    format("~p ~w ~p",[A,Op,B]).
 
 % W.o. description for the variable
 human_portray_default(A '| ' B) :- !,
@@ -898,7 +898,7 @@ pretty_portray_attribute_(neg(List),_,PVar,PA) :-
         PA=PVar
     ;
         pretty_disequality(PVar,List,Const),
-        PA =.. ['| ', PVar, {Const}]
+        PA =.. ['| ', $(PVar), {Const}]
     ).
 pretty_portray_attribute_(_,A,PVar,PA) :-
     clpqr_dump_constraints(A, PVar, Constraints),
@@ -908,11 +908,11 @@ pretty_portray_attribute_(_,A,PVar,PA) :-
         sort(Constraints,Sort),
         reverse(Sort,RConstraints),
         pretty_constraints(RConstraints,Const),
-        PA =.. ['| ', PVar, {Const}]
+        PA =.. ['| ', $(PVar), {Const}]
     ).
 
-pretty_disequality(PVar,[A],(PVar \= A)) :- !.
-pretty_disequality(PVar,[A|As],(PVar \= A, Cs)) :-
+pretty_disequality(PVar,[A],($(PVar) \= A)) :- !.
+pretty_disequality(PVar,[A|As],($(PVar) \= A, Cs)) :-
     pretty_disequality(PVar,As,Cs).
 
 pretty_constraints([A],(C)) :- !,
@@ -948,6 +948,7 @@ pretty_clp_(< ,< ).
 pretty_clp_(> ,> ).
 pretty_clp_(=<,=<).
 pretty_clp_(>=,>=).
+pretty_clp_('| ','| ').
 
 
 
