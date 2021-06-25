@@ -1,9 +1,23 @@
-# SWI-Prolog port
+# SWI-Prolog port (swipl branch)
 
 > This is a fork from https://gitlab.software.imdea.org/ciao-lang/sCASP.
 > It provides a quick and dirty port of this interesting work to
-> SWI-Prolog __in the branch `swipl`__. The basics work and pass (most
-> of) the tests.  Please switch to the `swipl` branch for details.
+> SWI-Prolog __in the branch `swipl`__.
+
+## Status of the SWI-Prolog port
+
+The basics work and pass (most of) the tests. Running depends on the
+Ciao emulation package at https://www.swi-prolog.org/pack/list?p=ciao.
+Although both SWI-Prolog and Ciao have a CLP(QR) module that originates
+from the work by Christian Holzbauer, the two versoions have diverged
+considerably and this part of the port has not yet been completed.
+
+The current source is a bit of a mess, consisting of a first sASP layer
+by Kyle Marple on top of SWI-Prolog, the sCASP version implemented on
+top of Ciao by Joaquin Arias, the Ciao emulation layer by Edison Mera
+and a rather quick and dirty port to SWI-Prolog by Jan Wielemaker. It
+addresses the feasibility of a port.  Ultimately we should see a full
+port with a maintainable portable core.
 
 # s(CASP)
 
