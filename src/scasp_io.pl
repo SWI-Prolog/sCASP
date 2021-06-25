@@ -735,10 +735,28 @@ portray(Constraint) :-
 portray('| '(A,B)) :-
     !,
     format("~p | ~p",[A,B]).
+portray(not(A)) :-
+    !,
+    format("not ~p",[A]).
+portray(Compound) :-
+    compound(Compound),
+    Compound =.. [Name|Args],
+    special_start(Name, Start, Rest),
+    !,
+    Compound2 =.. [Rest|Args],
+    format('~w~p', [Start, Compound2]).
 portray(Constraint) :-
     Constraint =.. [Op,A,B],
     pretty_clp(_,Op), !,
     format("~p ~w ~p",[A,Op,B]).
+
+special_start(Name, Start, Rest) :-
+    special_start(Start),
+    atom_concat(Start, Rest, Name),
+    !.
+
+special_start(-).
+special_start('_').
 
 % W.o. description for the variable
 human_portray_default(A '| ' B) :- !,
