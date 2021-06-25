@@ -1075,7 +1075,7 @@ the term @var{Term} but it only replaces with a fresh variable
 my_copy_term(Var0, Term0, Var, Term) :-
     term_variables(Term0, AllVars),
     delete_var(AllVars, Var0, Share),
-    copy_term(t(Var,Share,Term0), t(Var,Share,Term)).
+    copy_term(t(Var0,Share,Term0), t(Var,Share,Term)).
 
 delete_var([], _, []).
 delete_var([H|T], V, List) :-
