@@ -1,3 +1,10 @@
+# SWI-Prolog port
+
+> This is a fork from https://gitlab.software.imdea.org/ciao-lang/sCASP.
+> It provides a quick and dirty port of this interesting work to
+> SWI-Prolog __in the branch `swipl`__. The basics work and pass (most
+> of) the tests.  Please switch to the `swipl` branch for details.
+
 # s(CASP)
 
 The `s(CASP)` system is a top-down interpreter for ASP programs with
@@ -21,7 +28,7 @@ lists and terms.
 
 [![pipeline status](https://gitlab.software.imdea.org/ciao-lang/sCASP/badges/master/pipeline.svg)](https://gitlab.software.imdea.org/ciao-lang/sCASP/-/commits/master)
 
-## Installation of s(CASP) 
+## Installation of s(CASP)
 
 
 ### CIAO
@@ -142,7 +149,7 @@ $ scasp -i test.pl
 ?- q(A).
 Answer 1	(in 0.228 ms):
 q(A) ,  not p(A)
- ? 
+ ?
 ```
 
 ### Explanation and debugging
