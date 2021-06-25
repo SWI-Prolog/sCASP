@@ -862,7 +862,6 @@ lookup_mydict_([],_,_) :- !, fail.
 lookup_mydict_([(V=PVar)|_],A,PVar) :- V == A, !.
 lookup_mydict_([_|Rs],A,PVar) :- lookup_mydict_(Rs,A,PVar).
 
-:- use_module(engine(attributes)).
 pretty_term(D0,D1,A,PA) :-
     var(A), !,
     lookup_mydict(D0,D1,A,PVar),
@@ -911,7 +910,8 @@ simple_operand(A,A).
 
 :- use_module(clp_clpq).
 pretty_portray_attribute(Att,A,PVar,PA) :-
-    pretty_portray_attribute_(Att,A,PVar,PA),!.
+    pretty_portray_attribute_(Att,A,PVar,PA),
+    !.
 pretty_portray_attribute(_Att,_,PVar,PVar).
 
 pretty_portray_attribute_(neg(List),_,PVar,PA) :-
