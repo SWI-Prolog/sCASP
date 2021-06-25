@@ -16,7 +16,6 @@
             check_CHS/3,
             predicate/1,
             table_predicate/1,
-            my_copy_term/4,
             clear_flags/0,
             check_calls/0,
             pos_loops/0,
@@ -1072,33 +1071,24 @@ similar to @pred{copy_term/2}. It returns in @var{NewTerm} a copy of
 the term @var{Term} but it only replaces with a fresh variable
 @var{NewVar} the occurrences of @var{Var}".
 
-%! my_copy_term(Var, Term, NewVar, NewTerm)
-my_copy_term(Var, V, NewVar, NewVar) :- var(V), V == Var, !.
-my_copy_term(Var, V, _, V) :- var(V), V \== Var, !.
-my_copy_term(_, G, _, G) :- ground(G), !.
-my_copy_term(Var, Struct, NewVar, NewStruct) :-
-    Struct =.. [Name|Args], !,
-    my_copy_list(Var, Args, NewVar, NewArgs),
-    NewStruct =.. [Name|NewArgs].
+my_copy_term(Var0, Term0, Var, Term) :-
+    term_variables(Term0, AllVars),
+    delete_var(AllVars, Var0, Share),
+    copy_term(t(Var,Share,Term0), t(Var,Share,Term)).
 
-my_copy_list(_, [], _, []).
-my_copy_list(Var, [T|Ts], NewVar, [NewT|NewTs]) :-
-    my_copy_term(Var, T, NewVar, NewT),
-    my_copy_list(Var, Ts, NewVar, NewTs).
+delete_var([], _, []).
+delete_var([H|T], V, List) :-
+    (   H == V
+    ->  List = T
+    ;   delete_var(T, V, List)
+    ).
 
-:- if(false).
-my_copy_vars([], G, [], G).
-my_copy_vars([V0|V0s], Goal0, [V1|V2s], Goal2) :-
-    my_copy_term(V0, Goal0, V1, Goal1),
-    my_copy_vars(V0s, Goal1, V2s, Goal2).
-:- else.
 my_copy_vars(Vars0, Term0, Vars, Term) :-
     term_variables(Term0, AllVars),
     sort(AllVars, AllVarsSorted),
     sort(Vars0, Vars0Sorted),
     ord_subtract(AllVarsSorted, Vars0Sorted, Share),
     copy_term(t(Vars0,Share,Term0), t(Vars,Share,Term)).
-:- endif.
 
 :- use_module(library(terms_vars)).
 my_diff_term(Term, Vars, Others) :-
