@@ -1096,10 +1096,19 @@ my_copy_list(Var, [T|Ts], NewVar, [NewT|NewTs]) :-
     my_copy_term(Var, T, NewVar, NewT),
     my_copy_list(Var, Ts, NewVar, NewTs).
 
+:- if(false).
 my_copy_vars([], G, [], G).
 my_copy_vars([V0|V0s], Goal0, [V1|V2s], Goal2) :-
     my_copy_term(V0, Goal0, V1, Goal1),
     my_copy_vars(V0s, Goal1, V2s, Goal2).
+:- else.
+my_copy_vars(Vars0, Term0, Vars, Term) :-
+    term_variables(Term0, AllVars),
+    sort(AllVars, AllVarsSorted),
+    sort(Vars0, Vars0Sorted),
+    ord_subtract(AllVarsSorted, Vars0Sorted, Share),
+    copy_term(t(Vars0,Share,Term0), t(Vars,Share,Term)).
+:- endif.
 
 :- use_module(library(terms_vars)).
 my_diff_term(Term, Vars, Others) :-
