@@ -894,7 +894,7 @@ simple_operands([A,B],[SA,SB]) :-
     !,
     simple_operand(A,SA),
     simple_operand(B,SB).
-simple_operand(Operand,'$'(Var)) :-
+simple_operand(Operand,Var) :-
     Operand = '| '(Var, _), !.
 simple_operand(A,A).
 
@@ -911,10 +911,10 @@ pretty_portray_attribute_(A,PVar,PA) :-
     pretty_disequality(PVar,List,Const),
     PA = '| '($(PVar), {Const}).
 pretty_portray_attribute_(A,PVar,PA) :-
-    fail,
-    clpqr_dump_constraints(A, PVar, Constraints),
+    clpqr_dump_constraints(A, NV, Constraints),
     Constraints \== [],
     !,
+    NV = $(PVar),
     sort(Constraints,Sort),
     reverse(Sort,RConstraints),
     pretty_constraints(RConstraints,Const),
