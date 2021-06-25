@@ -842,35 +842,29 @@ ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
 ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
     %ground_neg_in_stack_(Goal, [not(NegGoal)|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
-    Goal =.. [Name|ArgGoal],
-    NegGoal =.. [Name|ArgNegGoal],
     if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n', [Goal, chs(not(NegGoal))])),
     %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[Goal,not(NegGoal)])),
     \+ \+ Goal = NegGoal,
-    loop_list(ArgGoal, ArgNegGoal), !,
+    loop_term(Goal, NegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
 %ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
 ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
-    Goal =.. [Name|ArgGoal],
-    NegGoal =.. [Name|ArgNegGoal],
     if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n', [not(Goal), chs(NegGoal)])),
     %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
     \+ \+ Goal = NegGoal,
-    loop_list(ArgGoal, ArgNegGoal), !,
+    loop_term(Goal, NegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
-    Goal =.. [Name|ArgGoal],
-    NegGoal =.. [Name|ArgNegGoal],
     if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n', [not(Goal), NegGoal])),
     %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
     \+ \+ Goal = NegGoal,
-    loop_list(ArgGoal, ArgNegGoal), !,
+    loop_term(Goal, NegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
@@ -883,17 +877,13 @@ ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
 % restrict even more the constrained in the stack
 constrained_neg_in_stack(_, []).
 constrained_neg_in_stack(not(Goal), [NegGoal|Ss]) :-
-    Goal =.. [Name|ArgGoal],
-    NegGoal =.. [Name|NegArgGoal],
     if_user_option(check_calls, format('\t\tCheck if not(~p) is consistent with ~p\n', [Goal, NegGoal])), !,
-    loop_list(ArgGoal, NegArgGoal), !,
+    loop_term(Goal, NegGoal), !,
     if_user_option(check_calls, format('\t\tOK\n', [])),
     constrained_neg_in_stack(not(Goal), Ss).
 constrained_neg_in_stack(Goal, [not(NegGoal)|Ss]) :-
-    Goal =.. [Name|ArgGoal],
-    NegGoal =.. [Name|NegArgGoal],
     if_user_option(check_calls, format('\t\tCheck if not(~p) is consistent with ~p\n', [Goal, NegGoal])), !,
-    loop_list(ArgGoal, NegArgGoal), !,
+    loop_term(Goal, NegGoal), !,
     if_user_option(check_calls, format('\t\tOK\n', [])),
     constrained_neg_in_stack(Goal, Ss).
 constrained_neg_in_stack(Goal, [_|Ss]) :-

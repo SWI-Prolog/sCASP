@@ -2,7 +2,8 @@
           [ get_neg_var/2,
             not_unify/2,
             loop_list/2,
-            .\=. / 2
+            .\=. / 2,
+            loop_term/2
           ]).
 
 %% ------------------------------------------------------------- %%
@@ -265,6 +266,22 @@ loop_list([A|As],[B|Bs]) :-
     % ;
         A .=. B,
         loop_list(As,Bs)
+    ).
+
+loop_term(Goal1, Goal2) :-
+    functor(Goal1, Name, Arity),
+    functor(Goal2, Name, Arity),
+    loop_term(1, Arity, Goal1, Goal2).
+
+loop_term(I, Arity, Goal1, Goal2) :-
+    I =< Arity,
+    arg(I, Goal1, A),
+    arg(I, Goal2, B),
+    (   loop_var_disequality(A,B)
+    ->  true
+    ;   A .=. B,
+        I2 is I+1,
+        loop_term(I2, Arity, Goal1, Goal2)
     ).
 
 
