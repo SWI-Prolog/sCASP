@@ -282,7 +282,7 @@ print_unifier_([Binding|Bs],[PV|PVars]) :-
     ( PV == Binding ->
         true
     ;
-        ( Binding =.. [_,PB,{PConst}], PV = $(PB) ->
+        ( Binding =.. [_,PB,{PConst}], PV == PB ->
             (current_option(human,on) ->
                 format(' \n~p',[@(Binding:'')])
             ;
@@ -865,11 +865,7 @@ lookup_mydict_([_|Rs],A,PVar) :- lookup_mydict_(Rs,A,PVar).
 pretty_term(D0,D1,A,PA) :-
     var(A), !,
     lookup_mydict(D0,D1,A,PVar),
-    ( neg_vars(A, Att) ->
-        pretty_portray_attribute(Att,A,PVar,PA)
-    ;
-        PA = '$'(PVar)
-    ).
+    pretty_portray_attribute(A,PVar,PA).
 pretty_term(D0,D0,[],[]) :- !.
 pretty_term(D0,D2,[A|As],[PA|PAs]) :- !,
     pretty_term(D0,D1,A,PA),
@@ -894,43 +890,35 @@ pretty_term(D0,D1,Functor,PF) :-
     ).
 pretty_term(D0,D0,A,'?'(A)).
 
-neg_vars(A, neg(List)) :-
-    get_neg_var(A, List), !.
-neg_vars(A, []) :-
-    attvar(A).
-
-
 simple_operands([A,B],[SA,SB]) :-
+    !,
     simple_operand(A,SA),
     simple_operand(B,SB).
 simple_operand(Operand,'$'(Var)) :-
-    Operand =.. ['| ', Var, _], !.
+    Operand = '| '(Var, _), !.
 simple_operand(A,A).
 
 
 :- use_module(clp_clpq).
-pretty_portray_attribute(Att,A,PVar,PA) :-
-    pretty_portray_attribute_(Att,A,PVar,PA),
-    !.
-pretty_portray_attribute(_Att,_,PVar,PVar).
+pretty_portray_attribute(A,PVar,PA) :-
+    pretty_portray_attribute_(A,PVar,PA),!.
+pretty_portray_attribute(_,PVar,$(PVar)).
 
-pretty_portray_attribute_(neg(List),_,PVar,PA) :-
-    (  List == [] ->
-        PA=PVar
-    ;
-        pretty_disequality(PVar,List,Const),
-        PA =.. ['| ', $(PVar), {Const}]
-    ).
-pretty_portray_attribute_(_,A,PVar,PA) :-
+pretty_portray_attribute_(A,PVar,PA) :-
+    get_neg_var(A, List),
+    List \== [],
+    !,
+    pretty_disequality(PVar,List,Const),
+    PA = '| '($(PVar), {Const}).
+pretty_portray_attribute_(A,PVar,PA) :-
+    fail,
     clpqr_dump_constraints(A, PVar, Constraints),
-    (  Constraints == [] ->
-        PA=PVar
-    ;
-        sort(Constraints,Sort),
-        reverse(Sort,RConstraints),
-        pretty_constraints(RConstraints,Const),
-        PA =.. ['| ', $(PVar), {Const}]
-    ).
+    Constraints \== [],
+    !,
+    sort(Constraints,Sort),
+    reverse(Sort,RConstraints),
+    pretty_constraints(RConstraints,Const),
+    PA = '| '($(PVar), {Const}).
 
 pretty_disequality(PVar,[A],($(PVar) \= A)) :- !.
 pretty_disequality(PVar,[A|As],($(PVar) \= A, Cs)) :-
