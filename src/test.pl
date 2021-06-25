@@ -1,5 +1,5 @@
 :- module(test,[main/1, generate/0]).
-:- use_module(diff).
+
 
 
 :- use_module(scasp).
@@ -36,31 +36,18 @@ end(Var) :- var(Var), !.
 end(fail) :- fail.
 
 test([],_).
-test([F=R0|Ts],St1) :-
+test([F=R|Ts],St1) :-
     statistics(runtime, _),
-    scasp_test([F], Result0),
+    scasp_test([F], Result),
     statistics(runtime, [_,Used]),
-    strip_vars(R0, R),
-    strip_vars(Result0, Result),
-    ( R =@= Result ->
+    ( R = Result ->
         format("~p \tpassed ~dms\n", [F,Used]),
         St1 = St0
     ;
         format("~p \tfailed ~dms\n", [F,Used]),
-        diff_terms(R, Result),
         St1 = fail
     ),
     test(Ts,St0).
-
-strip_vars($(X), X) :-
-    !.
-strip_vars(T0, T) :-
-    compound(T0),
-    !,
-    T0 =.. [Name|Args0],
-    maplist(strip_vars, Args0, Args),
-    T =.. [Name|Args].
-strip_vars(X, X).
 
 
 list_files([
