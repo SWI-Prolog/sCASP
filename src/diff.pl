@@ -12,15 +12,22 @@ diff_terms(T1, T2) :-
                   ]).
 
 show_diff(File1, File2) :-
-    call_cleanup(
+    setup_call_cleanup(
         process_create(path(meld),
                        [ file(File1), file(File2),
                          '-L', "Compare Prolog terms"
                        ],
-                       []),
+                       [ process(PID)]),
+        wait_or_kill(PID),
         call_cleanup(
             delete_file(File1),
             delete_file(File2))).
+
+wait_or_kill(PID) :-
+    catch(process_wait(PID, _), '$aborted',
+          ( process_kill(PID),
+            process_wait(PID, _)
+          )).
 
 serialize_into(File, Term) :-
     var(File),
