@@ -956,11 +956,8 @@ type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
     NewIv is Iv + 1,
     type_loop_(Goal, NewIv, N, Ss, Type).
 
-type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal == S.
-type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ variant(Goal, S), if_user_option(warning,format("\nWARNING: Failing in a positive loop due to a variant call (tabling required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n",[Goal,S])).
-type_loop_(Goal, 0, 0, [S|_], fail_pos(S)) :- \+ \+ entail_terms(Goal, S), if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, S])).
-%type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ Goal = S.
-type_loop_(Goal, 0, 0, [S|_], pos(S)) :- \+ \+ Goal = S.
+type_loop_(Goal, 0, 0, [S|_],fail_pos(S)) :-  \+ \+ type_loop_fail_pos(Goal, S).
+type_loop_(Goal, 0, 0, [S|_],pos(S)) :- \+ \+ Goal = S.
 
 % avoid loops due to repeated negated goal... this is not the right solution ->
 % It should be solved using tabling !!
@@ -979,6 +976,10 @@ type_loop_(Goal, 0, N, [S|Ss], Type) :-
     Goal \== S,
     S \= not(_),
     type_loop_(Goal, 0, N, Ss, Type).
+
+type_loop_fail_pos(Goal, S) :- Goal == S, !.
+type_loop_fail_pos(Goal, S) :- variant(Goal, S), !, if_user_option(warning,format("\nWARNING: Failing in a positive loop due to a variant call (tabling required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n",[Goal,S])).
+type_loop_fail_pos(Goal, S) :- entail_terms(Goal, S), if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, S])).
 
 % ------------------------------------------------------------- %%
 :- doc(section, "Auxiliar Predicates").
