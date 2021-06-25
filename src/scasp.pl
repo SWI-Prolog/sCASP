@@ -939,15 +939,15 @@ max(A, B, M) :-
     ).
 
 % check if it is a even loop -> coinductive success
-type_loop(Goal, Stack, Type) :-
-    Goal \= not(_),
-    Intervening = 0,
-    NumberNegation = 0,
-    type_loop_(Goal, Intervening, NumberNegation, Stack, Type).
 type_loop(not(Goal), Stack, Type) :-
+    !,
     Intervening = 0,
     NumberNegation = 1,
     type_loop_(not(Goal), Intervening, NumberNegation, Stack, Type).
+type_loop(Goal, Stack, Type) :-
+    Intervening = 0,
+    NumberNegation = 0,
+    type_loop_(Goal, Intervening, NumberNegation, Stack, Type).
 
 type_loop_(Goal, Iv, N, [[]|Ss], Type) :- !,
     NewIv is Iv - 1,
