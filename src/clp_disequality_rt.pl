@@ -53,25 +53,31 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% does not constructively unify with any element in the variable’s
 %% prohibited value list.
 .=.(A,B) :-
-    neg_var(A,NegListA),
+    var(A),
     nonvar(B), !,
-    not_unify(B, NegListA),
-    clean(A),
+    (   get_neg_var(A,NegListA)
+    ->  not_unify(B, NegListA),
+        clean(A)
+    ;   true
+    ),
     A = B.
 
 .=.(B,A) :-
-    neg_var(A,NegListA),
+    var(A),
     nonvar(B), !,
-    not_unify(A, NegListA),             % JW: BUG!
-    clean(A),
+    (   get_neg_var(A,NegListA)
+    ->  not_unify(B, NegListA),
+        clean(A)
+    ;   true
+    ),
     A = B.
 
 %% - Constructive unification of two negatively constrained variables
 %% will always succeed, setting their shared prohibited value list to
 %% the union of their original lists.
 .=.(A,B) :-
-    neg_var(A,NegListA),
-    neg_var(B,NegListB), !,
+    get_neg_var_or_empty(A,NegListA),
+    get_neg_var_or_empty(B,NegListB), !,
     ord_union(NegListA,NegListB,NegList),
     update(A,NegList),
     clean(B),
@@ -82,23 +88,30 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% pair of corresponding arguments is constructively unified.
 
 %% particular case for lists (they are also struct)
-.=.([A|As], [B|Bs]) :- true, !,
-    length(As,N), length(Bs,N),
-    A .=. B,
-    As .=. Bs.
-
 .=.(A,B) :-
-    struct(A),
-    struct(B), !,
-    A =.. [Name | La],
-    B =.. [Name | Lb],
-    La .=. Lb.
+    compound(A),
+    compound(B),
+    !,
+    functor(A, Name, Arity),
+    functor(B, Name, Arity),
+    cunif(1, Arity, A, B).
 
 %% - In cases where neither argument contains a negatively constrained
 %% variable, the result is identical to that of traditional
 %% unification.
 .=.(A,B) :-
     A = B.
+
+cunif(I, Arity, T1, T2) :-
+    I =< Arity,
+    !,
+    arg(I, T1, A1),
+    arg(I, T2, A2),
+    A1 .=. A2,
+    I2 is I+1,
+    cunif(I2, Arity, T1, T2).
+cunif(_, _, _, _).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Constructive disunification %%
@@ -366,8 +379,18 @@ neg_var(A,List) :-
         List = [],
         put_attr_local(A,neg(List))
     ).
+
 get_neg_var(A,List) :-
     get_attr_local(A,neg(List)).
+
+get_neg_var_or_empty(A,List) :-
+    var(A),
+    (   get_attr_local(A,neg(List))
+    ->  true
+    ;   List = []
+    ).
+
+
 unbound(A) :-
     var(A),
     (
