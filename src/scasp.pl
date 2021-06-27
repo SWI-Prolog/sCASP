@@ -1224,11 +1224,11 @@ apply_const_store([C|Cs]) :-
 %     ;
 %         apply_clpq_constraints(.>.(A, B))
 %     ).
-apply_constraint(A \= B) :-
-    call(.\=.(A,B)), !.
-apply_constraint(A = B) :-
-    call(=(A,B)), !.
-apply_constraint(CLPConstraint) :-
+apply_constraint(A \= B) =>
+    A .\=. B.
+apply_constraint(A = B) =>
+    A .=. B.
+apply_constraint(CLPConstraint) =>
     apply_clpq_constraints(CLPConstraint).
 
 
