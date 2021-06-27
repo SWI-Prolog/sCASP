@@ -122,14 +122,6 @@ not_unify2(A,B) :-
     insert(NegListA,B,NegList),
     update(A,NegList).
 
-loop_list_disequality([A|As],[B|Bs]) :-
-    (
-        loop_var_disequality(A,B)
-    ;
-        A .=. B,
-        loop_list_disequality(As,Bs)
-    ).
-
 loop_var_disequality(A,B) :-
     neg_var(A,ListA),
     neg_var(B,ListB),
