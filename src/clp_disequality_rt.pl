@@ -49,14 +49,14 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 %% prohibited value list.
 .=.(A,B) :-
     neg_var(A,NegListA),
-    non_var(B), !,
+    nonvar(B), !,
     not_unify(B, NegListA),
     clean(A),
     A = B.
 
 .=.(B,A) :-
     neg_var(A,NegListA),
-    non_var(B), !,
+    nonvar(B), !,
     not_unify(A, NegListA),
     clean(A),
     A = B.
@@ -307,7 +307,7 @@ entail(A,B) :-
 %% element in the variable's prohibited value list.
 entail(A,B) :-
     neg_var(A, NegListA),
-    non_var(B), !,
+    nonvar(B), !,
     not_unify(B, NegListA).
 
 %% - A compound term A entails a compound term B if recursively:
@@ -371,7 +371,6 @@ unbound(A) :-
     ;
         true
     ).
-non_var(A) :- \+ var(A).
 clean(A) :- del_attr_local(A).
 update(A,List) :- put_attr_local(A,neg(List)).
 add(A,Value) :-
