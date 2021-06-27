@@ -41,8 +41,13 @@ constraints of a variable.
 :- use_module(library(clpq)).
 :- use_module(library(clpr), []).                                % avoid undef
 :- use_module(library(clpqr/dump), [dump/3]).
-clpqr_dump_constraints(Target, NewVars, Constraints) :-
-    dump(Target, NewVars, Constraints).
+
+:- op(1200, xfx, =>).
+
+clpqr_dump_constraints(Target, NewVars, Constraints), is_list(Target) =>
+    include(is_clpq_var, Target, Target2),
+    dump(Target2, NewVars, Constraints).
+
 clpq_entailed(C) :-
     entailed(C).
 clpq_meta(C) :-
