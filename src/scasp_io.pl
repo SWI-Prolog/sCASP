@@ -911,7 +911,8 @@ pretty_portray_attribute_(A,PVar,PA) :-
     pretty_disequality(PVar,List,Const),
     PA = '| '($(PVar), {Const}).
 pretty_portray_attribute_(A,PVar,PA) :-
-    clpqr_dump_constraints(A, NV, Constraints),
+    is_clpq_var(A),
+    clpqr_dump_constraints([A], [NV], Constraints),
     Constraints \== [],
     !,
     NV = $(PVar),
