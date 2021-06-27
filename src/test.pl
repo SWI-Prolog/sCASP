@@ -28,7 +28,7 @@ main([]) :-
 
 main([Test]) :-
     list_tests(Tests),
-    member(Test=Result,Tests),
+    memberchk(Test=Result,Tests),
     test([Test=Result], St),
     end(St).
 
