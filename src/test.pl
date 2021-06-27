@@ -15,8 +15,8 @@
 
 :- op(700, xfx, ['| ']). %% such as
 
-:- op(700, fx, [not,'$']). %% such as
-
+:- op(700, fx, [not]). %% such as
+:- op(1, fx, $).
 
 :- include(test_results).
 %list_tests(_).
@@ -41,10 +41,10 @@ test([F=R|Ts],St1) :-
     scasp_test([F], Result),
     statistics(runtime, [_,Used]),
     ( R = Result ->
-        format("~p \tpassed ~dms\n", [F,Used]),
+        format("~w~t~45|passed ~|~t~d ms~8+\n", [F,Used]),
         St1 = St0
     ;
-        format("~p \tfailed ~dms\n", [F,Used]),
+        format("~w~t~45|FAILED ~|~t~d ms~8+\n", [F,Used]),
         St1 = fail
     ),
     test(Ts,St0).
