@@ -73,45 +73,35 @@ clpqr_meta_list([A|As]) :- !,
         clpqr_meta(A),
         clpqr_meta_list(As).
 
-translate_meta_clp(A.=.B) :- !,
-        translate_meta_clp_aux(.=.,  A-B).
-translate_meta_clp(A.<>.B) :- !,
-        translate_meta_clp_aux(.<>., A-B).
-translate_meta_clp(A.<.B) :- !,
-        translate_meta_clp_aux(.<.,  A-B).
-translate_meta_clp(A.=<.B) :- !,
-        translate_meta_clp_aux(.=<., A-B).
-translate_meta_clp(A.>.B) :- !,
-        translate_meta_clp_aux(.<.,  B-A).
-translate_meta_clp(A.>=.B) :- !,
-        translate_meta_clp_aux(.=<., B-A).
+translate_meta_clp(A.=.B)  => {A =:= B}.
+translate_meta_clp(A.<>.B) => {A =\= B}.
+translate_meta_clp(A.<.B)  => {A < B}.
+translate_meta_clp(A.=<.B) => {A =< B}.
+translate_meta_clp(A.>.B)  => {A > B}.
+translate_meta_clp(A.>=.B) => {A >= B}.
 
-translate_meta_clp_aux(Type, Diff) :-
-        normalize(Diff, K, I, H),
-        translate_meta_clp_aux_aux(Type, K, I, H).
-
-translate_meta_clp_aux_aux(.<>., K, I, H) :- var_with_def(_, nz, K, I, H).
-translate_meta_clp_aux_aux(.=. , _, I, H) :- solve_lin(H, I).
-translate_meta_clp_aux_aux( .<., _, I, H) :- solve_ineq_lt(H, I).
-translate_meta_clp_aux_aux(.=<., _, I, H) :- solve_ineq_le(H, I).
+is_clpq_var(X) :-
+    attvar(X),
+    clp_type(X, clpq).
 
 :- else.
 :- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
 :- use_package(clpq).
-:- endif.
-
-% ------------------------------------------------------------- %%
 
 is_clpq_var(X) :-
     var(X),
     get_attribute(X, A),
     A \= att(_, _, _).
 
+:- endif.
+
+% ------------------------------------------------------------- %%
+
 apply_clpq_constraints(A .<>. B + C) :-
     get_neg_var(A,[Num]),
     num(Num),
     Num is B + C, !.
-apply_clpq_constraints(A .<>. B) :- !,
+apply_clpq_constraints(A .<>. B) :- !,       % JW: Why not simply {A =\= B}?
     (
         apply_clpq_constraints(A .<. B)
     ;
