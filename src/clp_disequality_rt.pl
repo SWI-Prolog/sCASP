@@ -58,7 +58,6 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
    halt(1).
 :- endif.
 
-
 .=.(A,B) :-
     unifiable(A,B,U),
     unify(U).
@@ -99,14 +98,10 @@ unify2(A,B) :-
 
 .\=.(A,B) :-
     (   unifiable(A,B,U)
-    ->  not_unify(U)
+    ->  member(Var=Value, U),
+        not_unify2(Var, Value)
     ;   true
     ).
-
-not_unify([]).
-not_unify([Var=Value|T]) :-
-    not_unify2(Var, Value),
-    not_unify(T).
 
 %% - in accordance with the restrictions given in Section 3.1.5,
 %% constructive disunification of two non ground variables will
@@ -122,8 +117,8 @@ not_unify2(A, B) :-
 %% and a non- variable value will always succeed, adding the
 %% "ground" value to the variable’s prohibited value list.
 not_unify2(A,B) :-
+    ground(B),
     neg_var(A,NegListA),
-    ground(B), !,
     insert(NegListA,B,NegList),
     update(A,NegList).
 
