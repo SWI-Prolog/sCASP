@@ -2,9 +2,14 @@
           [ get_neg_var/2,
             not_unify/2,
             loop_list/2,
-            .\=. / 2,
-            loop_term/2
+            (.=.)/2,
+            (.\=.)/2,
+            loop_term/2,
+
+            op(700, xfx, .=.),
+            op(700, xfx, .\=.)
           ]).
+:- expects_dialect(ciao).
 
 %% ------------------------------------------------------------- %%
 :- use_package(assertions).
@@ -57,7 +62,7 @@ of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
 .=.(B,A) :-
     neg_var(A,NegListA),
     nonvar(B), !,
-    not_unify(A, NegListA),
+    not_unify(A, NegListA),             % JW: BUG!
     clean(A),
     A = B.
 
