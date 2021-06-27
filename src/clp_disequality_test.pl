@@ -1,46 +1,44 @@
-:- module(clp_disequality_test,_).
+:- module(clp_disequality_test,
+          [ run_test/0
+          ]).
 
-
-:- use_package(.(clp_disequality)).
-
-:- use_module(library(terms_vars)).
+:- use_module(clp_disequality_rt).
 
 run_test :-
     template(_A = 5),
     template(_B .\=. 4),
-    template((_C .\=. 5, _C = 5)),
+    template((C .\=. 5, C = 5)),
     template(p(1,2) .\=. p(_D1, _D2)),
-    template((_E .\=. 25, _E .\=. 3, [_E,_E,_E] = [_E,_E,4])),
-    template((_F .\=. 4, _F .\=. 5)),
-    template(( _G .\=. 6, _G .\=. 5, _G = 4)),
-    template((_H .\=. 6, _H .\=. 5, p(_H,3) .\=. p(4,_H))),
-    template((_I1 .\=.3, _I2 .\=. 5, _I1 .\=. _I2)), 
+    template((E .\=. 25, E .\=. 3, [E,E,E] = [E,E,4])),
+    template((F .\=. 4, F .\=. 5)),
+    template(( G .\=. 6, G .\=. 5, G = 4)),
+    template((H .\=. 6, H .\=. 5, p(H,3) .\=. p(4,H))),
+    template((I1 .\=.3, I2 .\=. 5, I1 .\=. I2)),
     template((s(_K) = s(5))).
 
 template(Goal) :-
     nl,print('--------------------------'),nl,
     copy_term(Goal, Copy),
     format('TEST ~w',Copy),nl,
-    varset(Goal, Var),
-    varset(Copy, CVar),
+    term_variables(Goal, Var),
+    term_variables(Copy, CVar),
     (
         intercept(call(Goal),_,fail),
-        display('Result: '),
+        format('Result: '),
         print_list(-(Var,CVar)),nl,
         fail
     ;
         \+ call(Goal),
-        display('Result: \n\tfails'),nl
+        format('Result: \n\tfails\n')
     ).
 template(_).
 
 
 print_list(-([],[])).
 print_list(-([X|Xs],[Cx|Cxs])) :-
-    nl, display('\t'),
-    print(Cx),
-    print(' is '),
-    print(X),
+    \+ \+ ( numbervars(Cx+X, 0, _, [attvar(skip)]),
+            format('\n\t~p is ~p', [Cx, X])
+          ),
     print_list(-(Xs,Cxs)).
 
-    
+
