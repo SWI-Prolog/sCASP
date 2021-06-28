@@ -773,6 +773,7 @@ portray(Constraint) :-
 special_start(Name, Start, Rest) :-
     special_start(Start),
     atom_concat(Start, Rest, Name),
+    Rest \== '',
     !.
 
 special_start(-).
