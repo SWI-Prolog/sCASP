@@ -934,15 +934,23 @@ pretty_constraints_(A,C) :-
     A =.. [Op,X,Y],
     pretty_rat(X,PX),
     pretty_rat(Y,PY),
-    ( pretty_clp(Op,P_Op) ->
+    ( pretty_clpq(Op,P_Op) ->
         C =.. [P_Op,PX,PY]
     ;
         format("WARNING: clp operator ~w not defined\n",[Op]),
         C =.. [Op,PX,PY]
     ).
 pretty_constraints_(A,A).
+
 pretty_rat(rat(A,B),A/B) :- !.
 pretty_rat(A,A).
+
+pretty_clpq(\=, Pretty) => Pretty = #<> .
+pretty_clpq(= , Pretty) => Pretty = #= .
+pretty_clpq(< , Pretty) => Pretty = #< .
+pretty_clpq(> , Pretty) => Pretty = #> .
+pretty_clpq(=<, Pretty) => Pretty = #=< .
+pretty_clpq(>=, Pretty) => Pretty = #>= .
 
 pretty_clp(N,PN) :- pretty_clp_(N,PN), !.
 
