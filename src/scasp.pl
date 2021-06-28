@@ -836,8 +836,8 @@ neg_in_stack(Goal, [_|Ss]) :-
 
 % ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
-    if_user_option(check_calls, format('Enter ground_neg_in_stack for ~@\n',
-                                       [print_goal(Goal)])),
+    if_user_option(check_calls, format('Enter ground_neg_in_stack for ~@ (Stack ~p)\n',
+                                       [print_goal(Goal), S])),
     ground_neg_in_stack_(Goal, S, 0, 0, Flag),
     Flag == found,
     %       ( Flag == found_dis ; Flag == found_clpq ),
@@ -850,6 +850,7 @@ ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
     ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter, Flag).
 ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
+    same_functor(Goal, NegGoal), % limit output
     if_user_option(check_calls,
                    format('\t\tCheck disequality of ~@ and ~@\n',
                           [print_goal(Goal), print_goal(chs(not(NegGoal)))])),
@@ -860,6 +861,7 @@ ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found)
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
+    same_functor(Goal, NegGoal),
     if_user_option(check_calls,
                    format('\t\tCheck disequality of ~@ and ~@\n',
                           [print_goal(not(Goal)), print_goal(chs(NegGoal))])),
@@ -870,6 +872,7 @@ ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found)
     ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
+    same_functor(Goal, NegGoal),
     if_user_option(check_calls,
                    format('\t\tCheck disequality of ~@ and ~@\n',
                           [print_goal(not(Goal)), print_goal(NegGoal)])),
