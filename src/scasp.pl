@@ -1258,6 +1258,8 @@ combine([A,B|As],Prev,Post,[RA|RAs]) :-
     append(Prev,[A|Post],RA),
     combine([B|As],Prev,Post,RAs).
 
+:- det(dual/2).
+
 dual(.=.(A,B), [.<.(A,B), .>.(A,B)]).
 dual(.<.(A,B), [.>=.(A,B)]).
 dual(.>.(A,B), [.=<.(A,B)]).
@@ -1266,9 +1268,6 @@ dual(.>=.(A,B), [.<.(A,B)]).
 
 dual(=(A,B), [\=(A,B)]).
 dual(\=(A,B), [=(A,B)]).
-dual('$neg'(_,[]), []).
-dual('$neg'(A,[V|Vs]), [A=V|Ds]) :-
-    dual('$neg'(A,Vs), Ds).
 
 
 dump_constraint([], [], [], Pending, Pending).
@@ -1277,13 +1276,9 @@ dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
     \+ number(V), !,
     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
 dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
-%dump_constraint([V|Vs], [V1|V1s], [V1 .=. V | Vs_Dump], P0, P1) :-
     ground(V),
     number(V), !,
     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
-% dump_constraint([V|Vs], [V1|V1s], ['$neg'(V1,List)| Vs_Dump], P0, P1) :-
-%     get_neg_var(V, List),
-%     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
 dump_constraint([V|Vs], [V1|V1s], Rs_Dump, P0, P1) :-
     get_neg_var(V, List),
     List \= [], !,
