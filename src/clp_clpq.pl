@@ -184,51 +184,42 @@ entail_terms(Goal, S) :-
     store_entails(StoreVsS,StoreGoal).
 
 clp_varset(Term, ClpVars) :-
-    varset(Term, Vars),
-    clp_vars(Vars, ClpVars).
-clp_vars([], []).
-clp_vars([C|Vs], [C|Rs]) :- is_clpq_var(C), !, clp_vars(Vs, Rs).
-clp_vars([_|Vs], Rs) :- clp_vars(Vs, Rs).
+    term_attvars(Term, Vars),
+    include(is_clpq_var, Vars, ClpVars).
 
-:- multifile portray_attribute/2.
-% portray_attribute(_,A) :-
-%       clpqr_dump_constraints(A, A, Constraints),
-%       (
-%           Constraints == [] ->
-%           display(A)
-%       ;
-%           display('{ '),
-%           display(A), display(' '),
-%           display(Constraints),
-% %         pretty_print(Constraints),
-%           display(' }')
-%       ).
+:- set_prolog_flag(write_attributes, portray).
 
-portray_attribute(_, A) :-
-    clpqr_dump_constraints(A, A, Constraints),
-    (
-        Constraints == [] ->
-        display(A)
-    ;
-        display(' {'),
-        display(A),
-        display('~['),
-        reverse(Constraints, RC),
-        pretty_print(RC),
-        display(']} ')
+itf:attr_portray_hook(_, A) :-
+    \+ \+ ( clpqr_dump_constraints([A], [X], Constraints),
+            (   Constraints == []
+            ->  write(A)
+            ;   reverse(Constraints, RC),
+                pretty_print(RC, X)
+            )
+          ).
+
+pretty_print([], _).
+pretty_print([C], X) :- pretty_print_(C, X).
+pretty_print([C1, C2|Cs], X) :- pretty_print_(C1, X), display(', '), pretty_print([C2|Cs], X).
+
+pretty_print_(nonzero(Var), X) =>
+    (   Var == X
+    ->  format('nonzero(\u2627)')
+    ;   write(nonzero(Var))
     ).
-
-
-pretty_print([]).
-pretty_print([C]) :- pretty_print_(C).
-pretty_print([C1, C2|Cs]) :- pretty_print_(C1), display(', '), pretty_print([C2|Cs]).
-pretty_print_(nonzero(Var)) :- display(nonzero(Var)), !.
-pretty_print_(R) :- struct(R), R =.. [rat, A, B], display(A), !, display(/), display(B).
-pretty_print_(C) :- struct(C), C =.. [Op, A, B], pretty_print_(A), display(' '), display_op(Op), display(' '), pretty_print_(B), !.
-pretty_print_(A) :- display(A).
-
-display_op(Op) :- pretty_op(Op, Pop), !, display(Pop).
-display_op(Op) :- display(Op).
+pretty_print_(rat(A,B), _)     =>
+    format('~w/~w', [A, B]).
+pretty_print_(C, X), compound(C), C =.. [Op, A, B] =>
+    (   pretty_op(Op, Pretty)
+    ->  true
+    ;   Pretty = Op
+    ),
+    pretty_print_(A, X), format(' ~q ', [Pretty]), pretty_print_(B, X), !.
+pretty_print_(A, X) =>
+    (   A == X
+    ->  format('\u2627')
+    ;   write(A)
+    ).
 
 pretty_op(.<., <).
 pretty_op(.=<., =<).
