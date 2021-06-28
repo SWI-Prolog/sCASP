@@ -1074,10 +1074,11 @@ my_copy_term(Var0, Term0, Var, Term) :-
     copy_term(t(Var0,Share,Term0), t(Var,Share,Term)).
 
 delete_var([], _, []).
-delete_var([H|T], V, List) :-
+delete_var([H|T0], V, List) :-
     (   H == V
-    ->  List = T
-    ;   delete_var(T, V, List)
+    ->  List = T0
+    ;   List = [H|T],
+        delete_var(T0, V, T)
     ).
 
 my_copy_vars(Vars0, Term0, Vars, Term) :-
