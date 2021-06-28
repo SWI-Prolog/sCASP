@@ -469,6 +469,7 @@ support the sub-goals".
 
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
+    !,
     if(current_option(prev_forall, on),
         solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model),
         solve_c_forall(Goal, [Goal|StackIn], StackOut, Model)
@@ -476,13 +477,14 @@ solve_goal(Goal, StackIn, StackOut, GoalModel) :-
     GoalModel = [Goal|Model].
 solve_goal(Goal, StackIn, [[], Goal|StackIn], GoalModel) :-
     Goal = not(is(V, Expresion)),
+    !,
     NV is Expresion,
     V .\=. NV,
     GoalModel = [Goal].
 solve_goal(Goal, _, _, _) :-
     Goal = not(true), !, fail.
 solve_goal(Goal, StackIn, StackOut, Model) :-
-    Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_, _)), Goal \= builtin(_),
+    Goal \= [], Goal \= [_|_], Goal \= builtin(_),
     table_predicate(Goal),
     if_user_option(check_calls, format('Solve the tabled goal ~p\n', [Goal])),
     AttStackIn <~ stack([Goal|StackIn]),
@@ -490,7 +492,7 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
     AttStackOut ~> stack(StackOut),
     AttModel ~> model(Model).
 solve_goal(Goal, StackIn, StackOut, Model) :-
-    Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_, _)), Goal \= builtin(_),
+    Goal \= [], Goal \= [_|_], Goal \= builtin(_),
     \+ table_predicate(Goal),
     predicate(Goal),
     if(
@@ -519,7 +521,7 @@ solve_goal(not(Goal), StackIn, StackIn, [not(Goal)]) :-
     Goal=findall(_, _, _), !,
     exec_neg_findall(Goal, StackIn).
 solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
-    Goal \= [], Goal \= [_|_], Goal \= forall(_, _), Goal \= not(is(_, _)), \+ predicate(Goal),
+    Goal \= [], Goal \= [_|_], \+ predicate(Goal),
     \+ table_predicate(Goal),
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
