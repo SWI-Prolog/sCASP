@@ -45,8 +45,14 @@ constraints of a variable.
 :- op(1200, xfx, =>).
 
 clpqr_dump_constraints(Target, NewVars, Constraints), is_list(Target) =>
-    include(is_clpq_var, Target, Target2),
+    maplist(to_clpq_var, Target, Target2),
     dump(Target2, NewVars, Constraints).
+
+to_clpq_var(X, V) :-
+    (   is_clpq_var(X)
+    ->  V = X
+    ;   true
+    ).
 
 clpq_entailed(C) :-
     entailed(C).
