@@ -993,8 +993,6 @@ predicate(Goal) :-
     functor(Goal, Name, Arity),
     pr_user_predicate(Name/Arity), !.
 
-% predicate(-_Goal) :- !. %% NOTE that -goal is translated as '-goal'
-
 :- pred table_predicate(Goal) # "Success if @var{Goal} is defined as
 a tabled predicate with the directive @em{table pred/n.}".
 
@@ -1002,10 +1000,6 @@ a tabled predicate with the directive @em{table pred/n.}".
 table_predicate(Goal) :-
     functor(Goal, Name, Arity),
     pr_table_predicate(Name/Arity).
-% table_predicate(not(Goal)) :-
-%     Goal =.. [Name|Args],
-%     length(Args,La),
-%     pr_table_predicate(Name/La).
 
 shown_predicate(not(Goal)) :-
     predicate(Goal).
@@ -1025,14 +1019,6 @@ prolog_builtin(<).
 prolog_builtin(>).
 prolog_builtin(>=).
 prolog_builtin(=<).
-% prolog_builtin(display).
-% prolog_builtin(nl).
-
-
-% :- pred naf_builtin(Goal) #"Success if @var{Goal} is a builtin
-%     prolog predicate (there is no dual and NAF is used)".
-% naf_builtin(findall).
-
 
 :- pred clp_builtin(Goal) # "Success if @var{Goal} is a builtin
     constraint predicate".
@@ -1063,10 +1049,11 @@ clp_builtin_translate('#=<', .=<.).
 clp_interval(inf).
 clp_interval(sup).
 
-:- pred my_copy_term(Var, Term, NewVar, NewTerm) # "Its behaviour is
-similar to @pred{copy_term/2}. It returns in @var{NewTerm} a copy of
-the term @var{Term} but it only replaces with a fresh variable
-@var{NewVar} the occurrences of @var{Var}".
+%!  my_copy_term(+Var, +Term, -NewVar, -NewTerm) is det.
+%
+%   Its behaviour is similar to  copy_term/2.   It  returns in NewTerm a
+%   copy of the term Term but  it   only  replaces with a fresh variable
+%   NewVar the occurrences of Var
 
 my_copy_term(Var0, Term0, Var, Term) :-
     term_variables(Term0, AllVars),
@@ -1111,10 +1098,14 @@ solve_c_forall(Forall, StackIn, [[]|StackOut], Model) :-
     my_diff_term(Goal1, Vars1, OtherVars),
     Initial_Const = [],                              % Constraint store = top
     (   current_option(all_forall,on)
-    ->  solve_var_forall_(Goal1, entry(Vars1, Initial_Const),
-                          dual(Vars1, [Initial_Const]), OtherVars, StackIn, StackOut, Model)
-    ;   solve_other_forall(Goal1, entry(Vars1, Initial_Const),
-                           dual(Vars1, [Initial_Const]), OtherVars, StackIn, StackOut, Model)
+    ->  solve_var_forall_(Goal1,
+                          entry(Vars1, Initial_Const),
+                          dual(Vars1, [Initial_Const]),
+                          OtherVars, StackIn, StackOut, Model)
+    ;   solve_other_forall(Goal1,
+                           entry(Vars1, Initial_Const),
+                           dual(Vars1, [Initial_Const]),
+                           OtherVars, StackIn, StackOut, Model)
     ).
 
 solve_other_forall(Goal,
@@ -1225,14 +1216,12 @@ apply_const_store([C|Cs]) :-
     apply_constraint(C),
     apply_const_store(Cs).
 
-
 apply_constraint(A \= B) =>
     A .\=. B.
 apply_constraint(A = B) =>
     A .=. B.
 apply_constraint(CLPConstraint) =>
     apply_clpq_constraints(CLPConstraint).
-
 
 :- use_module(clp_clpq).
 find_duals(C_Vars-C_Vars1, OtherVars, Duals) :-
