@@ -823,18 +823,6 @@ neg_in_stack(Goal, [not(NegGoal)|_]) :-
     instance(Goal, NegGoal),
     instance(NegGoal, Goal), !,
     if_user_option(warning, format("\nWARNING: Co-Failing in a negated loop due to a variant call (extension clp-disequality required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, NegGoal])).
-% neg_in_stack(not(Goal), [NegGoal|_]) :-
-%       Goal =.. [Name|ArgGoal],
-%       NegGoal =.. [Name|NegArgGoal],
-%       if_user_option(check_calls, format('\t\tCheck if not(~p) entails (is more particular than) ~p\n',[Goal,NegGoal])),
-%       entail_list(ArgGoal, NegArgGoal), !,
-%       if_user_option(check_calls, format('\t\tOK\n',[])).
-% neg_in_stack(Goal, [not(NegGoal)|_]) :-
-%       Goal =.. [Name|ArgGoal],
-%       NegGoal =.. [Name|NegArgGoal],
-%       if_user_option(check_calls, format('\t\tCheck if ~p entails (is more particular than) not(~p)\n',[Goal,NegGoal])),
-%       entail_list(ArgGoal, NegArgGoal), !,
-%       if_user_option(check_calls, format('\t\tOK\n',[])).
 neg_in_stack(Goal, [_|Ss]) :-
     neg_in_stack(Goal, Ss).
 
