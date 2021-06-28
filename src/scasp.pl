@@ -779,7 +779,7 @@ check_CHS(Goal, I, co_failure) :-
         if_user_option(check_calls, format('Positive loop, failling (Goal == ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w == ~w)\n', [Goal, S]))
     ), !.
-check_CHS(Goal, I, _cont) :-
+check_CHS(Goal, I, _Cont) :-
     predicate(Goal),
     \+ table_predicate(Goal),
     \+ \+ (
@@ -787,8 +787,7 @@ check_CHS(Goal, I, _cont) :-
         if_user_option(check_calls, format('Positive loop, continuing (Goal = ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nNote: positive loop continuing (Goal ~w = ~w)\n', [Goal, S]))
     ), fail.
-% coinduction does not success or fails <- the execution continues
-% inductively
+% coinduction does not succeed or fail <- the execution continues inductively
 check_CHS(Goal, I, cont) :-
     (   predicate(Goal),
         \+ ground(Goal), % the current goal is restricted
