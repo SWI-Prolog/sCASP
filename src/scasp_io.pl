@@ -404,11 +404,13 @@ print_check_stack([A|As],I) :-
     I1 is I + 4,
     print_check_stack(As,I1).
 
+%print_goal(Goal) :- !,
+%    print(Goal).
 print_goal(Goal) :-
     copy_term(Goal, Copy, Constraints),
     (   Constraints == []
     ->  print(Goal)
-    ;   \+ \+ ( numbervars(Copy, 0, _),
+    ;   \+ \+ ( %numbervars(Copy, 0, _),
                 format('~p ~p', [Copy, Constraints])
               )
     ).

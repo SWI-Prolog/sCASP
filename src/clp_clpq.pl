@@ -187,7 +187,7 @@ clp_varset(Term, ClpVars) :-
     term_attvars(Term, Vars),
     include(is_clpq_var, Vars, ClpVars).
 
-:- set_prolog_flag(write_attributes, portray).
+% :- set_prolog_flag(write_attributes, portray).
 
 itf:attr_portray_hook(_, A) :-
     \+ \+ ( clpqr_dump_constraints([A], [X], Constraints),
