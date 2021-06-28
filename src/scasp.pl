@@ -700,9 +700,9 @@ exec_goal(A \= B) :- !,
 exec_goal(Goal) :-
     (   current_option(check_calls, on)
     ->  E = error(_,_),
-        format('exec goal ~p \n', [print_goal(Goal)]),
+        format('exec goal ~@ \n', [print_goal(Goal)]),
         catch(call(Goal), E, (print_message(warning, E), fail)),
-        format('ok   goal ~p \n', [print_goal(Goal)])
+        format('ok   goal ~@ \n', [print_goal(Goal)])
     ;   catch(call(Goal), error(_,_), fail)
     ).
 
