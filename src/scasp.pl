@@ -410,7 +410,7 @@ solve([], StackIn, [[]|StackIn], []).
 solve([Goal|Goals], StackIn, StackOut, Model) :-
     if_user_option(check_calls, print_check_calls_calling(Goal, StackIn)),
     check_goal(Goal, StackIn, StackMid, Modelx), Modelx = [AddGoal|JGoal],
-    if_user_option(check_calls, format('Succes  ~p\n', [Goal])),
+    if_user_option(check_calls, format('Success ~@\n', [print_goal(Goal)])),
     solve(Goals, StackMid, StackOut, Modelxs), Modelxs = JGoals,
     (
         shown_predicate(Goal) ->
@@ -536,11 +536,13 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
     my_copy_term(Var, Goal, NewVar, NewGoal),
     my_copy_term(Var, Goal, NewVar2, NewGoal2),
     solve([NewGoal], StackIn, [[]|StackMid], ModelMid),
-    if_user_option(check_calls, format('\tSuccess solve ~p\n\t\t for the ~p\n', [NewGoal, forall(Var, Goal)])),
+    if_user_option(check_calls, format('\tSuccess solve ~@\n\t\t for the ~@\n',
+                                       [print_goal(NewGoal), print_goal(forall(Var, Goal))])),
     check_unbound(NewVar, List),
     (
         List == ground ->
-        if_user_option(check_calls, format('The var ~p is grounded so try with other clause\n', [NewVar])),
+        if_user_option(check_calls,
+                       format('The var ~p is grounded so try with other clause\n', [NewVar])),
         fail
     ;
         List == [] ->
@@ -550,12 +552,16 @@ solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
         List = 'clpq'(NewVar3, Constraints) ->
         findall('dual'(NewVar3, ConDual), dual_clpq(Constraints, ConDual), DualList),
         %       dual_clpq(Constraints, ConDual),
-        if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, DualList])),
+        if_user_option(check_calls,
+                       format('Executing ~@ with clpq ConstraintList = ~p\n',
+                              [print_goal(Goal), DualList])),
         exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3, []), DualList, StackMid, StackOut, ModelList), !,
         append(ModelMid, ModelList, Model)
     ;
         !,   %% Position of the cut in s(CASP) - remove answers in max.lp
-        if_user_option(check_calls, format('Executing ~p with clp_disequality list = ~p\n', [Goal, List])),
+        if_user_option(check_calls,
+                       format('Executing ~@ with clp_disequality list = ~p\n',
+                              [print_goal(Goal), List])),
         exec_with_neg_list(NewVar2, NewGoal2, List, StackMid, StackOut, ModelList),
         %% !,   %% Position of the cut in s(ASP) - remove answers in hamcycle_two.lp
         %% Without cuts the evaluation may loop - e.g. queens.lp
