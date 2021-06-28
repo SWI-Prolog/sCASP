@@ -723,7 +723,12 @@ user:portray(Term) :-
 :- endif.
 
 portray(rat(A,B)) :-
-    if_user_option( real,( C is A/B, truncate_(C,R), write(R) ) ), !.
+    (   current_option(real, on),
+        current_option(decimals, N)
+    ->  format('~*f', [N, A/B])
+    ;   V is A rdiv B,
+        write(V)
+    ).
 portray(@(Var:_)) :- var(Var), !,
     print(Var).
 portray(@(X:'')) :- !,
