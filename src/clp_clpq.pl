@@ -160,44 +160,6 @@ disequality_clpq(A, B) :-
         apply_clpq_constraints([A .<. B])
     ).
 
-% disequality_clpq(A,B) :-
-%       \+ is_clpq_var(B), !,
-%       (
-%           apply_clpq_constraints([A .>. B])
-%       ;
-%           apply_clpq_constraints([A .<. B])
-%       ).
-
-% loop_list_clpq([A|As],[B|Bs]) :-
-%       (
-%           loop_var_clpq(A,B)
-%       ;
-%           A = B,
-%           loop_list_clpq(As,Bs)
-%       ).
-
-% loop_var_clpq(A,B) :-
-%       is_clpq_var(A),
-%       \+ is_clpq_var(B), !,
-%       display(a),nl,
-%       dump_clpq_var([A], [B], Const),
-%       dual_clpq(Const, Dual),
-%       apply_clpq_constraints(Dual).
-% loop_var_clpq(B,A) :-
-%       is_clpq_var(A),
-%       \+ is_clpq_var(B), !,
-%       display(b),nl,
-%       dump_clpq_var([A], [B], Const),
-%       dual_clpq(Const, Dual),
-%       apply_clpq_constraints(Dual).
-% loop_var_clpq(A,B) :-
-%       is_clpq_var(A),
-%       is_clpq_var(B), !,
-%       display(c),nl,
-%       apply_clpq_constraints([A .<>. B]).
-
-
-
 % Success if StoreA >= StoreB
 entails(VarA, (VarB, StoreB)) :-
     dump_clpq_var(VarA, VarB, StoreA),
