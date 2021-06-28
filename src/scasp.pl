@@ -694,13 +694,17 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     ).
 
 exec_goal(A \= B) :- !,
-    if_user_option(check_calls, format('exec ~p \\= ~p\n', [A, B])),
+    if_user_option(check_calls, format('exec ~@\n', [print_goal(A \= B)])),
     .\=.(A, B),
-    if_user_option(check_calls, format('ok   ~p \\= ~p\n', [A, B])).
+    if_user_option(check_calls, format('ok   ~@\n', [print_goal(A \= B)])).
 exec_goal(Goal) :-
-    if_user_option(check_calls, format('exec goal ~p \n', [Goal])),
-    catch(call(Goal), _, fail),
-    if_user_option(check_calls, format('ok   goal ~p \n', [Goal])).
+    (   current_option(check_calls, on)
+    ->  E = error(_,_),
+        format('exec goal ~p \n', [print_goal(Goal)]),
+        catch(call(Goal), E, (print_message(warning, E), fail)),
+        format('ok   goal ~p \n', [print_goal(Goal)])
+    ;   catch(call(Goal), error(_,_), fail)
+    ).
 
 capture_rational(G, A/B) :- ground(G), G=rat(A, B), !.
 capture_rational(St, NSt) :-
