@@ -830,31 +830,33 @@ neg_in_stack(Goal, [_|Ss]) :-
 
 % ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
-    if_user_option(check_calls, format('Enter ground_neg_in_stack for ~p\n', [Goal])),
+    if_user_option(check_calls, format('Enter ground_neg_in_stack for ~@\n',
+                                       [print_goal(Goal)])),
     ground_neg_in_stack_(Goal, S, 0, 0, Flag),
     Flag == found,
     %       ( Flag == found_dis ; Flag == found_clpq ),
-    if_user_option(check_calls, format('\tThere exit the negation of ~p\n\n', [Goal])).
+    if_user_option(check_calls, format('\tThere exit the negation of ~@\n\n',
+                                       [print_goal(Goal)])).
 
 ground_neg_in_stack_(_, [], _, _, _Flag) :- !.
 ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
     NewInter is Intervening - 1,
     ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter, Flag).
 ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
-    %ground_neg_in_stack_(Goal, [not(NegGoal)|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
-    if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n', [Goal, chs(not(NegGoal))])),
-    %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[Goal,not(NegGoal)])),
+    if_user_option(check_calls,
+                   format('\t\tCheck disequality of ~@ and ~@\n',
+                          [print_goal(Goal), print_goal(chs(not(NegGoal)))])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
-%ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
 ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
-    if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n', [not(Goal), chs(NegGoal)])),
-    %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
+    if_user_option(check_calls,
+                   format('\t\tCheck disequality of ~@ and ~@\n',
+                          [print_goal(not(Goal)), print_goal(chs(NegGoal))])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
@@ -862,8 +864,9 @@ ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found)
     ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
-    if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n', [not(Goal), NegGoal])),
-    %               if_user_option(check_calls, format('\t\tCheck disequality of ~p and ~p\n',[not(Goal),NegGoal])),
+    if_user_option(check_calls,
+                   format('\t\tCheck disequality of ~@ and ~@\n',
+                          [print_goal(not(Goal)), print_goal(NegGoal)])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
     max(MaxInter, Intervening, NewMaxInter),
@@ -878,12 +881,16 @@ ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
 % restrict even more the constrained in the stack
 constrained_neg_in_stack(_, []).
 constrained_neg_in_stack(not(Goal), [NegGoal|Ss]) :-
-    if_user_option(check_calls, format('\t\tCheck if not(~p) is consistent with ~p\n', [Goal, NegGoal])), !,
+    if_user_option(check_calls,
+                   format('\t\tCheck if not(~@) is consistent with ~@\n',
+                          [print_goal(Goal), print_goal(NegGoal)])), !,
     loop_term(Goal, NegGoal), !,
     if_user_option(check_calls, format('\t\tOK\n', [])),
     constrained_neg_in_stack(not(Goal), Ss).
 constrained_neg_in_stack(Goal, [not(NegGoal)|Ss]) :-
-    if_user_option(check_calls, format('\t\tCheck if not(~p) is consistent with ~p\n', [Goal, NegGoal])), !,
+    if_user_option(check_calls,
+                   format('\t\tCheck if not(~@) is consistent with ~@\n',
+                          [print_goal(Goal), print_goal(NegGoal)])), !,
     loop_term(Goal, NegGoal), !,
     if_user_option(check_calls, format('\t\tOK\n', [])),
     constrained_neg_in_stack(Goal, Ss).
@@ -895,7 +902,8 @@ constrained_neg_in_stack(Goal, [_|Ss]) :-
 % proved_in_stack
 proved_in_stack(Goal, S) :-
     proved_in_stack_(Goal, S, 0, -1),
-    if_user_option(check_calls, format('\tGoal ~p is already in the stack\n', [Goal])).
+    if_user_option(check_calls,
+                   format('\tGoal ~@ is already in the stack\n', [print_goal(Goal)])).
 proved_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :-
     NewInter is Intervening - 1,
     proved_in_stack_(Goal, Ss, NewInter, MaxInter).
@@ -911,27 +919,6 @@ proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
     max(MaxInter, Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     proved_in_stack_(Goal, Ss, NewInter, NewMaxInter).
-
-% %% neg_proved_in_stack
-% neg_proved_in_stack(Goal, S) :-
-%       neg_proved_in_stack_(Goal, S, 0, -1),
-%       if_user_option(check_calls, format('\tThe negation of ~p is already in the stack\n',[Goal])).
-% neg_proved_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :-
-%       NewInter is Intervening - 1,
-%       neg_proved_in_stack_(Goal, Ss, NewInter, MaxInter).
-% neg_proved_in_stack_(Goal, [not(S)|_], Intervening, MaxInter) :-
-%       S \= [],
-%       Goal == S, !,
-%       Intervening =< MaxInter.
-% neg_proved_in_stack_(not(Goal), [S|_], Intervening, MaxInter) :-
-%       S \= [],
-%       Goal == S, !,
-%       Intervening =< MaxInter.
-% neg_proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
-%       S \= [],
-%       max(MaxInter, Intervening, NewMaxInter),
-%       NewInter is Intervening + 1,
-%       neg_proved_in_stack_(Goal, Ss, NewInter, NewMaxInter).
 
 max(A, B, M) :-
     (   A >= B
@@ -979,9 +966,15 @@ type_loop_(Goal, 0, N, [S|Ss], Type) :-
     S \= not(_),
     type_loop_(Goal, 0, N, Ss, Type).
 
-type_loop_fail_pos(Goal, S) :- Goal == S, !.
-type_loop_fail_pos(Goal, S) :- variant(Goal, S), !, if_user_option(warning,format("\nWARNING: Failing in a positive loop due to a variant call (tabling required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n",[Goal,S])).
-type_loop_fail_pos(Goal, S) :- entail_terms(Goal, S), if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, S])).
+type_loop_fail_pos(Goal, S) :-
+    Goal == S, !.
+type_loop_fail_pos(Goal, S) :-
+    variant(Goal, S), !,
+    if_user_option(warning,format("\nWARNING: Failing in a positive loop due to a variant call (tabling required).\n\tCurrent call:\t~@\n\tPrevious call:\t~@\n",
+                                  [print_goal(Goal),print_goal(S)])).
+type_loop_fail_pos(Goal, S) :-
+    entail_terms(Goal, S),
+    if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~@\n\tPrevious call:\t~@\n", [print_goal(Goal), print_goal(S)])).
 
 % ------------------------------------------------------------- %%
 :- doc(section, "Auxiliar Predicates").
