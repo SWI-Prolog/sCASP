@@ -748,30 +748,34 @@ exec_neg_findall(Goal, _) :-
     fail.
 
 
-:- pred check_CHS(Goal, StackIn, Result) # "Checks the @var{StackIn}
-and returns in @var{Result} if the goal @var{Goal} is a coinductive
-success, a coinductive failure or an already proved goal. Otherwise it
-is constraint against its negation atoms already visited".
+%!  check_CHS(+Goal, +StackIn, -Result) is semidet.
+%
+%   Checks the StackIn and returns  in  Result   if  the  goal Goal is a
+%   coinductive success, a coinductive  failure   or  an  already proved
+%   goal. Otherwise it is constraint against  its negation atoms already
+%   visited.
+
+check_CHS(Goal, I, Result) :-
+    (   predicate(Goal)
+    ->  check_CHS_(Goal, I, Result)
+    ;   Result = cont
+    ).
 
 % inmediate success if the goal has already been proved.
-check_CHS(Goal, I, proved) :-
-    predicate(Goal),
+check_CHS_(Goal, I, proved) :-
     ground(Goal),
     \+ \+ proved_in_stack(Goal, I), !.
 % coinduction success <- cycles containing even loops may succeed
-check_CHS(Goal, I, co_success) :-
-    predicate(Goal),
+check_CHS_(Goal, I, co_success) :-
     type_loop(Goal, I, even), !.
 % coinduction fails <- the goal is entailed by its negation in the
 % call stack
-check_CHS(Goal, I, co_failure) :-
-    predicate(Goal),
+check_CHS_(Goal, I, co_failure) :-
     \+ \+ neg_in_stack(Goal, I), !,
     if_user_option(check_calls, format('Negation of the goal in the stack, failling (Goal = ~w)\n', [Goal])).
 % coinduction fails <- cycles containing positive loops can be solve
 % using tabling
-check_CHS(Goal, I, co_failure) :-
-    predicate(Goal),
+check_CHS_(Goal, I, co_failure) :-
     \+ table_predicate(Goal),
     if_user_option(no_fail_loop, fail),
     \+ \+ (
@@ -779,8 +783,7 @@ check_CHS(Goal, I, co_failure) :-
         if_user_option(check_calls, format('Positive loop, failling (Goal == ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w == ~w)\n', [Goal, S]))
     ), !.
-check_CHS(Goal, I, _Cont) :-
-    predicate(Goal),
+check_CHS_(Goal, I, _Cont) :-
     \+ table_predicate(Goal),
     \+ \+ (
         type_loop(Goal, I, pos(S)),
@@ -788,18 +791,16 @@ check_CHS(Goal, I, _Cont) :-
         if_user_option(pos_loops, format('\nNote: positive loop continuing (Goal ~w = ~w)\n', [Goal, S]))
     ), fail.
 % coinduction does not succeed or fail <- the execution continues inductively
-check_CHS(Goal, I, cont) :-
-    (   predicate(Goal),
-        \+ ground(Goal), % the current goal is restricted
-        ground_neg_in_stack(Goal, I)
-    *-> true
-    ;   true
-    ),
-    (   predicate(Goal),
-        ground(Goal), %% the current goal restrict previous results
-        constrained_neg_in_stack(Goal, I)
-    *-> true
-    ;   true
+check_CHS_(Goal, I, cont) :-
+    (   ground(Goal)
+    ->  (   constrained_neg_in_stack(Goal, I)
+        *-> true
+        ;   true
+        )
+    ;   (   ground_neg_in_stack(Goal, I)
+        *-> true
+        ;   true
+        )
     ).
 
 % check if the negation is in the stack -> coinductive failure
@@ -982,13 +983,15 @@ type_loop_fail_pos(Goal, S) :-
 :- pred predicate(Goal) # "Success if @var{Goal} is a user
 predicate".
 
+:- op(1200, xfx, =>).
+
 % Check if the goal Goal is a user defined predicate
-predicate(builtin(_)) :- !, fail.
-predicate(not(_ is _)) :- !, fail.
-predicate(not(true)) :- !, fail.
-predicate(not(fail)) :- !, fail.
-predicate(not(_)) :- !.
-predicate(Goal) :-
+predicate(builtin(_)) => fail.
+predicate(not(_ is _)) => fail.
+predicate(not(true)) => fail.
+predicate(not(fail)) => fail.
+predicate(not(_)) => true.
+predicate(Goal) =>
     functor(Goal, Name, Arity),
     pr_user_predicate(Name/Arity), !.
 
