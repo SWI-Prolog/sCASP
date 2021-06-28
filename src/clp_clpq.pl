@@ -81,15 +81,19 @@ clpqr_meta_list([A|As]) :- !,
         clpqr_meta(A),
         clpqr_meta_list(As).
 
-translate_meta_clp(A.=.B)  => {A =:= B}.
-translate_meta_clp(A.<>.B) => {A =\= B}.
-translate_meta_clp(A.<.B)  => {A < B}.
-translate_meta_clp(A.=<.B) => {A =< B}.
-translate_meta_clp(A.>.B)  => {A > B}.
-translate_meta_clp(A.>=.B) => {A >= B}.
+translate_meta_clp(A.=.B)  => to_rat(A, AR), to_rat(B, BR), {AR =:= BR}.
+translate_meta_clp(A.<>.B) => to_rat(A, AR), to_rat(B, BR), {AR =\= BR}.
+translate_meta_clp(A.<.B)  => to_rat(A, AR), to_rat(B, BR), {AR  <  BR}.
+translate_meta_clp(A.=<.B) => to_rat(A, AR), to_rat(B, BR), {AR =<  BR}.
+translate_meta_clp(A.>.B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
+translate_meta_clp(A.>=.B) => to_rat(A, AR), to_rat(B, BR), {AR  >= BR}.
+% for bec_light.pl
+translate_meta_clp(A < B)  => to_rat(A, AR), to_rat(B, BR), {AR  <  BR}.
+translate_meta_clp(A > B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
 
-translate_meta_clp(A < B)  => {A < B}.                   % for bec_light.pl
-translate_meta_clp(A > B)  => {A > B}.
+to_rat(rat(N,D), Rat) => Rat = N/D.
+to_rat(Term,     Rat) => Rat = Term.
+
 
 
 is_clpq_var(X) :-
