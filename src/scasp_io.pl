@@ -1,6 +1,7 @@
 :- module(scasp_io, [
     load_program/1,
     write_program/0,
+    print_goal/1,
     process_query/3,
     ask_for_more_models/0,
     allways_ask_for_more_models/0,
@@ -381,7 +382,8 @@ predicate is executed when the flag @var{check_calls} is
 
 print_check_calls_calling(Goal,I) :-
     reverse(I,RI),
-    format('\n--------------------- Calling:  ~w -------------',[Goal]),
+    format('\n--------------------- Calling: ~@ -------------',
+           [print_goal(Goal)]),
     print_check_stack(RI,4), !,
     nl,
 %    print(('¿'+Goal+'?')),nl,
@@ -396,10 +398,19 @@ print_check_stack([[]|As],I) :- !,
     I1 is I - 4,
     print_check_stack(As,I1).
 print_check_stack([A|As],I) :-
-    nl, tab(I), print(A),
+    nl, tab(I),
+    print_goal(A),
     I1 is I + 4,
     print_check_stack(As,I1).
 
+print_goal(Goal) :-
+    copy_term(Goal, Copy, Constraints),
+    (   Constraints == []
+    ->  print(Goal)
+    ;   \+ \+ ( numbervars(Copy, 0, _),
+                format('~p ~p', [Copy, Constraints])
+              )
+    ).
 
 :- pred print_s/1 #"output tree by the terminal".
 :- data((sp_tab/1, pr_repeat/2, pr_print/1)).
