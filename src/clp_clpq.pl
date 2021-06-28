@@ -46,13 +46,21 @@ constraints of a variable.
 
 clpqr_dump_constraints(Target, NewVars, Constraints), is_list(Target) =>
     maplist(to_clpq_var, Target, Target2),
-    dump(Target2, NewVars, Constraints).
+    dump(Target2, NewVars, Constraints0),
+    maplist(ciao_constraint, Constraints0, Constraints).
 
 to_clpq_var(X, V) :-
     (   is_clpq_var(X)
     ->  V = X
     ;   true
     ).
+
+ciao_constraint(A=B,     Ciao) => Ciao = (A.=.B).
+ciao_constraint(A-B=\=0, Ciao) => Ciao = (A.<>.B).
+ciao_constraint(A>B,     Ciao) => Ciao = (A.>.B).
+ciao_constraint(A>=B,    Ciao) => Ciao = (A.>=.B).
+ciao_constraint(A<B,     Ciao) => Ciao = (A.<.B).
+ciao_constraint(A=<B,    Ciao) => Ciao = (A.=<.B).
 
 clpq_entailed(C) :-
     entailed(C).

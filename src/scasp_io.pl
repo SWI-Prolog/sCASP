@@ -949,7 +949,7 @@ pretty_constraints_(A,C) :-
     A =.. [Op,X,Y],
     pretty_rat(X,PX),
     pretty_rat(Y,PY),
-    ( pretty_clpq(Op,P_Op) ->
+    ( pretty_clp(Op,P_Op) ->
         C =.. [P_Op,PX,PY]
     ;
         format("WARNING: clp operator ~w not defined\n",[Op]),
