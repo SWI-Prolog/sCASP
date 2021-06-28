@@ -727,7 +727,11 @@ portray(@(Args)) :-
 portray('$'(X)) :- !,
     write(X).
 portray(Constraint) :-
-    Constraint =.. [Op,A,N/D],
+    functor(Constraint, Op, 2),
+    pretty_clp(_,Op),
+    Constraint =.. [Op,A,ND],
+    nonvar(ND),
+    ND = N/D,
     current_option(real,on),
     C is N/D, truncate_(C,R),
     pretty_clp(_,Op), !,
