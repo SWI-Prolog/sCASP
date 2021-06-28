@@ -809,15 +809,19 @@ neg_in_stack(not(Goal), [NegGoal|_]) :-
 neg_in_stack(Goal, [not(NegGoal)|_]) :-
     Goal == NegGoal, !.
 neg_in_stack(not(Goal), [NegGoal|_]) :-
-    variant(Goal, NegGoal),
-    instance(Goal, NegGoal),
-    instance(NegGoal, Goal), !,
-    if_user_option(warning, format("\nWARNING: Co-Failing in a negated loop due to a variant call (extension clp-disequality required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, NegGoal])).
+    variant(Goal, NegGoal), !,
+    if_user_option(warning,
+                   format("~NWARNING: Co-Failing in a negated loop due \c
+                           to a variant call (extension clp-disequality required).\n\c
+                           \tCurrent call:\t~@\n\tPrevious call:\t~@\n",
+                          [print_goal(Goal), print_goal(NegGoal)])).
 neg_in_stack(Goal, [not(NegGoal)|_]) :-
-    variant(Goal, NegGoal),
-    instance(Goal, NegGoal),
-    instance(NegGoal, Goal), !,
-    if_user_option(warning, format("\nWARNING: Co-Failing in a negated loop due to a variant call (extension clp-disequality required).\n\tCurrent call:\t~p\n\tPrevious call:\t~p\n", [Goal, NegGoal])).
+    variant(Goal, NegGoal), !,
+    if_user_option(warning,
+                   format("~NWARNING: Co-Failing in a negated loop due \c
+                          to a variant call (extension clp-disequality required).\n\c
+                          \tCurrent call:\t~@\n\tPrevious call:\t~@\n",
+                          [print_goal(Goal), print_goal(NegGoal)])).
 neg_in_stack(Goal, [_|Ss]) :-
     neg_in_stack(Goal, Ss).
 
