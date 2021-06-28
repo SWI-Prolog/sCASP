@@ -790,21 +790,17 @@ check_CHS(Goal, I, _cont) :-
 % coinduction does not success or fails <- the execution continues
 % inductively
 check_CHS(Goal, I, cont) :-
-    if(
-        (
-            predicate(Goal),
-            \+ ground(Goal), %% the current goal is restricted
-            ground_neg_in_stack(Goal, I)
-        ),
-        true, true
+    (   predicate(Goal),
+        \+ ground(Goal), % the current goal is restricted
+        ground_neg_in_stack(Goal, I)
+    *-> true
+    ;   true
     ),
-    if(
-        (
-            predicate(Goal),
-            ground(Goal), %% the current goal restrict previous results
-            constrained_neg_in_stack(Goal, I)
-        ),
-        true, true
+    (   predicate(Goal),
+        ground(Goal), %% the current goal restrict previous results
+        constrained_neg_in_stack(Goal, I)
+    *-> true
+    ;   true
     ).
 
 % check if the negation is in the stack -> coinductive failure
