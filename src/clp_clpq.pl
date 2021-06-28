@@ -80,6 +80,10 @@ translate_meta_clp(A.=<.B) => {A =< B}.
 translate_meta_clp(A.>.B)  => {A > B}.
 translate_meta_clp(A.>=.B) => {A >= B}.
 
+translate_meta_clp(A < B)  => {A < B}.                   % for bec_light.pl
+translate_meta_clp(A > B)  => {A > B}.
+
+
 is_clpq_var(X) :-
     attvar(X),
     clp_type(X, clpq).
