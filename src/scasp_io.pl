@@ -77,6 +77,7 @@ Arias} in the folder @file{./src/sasp/}.
 
 :- op(700, xfx, ['| ']). %% such as
 
+:- include(public_ops).
 
 %% ------------------------------------------------------------- %%
 

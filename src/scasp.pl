@@ -840,8 +840,8 @@ neg_in_stack(Goal, [_|Ss]) :-
 
 % ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
-    if_user_option(check_calls, format('Enter ground_neg_in_stack for ~@ (Stack ~p)\n',
-                                       [print_goal(Goal), S])),
+    if_user_option(check_calls, format('Enter ground_neg_in_stack for ~@\n',
+                                       [print_goal(Goal)])),
     ground_neg_in_stack_(Goal, S, 0, 0, Flag),
     Flag == found,
     %       ( Flag == found_dis ; Flag == found_clpq ),
@@ -1202,7 +1202,8 @@ solve_var_forall_(Goal, 'entry'(C_Vars, Prev_Store), 'dual'(C_Vars, [C_St|C_Stor
         solve_var_forall_(Goal1, 'entry'(C_Vars1, Current_Store1), 'dual'(C_Vars1, Duals), OtherVars, StackOut1, StackOut2, Model2),
         append(Model1,Model2,Model3)
     ;
-       if_user_option(check_calls,format('Entail: Fail  applying \t ~p\n',[C_St])),
+       if_user_option(check_calls,format('Entail: Fail  applying \t ~@\n',
+                                         [print_goal(C_St)])),
         %% The dual C_St is not consistent with Prev_Store -> already checked (entails)
         StackOut2 = StackIn,
         Model3 = []
