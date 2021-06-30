@@ -773,13 +773,11 @@ syntax_error2(Token, (Source, Line, Col), Expected) :-
     syntax_msg(Expected, ExpMsg),
     visible_token(Token, Vtok),
     !,
-    swritef(Msg, 'ERROR: ~w:~w:~w: Syntax error at \"~w\". ~w.\n', [Source, Line, Col, Vtok, ExpMsg]),
-    write(user_error, Msg).
+    format(user_error, 'ERROR: ~w:~w:~w: Syntax error at \"~w\". ~w.\n', [Source, Line, Col, Vtok, ExpMsg]).
 syntax_error2(Token, (Source, Line, Col), _) :-
     visible_token(Token, Vtok),
     !,
-    swritef(Msg, 'ERROR: ~w:~w:~w: Syntax error at \"~w\".\n', [Source, Line, Col, Vtok]),
-    write(user_error, Msg).
+    format(user_error, 'ERROR: ~w:~w:~w: Syntax error at \"~w\".\n', [Source, Line, Col, Vtok]).
 
 %! syntax_msg(+Type:atom, -Message:string)
 % Define error messages for various tokens and rules.
