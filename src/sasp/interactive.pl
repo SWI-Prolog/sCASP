@@ -17,7 +17,7 @@ interactive mode.
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -28,7 +28,7 @@ interactive mode.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -54,10 +54,8 @@ help :- !, fail.
 help :-
     %        current_prolog_flag(argv, [Prog | _]),
     Prog = casp,
-    swritef(M1, 'Usage: ~w [options] InputFile(s)\n\n', [Prog]),
-    write(user_error, M1),
-    swritef(M2, 'c(ASP) computes stable models of ungrounded normal logic programs.\n', []),
-    write(user_error, M2),
+    format(user_error, 'Usage: ~w [options] InputFile(s)\n\n', [Prog]),
+    format(user_error, 'c(ASP) computes stable models of ungrounded normal logic programs.\n', []),
     % for reference on line length (keep under 80 chars/line incl. newline):
     %                 '1                                                                          80->x'
     write(user_error, 'Command-line switches are case-sensitive!\n\n'),

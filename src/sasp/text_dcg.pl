@@ -100,9 +100,7 @@ syntax_error(Expected) -->
     !.
 syntax_error(Expected, [], []) :-
     syntax_msg(Expected, ExpMsg),
-    swritef(Msg, 'ERROR: Unexpected end of file. ~w.\n', [ExpMsg]),
-    write(user_error, Msg),
-    !.
+    format(user_error, 'ERROR: Unexpected end of file. ~w.\n', [ExpMsg]).
 
 %! asp_program(-Statements:list, -Directives:list, +ErrorsIn:int, -ErrorsOut:int, +TokensIn:list, -TokensOut:list)
 % A program is a list of statements

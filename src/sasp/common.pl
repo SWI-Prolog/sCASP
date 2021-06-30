@@ -280,17 +280,14 @@ write_verbose(_, _) :-
 %        '~w' in Format.
 write_verbose(0, Y, Z) :-
     user_option(verbose, 1),
-    swritef(M, Y, Z), % Get message string
-    write(user_error, M),
-    !.
+    !,
+    format(user_error, Y, Z).
 write_verbose(X, Y, Z) :-
     user_option(veryverbose, 1),
+    !,
     write_indent(X),
-    swritef(M, Y, Z), % Get message string
-    write(user_error, M),
-    !.
-write_verbose(_, _, _) :-
-    !.
+    format(user_error, Y, Z).
+write_verbose(_, _, _).
 
 %! write_indent(+Depth:int)
 % Write an indentation of size Depth to user_error.
