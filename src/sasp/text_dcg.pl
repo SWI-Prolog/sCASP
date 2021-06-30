@@ -784,7 +784,7 @@ syntax_error2(Token, (Source, Line, Col), _) :-
 %
 % @param Type Identifier associated with message.
 % @param Message Message string.
-osyntax_msg(statement, 'Invalid start of statement. Expected \"compute\", \":-\" or identifier').
+syntax_msg(statement, 'Invalid start of statement. Expected \"compute\", \":-\" or identifier').
 syntax_msg(rule_type, 'Invalid rule type. Expected valid integer: 1, 2, 3, 5, 6 or 8').
 syntax_msg(term, 'Invalid term. Expected integer, identifier or \"_\"').
 % syntax_msg(atom, ''). % default is fine.
