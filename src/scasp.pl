@@ -206,7 +206,7 @@ main_solve(Q0) :-
     if(
         solve(Query, [], StackOut, Model),
         nl,
-        (print('\nno models\n\n'), fail)
+        (format('\nno models\n\n'), fail)
     ),
     statistics(runtime, [_|[T]]),
 
@@ -295,7 +295,7 @@ collect_min_models(Q0) :-
     if(
         take_min(Query, _MinModel, Model, StackOut, T),
         nl,
-        (print('\nno models\n\n'), fail)
+        (format('\nno models\n\n'), fail)
     ),
 
     increase_counter,
