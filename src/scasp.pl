@@ -22,6 +22,7 @@
             print_on/0,
             solve_c_forall/4
         ]).
+:- set_prolog_flag(optimise, true).
 :- expects_dialect(ciao).
 :- style_check(-singleton).
 % ------------------------------------------------------------- %%
