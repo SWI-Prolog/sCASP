@@ -406,6 +406,9 @@ print_check_stack([A|As],I) :-
 
 %print_goal(Goal) :- !,
 %    print(Goal).
+print_goal(Goal) :- !,
+    ciao_goal(Goal, Ciao),
+    print(Ciao).
 print_goal(Goal) :-
     copy_term(Goal, Copy, Constraints),
     (   Constraints == []
@@ -414,6 +417,38 @@ print_goal(Goal) :-
                 format('~p ~p', [Copy, Constraints])
               )
     ).
+
+user:portray(Goal) :-
+    compound(Goal),
+    term_attvars(Goal, List),
+    List \== [],
+    !,
+    ciao_goal(Goal, Ciao),
+    print(Ciao).
+
+ciao_goal(Goal, Ciao) :-
+    copy_term(Goal, Ciao),
+    term_attvars(Ciao, AttVars),
+    maplist(ciao_constraints, AttVars, Constraints),
+    maplist(del_attrs, AttVars),
+    maplist(ciao_attvar, AttVars, Constraints).
+
+:- use_module(library(clpqr/dump), [dump/3]).
+
+ciao_constraints(Var, Constraints) :-
+    (   is_clpq_var(Var),
+        dump([Var], [NV], Constraints0),
+        Constraints0 \== [],
+        Constraints = NV-Constraints0
+    ;   Constraints = []
+    ).
+
+:- op(700, xfx, user:'~').
+:- op(700, xfx, ~).
+
+ciao_attvar(_, []) :- !.
+ciao_attvar({NV~Constraints}, NV-Constraints).
+
 
 :- pred print_s/1 #"output tree by the terminal".
 :- data((sp_tab/1, pr_repeat/2, pr_print/1)).
