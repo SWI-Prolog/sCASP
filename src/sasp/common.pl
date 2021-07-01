@@ -215,16 +215,10 @@ fatal_error(X, Y) :-
 %
 % @param Format Anything that could be passed to write/1: a quoted string, a
 %        term, etc.
-:- if(current_predicate(format/3)).
+
 write_error(X) :-
-    format(user_error, 'ERROR: ~w.\n', [X]),
-    gtrace,
-    true.
-:- else.
-write_error(X) :-
-    swritef(Msg, 'ERROR: ~w.\n', [X]),
-    write(user_error, Msg).
-:- endif.
+    split_string(X, "", "\n", [String]),
+    print_message(error, format('~w',String)).
 
 %! write_error(+Format:string, +Arguments:list) is det
 % Similar to write_error/1, except that arguments are filled in as with
@@ -234,15 +228,10 @@ write_error(X) :-
 %        that the next element in Arguments should be printed.
 % @param Arguments A list of arguments that will be substituted, in order, for
 %        '~w' in Format.
-:- if(current_predicate(format/3)).
+
 write_error(X, Y) :-
-    atom_concat('ERROR: ', X, Fmt),
-    format(user_error, Fmt, Y).
-:- else.
-write_error(X, Y) :-
-    swritef(Z, X, Y), % Get string for main message
-    write_error(Z).
-:- endif.
+    split_string(X, "", "\n", [Fmt]),
+    print_message(error, format(Fmt,Y)).
 
 %! write_verbose(+Depth:int, +Format:string) is det.
 % Write a message to user_error if the verbose or veryverbose options are
