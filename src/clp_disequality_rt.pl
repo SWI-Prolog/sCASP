@@ -97,8 +97,9 @@ unify2(A,B) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .\=.(A,B) :-
-    (   unifiable(A,B,U)
-    ->  member(Var=Value, U),
+    (   unifiable(A,B,U0)
+    ->  reverse(U0, U),
+        member(Var=Value, U),
         not_unify2(Var, Value)
     ;   true
     ).
