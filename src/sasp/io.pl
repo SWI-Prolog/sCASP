@@ -110,11 +110,12 @@ load_source_files([], S, S, E, E) :-
 % @param FilesIn Input list of files.
 % @param FilesOut Output list of files.
 process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
-    absolute_file_name(X, X2,
-                       [ relative_to(C),
-                         extensions([pl]),
-                         access(read)
-                       ]), % resolve relative to current file
+    catch(absolute_file_name(X, X2,
+                             [ relative_to(C),
+                               extensions([pl]),
+                               access(read)
+                             ]),
+          E, (print_message(error, E), fail)),
     !, % include directive
     process_directives(T, C, Si, So, Fsi, Fso).
 :- dynamic (asp_table)/1, show/1, pred/1.
