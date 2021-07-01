@@ -1121,10 +1121,10 @@ solve_other_forall(Goal,
                  _AllVars2, [Goal2,StackIn2,OtherVars2,Vars2]), % Vars should remain free
 
     if_user_option(check_calls,
-                   format("solve other forall:\c
-                           \t Goal \t~p\c
-                           \t Vars1       \t~p\c
-                           \t OtherVars   \t~p\c
+                   format("solve other forall:\n\c
+                           \t Goal \t~p\n\c
+                           \t Vars1       \t~p\n\c
+                           \t OtherVars   \t~p\n\c
                            \t StackIn    \t~p\n\n",
                           [Goal,Vars1,OtherVars,StackIn])),
 
@@ -1135,10 +1135,10 @@ solve_other_forall(Goal,
     my_copy_vars(OtherVars1, Constraints1, OtherVars2, Constraints2),
 
     if_user_option(check_calls,
-                   format("solve other forall:\c
-                          \t OtherVars1   \t~p\c
-                          \t OtherVars2   \t~p\c
-                          \t Constraints1   \t~p\c
+                   format("solve other forall:\n\c
+                          \t OtherVars1   \t~p\n\c
+                          \t OtherVars2   \t~p\n\c
+                          \t Constraints1   \t~p\n\c
                           \t Constraints2 \t~p\n\n",
                           [OtherVars, OtherVars1, Constraints1, Constraints2])),
 
@@ -1173,10 +1173,10 @@ solve_var_forall_(Goal,
                   dual(C_Vars, [C_St|C_Stores]),
                   OtherVars, StackIn, StackOut, Model) :-
     if_user_option(check_calls,
-                   format("solve forall:\c
-                          \tPrev_Store \t~p\c
-                          \tC_St       \t~p\c
-                          \tC_Stores   \t~p\c
+                   format("solve forall:\n\c
+                          \tPrev_Store \t~p\n\c
+                          \tC_St       \t~p\n\c
+                          \tC_Stores   \t~p\n\c
                           \tStackIn    \t~p\n\n",
                           [Prev_Store,C_St,C_Stores,StackIn])),
 
