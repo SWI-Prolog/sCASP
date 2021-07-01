@@ -112,7 +112,7 @@ load_source_files([], S, S, E, E) :-
 process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
     catch(absolute_file_name(X, X2,
                              [ relative_to(C),
-                               extensions([pl]),
+                               extensions([pl,'']),
                                access(read)
                              ]),
           E, (print_message(error, E), fail)),
