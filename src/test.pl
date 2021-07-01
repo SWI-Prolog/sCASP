@@ -9,6 +9,20 @@
 
 :- initialization(main, main).
 
+%!  main(+Argv)
+%
+%   Usage: swipl test.pl [option ...] [dir ...] [file ...]
+%
+%   Options:
+%
+%     |----------------|-------------------------------------|
+%     | --timeout=Secs | Run tests with timeout (default 60) |
+%     | --save         | Save result if no .pass file exists |
+%     | --overwrite    | Overwrite .pass after we passed     |
+%     | --pass         | Overwrite .pass after we failed     |
+%
+%   Default runs tests from `../test`
+
 main(Argv) :-
     argv_options(Argv, Positional, Options),
     test_files(Positional, Files),
@@ -85,7 +99,7 @@ save_test_data(Into, Result) :-
 
 test_files([], Files) :-
     !,
-    test_files(['../tests'], Files).
+    test_files(['../test'], Files).
 test_files(Spec, Files) :-
     phrase(test_files(Spec), Files).
 
