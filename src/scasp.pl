@@ -1060,9 +1060,7 @@ clp_interval(sup).
 my_copy_term(Var0, Term0, Var, Term) :-
     term_variables(Term0, AllVars),
     delete_var(AllVars, Var0, Share0),
-    copy_term(t(Var0,Share0,Term0), t(Var,Share,Term)),
-    del_attrs(Var),
-    maplist(del_attrs, Share),
+    copy_term_nat(t(Var0,Share0,Term0), t(Var,Share,Term)),
     Share = Share0.
 
 delete_var([], _, []).
@@ -1078,9 +1076,7 @@ my_copy_vars(Vars0, Term0, Vars, Term) :-
     sort(AllVars, AllVarsSorted),
     sort(Vars0, Vars0Sorted),
     ord_subtract(AllVarsSorted, Vars0Sorted, Share0),
-    copy_term(t(Vars0,Share0,Term0), t(Vars,Share,Term)),
-    maplist(del_attrs, Vars),
-    maplist(del_attrs, Share),
+    copy_term_nat(t(Vars0,Share0,Term0), t(Vars,Share,Term)),
     Share = Share0.
 
 :- use_module(library(terms_vars)).
