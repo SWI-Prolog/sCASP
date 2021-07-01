@@ -41,7 +41,8 @@ run_test(File, Options) :-
     pass_data(File, PassFile, PassData),
     (   nonvar(Error)
     ->  message_to_string(Error, Msg),
-        format("ERROR: ~s ~|~t~d ms~8+\n", [Msg,Used])
+        format("ERROR: ~s ~|~t~d ms~8+\n", [Msg,Used]),
+        fail
     ;   var(PassData)
     ->  length(Result, Models),
         format("~D models ~|~t~d ms~8+\n", [Models,Used]),
