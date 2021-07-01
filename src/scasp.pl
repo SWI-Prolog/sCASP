@@ -1215,9 +1215,16 @@ solve_var_forall_(Goal,
 
 append_set([],X,X):- !.
 append_set([A|As],Bs,Cs) :-
-    \+ \+ member(A,Bs), !, append_set(As,Bs,Cs).
+    \+ \+ memberchk_oc(A, Bs),
+    append_set(As,Bs,Cs).
 append_set([A|As],Bs,[A|Cs]) :-
     append_set(As,Bs,Cs).
+
+memberchk_oc(Term, [H|T]) :-
+    (   unify_with_occurs_check(Term, H)
+    ->  true
+    ;   memberchk_oc(Term, T)
+    ).
 
 apply_const_store([]) :- !.
 apply_const_store([C|Cs]) :-
