@@ -438,8 +438,11 @@ ciao_goal(Goal, Ciao) :-
 ciao_constraints(Var, Constraints) :-
     (   is_clpq_var(Var),
         dump([Var], [NV], Constraints0),
-        Constraints0 \== [],
-        Constraints = NV-Constraints0
+        Constraints0 \== []
+    ->  Constraints = NV-Constraints0
+    ;   get_neg_var(Var, List),
+        List \== []
+    ->  Constraints = neg(_NV, List)
     ;   Constraints = []
     ).
 
@@ -447,8 +450,8 @@ ciao_constraints(Var, Constraints) :-
 :- op(700, xfx, ~).
 
 ciao_attvar(_, []) :- !.
-ciao_attvar({NV~Constraints}, NV-Constraints).
-
+ciao_attvar({NV~Constraints}, NV-Constraints) :- !.
+ciao_attvar({'\u2209'(Var, List)}, neg(Var, List)).
 
 :- pred print_s/1 #"output tree by the terminal".
 :- data((sp_tab/1, pr_repeat/2, pr_print/1)).
