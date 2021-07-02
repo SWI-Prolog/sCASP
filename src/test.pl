@@ -50,33 +50,39 @@ run_test(File, Options) :-
     flush_output,
     option(timeout(Time), Options, 60),
     statistics(runtime, _),
-    catch(call_with_time_limit(Time, scasp_test([File], Result)),
+    catch(call_with_time_limit(Time, scasp_test([File], Stacks-Models)),
           Error, true),
     statistics(runtime, [_,Used]),
-    pass_data(File, PassFile, PassData),
+    Result = Stacks-Models,
+    pass_data(File, PassFile, PassResult),
+    (   PassResult = PassStacks-PassModels
+    ->  true
+    ;   PassStacks = PassResult         % old format
+    ),
     (   nonvar(Error)
     ->  message_to_string(Error, Msg),
         format("ERROR: ~s ~|~t~d ms~8+\n", [Msg,Used]),
         fail
-    ;   var(PassData)
-    ->  length(Result, Models),
-        format("~D models ~|~t~d ms~8+\n", [Models,Used]),
+    ;   var(PassStacks)
+    ->  length(Models, ModelCount),
+        format("~D models ~|~t~d ms~8+\n", [ModelCount,Used]),
         (   option(save(true), Options)
         ->  save_test_data(PassFile, Result)
         ;   true
         )
-    ;   PassData = Result
+    ;   PassStacks =@= Stacks
     ->  format("passed ~|~t~d ms~8+\n", [Used]),
         (   option(overwrite(true), Options)
         ->  save_test_data(PassFile, Result)
         ;   true
         )
+    ;   PassModels =@= Models
+    ->  format("passed ~|~t~d ms~8+\n", [Used])
     ;   format("FAILED ~|~t~d ms~8+\n", [Used]),
-        gtrace,
         (   option(pass(true), Options)
         ->  save_test_data(PassFile, Result)
         ;   option(show_diff(true), Options)
-        ->  diff_terms(PassData, Result)
+        ->  diff_terms(PassStacks, Stacks)
         ),
         fail
     ).

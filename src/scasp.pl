@@ -100,18 +100,20 @@ load(X) :-
 :- pred scasp_test(Args, Result) : list(Args) # "Used to test s(CASP) from
 test.pl module".
 
-scasp_test(Args, Results) :-
+scasp_test(Args, Stacks-Models) :-
     parse_args(Args, Options, Sources),
     set_options(Options),
     load(Sources),
     defined_query(Q),
     process_query(Q, _, Query),
     findall(
-        Result,
-        ( solve(Query, [], StackOut, _Model),
-            pretty_term([], _, StackOut, Result)
+        Stack-Model,
+        ( solve(Query, [], StackOut, ModelOut),
+          pretty_term([], _, StackOut, Stack),
+          pretty_term([], _, ModelOut, Model)
         ),
-        Results).
+        Pairs),
+    pairs_keys_values(Pairs, Stacks, Models).
 
 :- pred scasp_exec(Args, Result) : list(Args) # "Used to execute s(CASP) from
 top_level.pl module".
