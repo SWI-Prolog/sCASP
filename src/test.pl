@@ -6,6 +6,7 @@
 :- use_module(library(time), [call_with_time_limit/2]).
 
 :- include(public_ops).
+:- use_module(diff).
 
 :- initialization(main, main).
 
@@ -71,9 +72,11 @@ run_test(File, Options) :-
         ;   true
         )
     ;   format("FAILED ~|~t~d ms~8+\n", [Used]),
+        gtrace,
         (   option(pass(true), Options)
         ->  save_test_data(PassFile, Result)
-        ;   true
+        ;   option(show_diff(true), Options)
+        ->  diff_terms(PassData, Result)
         ),
         fail
     ).
