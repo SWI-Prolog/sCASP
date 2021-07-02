@@ -5,8 +5,6 @@
     process_query/3,
     ask_for_more_models/0,
     allways_ask_for_more_models/0,
-    init_counter/0,
-    increase_counter/0,
     print_query/1,      % query
     print_justification_tree/1, % justification tree
     print_model/1,      % model
@@ -20,7 +18,6 @@
     current_option/2,
     counter/2,
     set_options/1,
-    answer_counter/1,
     print_html/3
     ]).
 :- if(current_prolog_flag(version_data, swi(_,_,_,_))).
@@ -210,22 +207,6 @@ allways_ask_for_more_models :-
     ;   true
     ).
 
-
-:- pred init_counter/0 #"Reset the value of answer_counter to 0".
-
-:- dynamic answer_counter/1.
-init_counter :-
-    retractall(answer_counter(_)),
-    assert(answer_counter(0)).
-
-:- pred increase_counter/0 #"Add 1 to the current value of
-answer_counter".
-
-increase_counter :-
-    answer_counter(N),
-    N1 is N + 1,
-    retractall(answer_counter(N)),
-    assert(answer_counter(N1)).
 
 :- pred print_query(Query) #"Print the  @var{Query}".
 

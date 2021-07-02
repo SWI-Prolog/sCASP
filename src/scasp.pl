@@ -196,7 +196,6 @@ main_solve(Q0) :-
 
 main_solve(Q0) :-
     current_option(answers, Number),
-    init_counter,
 
     process_query(Q0, Q, Query), varset(Q, Vars),
     unifiable(Q0, Q, D0),
@@ -206,15 +205,13 @@ main_solve(Q0) :-
     print_query(PQ),
 
     statistics(runtime, _),
-    if(
-        solve(Query, [], StackOut, Model),
-        nl,
-        (format('\nno models\n\n'), fail)
+    (   call_nth(solve(Query, [], StackOut, Model), Counter)
+    *-> nl,
+        format('\nno models\n\n'),
+        fail
     ),
     statistics(runtime, [_|[T]]),
 
-    increase_counter,
-    answer_counter(Counter),
     format('\tANSWER:\t~w (in ~w ms)\n', [Counter, T]),
 
     pretty_term(D1, D2, par(Q, Vars, Model), par(PAnswer, Bindings, P_Model)),
@@ -286,23 +283,18 @@ take_min(Query, MinModel, Model, StackOut, T) :-
     sort(PrintableModel, MinModel).
 
 collect_min_models(Q0) :-
-    init_counter,
-
     process_query(Q0, Q, Query), varset(Q, Vars),
     unifiable(Q0, Q, D0),
 
     pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
 
     print_query(PQ),
-
-    if(
-        take_min(Query, _MinModel, Model, StackOut, T),
-        nl,
-        (format('\nno models\n\n'), fail)
+    (   call_nth(take_min(Query, _MinModel, Model, StackOut, T), Counter)
+    *-> nl,
+        format('\nno models\n\n'),
+        fail
     ),
 
-    increase_counter,
-    answer_counter(Counter),
     format('\tANSWER:\t~w (in ~w ms)\n', [Counter, T]),
 
     pretty_term(D1, D2, par(Q, Vars, Model), par(PAnswer, Bindings, P_Model)),
@@ -382,16 +374,12 @@ the top-level. It calls solve_query/1".
     solve_query(Q).
 
 solve_query(Q) :-
-    init_counter,
-
     process_query(Q, _, Query),
 
     statistics(runtime, _),
-    solve(Query, [], StackOut, Model),
+    call_nth(solve(Query, [], StackOut, Model), Counter),
     statistics(runtime, [_|T]),
 
-    increase_counter,
-    answer_counter(Counter),
     format('\nAnswer ~w\t(in ~w ms):', [Counter, T]), nl,
 
     reverse(StackOut, Reverse_StackOut),
