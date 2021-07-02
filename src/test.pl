@@ -1,3 +1,5 @@
+#!/usr/bin/env swipl
+
 :- module(test,[main/1]).
 :- use_module(scasp, [scasp_test/2]).
 :- use_module(library(lists), [member/2]).
