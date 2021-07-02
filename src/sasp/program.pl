@@ -100,29 +100,36 @@ program(p(Rules, OptStmts, Query), Rules, OptStmts, Query).
 % @param SolutionCount Hard-coded solution count.
 query(c(Q, Nmr_check, N), Q, Nmr_check, N).
 
-%! reserved_prefix(+Prefix:ground) is det
-% Define reserved prefixes for predicates and compound terms. These take the
-% form of a single letter followed by an underscore. This predicate just tests
-% the letter. The dummy prefix is appended to predicates and compound terms that
-% either begin with an underscore (legal in ASP but not Prolog) or with a
-% reserved prefix. It will be removed last before printing, and at most one copy
-% will be removed, ensuring that user-defined predicates starting with a
-% reserved prefix won't be processed the same as internally created ones.
+%!  reserved_prefix(+Prefix:ground) is det
 %
-% @param Prefix The letter portion of the prefix.
+%   Define reserved prefixes for predicates   and  compound terms. These
+%   take the form of a single  letter   followed  by an underscore. This
+%   predicate just tests the letter. The dummy prefix (`o_`) is appended
+%   to  predicates  and  compound  terms  that   either  begin  with  an
+%   underscore (legal in ASP but not Prolog)  or with a reserved prefix.
+%   It will be removed last before printing,   and at most one copy will
+%   be removed, ensuring that user-defined   predicates  starting with a
+%   reserved prefix won't be processed the   same  as internally created
+%   ones.
+%
+%   @arg Prefix The letter portion of the prefix.
+
 reserved_prefix('c'). % classical negation
 reserved_prefix('n'). % dual rule prefix
 reserved_prefix('d'). % dummy prefix
 
-%! has_prefix(+Functor:ground, -Prefix:ground) is nondet.
-%! has_prefix(+Functor:ground, +Prefix:ground) is det.
-% Succeed if Functor begins with a reserved prefix, returning the character part
-% of the (first) prefix.
+%! has_prefix(+Functor:atom, -Prefix:atom) is semidet.
 %
-% @param Functor The functor to test.
-% @param Prefix The character of the (first) reserved prefix of the functor.
+%  Succeed if Functor begins  with  a   reserved  prefix,  returning the
+%  character part of the (first) prefix.
+%
+%  @arg Functor The functor to test.
+%  @arg Prefix The character of the (first) reserved prefix of the
+%  functor.
+
 has_prefix(F, C) :-
-    atom_chars(F, [C, '_' | _]), % Starts with a letter followed by an underscore.
+    sub_atom(F, 1, _, _, '_'),
+    sub_atom(F, 0, 1, _, C),
     reserved_prefix(C). % the letter is a reserved prefix
 
 %! assert_program(+Statements:list) is det
