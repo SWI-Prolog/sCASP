@@ -6,11 +6,8 @@
 
 ## Status of the SWI-Prolog port
 
-The basics work and pass (most of) the tests. Running depends on the
-Ciao emulation package at https://www.swi-prolog.org/pack/list?p=ciao.
-Although both SWI-Prolog and Ciao have a CLP(QR) module that originates
-from the work by Christian Holzbauer, the two versoions have diverged
-considerably and this part of the port has not yet been completed.
+All tests pass. Running depends on the Ciao emulation package at
+https://www.swi-prolog.org/pack/list?p=ciao.
 
 The current source is a bit of a mess, consisting of a first sASP layer
 by Kyle Marple on top of SWI-Prolog, the sCASP version implemented on
