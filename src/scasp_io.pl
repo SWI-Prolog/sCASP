@@ -199,19 +199,21 @@ ask_for_more_models :-
         true
     ).
 
-:- pred ask_for_more_models/0 #"Ask if the user want to generate more
-models (execution from console)".
+%!  ask_for_more_models is semidet.
+%
+%   Ask if the  user  want  to   generate  more  models  (execution from
+%   console)".  __Fails__ if a next model is requested.
 
 allways_ask_for_more_models :-
-    (
-        format(' ? ', []), get_char(R), R \= '\n' ->
-        get_char(_),
-        nl,
+    (   format(' ? ', []),
+        get_single_char(R),
+        memberchk(R, `\s;`)
+    ->  format(';\n'),
         statistics(runtime,_),
         fail
-    ;
-        true
+    ;   true
     ).
+
 
 :- pred init_counter/0 #"Reset the value of answer_counter to 0".
 

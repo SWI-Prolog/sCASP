@@ -147,36 +147,36 @@ main(Args) :-
     set_options(Options),
     load(Sources),
     if_user_option(write_program, (write_program, halt)),
-    (
-        current_option(interactive, on) ->
+    (   current_option(interactive, on)
+    ->  '$toplevel':setup_readline,
         main_loop
-    ;
-        defined_query(Q),
+    ;   defined_query(Q),
         main_solve(Q)
     ).
 main(_).
 
 main_loop :-
-    print('\n?- '),
-    catch(read(R), _, fail_main_loop),
+    read_term_with_history(R,
+                           [ prompt('casp ~! ?- '),
+                             variable_names(Bindings)
+                           ]),
+    maplist(call, Bindings),            % sCASP vars are atoms, see revar/2.
     conj_to_list(R, RQ),
     capture_classical_neg(RQ, Q),
-    (
-        member(exit, Q) ->
+    (   (   R == end_of_file
+        ;   R == (exit)
+        ;   R == quit
+        ;   R == halt
+        )
+    ->  format('~N'),
         halt
-    ;
-        (
-            main_solve(Q) ->
-            nl, main_loop
-        ;
-            % print('\nfalse'),
-            main_loop
+    ;   conj_to_list(R, RQ),
+        capture_classical_neg(RQ, Q),
+        (   main_solve(Q)
+        ->  nl, main_loop
+        ;   main_loop
         )
     ).
-
-fail_main_loop :-
-    print('\nno'),
-    main_loop.
 
 capture_classical_neg([], []) :- !.
 capture_classical_neg([-S|Ss], [N|NSs]) :- !,
