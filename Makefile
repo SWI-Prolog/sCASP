@@ -3,8 +3,9 @@
 
 compile_scasp:
 	swipl -O -o scasp -c src/scasp.pl
-#	ciaoc -x -o scasp src/scasp.pl
 
+check:
+	cd src && swipl test.pl
 
 clean: lpdoc_clean
 	@$(MAKE) lpdoc_clean
