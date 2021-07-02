@@ -190,13 +190,9 @@ process_query(Q,Query,TotalQuery) :-
 models (interactive and top-level mode)".
 
 ask_for_more_models :-
-    (
-        cont, format('next ? ', []), get_char(R),true, R \= '\n' ->
-        get_char(_),
-        statistics(runtime,_),
-        fail
-    ;
-        true
+    (   cont
+    ->  allways_ask_for_more_models
+    ;   true
     ).
 
 %!  ask_for_more_models is semidet.
