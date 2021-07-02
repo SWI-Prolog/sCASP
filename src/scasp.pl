@@ -883,6 +883,7 @@ ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
 % restrict even more the constrained in the stack
 constrained_neg_in_stack(_, []).
 constrained_neg_in_stack(not(Goal), [NegGoal|Ss]) :-
+    same_functor(Goal, NegGoal),
     if_user_option(check_calls,
                    format('\t\tCheck if not(~@) is consistent with ~@\n',
                           [print_goal(Goal), print_goal(NegGoal)])), !,
@@ -890,6 +891,7 @@ constrained_neg_in_stack(not(Goal), [NegGoal|Ss]) :-
     if_user_option(check_calls, format('\t\tOK\n', [])),
     constrained_neg_in_stack(not(Goal), Ss).
 constrained_neg_in_stack(Goal, [not(NegGoal)|Ss]) :-
+    same_functor(Goal, NegGoal),
     if_user_option(check_calls,
                    format('\t\tCheck if not(~@) is consistent with ~@\n',
                           [print_goal(Goal), print_goal(NegGoal)])), !,
