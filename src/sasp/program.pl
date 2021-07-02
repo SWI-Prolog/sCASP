@@ -133,10 +133,26 @@ has_prefix(F, C) :-
     reserved_prefix(C). % the letter is a reserved prefix
 
 %! assert_program(+Statements:list) is det
-% Get rules, initial query and called predicates and assert them for easy
-% access.
 %
-% @param Statements List of rules and compute statements produced by DCG.
+%  Get rules, initial query and called   predicates  and assert them for
+%  easy access.  This fills the dynamic predicates
+%
+%    - defined_predicates(List) with a list of predicate identifiers,
+%      atoms encoded as <name>_<arity>, e.g., `parent_2` for parent/2.
+%    - defined_rule(Name, Head, Body) where Name is the functor name
+%      of Head and Body represents the conjunction of the body as a
+%      list. Variables are Prolog atoms that satisfy the Prolog variable
+%      syntax.
+%    - defined_query(List, Count)
+%      List is like Body above, expressing the query and Count is the
+%      number of answer sets to generate by default (based on the
+%      `Count { Query }.` syntax.
+%    - defined_nmr_check(List)
+%      When defined, a list of one atom containing the rule name for the
+%      NMR check.
+%
+%  @arg Statements List of rules and compute statements produced by DCG.
+
 assert_program(Stmts) :-
     write_verbose(0, 'Converting program to internal format...\n'),
     format_program(Stmts, Program),
@@ -262,19 +278,24 @@ get_predicates3([_ | T], Psi, Pso) :-
 get_predicates3([], Ps, Ps) :-
     !.
 
-%! handle_classical_negations(+Predicates:list, +Seen:list) is det
-% From a list of predicates, get those that begin with a '-'. Assign the
-% required number of variables, then create a rule of the form  ":- -x, x."
+%!  handle_classical_negations(+Predicates:list, +Seen:list) is det
 %
-% @param Predicates The list of predicates in the program.
-% @param Seen The classically negated predicates that have already been seen.
+%   From a list of predicates, get those   that begin with a '-'. Assign
+%   the required number of variables, then create a rule of the form
+%
+%	:- -x, x.
+%
+%   @arg Predicates The list of predicates in the program.
+%   @arg Seen The classically negated predicates that have already
+%   been seen.
+%   @tbd If we can get variables from the original, we should.
+
 handle_classical_negations([X | T], S) :-
     has_prefix(X, 'c'), % classically negated literal
-    \+member(X, S), % unprocessed classical negation
-    atom_chars(X, ['c', '_' | Xc]),
-    atom_chars(Xn, Xc), % non-negated literal
+    \+ memberchk(X, S), % unprocessed classical negation
+    atom_concat(c_, Xn, X), % non-negated literal
     defined_predicates(P),
-    member(Xn, P), % only add constraint if non-negated literal is actually used.
+    memberchk(Xn, P), % only add constraint if non-negated literal is actually used.
     !,
     split_functor(X, _, N), % get arity
     var_list(N, 0, [], A), % get args,
