@@ -12,6 +12,17 @@ Input and output handling. Handles the opening and closing of files and
 provides a wrapper for the tokenizer to ensure that files are properly closed
 even if an error occurs.
 
+JW: A program is parsed by load_source_files/5.  This emits a list of
+
+  - c(N, Query)
+    Created from `N { Query }.` or `?- Query.` (where N = 1).
+    sort_by_type/4 selects the _last_ query as c(Q,Nmr_check,N)
+  - Literal-Body
+    Where Body is a list of literals that expresses the conjunction.
+
+
+
+
 @author Kyle Marple
 @version 20170127
 @license BSD-3
