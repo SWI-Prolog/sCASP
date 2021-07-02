@@ -1215,6 +1215,7 @@ solve_var_forall_(Goal,
 append_set([],X,X):- !.
 append_set([A|As],Bs,Cs) :-
     \+ \+ memberchk_oc(A, Bs),
+    !,
     append_set(As,Bs,Cs).
 append_set([A|As],Bs,[A|Cs]) :-
     append_set(As,Bs,Cs).
