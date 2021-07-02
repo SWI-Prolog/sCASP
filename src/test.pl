@@ -77,7 +77,7 @@ run_test(File, Options) :-
         ;   true
         )
     ;   PassModels =@= Models
-    ->  format("passed ~|~t~d ms~8+\n", [Used])
+    ->  format("different stacks, same models ~|~t~d ms~8+\n", [Used])
     ;   format("FAILED ~|~t~d ms~8+\n", [Used]),
         (   option(pass(true), Options)
         ->  save_test_data(PassFile, Result)
