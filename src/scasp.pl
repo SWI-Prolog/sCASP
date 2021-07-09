@@ -1,5 +1,5 @@
-:- module(scasp, [
-            scasp_test/2,
+:- module(scasp,
+          [ scasp_test/2,
             scasp_exec/2,
             main/1,
             load/1,
@@ -21,29 +21,11 @@
             pos_loops/0,
             print_on/0,
             solve_c_forall/4
-        ]).
+          ]).
 :- set_prolog_flag(optimise, true).
 :- expects_dialect(ciao).
 :- style_check(-singleton).
-% ------------------------------------------------------------- %%
-:- use_package(assertions).
-:- doc(title, "Meta interpreter under stable model semantics").
-:- doc(author, "Joaquin Arias").
-:- doc(filetype, module).
 
-:- doc(module, "
-
-This module contains the main functionality of @apl{scasp}.
-
-@pred{load/1} is the predicate used to load the constraint logic
-program.
-
-@pred{solve/4} is the predicate used to evaluate the query of a
-program under the stable model semantic.
-
-").
-
-% ------------------------------------------------------------- %%
 :- use_module(scasp_io).
 :- reexport(scasp_io, [
             pr_rule/2,
@@ -70,35 +52,25 @@ program under the stable model semantic.
 
 :- op(700, fx, [not, (?=), (??), (?)]).
 
-% naf_builtin(findall)
-:- use_module(library(aggregates)).
+:- use_module(library(aggregate)).
 
 :- initialization(main, main).
 
-mymain :-
-    gtrace,
-    catch_with_backtrace(
-        main, E,
-        (   print_message(error, E),
-            halt(1)
-        )).
+		 /*******************************
+		 *        MAIN PREDICATES	*
+		 *******************************/
 
-% ------------------------------------------------------------- %%
-:- doc(section, "Main predicates").
-
-% :- use_package(tabling).
-% :- active_tclp.
-% :- table solve_goal_table_predicate/4.% , solve_goal_predicate/4.
-
-:- pred load(Files) : list(Files) # "Loads a list of files".
+%!  load(+Files) is det.
+%
+%   Load a list of files.
 
 load(X) :-
-    %       abolish_all_tables,
     load_program(X),
     true.
 
-:- pred scasp_test(Args, Result) : list(Args) # "Used to test s(CASP) from
-test.pl module".
+%!  scasp_test(+Argv, -StackModelPairs) is det.
+%
+%   Called from test.pl
 
 scasp_test(Args, Stacks-Models) :-
     parse_args(Args, Options, Sources),
@@ -115,8 +87,9 @@ scasp_test(Args, Stacks-Models) :-
         Pairs),
     pairs_keys_values(Pairs, Stacks, Models).
 
-:- pred scasp_exec(Args, Result) : list(Args) # "Used to execute s(CASP) from
-top_level.pl module".
+%!  scasp_exec(+Argv, -Result) is det.
+%
+%   Used to execute s(CASP) from top_level.pl module.
 
 scasp_exec(Args, [PQ, PAnswer, PVars, Bindings, Printable_Model]) :-
     parse_args(Args, Options, Sources),
@@ -135,9 +108,10 @@ scasp_exec(Args, [PQ, PAnswer, PVars, Bindings, Printable_Model]) :-
     select_printable_literals(P_Model, [], Selected),
     reverse(Selected, Printable_Model).
 
-
-:- pred main(Args) : list(Args) # "Used when calling from command line
-by passing the command line options and the input files".
+%!  main(+Argv)
+%
+%   Used when calling from command  line   by  passing  the command line
+%   options and the input files.
 
 main(Args) :-
     print_on,
@@ -243,8 +217,9 @@ main_solve(Q0) :-
     ).
 
 
-:- pred run_defined_query # "Used from the interactive mode to run
-the defined query".
+%!  run_defined_query
+%
+%   Used from the interactive mode to run the defined query.
 
 :- use_module(library(write)).
 :- use_module(library(terms_check)).
@@ -313,37 +288,9 @@ collect_min_models(Q0) :-
     nl, nl.
 
 
-% collect_min_models(Query) :-
-%     findall(
-%         tuple(SortModel,StackOut),
-%         (
-%             solve(Query, [], StackOut, Model),
-%             select_printable_literals(Model, [], PrintableModel),
-%             sort(PrintableModel,SortModel),
-%             display(SortModel),nl,nl
-%         ),
-%         Ls),
-%     take_min(Ls,MinLs),
-%     display(MinLs),nl.
-
-% take_min([],[no_models]).
-% take_min([A|Ts],M) :-
-%     take_min_(Ts,A,M).
-
-% take_min_([],M,M).
-% take_min_([tuple(B,_)|Ts],tuple(A,As),M):-
-%     ord_subset(A,B),
-%     take_min_(Ts,tuple(A,As),M).
-% take_min_([tuple(B,Bs)|Ts],tuple(A,_),M):-
-%     ord_subset(B,A),
-%     take_min_(Ts,tuple(B,Bs),M).
-
-
-
-
-
-% ------------------------------------------------------------- %%
-:- doc(section, "Top Level Predicates").
+		 /*******************************
+		 *     TOP LEVEL PREDICATES	*
+		 *******************************/
 
 :- pred check_calls/0 # "Turn on the flag @var{check_calls}".
 :- pred pos_loops/0 # "Turn on the flag @var{pos_loops}".
@@ -388,8 +335,9 @@ solve_query(Q) :-
 
     ask_for_more_models.
 
-% ------------------------------------------------------------- %%
-:- doc(section, "Predicates to solve the query").
+		 /*******************************
+		 *        SOLVE THE QUERY	*
+		 *******************************/
 
 :- pred solve(Goals, StackIn, StackOut, Model) # "Solve the list of
 sub-goals @var{Goal} where @var{StackIn} is the list of goals already
