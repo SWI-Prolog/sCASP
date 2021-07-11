@@ -1,7 +1,7 @@
 :- module(io,
           [ load_source_files/1,
             read_query/2,
-            pred/1,
+            (pred)/1,
             show/1,
             asp_table/1
           ]).
@@ -129,7 +129,7 @@ process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
           E, (print_message(error, E), fail)),
     !, % include directive
     process_directives(T, C, Si, So, Fsi, Fso).
-:- dynamic (asp_table)/1, show/1, pred/1.
+:- dynamic (asp_table)/1, show/1, (pred)/1.
 process_directives([table(X) | T], C, Si, So, Fsi, Fso) :-
     assertz(asp_table(X)),
     !, % include directive
