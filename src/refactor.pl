@@ -30,7 +30,25 @@ replace_lpdoc(Options) :-
     replace_sentence((:- doc(Type, Text)),
                      Replace,
                      replace_doc(Type, Text, Replace),
+                     Options),
+    replace_sentence((:- use_package(_)),
+                     '$NODOT'('$TEXT'("")),
+                     true,
+                     Options),
+    replace_sentence((:- use_module(library(CiaoLib))),
+                     Replace,
+                     ciao_lib(CiaoLib, Replace),
                      Options).
+
+ciao_lib(CiaoLib, Replace) :-
+    ciao_swi_lib(CiaoLib, SWILib),
+    (   SWILib == []
+    ->  Replace = '$NODOT'('$TEXT'(""))
+    ;   Replace = (:- use_module(library(SWILib)))
+    ).
+
+ciao_swi_lib(terms_vars, []).
+
 
 lpdoc2pldoc(Head : _ # Comment, Dict, PlDoc) =>
     lpdoc2pldoc(Head # Comment, Dict, PlDoc).
@@ -158,3 +176,10 @@ project_file(File) :-
     source_file(File),
     sub_atom(File, 0, _, _, CWD),
     \+ file_base_name(File, 'refactor.pl').
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Notes:
+
+  - Is there a way to replace on all project files?
+  - Can e.g., variable renaming be limited to a clause/predicate?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
