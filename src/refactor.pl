@@ -20,9 +20,9 @@ replace_lpdoc :-
            replace_lpdoc([file(File)])).
 
 replace_lpdoc(Options) :-
-    replace_sentence((:- pred Head # Comment),
+    replace_sentence((:- pred Pred),
                       '$NODOT'('$TEXT'(PlDoc)),
-                     lpdoc2pldoc(Head, Comment, Dict, PlDoc),
+                     lpdoc2pldoc(Pred, Dict, PlDoc),
                      [ variable_names(Dict)
                      | Options
                      ]),
@@ -31,9 +31,15 @@ replace_lpdoc(Options) :-
                      section_header(Title, SeqHdr),
                      Options).
 
-lpdoc2pldoc(Head, LpDoc, Dict, PlDoc) :-
+lpdoc2pldoc(Head : _ # Comment, Dict, PlDoc) =>
+    lpdoc2pldoc(Head # Comment, Dict, PlDoc).
+lpdoc2pldoc(Name/Arity # Comment, Dict, PlDoc) =>
+    functor(Head, Name, Arity),
+    numbervars(Head, 0, _),
+    lpdoc2pldoc(Head # Comment, Dict, PlDoc).
+lpdoc2pldoc(Head # Comment, Dict, PlDoc) =>
     maplist(bind_varname, Dict),
-    lpdoc2markdown(LpDoc, Dict, MarkDown),
+    lpdoc2markdown(Comment, Dict, MarkDown),
     format(string(PlDoc),
            '%!  ~W~n\c
             %~n\c
