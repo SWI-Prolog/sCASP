@@ -20,15 +20,16 @@ replace_lpdoc :-
            replace_lpdoc([file(File)])).
 
 replace_lpdoc(Options) :-
+    retractall(doc_data(_,_)),
     replace_sentence((:- pred Pred),
                       '$NODOT'('$TEXT'(PlDoc)),
                      lpdoc2pldoc(Pred, Dict, PlDoc),
                      [ variable_names(Dict)
                      | Options
                      ]),
-    replace_sentence((:- doc(section, Title)),
-                     '$NODOT'('$TEXT'(SeqHdr)),
-                     section_header(Title, SeqHdr),
+    replace_sentence((:- doc(Type, Text)),
+                     Replace,
+                     replace_doc(Type, Text, Replace),
                      Options).
 
 lpdoc2pldoc(Head : _ # Comment, Dict, PlDoc) =>
@@ -39,7 +40,9 @@ lpdoc2pldoc(Name/Arity # Comment, Dict, PlDoc) =>
     lpdoc2pldoc(Head # Comment, Dict, PlDoc).
 lpdoc2pldoc(Head # Comment, Dict, PlDoc) =>
     maplist(bind_varname, Dict),
-    lpdoc2markdown(Comment, Dict, MarkDown),
+    lpdoc2markdown_percent(Comment, Dict, MarkDown,
+                           [ width(68)
+                           ]),
     format(string(PlDoc),
            '%!  ~W~n\c
             %~n\c
@@ -51,22 +54,24 @@ lpdoc2pldoc(Head # Comment, Dict, PlDoc) =>
 bind_varname(Name=Var) :-
     Var = ?'$VAR'(Name).
 
-lpdoc2markdown(LpDoc, Dict, MarkDown) :-
-    string_codes(LpDoc, Codes),
-    phrase(mantex(Parts, Dict), Codes),
-    flatten(Parts, Flat),
-    atomics_to_string(Flat, String),
-    with_output_to(string(MarkDown0),
-                   format_paragraph(String,
-                                    [ width(68),
-                                      text_align(justify)
-                                    ])),
+lpdoc2markdown_percent(LpDoc, Dict, MarkDown, Options) :-
+    lpdoc2markdown(LpDoc, Dict, MarkDown0, Options),
     split_string(MarkDown0, '\n', "", Lines),
     atomics_to_string(Lines, "\n%   ", MarkDown).
 
+lpdoc2markdown(LpDoc, Dict, MarkDown, Options) :-
+    string_codes(LpDoc, Codes),
+    phrase((blanks,mantex(Parts, Dict)), Codes),
+    flatten(Parts, Flat),
+    atomics_to_string(Flat, String),
+    with_output_to(string(MarkDown),
+                   format_paragraph(String,
+                                    [ text_align(justify)
+                                    | Options
+                                    ])).
 
 mantex([], _) -->
-    eos, !.
+    blanks, eos, !.
 mantex([H|T], Dict) -->
     mantex_part(H, Dict),
     !,
@@ -111,6 +116,30 @@ csym_codes([]) --> "".
 		 /*******************************
 		 *           SECTION		*
 		 *******************************/
+
+:- thread_local(doc_data/2).
+
+replace_doc(section, Title, Replace) =>
+    section_header(Title, SeqHdr),
+    Replace = '$NODOT'('$TEXT'(SeqHdr)).
+replace_doc(title, Title, Replace) =>
+    Replace = '$NODOT'('$NOOP'("")),
+    asserta(doc_data(title, Title)).
+replace_doc(author, Author, Replace) =>
+    Replace = '$NODOT'('$NOOP'("")),
+    asserta(doc_data(author, Author)).
+replace_doc(filetype, module, Replace) =>
+    Replace = '$NODOT'('$NOOP'("")).
+replace_doc(module, Comment, Replace) =>
+    lpdoc2markdown(Comment, [], MarkDown, [width(72)]),
+    doc_data(title, Title),
+    doc_data(author, Author),
+    format(string(Replace),
+           '/** <module> ~w~n~n\c
+           ~w~n~n\c
+           @author ~w~n\c
+           */~n~n',
+           [ Title, MarkDown, Author ]).
 
 section_header(Title, SeqHdr) :-
     with_output_to(string(SeqHdr), section_header(Title)).
