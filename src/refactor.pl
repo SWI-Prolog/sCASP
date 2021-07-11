@@ -15,23 +15,32 @@
 pred(_).
 doc(_,_).
 
+replace_lpdoc :-
+    forall(project_file(File),
+           replace_lpdoc([file(File)])).
+
 replace_lpdoc(Options) :-
     replace_sentence((:- pred Head # Comment),
                       '$NODOT'('$TEXT'(PlDoc)),
                      lpdoc2pldoc(Head, Comment, Dict, PlDoc),
                      [ variable_names(Dict)
                      | Options
-                     ]).
-
+                     ]),
+    replace_sentence((:- doc(section, Title)),
+                     '$NODOT'('$TEXT'(SeqHdr)),
+                     section_header(Title, SeqHdr),
+                     Options).
 
 lpdoc2pldoc(Head, LpDoc, Dict, PlDoc) :-
     maplist(bind_varname, Dict),
     lpdoc2markdown(LpDoc, Dict, MarkDown),
     format(string(PlDoc),
-           '%!  ~p~n\c
+           '%!  ~W~n\c
             %~n\c
             %   ~w~n~n',
-           [ Head, MarkDown ]).
+           [ Head, [numbervars(true), spacing(next_argument)],
+             MarkDown
+           ]).
 
 bind_varname(Name=Var) :-
     Var = ?'$VAR'(Name).
@@ -75,7 +84,10 @@ make_part(var, Name, Dict, Part) =>
     ).
 make_part(pred, Pred, _, Part) =>
     Part = Pred.
+make_part(em, Content, _, Part) =>
+    Part = ['_', Content, '_'].
 make_part(Cmd, Content, _, Part) =>
+    print_message(warning, lpdoc(unknown_command(Cmd))),
     Part = [@, Cmd, '{', Content, '}'].
 
 csym(Name) -->
@@ -89,3 +101,25 @@ csym_code(H) -->
 
 csym_codes([H|T]) --> csym_code(H), !, csym_codes(T).
 csym_codes([]) --> "".
+
+		 /*******************************
+		 *           SECTION		*
+		 *******************************/
+
+section_header(Title, SeqHdr) :-
+    with_output_to(string(SeqHdr), section_header(Title)).
+
+section_header(Title) :-
+    upcase_atom(Title, UTitle),
+    format('\t\t /~|~`*t~31+~n\c
+            \t\t *~|~t~w~t~30+*~n\c
+            \t\t *~|~`*t~30+/~n~n\c', [UTitle]).
+
+project_files(Files) :-
+    findall(File, project_file(File), Files).
+
+project_file(File) :-
+    working_directory(CWD, CWD),
+    source_file(File),
+    sub_atom(File, 0, _, _, CWD),
+    \+ file_base_name(File, 'refactor.pl').
