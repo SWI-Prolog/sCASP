@@ -10,8 +10,6 @@
             op(700, xfx, .\=.)
           ]).
 
-%% ------------------------------------------------------------- %%
-
 /** <module> Constraint solver for disequalities
 
 This module contains the code of the constraint solver for disequalities
@@ -24,15 +22,11 @@ disequality.
 @author Joaquin Arias
 */
 
-
-%% ------------------------------------------------------------- %%
 :- use_module(scasp_io).
 
 :- dynamic disunify/2.
 
-:- op(700, xfx, [(.\=.),(.=.)]).
 
-%% ------------------------------------------------------------- %%
 		 /*******************************
 		 *       MAIN PREDICATES        *
 		 *******************************/

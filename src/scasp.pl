@@ -20,30 +20,20 @@
             check_calls/0,
             pos_loops/0,
             print_on/0,
-            solve_c_forall/4
+            solve_c_forall/4,
+
+            op(700, fx, not),
+            op(700, fx, ?=),
+            op(700, fx, ??),
+            op(700, fx, ?)
           ]).
 :- set_prolog_flag(optimise, true).
 
 :- use_module(scasp_io).
-:- reexport(scasp_io, [
-            pr_rule/2,
-            pr_query/1,
-            pr_user_predicate/1,
-            pr_table_predicate/1,
-            pr_show_predicate/1,
-            pr_pred_predicate/1,
-            set/2,
-            write_program/0
-        ]).
-
 :- use_module(clp_call_stack).
-
 :- use_module(clp_disequality_rt).
-:- op(700, xfx, [(.\=.), (.=.)]).
-
 :- use_module(clp_clpq).
 
-:- op(700, fx, [not, (?=), (??), (?)]).
 
 :- initialization(main, main).
 

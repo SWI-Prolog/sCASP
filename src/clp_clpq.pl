@@ -11,8 +11,6 @@
 % from clpqr_ops.pl
 :- op(700, xfx, [(.=.),(.<>.),(.<.),(.=<.),(.>.),(.>=.)]).
 
-% ------------------------------------------------------------- %%
-
 /** <module> Extension of the constraint solver CLP(Q)
 
 This module inport the constraint  solve package  for CLP(Q)  and extend
@@ -24,17 +22,11 @@ variable.
 @author Joaquin Arias
 */
 
-
-% ------------------------------------------------------------- %%
-
 :- use_module(clp_disequality_rt).
 
-:- if(exists_source(library(clpqr/dump))).
 :- use_module(library(clpq)).
 :- use_module(library(clpr), []).                                % avoid undef
 :- use_module(library(clpqr/dump), [dump/3]).
-
-:- op(1200, xfx, =>).
 
 clpqr_dump_constraints(Target, NewVars, Constraints), is_list(Target) =>
     maplist(to_clpq_var, Target, Target2),
@@ -86,34 +78,21 @@ translate_meta_clp(A > B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
 to_rat(rat(N,D), Rat) => Rat = N/D.
 to_rat(Term,     Rat) => Rat = Term.
 
-
+%!  is_clpq_var(@Term) is semidet.
+%
+%   True when Term is a `clpq` attributed variable.
 
 is_clpq_var(X) :-
     attvar(X),
     clp_type(X, clpq).
-
-:- else.
-:- use_module(library(clpq/clpq_dump), [clpqr_dump_constraints/3]).
-:- use_package(clpq).
-
-is_clpq_var(X) :-
-    var(X),
-    get_attribute(X, A),
-    A \= att(_, _, _).
-
-:- endif.
-
-% ------------------------------------------------------------- %%
 
 apply_clpq_constraints(A .<>. B + C) :-
     get_neg_var(A,[Num]),
     number(Num),
     Num is B + C, !.
 apply_clpq_constraints(A .<>. B) :- !,       % JW: Why not simply {A =\= B}?
-    (
-        apply_clpq_constraints(A .<. B)
-    ;
-        apply_clpq_constraints(A .>. B)
+    (   apply_clpq_constraints(A .<. B)
+    ;   apply_clpq_constraints(A .>. B)
     ).
 apply_clpq_constraints(Constraints) :-
     clpq_meta(Constraints).
