@@ -151,6 +151,12 @@ main_loop :-
         )
     ).
 
+conj_to_list(true, []) :-
+    !.
+conj_to_list(Conj, List) :-
+    comma_list(Conj, List).
+
+
 capture_classical_neg([], []) :- !.
 capture_classical_neg([-S|Ss], [N|NSs]) :- !,
     S =.. [Name|Args],
@@ -1058,6 +1064,22 @@ my_copy_vars(Vars0, Term0, Vars, Term) :-
 my_diff_term(Term, Vars, Others) :-
     term_variables(Term, Set),
     diff_vars(Set, Vars, Others).
+
+%!  diff_vars(+VarsIn, -Subtract, -VarsOut) is det.
+
+diff_vars([], _, []).
+diff_vars([H|T0], Vars, List) :-
+    (   member_var(Vars, H)
+    ->  diff_vars(T0, Vars, List)
+    ;   List = [H|T],
+        diff_vars(T0, Vars, T)
+    ).
+
+member_var(Vars, Var) :-
+    member(V, Vars),
+    Var == V,
+    !.
+
 
 %!  solve_c_forall(+Forall, +StackIn, -StackOut, -GoalModel)
 %

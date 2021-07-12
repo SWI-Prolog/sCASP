@@ -29,8 +29,6 @@ variable.
 
 :- use_module(clp_disequality_rt).
 
-:- use_module(engine(attributes)).
-
 :- if(exists_source(library(clpqr/dump))).
 :- use_module(library(clpq)).
 :- use_module(library(clpr), []).                                % avoid undef

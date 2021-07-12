@@ -240,6 +240,10 @@ print_query(Query) :-
         format('?- ~p.\n',[ConjPQ])
     ).
 
+list_to_conj([], true) :-
+    !.
+list_to_conj(List, Conj) :-
+    comma_list(Conj, List).
 
 %!  print_justification_tree(?StackOut)
 %

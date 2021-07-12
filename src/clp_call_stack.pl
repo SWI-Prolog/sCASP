@@ -32,23 +32,23 @@ an attribute.
 		 *******************************/
 
 
-A ~> Att :- get_attr_local(A, rules(Att)).
-A <~ Att :- put_attr_local(A, rules(Att)).
+A ~> Att :- get_attr(A, clp_call_stack, rules(Att)).
+A <~ Att :- put_attr(A, clp_call_stack, rules(Att)).
 
 dump_rules([],     [],     []).
 dump_rules([X|Xs], [_|Ns], [D|Ds]) :-
-    get_attr_local(X, rules(D)),
+    get_attr(X, clp_call_stack, rules(D)),
     dump_rules(Xs, Ns, Ds).
 dump_rules([X|Xs], Ns, Ds) :-
-    \+ get_attr_local(X, rules(_)),
+    \+ get_attr(X, clp_call_stack, rules(_)),
     dump_rules(Xs, Ns, Ds).
 
 % Attributes predicates %%
 :- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
-attr_unify_hook(rules(Att), B) :- get_attr_local(B, rules(AttB)), Att = AttB.
+attr_unify_hook(rules(Att), B) :- get_attr(B, clp_call_stack, rules(AttB)), Att = AttB.
 attr_unify_hook(neg(A), B) :- not_unify(B,A).
-attribute_goals(X) --> [X ~> G], {get_attr_local(X, rules(G))}.
-attribute_goals(X) --> [X.\=.G], {get_attr_local(X, neg(G))}.
+attribute_goals(X) --> [X ~> G], {get_attr(X, clp_call_stack, rules(G))}.
+attribute_goals(X) --> [X.\=.G], {get_attr(X, clp_call_stack, neg(G))}.
 attr_portray_hook(rules(Att), A) :- format(" ~w  .is ~w ", [A, Att]).
 attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 % Attributes predicates %%

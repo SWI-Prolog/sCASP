@@ -28,7 +28,6 @@ disequality.
 %% ------------------------------------------------------------- %%
 :- use_module(scasp_io).
 
-:- use_package(attr).
 :- dynamic disunify/2.
 
 :- op(700, xfx, [(.\=.),(.=.)]).
@@ -248,20 +247,20 @@ entail_neg_list(L1, L2) :-
 %% Auxiliar predicates %%
 neg_var(A,List) :-
     (
-        get_attr_local(A,neg(List)), true ->
+        get_attr(A,clp_disequality_rt,neg(List)), true ->
         true
     ;
         var(A),
         List = [],
-        put_attr_local(A,neg(List))
+        put_attr(A,clp_disequality_rt,neg(List))
     ).
 
 get_neg_var(A,List) :-
-    get_attr_local(A,neg(List)).
+    get_attr(A,clp_disequality_rt,neg(List)).
 
 get_neg_var_or_empty(A,List) :-
     var(A),
-    (   get_attr_local(A,neg(List))
+    (   get_attr(A,clp_disequality_rt,neg(List))
     ->  true
     ;   List = []
     ).
@@ -270,23 +269,23 @@ get_neg_var_or_empty(A,List) :-
 unbound(A) :-
     var(A),
     (
-        get_attr_local(A,neg(List)), true ->
+        get_attr(A,clp_disequality_rt,neg(List)), true ->
         List == []
     ;
         true
     ).
-clean(A) :- del_attr_local(A).
-update(A,List) :- put_attr_local(A,neg(List)).
+clean(A) :- del_attr(A, clp_disequality_rt).
+update(A,List) :- put_attr(A,clp_disequality_rt,neg(List)).
 add(A,Value) :-
     (
         neg_var(A,NegListA), true ->
         ord_add_element(NegListA, Value, NegList),
         update(A,NegList)
     ;
-        put_attr_local(A,neg([Value]))
+        put_attr(A,clp_disequality_rt,neg([Value]))
     ).
 dump_neg_list(A,neg(List)) :-
-    get_attr_local(A,neg(List)).
+    get_attr(A,clp_disequality_rt,neg(List)).
 
 
 :- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
@@ -302,7 +301,7 @@ attr_unify_hook(neg(A),B) :-
 
 attribute_goals(X) -->
     [.\=.(X, G)],
-     {get_attr_local(X,neg(G))}.
+     {get_attr(X,clp_disequality_rt,neg(G))}.
 attr_portray_hook(neg(List), Var) :-
     format("~w.\\=.~w",[Var,List]).
 

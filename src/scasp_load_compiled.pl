@@ -31,8 +31,6 @@
                  '#>='
                  ]).
 
-%% :- dynamic pr_query/1, pr_rule/2, pr_user_predicate/1.
-
 read_compiled_source(S) :-
     retractall(pr_user_predicate(_)),
     retractall(pr_query(_)),
@@ -99,3 +97,8 @@ capture_minus([not(-Neg)|Bs],[not(MNeg)|MBs]) :- !,
     capture_minus(Bs,MBs).
 capture_minus([B|Bs],[B|MBs]) :-
     capture_minus(Bs,MBs).
+
+conj_to_list(true, []) :-
+    !.
+conj_to_list(Conj, List) :-
+    comma_list(Conj, List).

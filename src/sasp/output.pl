@@ -62,7 +62,6 @@ that may be used for warning and error output.
 :-set_prolog_flag(multi_arity_warnings,off).
 
 :- use_module(library(lists)).
-:- use_module(engine(basic_props)).
 :- if(exists_source(library(rbtrees))).
 :- use_module(library(rbtrees)).
 :- else.
@@ -1137,7 +1136,8 @@ print_var(B) :- !,
 :- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1.
 :- dynamic pr_table_predicate/1, pr_show_predicate/1, pr_pred_predicate/1.
 
-%! generate_pr_rules/0
+%! generate_pr_rules
+
 generate_pr_rules(_Sources) :-
     retractall(pr_query(_)), retractall(pr_rule(_,_)), retractall(pr_user_predicate(_)),
     retractall(pr_table_predicate(_)),
@@ -1294,26 +1294,51 @@ assert_pr_user_predicate([P|Ps]) :-
     assert_pr_user_predicate(Ps).
 
 
+%!  revar(+Term, -VarTerm) is det.
+%
+%   If Term is  a  term  that   contains  atoms  using  variable  syntax
+%   ([A-Z].*), VarTerm is a copy of Term with all such atoms replaced by
+%   variables.   In addition this performs the following rewrites:
+%
+%     - A term N/D is translated into rat(N,D)
+%     - An atom N/D is translated into rat(N,D)
+%     - A quoted atom is translated into its unquoted equivalent
 
-revar(X,Y) :- revar_(X,Y,_Dic).
+revar(X,Y) :-
+    empty_assoc(Dic),
+    revar_(X,Y,Dic,_).
 
-revar_(X,Y,_Dic) :- var(X), !, Y=X.
-revar_(X,Y,Dic) :- varatm(X), !, dic_lookup(Dic,X,Y).
-revar_(X,Y,_Dic) :- special_atom(X,Y), !.
-revar_(X,Y,Dic) :-
+revar_(X,Y,Dic,Dic) :-
+    var(X),
+    !,
+    Y=X.
+revar_(X,Y,Dic0,Dic) :-
+    varatm(X), !,
+    (   get_assoc(X, Dic0, Y)
+    ->  Dic = Dic0
+    ;   put_assoc(X, Dic0, Y, Dic)
+    ).
+revar_(X,Y,Dic,Dic) :-
+    special_atom(X,Y),
+    !.
+revar_(X,Y,Dic0,Dic) :-
     X=..[F|As],
-    revars(As,Bs,Dic),
+    revars(As,Bs,Dic0,Dic),
     Y=..[F|Bs].
 
 varatm(X) :- atom(X), atom_codes(X, [C|_]), varc(C).
 
-special_atom(A/B,'rat'(A,B)) :- number(A), number(B),!.
-special_atom(X,'rat'(A,B)) :-
+special_atom(A/B,rat(A,B)) :-
+    number(A),
+    number(B),
+    !.
+special_atom(X,rat(A,B)) :-
     atom(X),
     atom_codes(X, Codes),
     append(C_A, [0'/ | C_B], Codes),
     number_codes(A,C_A),
-    number_codes(B,C_B),!.
+    number_codes(B,C_B),
+    !.
 special_atom(X,Y) :-
     atom(X),
     atom_chars(X,Codes),
@@ -1322,7 +1347,8 @@ special_atom(X,Y) :-
 
 varc(C) :- C >= 0'A, C =< 0'Z, !.
 varc(0'_).
-%%varc(0'-) :- display(hi),nl.
 
-revars([],[],_).
-revars([X|Xs],[Y|Ys],Dic) :- revar_(X,Y,Dic), revars(Xs, Ys, Dic).
+revars([],[],Dic,Dic).
+revars([X|Xs],[Y|Ys],Dic0,Dic) :-
+    revar_(X,Y,Dic0,Dic1),
+    revars(Xs, Ys, Dic1, Dic).
