@@ -37,17 +37,17 @@ Kluzniak for advice and examples on getting proper error messages from DCGs.
 
 Input programs are normal logic programs with the following additions:
 
-    * The following directives are supported:
-    * =|#include file.asp.|=
-    will include file.asp.
-    * =|#compute N { Q }.|=
-    will override default settings in automatic mode, computing N stable
-    models using query Q.
-    * =|#abducible X.|=
-    will declare a predicate X to be an abducible, meaning that it can be
-    either true or false as needed.
-    * Atoms and predicates may begin with an underscore, indicating that they
-    should be skipped when printing solutions.
+    - The following directives are supported:
+    - ``#include file.asp.``
+      will include file.asp.
+    - ``#compute N { Q }.``
+      will override default settings in automatic mode, computing N
+      stable models using query Q.
+    - ``#abducible X.``
+      will declare a predicate X to be an abducible, meaning that it can
+      be either true or false as needed.
+    - Atoms and predicates may begin with an underscore, indicating that
+      they should be skipped when printing solutions.
 
 @author Kyle Marple
 @version 20170127
@@ -58,14 +58,16 @@ Input programs are normal logic programs with the following additions:
 :- use_module(common).
 :- use_module(program).
 
-%! parse_program(+Tokens:list, -Statements:list, -Directives:list, - Errors:int)
-% Parse the list of tokens into a list of statements.
+%!  parse_program(+Tokens:list, -Statements:list, -Directives:list, -Errors:int)
 %
-% @param Tokens The list of tokens from the input program.
-% @param Statements List of statements constructed from tokens. List is in
+%   Parse the list of tokens into a list of statements.
+%
+%   @arg Tokens The list of tokens from the input program.
+%   @arg Statements List of statements constructed from tokens. List is in
 %        program order.
-% @param Directives Directives that will need to be processed.
-% @param Errors The number of errors encountered during parsing.
+%   @arg Directives Directives that will need to be processed.
+%   @arg Errors The number of errors encountered during parsing.
+
 parse_program(Toks, Stmts, Directives, Errs) :-
     write_verbose(1, 'Parsing input...\n'),
     once(asp_program(Stmts, Directives, 0, Errs, Toks, [])),
@@ -75,23 +77,27 @@ parse_program(_, _, _, _) :-
     !,
     fail.
 
-%! parse_query(+Tokens:list, -Query:list)
-% Parse the list of tokens into a query.
+%!  parse_query(+Tokens:list, -Query:list)
 %
-% @param Tokens The list of tokens from the input program.
-% @param Query List of query goals.
+%   Parse the list of tokens into a query.
+%
+%   @arg Tokens The list of tokens from the input program.
+%   @arg Query List of query goals.
+
 parse_query(Toks, Query) :-
     write_verbose(0, 'Parsing user query...\n'),
-    once(user_query(Query, Toks, [])),
+    user_query(Query, Toks, []),
     !.
 
-%! syntax_error(+Expected:callable, +TokensIn:list, -TokensOut:list)
-% Print error messages for syntax errors. Gets next token and calls
-% syntax_error2/3 to print the message.
+%!  syntax_error(+Expected:callable, +TokensIn:list, -TokensOut:list)
 %
-% @param Expected Expected token.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Print error messages for syntax errors.   Gets  next token and calls
+%   syntax_error2/3 to print the message.
+%
+%   @arg Expected Expected token.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 syntax_error(Expected) -->
     [(C, Pos)],
     {syntax_error2(C, Pos, Expected)},
@@ -100,24 +106,30 @@ syntax_error(Expected, [], []) :-
     syntax_msg(Expected, ExpMsg),
     format(user_error, 'ERROR: Unexpected end of file. ~w.\n', [ExpMsg]).
 
-%! asp_program(-Statements:list, -Directives:list, +ErrorsIn:int, -ErrorsOut:int, +TokensIn:list, -TokensOut:list)
-% A program is a list of statements
+%!  asp_program(-Statements:list, -Directives:list,
+%!              +ErrorsIn:int, -ErrorsOut:int,
+%!              +TokensIn:list, -TokensOut:list)
 %
-% @param Statements List of statements read.
-% @param Directives Directives that will need to be processed.
-% @param ErrorsIn Input error count.
-% @param ErrorsOut Output error count.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A program is a list of statements
+%
+%   @arg Statements List of statements read.
+%   @arg Directives Directives that will need to be processed.
+%   @arg ErrorsIn Input error count.
+%   @arg ErrorsOut Output error count.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_program(S, D, Ein, Eout) -->
     statements(S, D, Ein, Eout).
 
-%! user_query(-Goals:list, +TokensIn:list, -TokensOut:list) is det
-% A user query is a list of goals followed by a terminal period.
+%!  user_query(-Goals:list, +TokensIn:list, -TokensOut:list) is det
 %
-% @param Goals The query goals entered by the user.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A user query is a list of goals followed by a terminal period.
+%
+%   @arg Goals The query goals entered by the user.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 user_query(X) -->
     body(X),
     terminal('.').
@@ -126,15 +138,20 @@ user_query(_) -->
     !,
     {fail}.
 
-%! statements(-Statements:list, -Directives:list, +ErrorsIn:int, -ErrorsOut:int, +TokensIn:list, -TokensOut:list)
-% Parse individual statements and directives, and handle error recovery.
+%!  statements(-Statements:list, -Directives:list,
+%!             +ErrorsIn:int, -ErrorsOut:int,
+%!             +TokensIn:list, -TokensOut:list)
 %
-% @param Statements List of statements read.
-% @param Directives Directives that will need to be processed.
-% @param ErrorsIn Input error count.
-% @param ErrorsOut Output error count.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Parse  individual  statements  and  directives,   and  handle  error
+%   recovery.
+%
+%   @arg Statements List of statements read.
+%   @arg Directives Directives that will need to be processed.
+%   @arg ErrorsIn Input error count.
+%   @arg ErrorsOut Output error count.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 statements(X, [D | T], Ein, Eout) -->
     {nb_setval(us_cnt, 0)}, % initialize underscore counter
     directive(D),
@@ -154,12 +171,14 @@ statements(X, D, Ein, Eout) --> % An error occurred, recover and keep going.
     incr(Ein, E2),
     statements(X, D, E2, Eout).
 
-%! statement(-Statement:compound, +TokensIn:list, -TokensOut:list)
-% A statement can be a query or a clause.
+%!  statement(-Statement:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Statement The struct returned for the statement.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A statement can be a query or a clause.
+%
+%   @arg Statement The struct returned for the statement.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 statement(c(1,X)) --> % represent as compute internally
     [('?-', _)], % query
     !,
@@ -175,24 +194,28 @@ statement(_) --> % invalid statement
     !,
     {fail}.
 
-%! directive(-Directive:compound, +TokensIn:list, -TokensOut:list)
-% A directive can be be an include statement, an abducible statement or a
-% compute statement. All are preceded by a '#'.
+%!  directive(-Directive:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Directive The struct returned for the directive.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A directive can be be an   include statement, an abducible statement
+%   or a compute statement. All are preceded by a '#'.
+%
+%   @arg Directive The struct returned for the directive.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 directive(X) -->
     [('#', _)],
     !,
     directive2(X).
 
-%! include(-File:filepath, +TokensIn:list, -TokensOut:list)
-% An include directive's body. Parenthesis are optional.
+%!  include(-File:filepath, +TokensIn:list, -TokensOut:list)
 %
-% @param File The file to include.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   An include directive's body. Parenthesis are optional.
+%
+%   @arg File The file to include.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 include(Xo) -->
     [('(', _)],
     !,
@@ -203,13 +226,15 @@ include(Xo) -->
     [(str(X), _)],
     {strip_quotes(X, Xo)}.
 
-%! directive2(-Directive:compound, +TokensIn:list, -TokensOut:list)
-% A directive can be be an include statement, an abducible statement or a
-% compute statement.
+%!  directive2(-Directive:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Directive The struct returned for the directive.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A directive can be be an   include statement, an abducible statement
+%   or a compute statement.
+%
+%   @arg Directive The struct returned for the directive.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 directive2(include(Xo)) -->
     [('include', _)],
     include(Xo),
@@ -238,12 +263,14 @@ directive2(_) --> % invalid statement
     !,
     {fail}.
 
-%! rule_clause(-Statement:compound, +TokensIn:list, -TokensOut:list)
-% A clause can be a headless rule or a normal rule.
+%!  rule_clause(-Statement:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Statement The struct returned for the statement.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A clause can be a headless rule or a normal rule.
+%
+%   @arg Statement The struct returned for the statement.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 rule_clause(X) -->
     [(':-', _)],
     !,
@@ -259,12 +286,13 @@ rule_clause(X) -->
     !,
     terminal('.').
 
-%! compute(-ComputeStatement:compound, +TokensIn:list, -TokensOut:list)
-% Compute statement.
+%!  compute(-ComputeStatement:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param ComputeStatement The compute statement struct returned.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Compute statement.
+%
+%   @arg ComputeStatement The compute statement struct returned.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
 compute(c(X, Y)) -->
     terminal(int(X)),
     !,
@@ -276,13 +304,15 @@ compute(c(X, Y)) -->
     !,
     terminal('.').
 
-%! asp_rule(-Rule:compound, +Head:callable, +TokensIn:list, -TokensOut:list)
-% Individual rules: normal rule or fact.
+%!  asp_rule(-Rule:compound, +Head:callable, +TokensIn:list, -TokensOut:list)
 %
-% @param Rule The rule struct returned.
-% @param Head The rule head.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Individual rules: normal rule or fact.
+%
+%   @arg Rule The rule struct returned.
+%   @arg Head The rule head.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_rule(X, Y) -->
     [(':-', _)],
     !,
@@ -296,13 +326,14 @@ asp_rule(_, _) -->
     !,
     {fail}.
 
-%! head(-Head:callable, +TokensIn:list, -TokensOut:list)
-% A rule head may be a single predicate or a disjunction of predicates (not yet
-% supported).
+%!  head(-Head:callable, +TokensIn:list, -TokensOut:list)
 %
-% @param Head The rule head.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A rule head may be a single predicate or a disjunction of predicates
+%   (not yet supported).
+%
+%   @arg Head The rule head.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
 
 %head(disjunct([X, Y | T])) -->
 %        asp_predicate(X),
@@ -316,9 +347,9 @@ head(X) -->
 %%! disjunction(-Goals:list, +TokensIn:list, -TokensOut:list)
 % A disjunction of literals. Note the first portion is handled by head/3.
 %
-% @param Goals List of goals in a disjunctive rule head.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   @arg Goals List of goals in a disjunctive rule head.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
 %disjunction([X | T]) -->
 %        [('|', _)],
 %        !,
@@ -331,39 +362,46 @@ head(X) -->
 %        !,
 %        {fail}.
 
-%! body(-Goals:list, +TokensIn:list, -TokensOut:list)
-% The body of a rule is a list of predicates. Because commas are also operators,
-% it's easier to read the body as an infix expression and then convert it to a
-% list.
+%!  body(-Goals:list, +TokensIn:list, -TokensOut:list)
 %
-% @param Goals List of goals in the body of a rule.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   The body of a rule is a list  of predicates. Because commas are also
+%   operators, it's easier to read the body   as an infix expression and
+%   then convert it to a list.
+%
+%   @arg Goals List of goals in the body of a rule.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 body(X) -->
     infix_expression(Y),
-    {comma_to_list(Y, X)},
+    {comma_list(Y, X)},
     !.
 body(_) -->
     syntax_error(body),
     !,
     {fail}.
 
-%! infix_expression(-Predicate:compound, +TokensIn:list, -TokensOut:list)
-% An infix predicate consists of a term, an infix operator, and another term.
+%!  infix_expression(-Predicate:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Predicate An infix predicate, converted to prefix form.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   An infix predicate consists  of  a   term,  an  infix  operator, and
+%   another term.
+%
+%   @arg Predicate An infix predicate, converted to prefix form.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 infix_expression(X) -->
     get_infix(X2),
     {infix_to_prefix(X, X2)}.
 
-%! get_infix(-Expression:compound, +TokensIn:list, -TokensOut:list)
-% Get an infix expression. Can be a single leaf.
+%!  get_infix(-Expression:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Expression An infix expression converted to prefix form.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Get an infix expression. Can be a single leaf.
+%
+%   @arg Expression An infix expression converted to prefix form.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 get_infix(X) -->
     get_infix2(A),
     [(B, _)],
@@ -376,12 +414,14 @@ get_infix(X) -->
 get_infix(X) -->
     get_infix2(X). % end
 
-%! get_infix2(-Expression:compound, +TokensIn:list, -TokensOut:list)
-% Leaves of an infix expression: parenthesized expressions or terms.
+%!  get_infix2(-Expression:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Expression An infix expression converted to prefix form.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Leaves of an infix expression: parenthesized expressions or terms.
+%
+%   @arg Expression An infix expression converted to prefix form.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 get_infix2(X) -->
     [('(', _)],
     !,
@@ -391,13 +431,15 @@ get_infix2(X) -->
 get_infix2([X]) -->
     asp_term(X).
 
-%! asp_predicate(-Predicate:compound, +TokensIn:list, -TokensOut:list)
-% A predicate is an atom followed by a list of terms. If not an operator, it
-% may be classically negated.
+%!  asp_predicate(-Predicate:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param Atom An atom constructed by concatenating the applicable tokens.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A predicate is an atom followed  by  a   list  of  terms.  If not an
+%   operator, it may be classically negated.
+%
+%   @arg Atom An atom constructed by concatenating the applicable tokens.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_predicate(X) -->
     [('-', _)], % classical negation
     asp_atom(Y),
@@ -416,14 +458,17 @@ asp_predicate(X) -->
     {handle_prefixes(Y, Y2)},
     asp_predicate2(X, Y2).
 
-%! asp_predicate2(-Predicate:compound, +Name:atom, +TokensIn:list, -TokensOut:list)
-% If atom is a compound term, get a list of args. Add the arity to the predicate
-% name for easy matching later on.
+%!  asp_predicate2(-Predicate:compound, +Name:atom,
+%!                 +TokensIn:list, -TokensOut:list)
 %
-% @param Atom The final atom, concatenated with arguments.
-% @param Name The initial atom, prior to reading any arguments.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   If atom is a compound term, get a list of args. Add the arity to the
+%   predicate name for easy matching later on.
+%
+%   @arg Atom The final atom, concatenated with arguments.
+%   @arg Name The initial atom, prior to reading any arguments.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_predicate2(Z, X) -->
     [('(', _)],
     !,
@@ -445,23 +490,27 @@ asp_predicate2(X, Y) -->
     {name(Y4, Y3)},
     {predicate(X, Y4, [])}.
 
-%! terms(-Terms:list, +TokensIn:list, -TokensOut:list)
-% A comma-separated list of terms.
+%!  terms(-Terms:list, +TokensIn:list, -TokensOut:list)
 %
-% @param Terms List of tokens for terms.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A comma-separated list of terms.
+%
+%   @arg Terms List of tokens for terms.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 terms([X | T]) -->
     asp_term(X), % possibly asp_atom?
     !,
     terms2(T).
 
-%! terms2(-Terms:list, +TokensIn:list, -TokensOut:list)
-% Get terms after the first element.
+%!  terms2(-Terms:list, +TokensIn:list, -TokensOut:list)
 %
-% @param Terms List of tokens for terms.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Get terms after the first element.
+%
+%   @arg Terms List of tokens for terms.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 terms2(X) -->
     [(',', _)],
     !,
@@ -474,13 +523,15 @@ terms2(_) -->
     !,
     {fail}.
 
-%! asp_term(-Term:atom, +TokensIn:list, -TokensOut:list)
-% A term can be a structure, an atom, a variable, an integer or a floating
-% point number.
+%!  asp_term(-Term:atom, +TokensIn:list, -TokensOut:list)
 %
-% @param Term An identifier, variable, integer or underscore.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A term can be a structure, an  atom,   a  variable,  an integer or a
+%   floating point number.
+%
+%   @arg Term An identifier, variable, integer or underscore.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_term(X) -->
     asp_compound_term(X), % handles atoms as well
     !.
@@ -508,13 +559,15 @@ asp_term(_) -->
     !,
     {fail}.
 
-%! asp_compound_term(-Struct:atom, +TokensIn:list, -TokensOut:list)
-% A structure can be a list or a compound term. Note that this handles atoms as
-% well (compound terms with 0 args).
+%!  asp_compound_term(-Struct:atom, +TokensIn:list, -TokensOut:list)
 %
-% @param Struct An identifier, variable, integer or underscore.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A structure can be a list or a compound term. Note that this handles
+%   atoms as well (compound terms with 0 args).
+%
+%   @arg Struct An identifier, variable, integer or underscore.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_compound_term(not(X)) -->
     [('not', _)],
     !,
@@ -522,12 +575,14 @@ asp_compound_term(not(X)) -->
 asp_compound_term(X) -->
     asp_predicate(X).
 
-%! asp_list(-List:list, +TokensIn:list, -TokensOut:list)
-% A list. Identical to Prolog representation.
+%!  asp_list(-List:list, +TokensIn:list, -TokensOut:list)
 %
-% @param List A list.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   A list. Identical to Prolog representation.
+%
+%   @arg List A list.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_list([]) -->
     [('[', _)],
     [(']', _)],
@@ -539,65 +594,77 @@ asp_list(X) -->
     asp_list2(X, Y),
     [(']', _)].
 
-%! asp_list2(-ListOut:list, +ListIn:compound, +TokensIn:list, -TokensOut:list)
-% Get the tail of the list and format the entire list.
+%!  asp_list2(-ListOut:list, +ListIn:compound, +TokensIn:list, -TokensOut:list)
 %
-% @param ListOut A list.
-% @param ListIn The head of the list as a compound term.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Get the tail of the list and format the entire list.
+%
+%   @arg ListOut A list.
+%   @arg ListIn The head of the list as a compound term.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_list2(X, Y) -->
     [('|', _)],
     infix_expression(Z),
     {\+(Z =.. [',', _, _])}, % only one term in tail
-    {comma_to_list(Y, Y2)},
+    {comma_list(Y, Y2)},
     {asp_list3(Y2, Z, X)}.
 asp_list2(X, Y) -->
-    {comma_to_list(Y, Y2)},
+    {comma_list(Y, Y2)},
     {asp_list3(Y2, [], X)}.
 asp_list2(_, _) -->
     syntax_error(list),
     !,
     {fail}.
 
-%! asp_list3(+HeadIn:list, +TailIn:term, -ListOut:list)
-% Convert a list of head terms and a tail to a single, recursively defined list.
+%!  asp_list3(+HeadIn:list, +TailIn:term, -ListOut:list)
 %
-% @param HeadIn A list of terms making up the head of the list.
-% @param Tail A single tail element.
-% @param ListOut The output list.
+%   Convert a list of head terms  and   a  tail to a single, recursively
+%   defined list.
+%
+%   @arg HeadIn A list of terms making up the head of the list.
+%   @arg Tail A single tail element.
+%   @arg ListOut The output list.
+
 asp_list3([X | T], Y, [X | T2]) :-
     !,
     asp_list3(T, Y, T2).
 asp_list3([], X, X).
 
-%! asp_atom(-Atom:atom, +TokensIn:list, -TokensOut:list)
-% An atom can be an ID or a quoted string.
+%!  asp_atom(-Atom:atom, +TokensIn:list, -TokensOut:list)
 %
-% @param Atom An atom.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   An atom can be an ID or a quoted string.
+%
+%   @arg Atom An atom.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 asp_atom(X) -->
     [(id(X), _)].
 asp_atom(X) -->
     [(str(X), _)].
 
-%! infix_to_prefix(-Prefix:compound, +Infix:list) is det
-% Convert an infix expression to a prefix expression.
+%!  infix_to_prefix(-Prefix:compound, +Infix:list) is det
 %
-% @param Prefix The prefix expression as a compound term.
-% @param Infix The infix expression as a list of tokens.
+%   Convert an infix expression to a prefix expression.
+%
+%   @arg Prefix The prefix expression as a compound term.
+%   @arg Infix The infix expression as a list of tokens.
+
 infix_to_prefix(X, Y) :-
     reverse(['(' | Y], Y2), % add para and reverse
     infix_to_prefix2(Y2, [')'], [], [X]).
 
-%! infix_to_prefix2(+Infix:list, +Stack:list, +PrefixIn:list, -PrefixOut:list) is det
-% Convert an infix expression to a prefix expression.
+%!  infix_to_prefix2(+Infix:list, +Stack:list,
+%!                   +PrefixIn:list, -PrefixOut:list) is det
 %
-% @param Infix The infix expression. Will be reversed.
-% @param Stack Operator stack.
-% @param PrefixIn Input prefix expression.
-% @param PrefixOut The prefix expression as a compound term. Will be reversed.
+%   Convert an infix expression to a prefix expression.
+%
+%   @arg Infix The infix expression. Will be reversed.
+%   @arg Stack Operator stack.
+%   @arg PrefixIn Input prefix expression.
+%   @arg PrefixOut The prefix expression as a compound term. Will be reversed.
+
 infix_to_prefix2([X | T], S, Pi, Po) :-
     operator(X, _, Xp),
     !,
@@ -618,15 +685,18 @@ infix_to_prefix2([], [X | T], Pi, Po) :-
     infix_to_prefix2([], T, [X | Pi], Po).
 infix_to_prefix2([], [], P, P).
 
-%! infix_op_pop(+Priority:int, +StackIn:list, -StackOut:list, +PrefixIn:list, -PrefixOut:list) is det
-% Pop operators from the stack and add to output until we reach one whose
-% priority is greater than the input priority.
+%!  infix_op_pop(+Priority:int, +StackIn:list, -StackOut:list,
+%!               +PrefixIn:list, -PrefixOut:list) is det
 %
-% @param Priority The priority to compare against.
-% @param StackIn The input stack.
-% @param StackOut The output stack.
-% @param PrefixIn The input expression.
-% @param PrefixOut The output expression.
+%   Pop operators from the stack and add   to  output until we reach one
+%   whose priority is greater than the input priority.
+%
+%   @arg Priority The priority to compare against.
+%   @arg StackIn The input stack.
+%   @arg StackOut The output stack.
+%   @arg PrefixIn The input expression.
+%   @arg PrefixOut The output expression.
+
 infix_op_pop(P, [X | T], So, [A, B | Pi], Po) :-
     operator(X, _, P2),
     P2 =< P,
@@ -642,15 +712,18 @@ infix_op_pop(_, [')' | T], [')' | T], P, P) :-
 infix_op_pop(_, [], [], P, P) :-
     !.
 
-%! infix_para_pop(+StackIn:list, -StackOut:list, +PrefixIn:list, -PrefixOut:list) is det
-% Pop operators from the stack and add to output until we reach a closing
-% parenthesis.
+%!  infix_para_pop(+StackIn:list, -StackOut:list,
+%!                 +PrefixIn:list, -PrefixOut:list) is det
 %
-% @param Priority The priority to compare against.
-% @param StackIn The input stack.
-% @param StackOut The output stack.
-% @param PrefixIn The input expression.
-% @param PrefixOut The output expression.
+%   Pop operators from the stack and  add   to  output  until we reach a
+%   closing parenthesis.
+%
+%   @arg Priority The priority to compare against.
+%   @arg StackIn The input stack.
+%   @arg StackOut The output stack.
+%   @arg PrefixIn The input expression.
+%   @arg PrefixOut The output expression.
+
 infix_para_pop([X | T], So, [A, B | Pi], Po) :-
     X \= ')',
     !,
@@ -659,21 +732,12 @@ infix_para_pop([X | T], So, [A, B | Pi], Po) :-
 infix_para_pop([')' | T], T, P, P) :-
     !. % discard closing para
 
-%! comma_to_list(+GoalsIn:compound, -GoalsOut:list) is det
-% Given a single compound term representing a comma-separate list, convert it to
-% a list by splitting on commas.
-comma_to_list(','(A, B), C) :-
-    !,
-    comma_to_list(A, A2),
-    comma_to_list(B, B2),
-    append(A2, B2, C).
-comma_to_list(A, [A]) :-
-    !. % not comma separated goals.
+%!  handle_prefixes(+FunctorIn:ground, -FunctorOut:ground)
+%
+%   If the predicate begins with a reserved prefix, add the dummy prefix
+%   to ensure that it won't be treated  the same as predicates where the
+%   prefix is added internally. If no prefix, just return the original.
 
-%! handle_prefixes(+FunctorIn:ground, -FunctorOut:ground)
-% If the predicate begins with a reserved prefix, add the dummy prefix to ensure
-% that it won't be treated the same as predicates where the prefix is added
-% internally. If no prefix, just return the original.
 handle_prefixes(Fi, Fo) :-
     has_prefix(Fi, _), % has a reserved prefix; doesn't matter which one
     atom_chars(Fi, Fc),
@@ -691,9 +755,11 @@ handle_prefixes(Fi, Fo) :-
     !.
 handle_prefixes(F, F).
 
-%! strip_quotes(+StringIn:atom, -StringOut:atom) is det
-% Strip single and double quotes from each end of a string. Succeed if the first
-% character is not a quote.
+%!  strip_quotes(+StringIn:atom, -StringOut:atom) is det
+%
+%   Strip single and double quotes from each end of a string. Succeed if
+%   the first character is not a quote.
+
 strip_quotes(Si, So) :-
     atom_chars(Si, [C | T]),
     member(C, ['\'', '\"']),
@@ -705,33 +771,40 @@ strip_quotes(Si, So) :-
 strip_quotes(S, S) :-
     !. % first char is not a quote
 
-%! incr(+IntIn:int, -IntOut:int, +TokensIn:list, -TokensOut:list)
-% DCG-ready increment.
+%!  incr(+IntIn:int, -IntOut:int, +TokensIn:list, -TokensOut:list)
 %
-% @param IntIn Initial integer.
-% @param IntOut IntIn + 1.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   DCG-ready increment.
+%
+%   @arg IntIn Initial integer.
+%   @arg IntOut IntIn + 1.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 incr(I, I2, T, T) :-
     I2 is I + 1.
 
-%! follow(+FollowList:list, +TokensIn:list, -TokensOut:list)
-% Check the next token against a list of acceptable ones, but don't consume it.
-% This just helps nail down where an error occurred.
+%!  follow(+FollowList:list, +TokensIn:list, -TokensOut:list)
 %
-% @param FollowList List of tokens that can follow the current one.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Check the next token against a list   of  acceptable ones, but don't
+%   consume it. This just helps nail down where an error occurred.
+%
+%   @arg FollowList List of tokens that can follow the current one.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 follow(Xs, [T | Ts], [T | Ts]) :-
     T = (T2, _),
     member(T2, Xs).
 
-%! terminal(+Expected:callable, +TokensIn:list, -TokensOut:list)
-% Consume a terminal. Print an error message if incorrect token encountered.
+%!  terminal(+Expected:callable, +TokensIn:list, -TokensOut:list)
 %
-% @param Expected Expected token.
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Consume a terminal. Print  an  error   message  if  incorrect  token
+%   encountered.
+%
+%   @arg Expected Expected token.
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 terminal(Expected) -->
     [(Expected, _)],
     !.
@@ -740,17 +813,20 @@ terminal(Expected) -->
     !,
     {fail}.
 
-%! empty_list(+TokensIn:list, -TokensOut:list)
-% Token list is empty.
+%!  empty_list(+TokensIn:list, -TokensOut:list)
 %
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Token list is empty.
+%
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
 empty_list([], []).
 
-%! replace_underscore(-Var:compound)
-% Replace each underscore in a statement with a unique variable.
+%!  replace_underscore(-Var:compound)
 %
-% @param Var The unique variable generated.
+%   Replace each underscore in a statement with a unique variable.
+%
+%   @arg Var The unique variable generated.
+
 replace_underscore(V) :-
     b_getval(us_cnt, I), % get underscore counter
     I2 is I + 1,
@@ -759,27 +835,34 @@ replace_underscore(V) :-
     b_setval(us_cnt, I2), % update underscore counter
     !.
 
-%! syntax_error2(+Token:callable, +Position:compound, +Expected:callable)
-% Construct and print the actual message. Called only by syntax_error/3.
+%!  syntax_error2(+Token:callable, +Position:compound, +Expected:callable)
 %
-% @param Token Token actually encountered.
-% @param Position Token position.
-% @param Expected Token expected.
+%   Construct  and  print   the   actual    message.   Called   only  by
+%   syntax_error/3.
+%
+%   @arg Token Token actually encountered.
+%   @arg Position Token position.
+%   @arg Expected Token expected.
+
 syntax_error2(Token, (Source, Line, Col), Expected) :-
     syntax_msg(Expected, ExpMsg),
     visible_token(Token, Vtok),
     !,
-    format(user_error, 'ERROR: ~w:~w:~w: Syntax error at \"~w\". ~w.\n', [Source, Line, Col, Vtok, ExpMsg]).
+    format(user_error, 'ERROR: ~w:~w:~w: Syntax error at \"~w\". ~w.\n',
+           [Source, Line, Col, Vtok, ExpMsg]).
 syntax_error2(Token, (Source, Line, Col), _) :-
     visible_token(Token, Vtok),
     !,
-    format(user_error, 'ERROR: ~w:~w:~w: Syntax error at \"~w\".\n', [Source, Line, Col, Vtok]).
+    format(user_error, 'ERROR: ~w:~w:~w: Syntax error at \"~w\".\n',
+           [Source, Line, Col, Vtok]).
 
-%! syntax_msg(+Type:atom, -Message:string)
-% Define error messages for various tokens and rules.
+%!  syntax_msg(+Type:atom, -Message:string)
 %
-% @param Type Identifier associated with message.
-% @param Message Message string.
+%   Define error messages for various tokens and rules.
+%
+%   @arg Type Identifier associated with message.
+%   @arg Message Message string.
+
 syntax_msg(statement, 'Invalid start of statement. Expected \"compute\", \":-\" or identifier').
 syntax_msg(rule_type, 'Invalid rule type. Expected valid integer: 1, 2, 3, 5, 6 or 8').
 syntax_msg(term, 'Invalid term. Expected integer, identifier or \"_\"').
@@ -816,12 +899,14 @@ syntax_msg(X, Msg) :-
 syntax_msg(X, Msg) :-
     format(string(Msg), 'Expected \"~w\"', [X]).
 
-%! visible_token(+Type:atom, -String:string)
-% For tokens replaced during scanning, get the proper character or string to
-% print.
+%!  visible_token(+Type:atom, -String:string)
 %
-% @param Type The token as it will appear in the list of tokens.
-% @param String The string to print.
+%   For tokens replaced during scanning,  get   the  proper character or
+%   string to print.
+%
+%   @arg Type The token as it will appear in the list of tokens.
+%   @arg String The string to print.
+
 visible_token(id(X), X).
 visible_token(int(X), X).
 visible_token(float(X), X).
@@ -830,14 +915,17 @@ visible_token(var(X), X).
 visible_token(str(X), X).
 visible_token(T, T).
 
-%! parse_recover(+TokensIn:list, -TokensOut:list)
-% Go to the next period (statement terminator), and consume it. Stop if the list
-% becomes empty. If this predicate is called, parsing has already failed. The
-% purpose of this predicate is to recover, if possible, so that any other errors
-% in the program can also be caught.
+%!  parse_recover(+TokensIn:list, -TokensOut:list)
 %
-% @param TokensIn Input list of tokens.
-% @param TokensOut Output list of tokens.
+%   Go to the next period (statement   terminator), and consume it. Stop
+%   if the list becomes empty. If this  predicate is called, parsing has
+%   already failed. The purpose of  this   predicate  is  to recover, if
+%   possible, so that any other  errors  in   the  program  can  also be
+%   caught.
+%
+%   @arg TokensIn Input list of tokens.
+%   @arg TokensOut Output list of tokens.
+
 parse_recover -->
     [('.', _)],
     !.
