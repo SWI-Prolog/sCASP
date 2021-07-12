@@ -73,41 +73,6 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 
 :- include(public_ops).
 
-%% ------------------------------------------------------------- %%
-
-:- if(current_prolog_flag(version_data, swi(_,_,_,_))).
-scasp_update :-
-    pack_upgrade(scasp).
-:- else.
-%!  scasp_update
-%
-%   update the bundle sCASP using ciao
-
-:- use_module(library(process)).
-scasp_update :-
-    format('\n=> First, ciao would remove the bundle sCASP - ciao rm sCASP\n\n',[]),
-
-    (  catch(process_call(path(ciao), [rm, 'sCASP'], []),_,fail) ->
-        format('\n=> Done.\n\n',[])
-    ;
-        format('\n=> Don\'t worry, let\'s try to install s(CAPS) anyway.\n\n',[])
-    ),
-
-    fail.
-scasp_update :-
-    format('\n=> Secondly, ciao would get the updated bundle sCASP - ciao get gitlab.software.imdea.org/ciao-lang/sCASP\n\n',[]),
-
-    (  catch(process_call(path(ciao), [get, 'gitlab.software.imdea.org/ciao-lang/sCASP'], []),_,fail) ->
-        format('\n=> Done, s(CASP) has been updated.\n\n',[])
-    ;
-        format('\n=> Something went wrong. Try again.\n\n',[])
-    ),
-
-    fail.
-scasp_update :-
-    halt.
-:- endif.
-
 %!  scasp_version
 %
 %   print the current version of s(CASP)
@@ -1143,7 +1108,6 @@ set_user_option('--verbose')            :- set(check_calls, on).
 set_user_option('-f0')                  :- set(trace_failures, on).
 set_user_option('-f')                   :- set(trace_failures, on), set(show_tree,on).
 set_user_option('--tracefails')         :- set(trace_failures, on), set(show_tree,on).
-set_user_option('--update')             :- scasp_update.
 set_user_option('--version')            :- scasp_version.
 % Development
 set_user_option('-no')                  :- set(no_nmr, on).         %% skip the evaluation of nmr-checks (but compile them).
@@ -1220,7 +1184,6 @@ s_help :-
     format('\n'),
     format('  -v, --verbose         Enable verbose progress messages.\n'),
     format('  -f, --tracefails      Trace user-predicate failures.\n'),
-    format('  --update              Automatically update s(CASP).\n'),
     format('  --version             Output the current version of s(CASP)\n'),
     format('\n'),
     format('  --all_c_forall        Exhaustive evaluation of c_forall/2.\n'),
