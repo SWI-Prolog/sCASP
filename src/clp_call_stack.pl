@@ -5,23 +5,18 @@
           ]).
 
 % ------------------------------------------------------------- %%
-:- use_package(assertions).
-:- doc(title, "Call stack constraint solver and TCLP interface.").
-:- doc(author, "Joaquin Arias").
-:- doc(filetype, module).
 
-:- doc(module, "
+/** <module> Call stack constraint solver and TCLP interface.
 
-This module contains the code to handle @var{StackIn}, @var{StackOut}
-and @var{Model} as attributes in order to check entailment with the
-TCLP framework of CIAO.
+This  module  contains  the  code  to  handle `StackIn`,  `StackOut` and
+`Model`  as  attributes  in  order  to  check  entailment with  the TCLP
+framework of CIAO. ~>/2 is the predicate used to get the  attribute from
+the attributed variable. <~/2 is the predicate used to  put the  term as
+an attribute.
 
-@pred{~>/2} is the predicate used to get the attribute from the
-attributed variable.
+@author Joaquin Arias
+*/
 
-@pred{<~/2} is the predicate used to put the term as an attribute.
-
-").
 
 % ------------------------------------------------------------- %%
 :- use_module(clp_disequality_rt).
@@ -32,7 +27,10 @@ attributed variable.
 :- op(700, xfx, [(~>), (<~), (<~>)]).
 
 % ------------------------------------------------------------- %%
-:- doc(section, "Main predicates").
+		 /*******************************
+		 *       MAIN PREDICATES        *
+		 *******************************/
+
 
 A ~> Att :- get_attr_local(A, rules(Att)).
 A <~ Att :- put_attr_local(A, rules(Att)).
@@ -57,7 +55,10 @@ attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 
 
 % ------------------------------------------------------------- %%
-:- doc(section, "TCLP interface").
+		 /*******************************
+		 *        TCLP INTERFACE        *
+		 *******************************/
+
 
 % %% TCLP interface %%
 % call_domain_projection([],[]).
@@ -152,7 +153,6 @@ attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 % ------------------------------------------------------------- %%
 
 :- if(\+ current_predicate(subsumes_term/2)).
-:- use_module(library(terms_check)).
 :- endif.
 sub_list(D1,D2) :-
     append(_, X, D2), subsumes_term(D1,X).

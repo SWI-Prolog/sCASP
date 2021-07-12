@@ -9,40 +9,35 @@
             op(700, xfx, .=.),
             op(700, xfx, .\=.)
           ]).
-:- expects_dialect(ciao).
 
 %% ------------------------------------------------------------- %%
-:- use_package(assertions).
-:- doc(title, "Constraint solver for disequalities").
-:- doc(author, "Joaquin Arias").
-:- doc(filetype, module).
 
-:- doc(module, "
+/** <module> Constraint solver for disequalities
 
-This module contains the code of the constraint solver for
-disequalities following the description of the constructive
-unification / disunification from the paper @bf{Computing Stable Models
-of Normal Logic Programs Without Grounding} by @em{Marple et al. 2017}.
+This module contains the code of the constraint solver for disequalities
+following   the   description   of   the   constructive   unification  /
+disunification from the paper __Computing Stable Models of  Normal Logic
+Programs  Without  Grounding__  by _Marple  et al.  2017_. .=./2  is the
+predicate  used  for  equality.  .\=./2  is   the  predicate   used  for
+disequality.
 
-@pred{.=./2} is the predicate used for equality.
+@author Joaquin Arias
+*/
 
-@pred{.\\=./2} is the predicate used for disequality.
-
-").
 
 %% ------------------------------------------------------------- %%
 :- use_module(scasp_io).
 
 :- use_package(attr).
-:- use_module(library(sets)).
-:- use_module(library(terms_check)).
-:- use_package(assertions).
 :- dynamic disunify/2.
 
 :- op(700, xfx, [(.\=.),(.=.)]).
 
 %% ------------------------------------------------------------- %%
-:- doc(section, "Main predicates").
+		 /*******************************
+		 *       MAIN PREDICATES        *
+		 *******************************/
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Constructive Unification %%
@@ -120,7 +115,7 @@ not_unify2(A, B) :-
 not_unify2(A,B) :-
     ground(B),
     neg_var(A,NegListA),
-    insert(NegListA,B,NegList),
+    ord_add_element(NegListA,B,NegList),
     update(A,NegList).
 
 loop_var_disequality(A,B) :-
@@ -217,8 +212,8 @@ entail([A|As], [B|Bs]) :- true, !,
     entail(As,Bs).
 
 entail(A,B) :-
-    struct(A),
-    struct(B), !,
+    compound(A),
+    compound(B), !,
     A =.. [Name | La],
     B =.. [Name | Lb],
     entail(La,Lb).
@@ -245,7 +240,10 @@ entail_neg_list(L1, L2) :-
 
 
 %% ------------------------------------------------------------- %%
-:- doc(section, "Auxiliar predicates").
+		 /*******************************
+		 *     AUXILIAR PREDICATES      *
+		 *******************************/
+
 
 %% Auxiliar predicates %%
 neg_var(A,List) :-
@@ -282,7 +280,7 @@ update(A,List) :- put_attr_local(A,neg(List)).
 add(A,Value) :-
     (
         neg_var(A,NegListA), true ->
-        insert(NegListA, Value, NegList),
+        ord_add_element(NegListA, Value, NegList),
         update(A,NegList)
     ;
         put_attr_local(A,neg([Value]))

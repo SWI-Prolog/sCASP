@@ -2,9 +2,7 @@
           [ read_compiled_source/1
           ]).
 
-:- use_module(library(stream_utils)).
 % :- use_module(library(assertions/assrt_lib)).
-:- use_module(library(formulae)).
 
 :- use_module(scasp_io).
 :- reexport(scasp_io, [

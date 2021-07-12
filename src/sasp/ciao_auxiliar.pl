@@ -109,7 +109,7 @@ nb_setval(X,Y) :- set_global(X,Y).
 b_setval(X,Y) :- set_global(X,Y).
 b_getval(X,Y) :- get_global(X,Y).
 :- use_package(library(assertions)).
-:- data(set/2).
+:- dynamicset/2.
 set_global(N, T) :-
     nonvar(N),
     (retract_fact(set(N, _)) -> true ; true),

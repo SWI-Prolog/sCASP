@@ -21,26 +21,23 @@
     print_html/3
     ]).
 :- if(current_prolog_flag(version_data, swi(_,_,_,_))).
-:- expects_dialect(ciao).
 :- style_check(-singleton).
 :- op(900, fy, user:not).
 goal_expansion(abort, halt).
 :- endif.
 
 %% ------------------------------------------------------------- %%
-:- use_package(assertions).
-:- doc(title, "Module for input / output predicates").
-:- doc(author, "Joaquin Arias").
-:- doc(filetype, module).
 
-:- doc(module, "
+/** <module> Module for input / output predicates
 
-This module contains the code used to load, parser, translate and
-print the program and results of the evaluation. It uses the
-implementation of s(ASP) by @em{Marple} ported to CIAO by @em{Joaquin
-Arias} in the folder @file{./src/sasp/}.
+This module contains the code used to load, parser, translate  and print
+the program and results of the evaluation. It uses the implementation of
+s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
+``./src/sasp/``.
 
-").
+@author Joaquin Arias
+*/
+
 
 %% ------------------------------------------------------------- %%
 
@@ -82,7 +79,10 @@ Arias} in the folder @file{./src/sasp/}.
 scasp_update :-
     pack_upgrade(scasp).
 :- else.
-:- pred scasp_update/0 #"update the bundle sCASP using ciao".
+%!  scasp_update
+%
+%   update the bundle sCASP using ciao
+
 :- use_module(library(process)).
 scasp_update :-
     format('\n=> First, ciao would remove the bundle sCASP - ciao rm sCASP\n\n',[]),
@@ -108,15 +108,20 @@ scasp_update :-
     halt.
 :- endif.
 
-:- pred scasp_version/0 #"print the current version of s(CASP)".
+%!  scasp_version
+%
+%   print the current version of s(CASP)
+
 scasp_version :-
     format('s(CASP) version ~p\n',['0.21.05.28']),
     halt.
 
 
-:- pred load_program(Files) : list(Files) #"Call s(aso) to generate
-    and assert the translation of the progam (with dual and
-    nmr_check)".
+%!  load_program(?Files)
+%
+%   Call s(aso) to  generate and  assert the  translation of  the progam
+%   (with dual and nmr_check)
+
 
 :- dynamic loaded_file/1.
 load_program([]) :-
@@ -143,8 +148,11 @@ load_program(X) :-
     main(['-g'| Files]),
     assert(loaded_file(Files)).
 
-:- pred write_program/0 #"Call c(asp) to print the source code of the
-translation of the programs already loaded by @pred{load_program/1}".
+%!  write_program
+%
+%   Call  c(asp)  to print  the source  code of  the translation  of the
+%   programs already loaded by load_program/1
+
 
 write_program :-
     print_human_program.
@@ -155,11 +163,13 @@ write_program_sasp :-
 
 :- dynamic cont/0.
 
-:- pred process_query(Q, Query, TotalQuery) #"Initialize internal
-flags to allows the generation of multiples models in the interaction
-and top-level mode (even when the query is ground). Returns in
-@var{TotalQuery} a list with the sub_goals in @var{Q} and
-@em{o_nmr_check} to run the global constraints".
+%!  process_query(?Q, ?Query, ?TotalQuery)
+%
+%   Initialize  internal  flags  to allows  the generation  of multiples
+%   models in the interaction and top-level mode (even when the query is
+%   ground). Returns in TotalQuery a list  with the  sub_goals in  Q and
+%   _o_nmr_check_ to run the global constraints
+
 
 process_query(Q,Query,TotalQuery) :-
     revar(Q,A),
@@ -183,8 +193,11 @@ process_query(Q,Query,TotalQuery) :-
         append(Query, [o_nmr_check], TotalQuery)
     ).
 
-:- pred ask_for_more_models/0 #"Ask if the user want to generate more
-models (interactive and top-level mode)".
+%!  ask_for_more_models
+%
+%   Ask  if  the  user  want  to generate  more models  (interactive and
+%   top-level mode)
+
 
 ask_for_more_models :-
     (   cont
@@ -208,9 +221,11 @@ allways_ask_for_more_models :-
     ).
 
 
-:- pred print_query(Query) #"Print the  @var{Query}".
+%!  print_query(?Query)
+%
+%   Print the Query
 
-:- use_module(library(formulae)).
+
 print_query([not(o_false)]) :- !,
     format('% QUERY: Query not defined\n', []).
 print_query([true,A|As]) :- !,
@@ -226,8 +241,10 @@ print_query(Query) :-
     ).
 
 
-:- pred print_justification_tree(StackOut) #"Print the justification
-tree using @var{StackOut}, the final call stack".
+%!  print_justification_tree(?StackOut)
+%
+%   Print the justification tree using StackOut, the final call stack
+
 
 %% Print output predicates to presaent the results of the query
 print_justification_tree(StackOut) :-
@@ -235,8 +252,10 @@ print_justification_tree(StackOut) :-
     print_s(StackOut), !,
     true.
 
-:- pred print_model(Model) #"Print the partial model of the program
-using @var{Model}.".
+%!  print_model(?Model)
+%
+%   Print the partial model of the program using Model.
+
 
 %% The model is obtained from the model.
 % TODO: use the StackOut instead of the model.
@@ -251,8 +270,11 @@ print_model_(Model):-
     printable_model_(Printable),
     format(' }\n', []).
 
-:- pred print_unifier(Vars,PVars) #" Predicate to print @var{PVars} =
-@var{Vars} the binding of the variables in the query".
+%!  print_unifier(?Vars, ?PVars)
+%
+%   Predicate to print PVars = Vars the binding of the variables  in the
+%   query
+
 
 print_unifier(Bindings,PVars) :-
     format('BINDINGS:',[]),
@@ -355,10 +377,12 @@ print_constraints_not(PB,Const) :-
     format("~w \\= ~w",[PB,Const]).
 
 
-:- pred print_check_calls_calling(Goal, StackIn) #"Auxiliar predicate
-to print @var{StackIn} the current stack and @var{Goal}. This
-predicate is executed when the flag @var{check_calls} is
-@em{on}. NOTE: use check_calls/0 to activate the flag".
+%!  print_check_calls_calling(?Goal, ?StackIn)
+%
+%   Auxiliar predicate to print StackIn the current stack and Goal. This
+%   predicate is executed when the flag `check_calls` is _on_. NOTE: use
+%   check_calls/0 to activate the flag
+
 
 print_check_calls_calling(Goal,I) :-
     reverse(I,RI),
@@ -371,8 +395,10 @@ print_check_calls_calling(Goal,I) :-
     retractall(pr_repeat(_,_)),
     retractall(pr_print(_)).
 
-:- pred print_check_stack/2 #"simple output of the stack to run faster
-during verboser".
+%!  print_check_stack(A, B)
+%
+%   simple output of the stack to run faster during verboser
+
 print_check_stack([],_).
 print_check_stack([[]|As],I) :- !,
     I1 is I - 4,
@@ -432,8 +458,11 @@ ciao_attvar(_, []) :- !.
 ciao_attvar({NV~Constraints}, NV-Constraints) :- !.
 ciao_attvar({'\u2209'(Var, List)}, neg(Var, List)).
 
-:- pred print_s/1 #"output tree by the terminal".
-:- data((sp_tab/1, pr_repeat/2, pr_print/1)).
+%!  print_s(A)
+%
+%   output tree by the terminal
+
+:- dynamic((sp_tab/1, pr_repeat/2, pr_print/1)).
 print_s(Stack) :-
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
@@ -464,7 +493,10 @@ print_s_([A|As],I,I0) :- !,
     print_s_(As,I1,I).
 
 
-:- pred print_zero_nmr/3 #"".
+%!  print_zero_nmr(A, B, C)
+%
+%
+
 print_zero_nmr(_,I,I1) :-
     (   current_option(short,on) ->
         asserta(sp_tab(I)),
@@ -479,7 +511,10 @@ print_zero_nmr(_,I,I1) :-
         I1 is I + 4
     ).
 
-:- pred print_human_term/3 #"".
+%!  print_human_term(A, B, C)
+%
+%
+
 print_human_term(A,I,I1) :-
     pr_human_term((A::Human),Type), !,
     (   current_option(mid,on), Type \= (pred), Type \= mid ->
@@ -520,7 +555,7 @@ pr_human_term((Term :: TermHuman), Type) :-
     ;
         Term = chs(Chs),
         pr_show_predicate(Chs), !,
-        if(current_option(assume,on), Type = T, Type = pred)
+        (current_option(assume,on)*->Type = T;Type = pred)
     ;
         Term = assume(Chs),
         pr_show_predicate(Chs), !,
@@ -543,7 +578,7 @@ pr_pred_term(A, pred) :-
     pr_pred_predicate(A), !.
 pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type) :- !,
     pr_human_term(A::Human, T),
-    if(current_option(assume,on), Type = default, Type = T).
+    (current_option(assume,on)*->Type = default;Type = T).
 pr_pred_term(assume(A)::(format('we assume that ',[]), Human), Type) :- !,
     pr_human_term(A::Human, Type).
 pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
@@ -1124,8 +1159,10 @@ set_user_option('--raw')                :- set(raw,on).
 
 
 
-:- pred if_user_option(Name, Call) : (ground(Name), callable(Call))
-#"If the flag @var{Name} is on them the call @var{Call} is executed".
+%!  if_user_option(?Name, ?Call)
+%
+%   If the flag Name is on them the call Call is executed
+
 
 if_user_option(Name,Call) :-
     (
@@ -1135,7 +1172,10 @@ if_user_option(Name,Call) :-
         true
     ).
 
-:- pred set(Option, Value) #"Used to set-up the user options".
+%!  set(?Option, ?Value)
+%
+%   Used to set-up the user options
+
 
 set(Option, Value) :-
     retractall(current_option(Option, _)),
@@ -1199,9 +1239,11 @@ help_all :-
 %% Parse arguments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- pred parse_args(Args, Options, Sources) #"Select from the list of
-arguments in @var{Args} which are the user-options, @var{Options} and
-which are the program files, @var{Sources}".
+%!  parse_args(?Args, ?Options, ?Sources)
+%
+%   Select  from  the  list  of   arguments  in   Args  which   are  the
+%   user-options, Options and which are the program files, Sources
+
 
 parse_args([],[],[]).
 parse_args([O | Args], [O | Os], Ss) :-
@@ -1215,9 +1257,11 @@ parse_args([S | Args], Os, [S | Ss]) :-
 :- use_module('html/html_head').
 :- use_module('html/jquery_tree').
 :- use_module('html/html_tail').
-:- pred print_html(Query, Model, StackOut) #"Generate a html
-file with the model and the justification tree of the @var{Sources}
-for the @var{Query} using @var{Model} and @var{StackOut} resp.".
+%!  print_html(?Query, ?Model, ?StackOut)
+%
+%   Generate a html file with the  model and  the justification  tree of
+%   the `Sources` for the Query using Model and StackOut resp.
+
 
 %% Print output predicates to presaent the results of the query
 print_html(Query, Model, StackOut) :-
@@ -1233,8 +1277,7 @@ print_html(Query, Model, StackOut) :-
         create_file_name(S,File)
     ),
     open_output_file(Stream,File,Current),
-    if(
-        (
+    ((
             load_html_head(Head),
             print(Head),
             (  current_option(human,on) ->
@@ -1252,7 +1295,7 @@ print_html(Query, Model, StackOut) :-
             print(Jquery_tree),nl,nl,
             load_html_tail(Tail),
             print(Tail),nl
-        ),true,true),
+        )*->true;true),
     close_output_file(Stream,Current),
     write(' and END\n'),
     !.
@@ -1270,7 +1313,6 @@ remove_ext([C|Rs],S) :-
     remove_ext(Rs,S).
 remove_ext(Rs,Rs).
 
-:- use_module(library(terms_check)).
 print_html_query([[true|PQ],_,Bindings,PVars]) :- !,
     print_html_query([PQ,_,Bindings,PVars]).
 print_html_query([PQ,_,Bindings,PVars]) :-
@@ -1446,7 +1488,7 @@ print_html_body([X,Y|Xs]):-
     print(X),print(','),tab_html(2),nl,
     print_html_body([Y|Xs]).
 
-:- data(printingHTML/0).
+:- dynamic(printingHTML/0).
 open_output_file(Stream,File,Current) :-
     current_output(Current),
     open(File,append,_F),close(_F), %% if File does not exists open it
@@ -1463,8 +1505,10 @@ br :- format('<br>').
 
 
 
-:- pred print_human_program #"Output pretty print of the program +
-dual rules + nmr-checks".
+%!  print_human_program
+%
+%   Output pretty print of the program + dual rules + nmr-checks
+
 
 print_human_program :-
     pr_query(Query),
@@ -1606,7 +1650,10 @@ print_human_body_forall(InForall,I) :-
 
 
 
-:- pred dual_reverse/2 #"Auxiliary predicate to sort the DUAL rules".
+%!  dual_reverse(A, B)
+%
+%   Auxiliary predicate to sort the DUAL rules
+
 dual_reverse(L,[_|L]) :- current_option(raw,on), !.
 
 dual_reverse(L,R):-
@@ -1660,7 +1707,10 @@ forall_eq([A,B|As],[A|Eq],Rest) :-
 forall_eq([B|As],[B],As).
 
 
-:- pred nmr_reverse/2 #"Auxiliary predicate to sort the NMR checks".
+%!  nmr_reverse(A, B)
+%
+%   Auxiliary predicate to sort the NMR checks
+
 nmr_reverse(L,L) :- current_option(raw,on), !.
 
 nmr_reverse(L,[A|Rs]) :-

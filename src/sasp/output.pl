@@ -20,7 +20,7 @@
 %                       refunct/3,
                     print_abducibles/2
                  ]).
-:- expects_dialect(ciao).
+
 
 /** <module> Output formatting and printing.
 
@@ -1293,7 +1293,7 @@ assert_pr_user_predicate([P|Ps]) :-
     ),
     assert_pr_user_predicate(Ps).
 
-:- use_module(library(dict)).
+
 
 revar(X,Y) :- revar_(X,Y,_Dic).
 
@@ -1307,7 +1307,7 @@ revar_(X,Y,Dic) :-
 
 varatm(X) :- atom(X), atom_codes(X, [C|_]), varc(C).
 
-special_atom(A/B,'rat'(A,B)) :- num(A), num(B),!.
+special_atom(A/B,'rat'(A,B)) :- number(A), number(B),!.
 special_atom(X,'rat'(A,B)) :-
     atom(X),
     atom_codes(X, Codes),

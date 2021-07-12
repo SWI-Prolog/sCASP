@@ -23,7 +23,6 @@
             solve_c_forall/4
           ]).
 :- set_prolog_flag(optimise, true).
-:- expects_dialect(ciao).
 :- style_check(-singleton).
 
 :- use_module(scasp_io).
@@ -97,7 +96,7 @@ scasp_exec(Args, [PQ, PAnswer, PVars, Bindings, Printable_Model]) :-
     load(Sources),
     defined_query(Q0),
 
-    process_query(Q0, Q, Query), varset(Q, Vars),
+    process_query(Q0, Q, Query), term_variables(Q, Vars),
     unifiable(Q0, Q, D0),
 
     pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
@@ -161,8 +160,6 @@ capture_classical_neg([-S|Ss], [N|NSs]) :- !,
 capture_classical_neg([S|Ss], [S|NSs]) :-
     capture_classical_neg(Ss, NSs).
 
-:- use_module(library(terms_vars)).
-:- use_module(library(formulae)).
 main_solve(Q0) :-
     current_option(minimal_model, on), !,
     collect_min_models(Q0),
@@ -171,7 +168,7 @@ main_solve(Q0) :-
 main_solve(Q0) :-
     current_option(answers, Number),
 
-    process_query(Q0, Q, Query), varset(Q, Vars),
+    process_query(Q0, Q, Query), term_variables(Q, Vars),
     unifiable(Q0, Q, D0),
 
     pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
@@ -221,8 +218,6 @@ main_solve(Q0) :-
 %
 %   Used from the interactive mode to run the defined query.
 
-:- use_module(library(write)).
-:- use_module(library(terms_check)).
 
 run_defined_query :-
     defined_query(A),
@@ -237,8 +232,10 @@ defined_query(_) :-
 defined_query(Q) :-
     pr_query(Q).
 
-:- pred collect_min_models(Query) # "Collect the minimal models of a query
-        @var{Query}".
+%!  collect_min_models(?Query)
+%
+%   Collect the minimal models of a query Query
+
 
 % %% USE Tabling to collect the minimal models (Uncomment next two lines) %%
 % :- use_package(tclp_aggregates).
@@ -246,7 +243,6 @@ defined_query(Q) :-
 % %% USE Tabling to collect the minimal models
 
 % Define aggregate modes
-:- use_module(library(sets)).
 nt(_A, _B).
 
 % Predicate aggregated
@@ -258,7 +254,7 @@ take_min(Query, MinModel, Model, StackOut, T) :-
     sort(PrintableModel, MinModel).
 
 collect_min_models(Q0) :-
-    process_query(Q0, Q, Query), varset(Q, Vars),
+    process_query(Q0, Q, Query), term_variables(Q, Vars),
     unifiable(Q0, Q, D0),
 
     pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
@@ -292,10 +288,22 @@ collect_min_models(Q0) :-
 		 *     TOP LEVEL PREDICATES	*
 		 *******************************/
 
-:- pred check_calls/0 # "Turn on the flag @var{check_calls}".
-:- pred pos_loops/0 # "Turn on the flag @var{pos_loops}".
-:- pred print_on/0 # "Turn on the flag @var{print}".
-:- pred print_tree_on/0 # "Turn on the flag @var{print_tree}".
+%!  check_calls
+%
+%   Turn on the flag `check_calls`
+
+%!  pos_loops
+%
+%   Turn on the flag `pos_loops`
+
+%!  print_on
+%
+%   Turn on the flag `print`
+
+%!  print_tree_on
+%
+%   Turn on the flag `print_tree`
+
 
 clear_flags :-
     set(check_calls, off),
@@ -307,10 +315,16 @@ pos_loops :- set(pos_loops, on).
 print_on :- set(print, on).
 print_tree_on :- set(print_tree, on).
 
-:- pred ??(Query) : list(Query) # "Shorcut predicate to ask queries in
-the top-level returning also the justification tree. It calls solve_query/1".
-:- pred ?(Query) : list(Query) # "Shorcut predicate to ask queries in
-the top-level. It calls solve_query/1".
+%!  ??(?Query)
+%
+%   Shorcut predicate to ask queries in the top-level returning also the
+%   justification tree. It calls solve_query/1
+
+%!  ? (?Query)
+%
+%   Shorcut  predicate  to  ask  queries  in  the  top-level.  It  calls
+%   solve_query/1
+
 
 ?? Q :-
     set(print, on),
@@ -339,11 +353,13 @@ solve_query(Q) :-
 		 *        SOLVE THE QUERY	*
 		 *******************************/
 
-:- pred solve(Goals, StackIn, StackOut, Model) # "Solve the list of
-sub-goals @var{Goal} where @var{StackIn} is the list of goals already
-visited and returns in @var{StackOut} the list of goals visited to
-prove the sub-goals and in @var{Model} the model with support the
-sub-goals".
+%!  solve(?Goals, ?StackIn, ?StackOut, ?Model)
+%
+%   Solve the  list of  sub-goals `Goal`  where StackIn  is the  list of
+%   goals  already visited  and returns  in StackOut  the list  of goals
+%   visited to prove the sub-goals and in Model  the model  with support
+%   the sub-goals
+
 
 solve([], StackIn, [[]|StackIn], []).
 solve([Goal|Goals], StackIn, StackOut, Model) :-
@@ -359,11 +375,13 @@ solve([Goal|Goals], StackIn, StackOut, Model) :-
         Model = [JGoal|JGoals]
     ).
 
-:- pred check_goal(Goal, StackIn, StackOut, Model) # "Call
-@pred{check_CHS/3} to check the sub-goal @var{Goal} against the list
-of goals already visited @var{StackIn} to determine if it is a
-coinductive success, a coinductive failure, an already proved
-sub-goal, or if it has to be evaluated".
+%!  check_goal(?Goal, ?StackIn, ?StackOut, ?Model)
+%
+%   Call  check_CHS/3 to  check the  sub-goal Goal  against the  list of
+%   goals already visited StackIn to  determine if  it is  a coinductive
+%   success, a coinductive failure, an already proved sub-goal, or if it
+%   has to be evaluated
+
 
 check_goal(Goal, StackIn, StackOut, Model) :-
     check_CHS(Goal, StackIn, Check), %% Check condition for coinductive success
@@ -371,11 +389,9 @@ check_goal(Goal, StackIn, StackOut, Model) :-
 
 % coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
-    if(current_option(assume,on),
-       (
+    (current_option(assume,on)*->(
            mark_prev_goal(Goal,StackIn, StackMark),
-           StackOut = [[],chs(Goal)|StackMark]),
-       (
+           StackOut = [[],chs(Goal)|StackMark]);(
            StackOut = [[],chs(Goal)|StackIn]
        )),
     JGoal = [],
@@ -400,19 +416,18 @@ mark_prev_goal(Goal,[I|In],[assume(Goal)|In]) :- Goal == I, !.
 mark_prev_goal(Goal,[I|In],[I|Mk]) :- mark_prev_goal(Goal,In,Mk).
 mark_prev_goal(_Goal,[],[]).
 
-:- pred solve_goal(Goal, StackIn, StackOut, GoalModel) #"Solve a
-simple sub-goal @var{Goal} where @var{StackIn} is the list of goals
-already visited and returns in @var{StackOut} the list of goals
-visited to prove the sub-goals and in @var{Model} the model with
-support the sub-goals".
+%!  solve_goal(?Goal, ?StackIn, ?StackOut, ?GoalModel)
+%
+%   Solve a  simple sub-goal  Goal where  StackIn is  the list  of goals
+%   already visited and returns in StackOut the list of goals visited to
+%   prove  the  sub-goals  and  in  `Model` the  model with  support the
+%   sub-goals
+
 
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
     !,
-    if(current_option(prev_forall, on),
-        solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model),
-        solve_c_forall(Goal, [Goal|StackIn], StackOut, Model)
-    ),
+    (current_option(prev_forall, on)*->solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model);solve_c_forall(Goal, [Goal|StackIn], StackOut, Model)),
     GoalModel = [Goal|Model].
 solve_goal(Goal, StackIn, [[], Goal|StackIn], GoalModel) :-
     Goal = not(is(V, Expresion)),
@@ -434,10 +449,7 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= builtin(_),
     \+ table_predicate(Goal),
     predicate(Goal),
-    if(
-        solve_goal_predicate(Goal, [Goal|StackIn], StackOut, Model),
-        true,
-        (
+    (solve_goal_predicate(Goal, [Goal|StackIn], StackOut, Model)*->true;(
             shown_predicate(Goal),
             if_user_option(
                 trace_failures,
@@ -447,8 +459,7 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
                 )
             ),
             fail
-        )
-    ).
+        )).
 solve_goal(call(Goal),StackIn,StackOut,[call(Goal)|Model]) :- !,
     solve_goal(Goal,StackIn,StackOut,Model).
 solve_goal(not(call(Goal)),StackIn,StackOut,[not(call(Goal))|Model]) :- !,
@@ -466,10 +477,11 @@ solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
 
 
 % deprecated -- use flag: '--prev_forall' %%
-:- pred solve_goal_forall(forall(Var, Goal), StackIn, StackOut,
-        GoalModel) # "Solve a sub-goal of the form @var{forall(Var,Goal)} and
-success if @var{Var} success in all its domain for the goal
-@var{Goal}. It calls @pred{solve/4}".
+%!  solve_goal_forall(forall(?Var, ?Goal), ?StackIn, ?StackOut, ?GoalModel)
+%
+%   Solve a sub-goal of the form `forall(Var,Goal)`  and success  if Var
+%   success in all its domain for the goal Goal. It calls solve/4
+
 
 solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
     my_copy_term(Var, Goal, NewVar, NewGoal),
@@ -564,10 +576,11 @@ exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
     exec_with_neg_list(Var, Goal, Vs, NewStackMid, StackOut, Models),
     append(ModelMid, Models, Model).
 
-:- pred solve_goal_table_predicate(Goal, AttStackIn, AttStackOut,
-        AttModel) # "Used to evaluate predicates under tabling. This predicates
-should be defined in the program using the directive @em{#table
-pred/n.}".
+%!  solve_goal_table_predicate(?Goal, ?AttStackIn, ?AttStackOut, ?AttModel)
+%
+%   Used to evaluate predicates under tabling. This predicates should be
+%   defined in the program using the directive _#table pred/n._
+
 
 % TABLED to avoid loops and repeated answers
 solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel) :-
@@ -578,16 +591,20 @@ solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel) :-
     AttModel <~ model([Goal|Model]).
 % TABLED to avoid loops and repeated answers
 
-:- pred solve_goal_predicate(Goal, StackIn, StackOut, GoalModel)
-# "Used to evaluate a user predicate".
+%!  solve_goal_predicate(?Goal, ?StackIn, ?StackOut, ?GoalModel)
+%
+%   Used to evaluate a user predicate
+
 
 solve_goal_predicate(Goal, StackIn, StackOut, GoalModel) :-
     pr_rule(Goal, Body),
     solve(Body, StackIn, StackOut, BodyModel),
     GoalModel = [Goal|BodyModel].
 
-:- pred solve_goal_builtin(Goal, StackIn, StackOut, AttModel) # "Used
-to evaluate builtin predicates predicate".
+%!  solve_goal_builtin(?Goal, ?StackIn, ?StackOut, ?AttModel)
+%
+%   Used to evaluate builtin predicates predicate
+
 
 solve_goal_builtin(is(X, Exp), StackIn, StackIn, Model) :-
     capture_rational(Exp, CaptExp), !, %% If it fails later the call(Goal) will also fail...
@@ -919,10 +936,15 @@ type_loop_fail_pos(Goal, S) :-
     if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~@\n\tPrevious call:\t~@\n", [print_goal(Goal), print_goal(S)])).
 
 % ------------------------------------------------------------- %%
-:- doc(section, "Auxiliar Predicates").
+		 /*******************************
+		 *     AUXILIAR PREDICATES      *
+		 *******************************/
 
-:- pred predicate(Goal) # "Success if @var{Goal} is a user
-predicate".
+
+%!  predicate(?Goal)
+%
+%   Success if Goal is a user predicate
+
 
 :- op(1200, xfx, =>).
 
@@ -936,8 +958,11 @@ predicate(Goal) =>
     functor(Goal, Name, Arity),
     pr_user_predicate(Name/Arity), !.
 
-:- pred table_predicate(Goal) # "Success if @var{Goal} is defined as
-a tabled predicate with the directive @em{table pred/n.}".
+%!  table_predicate(?Goal)
+%
+%   Success if Goal is defined as a tabled predicate with  the directive
+%   _table pred/n._
+
 
 
 table_predicate(Goal) :-
@@ -951,8 +976,11 @@ shown_predicate(Goal) :-
     predicate(Goal).
 
 
-:- pred prolog_builtin(Goal) # "Success if @var{Goal} is a builtin
-    prolog predicate (the compiler introduced its dual)".
+%!  prolog_builtin(?Goal)
+%
+%   Success  if  Goal  is  a  builtin  prolog  predicate  (the  compiler
+%   introduced its dual)
+
 
 prolog_builtin(true).
 prolog_builtin(fail).
@@ -963,8 +991,10 @@ prolog_builtin(>).
 prolog_builtin(>=).
 prolog_builtin(=<).
 
-:- pred clp_builtin(Goal) # "Success if @var{Goal} is a builtin
-    constraint predicate".
+%!  clp_builtin(?Goal)
+%
+%   Success if Goal is a builtin constraint predicate
+
 
 clp_builtin(.=.).
 clp_builtin(.<>.).
@@ -973,8 +1003,10 @@ clp_builtin(.>.).
 clp_builtin(.>=.).
 clp_builtin(.=<.).
 
-:- pred clp_builtin_translate(Goal, Goal_T) # "Translate s(CASP)
-    constraints into CLP(Q/R) syntax".
+%!  clp_builtin_translate(?Goal, ?Goal_T)
+%
+%   Translate s(CASP) constraints into CLP(Q/R) syntax
+
 
 clp_builtin_translate('#=', .=.).
 clp_builtin_translate('#<>', .<>.).
@@ -986,8 +1018,11 @@ clp_builtin_translate('#=<', .=<.).
 :- if(exists_source(library(clpq/solver_q))).
 :- use_module(library(clpq/solver_q), [inf/2, sup/2]).
 :- endif.
-:- pred clp_interval(Goal) # "Success if @var{Goal} is a builtin
-    constraint predicate to extract interval limits".
+%!  clp_interval(?Goal)
+%
+%   Success  if  Goal  is  a  builtin  constraint  predicate  to extract
+%   interval limits
+
 
 clp_interval(inf).
 clp_interval(sup).
@@ -1020,9 +1055,8 @@ my_copy_vars(Vars0, Term0, Vars, Term) :-
     copy_term_nat(t(Vars0,Share0,Term0), t(Vars,Share,Term)),
     Share = Share0.
 
-:- use_module(library(terms_vars)).
 my_diff_term(Term, Vars, Others) :-
-    varset(Term, Set),
+    term_variables(Term, Set),
     diff_vars(Set, Vars, Others).
 
 %!  solve_c_forall(+Forall, +StackIn, -StackOut, -GoalModel)
@@ -1241,7 +1275,10 @@ dump_neg_list(V,[L|Ls],[V \= L|Rs]) :- dump_neg_list(V,Ls,Rs).
 clp_vars_in(Vars, ClpVars) :-
     include(is_clpq_var, Vars, ClpVars).
 
-:- pred collect_vars(Forall, CollectForall) # "Forall Vars in a list".
+%!  collect_vars(?Forall, ?CollectForall)
+%
+%   Forall Vars in a list
+
 collect_vars(Forall, c_forall(Vars, Goal)) :-
     collect_vars_(Forall, [], Vars, Goal).
 

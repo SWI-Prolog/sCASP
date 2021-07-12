@@ -8,28 +8,22 @@
             apply_clpq_constraints/1,
             dump_clpq_var/3
           ]).
-:- expects_dialect(ciao).
 % from clpqr_ops.pl
 :- op(700, xfx, [(.=.),(.<>.),(.<.),(.=<.),(.>.),(.>=.)]).
 
 % ------------------------------------------------------------- %%
-:- use_package(assertions).
-:- doc(title, "Extension of the constraint solver CLP(Q)").
-:- doc(author, "Joaquin Arias").
-:- doc(filetype, module).
 
-:- doc(module, "
+/** <module> Extension of the constraint solver CLP(Q)
 
-This module inport the constraint solve package for CLP(Q) and extend
-its functionalities (among others) with:
+This module inport the constraint  solve package  for CLP(Q)  and extend
+its functionalities (among others) with: dual_clpq/2 provide the dual of
+a  constraint  store  in  run-time to  evaluate the  forall/4 predicate.
+pretty_print/1 used by portray_attribute/2 to print the constraints of a
+variable.
 
- @pred{dual_clpq/2} provide the dual of a constraint store in run-time
-to evaluate the @pred{forall/4} predicate.
+@author Joaquin Arias
+*/
 
- @pred{pretty_print/1} used by @pred{portray_attribute/2} to print the
-constraints of a variable.
-
-").
 
 % ------------------------------------------------------------- %%
 
@@ -115,7 +109,7 @@ is_clpq_var(X) :-
 
 apply_clpq_constraints(A .<>. B + C) :-
     get_neg_var(A,[Num]),
-    num(Num),
+    number(Num),
     Num is B + C, !.
 apply_clpq_constraints(A .<>. B) :- !,       % JW: Why not simply {A =\= B}?
     (
@@ -172,8 +166,6 @@ store_entails(StoreA, StoreB) :-
     clpq_entailed(StoreA).
 
 % Success if S >= Goal
-:- use_module(library(terms_vars)).
-:- use_module(library(terms_check)).
 entail_terms(Goal, S) :-
     \+ \+ Goal = S,
     clp_varset(Goal, VsGoal),
