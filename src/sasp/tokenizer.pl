@@ -25,7 +25,9 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(tokenizer, [tokenize/2]).
+:- module(tokenizer,
+          [ tokenize/2
+          ]).
 
 /** <module> Tokenizer for file parsing
 
@@ -45,11 +47,14 @@ based, and convinced me that DCGs could produce meaningful error messages.
 :- use_module(library(lists)).
 :- use_module(common).
 
-%! tokenize(+CharPairs:list, -Tokens:list)
-% Convert a list of character/position pairs to a list of tokens and positions.
+%!  tokenize(+CharPairs:list, -Tokens:list)
 %
-% @param CharPairs The list of character/position pairs.
-% @param Tokens The list of tokens.
+%   Convert a list of character/position pairs to   a list of tokens and
+%   positions.
+%
+%   @arg CharPairs The list of character/position pairs.
+%   @arg Tokens The list of tokens.
+
 tokenize(CharPairs, Tokens) :-
     write_verbose(1, 'Tokenizing input...\n'),
     once(tokens(Tokens, 0, Errors, CharPairs, [])),
@@ -60,15 +65,15 @@ tokenize(_, _) :-
     !,
     fail.
 
-%! tokens(-Tokens:list, +ErrorsIn:int, -ErrorsOut:int, +CharsIn:list, -CharsOut:list)
-% Parse the list of characters into a list of tokens, storing the position of
-% the first character in the token.
+%!  tokens(-Tokens:list, +ErrorsIn:int, -ErrorsOut:int)//
 %
-% @param Tokens The list of tokens.
-% @param ErrorsIn Input error count.
-% @param ErrorsOut Output error count.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Parse the list of characters into  a   list  of  tokens, storing the
+%   position of the first character in the token.
+%
+%   @arg Tokens The list of tokens.
+%   @arg ErrorsIn Input error count.
+%   @arg ErrorsOut Output error count.
+
 tokens([Token | T], ErrorsIn, ErrorsOut) -->
     space_or_comment(ErrorsIn, E1),
     get_token(Token, E2),
@@ -79,13 +84,13 @@ tokens([], ErrorsIn, ErrorsOut) -->
     space_or_comment(ErrorsIn, ErrorsOut),
     [].
 
-%! space_or_comment(+ErrorsIn:int, -ErrorsOut:int, +CharsIn:list, -CharsOut:list)
-% Strip out whitespace and comments. May be empty.
+%!  space_or_comment(+ErrorsIn:int, -ErrorsOut:int)//
 %
-% @param ErrorsIn Input error count.
-% @param ErrorsOut Output error count.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Strip out whitespace and comments. May be empty.
+%
+%   @arg ErrorsIn Input error count.
+%   @arg ErrorsOut Output error count.
+
 space_or_comment(ErrorsIn, ErrorsOut) -->
     [(C, _)],
     {\+char_type(C, graph)},
@@ -99,25 +104,25 @@ space_or_comment(ErrorsIn, ErrorsOut) -->
 space_or_comment(Errors, Errors) -->
     [].
 
-%! start_comment(+ID:atom, +CharsIn:list, -CharsOut:list)
-% For comments, define start_comment and end_comment using a unique, matching
-% id, such as pl or c.
+%!  start_comment(+ID:atom)//
 %
-% @param ID A unique identifier to link the start and end of a comment type.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   For comments, define start_comment and   end_comment using a unique,
+%   matching id, such as pl or c.
+%
+%   @arg ID A unique identifier to link the start and end of a comment type.
+
 start_comment(pl) -->
     [('%', _)].
 start_comment(c) -->
     [('/', _)], [('*', _)].
 
-%! end_comment(+ID:atom, -ErrorCode:int, +CharsIn:list, -CharsOut:list)
-% Match the end of a comment.
+%!  end_comment(+ID:atom, -ErrorCode:int)//
 %
-% @param ID A unique identifier to link the start and end of a comment type.
-% @param ErrorCode 1 or 0 indicating if an error has occurred.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Match the end of a comment.
+%
+%   @arg ID A unique identifier to link the start and end of a comment type.
+%   @arg ErrorCode 1 or 0 indicating if an error has occurred.
+
 end_comment(pl, 0) -->
     [('\n', _)].
 end_comment(pl, 0, [], []). % if last line, don't require a terminal newline.
@@ -126,14 +131,14 @@ end_comment(c, 0) -->
 end_comment(_, 1, [], []) :- % An error has occurred.
     eof_error.
 
-%! skip_comment(+ID:atom, -ErrorCode:int, +CharsIn:list, -CharsOut:list)
-% Given a comment id X with a defined end_comment(X), skip to
-% the next occurrence of the comment end.
+%!  skip_comment(+ID:atom, -ErrorCode:int)//
 %
-% @param ID A unique identifier to link the start and end of a comment type.
-% @param ErrorCode 1 or 0 indicating if an error has occurred.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Given a comment id X with a defined end_comment(X), skip to the next
+%   occurrence of the comment end.
+%
+%   @arg ID A unique identifier to link the start and end of a comment type.
+%   @arg ErrorCode 1 or 0 indicating if an error has occurred.
+
 skip_comment(X, ErrorCode) -->
     end_comment(X, ErrorCode),
     !.
@@ -141,14 +146,15 @@ skip_comment(X, ErrorCode) -->
     [_],
     skip_comment(X, ErrorCode).
 
-%! get_token(-Token:compound, -ErrorCode:int, +CharsIn:list, -CharsOut:list)
-% Get a token or handle an error if an invalid token is encountered. This is
-% split from token/3 to allow cuts in token without breaking error-handling.
+%!  get_token(-Token:compound, -ErrorCode:int)//
 %
-% @param Token The token returned.
-% @param ErrorCode 0 if no errors, otherwise 1.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Get a token or handle an error   if an invalid token is encountered.
+%   This is split from token/3 to allow   cuts in token without breaking
+%   error-handling.
+%
+%   @arg Token The token returned.
+%   @arg ErrorCode 0 if no errors, otherwise 1.
+
 get_token(T, 0) -->
     token(T),
     !.
@@ -159,14 +165,15 @@ get_token(_, 1) --> % an error has occurred, try to recover.
     lex_recover,
     !.
 
-%! token(-Token:compound, +CharsIn:list, -CharsOut:list)
-% Token definitions. Place any multi-character tokens above the bottom two
-% cases, which handle any other printable characters as well as errors.
+%!  token(-Token:compound)//
 %
-% @param Token The token returned. A pair containing the token and its position
+%   Token definitions. Place any multi-character tokens above the bottom
+%   two cases, which handle any other   printable  characters as well as
+%   errors.
+%
+%   @arg Token The token returned. A pair containing the token and its position
 %        information.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+
 token((X, Pos)) -->
     identifier(Y2, Pos), % match [_]*[a-z][_A-Za-z0-9]+
     {atom_chars(Y, Y2)}, % get atom
@@ -188,13 +195,11 @@ token((C, Pos)) --> % any other visible characters that aren't letters or digits
     [(C, Pos)],
     {char_type(C, punct)}.
 
-%!  op_tok(-Token:compound, +CharsIn:list, -CharsOut:list)
+%!  op_tok(-Token:compound)//
 %
 %   Token for a multi-character operator that won't be matched as an id.
 %
 %   @arg Token The token returned.
-%   @arg CharsIn Input character list.
-%   @arg CharsOut Output character list.
 
 op_tok((':-', Pos)) -->
     [(':', Pos)], [('-', _)].
@@ -267,14 +272,13 @@ op_tok((::, Pos)) -->
     [(':', Pos)], [(':', _)].
 
 
-%!  quoted_string(-Token:compound, +CharsIn:list, -CharsOut:list)
+%!  quoted_string(-Token:compound)//
 %
 %   A string in single quotes. When   looking for terminal quote, ignore
 %   those escaped by a backslash.
 %
-% @param Token The token returned.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   @arg Token The token returned.
+
 quoted_string((str(X), Pos)) -->
     [('\'', Pos)],
     !,
@@ -282,13 +286,13 @@ quoted_string((str(X), Pos)) -->
     quoted_string2(X2, Y),
     {atom_chars(X, ['\'', Y | X2])}.
 
-%! quoted_string(-String:compound, +LastChar:compound, +CharsIn:list, -CharsOut:list)
-% Get all characters until an un-escaped single quote is encountered.
+%!  quoted_string(-String:compound, +LastChar:compound)//
 %
-% @param String The string returned.
-% @param LastChar The previous character read, to handle escaped quotes.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Get all characters until an un-escaped single quote is encountered.
+%
+%   @arg String The string returned.
+%   @arg LastChar The previous character read, to handle escaped quotes.
+
 quoted_string2([X | T], _) -->
     [('\\', _)], % escaped character
     [(X2, _)],
@@ -304,11 +308,12 @@ quoted_string2(['\''], _) -->
     [('\'', _)], % un-escaped quote
     !.
 
-%! escape(+CharIn:compound, -CharOut:compound)
-% Handle escape characters in quotes.
+%!  escape(+CharIn:compound, -CharOut:compound)
 %
-% @param CharIn The input character.
-% @param CharOut The output character.
+%   Handle escape characters in quotes.
+%
+%   @arg CharIn The input character.
+%   @arg CharOut The output character.
 escape('n', '\n').
 escape('l', '\n').
 escape('r', '\r').
@@ -317,11 +322,12 @@ escape('\\', '\\').
 escape('%', '%').
 escape('\'', '\'').
 
-%! check_type(+TokenIn:compound, -TokenOut:compound)
-% Just make sure keywords aren't treated as normal identifiers.
+%!  check_type(+TokenIn:compound, -TokenOut:compound)
 %
-% @param TokenIn Input token.
-% @param TokenOut Output token.
+%   Just make sure keywords aren't treated as normal identifiers.
+%
+%   @arg TokenIn Input token.
+%   @arg TokenOut Output token.
 check_type(X, X) :-
     keyword(X),
     !.
@@ -329,10 +335,12 @@ check_type(X, builtin(X)) :-
     builtin(X).
 check_type(X, id(X)).
 
-%! keyword(+Token:atom)
-% Keyword and aggregate definitions.
+%!  keyword(+Token:atom)
 %
-% @param Token The keyword.
+%   Keyword and aggregate definitions.
+%
+%   @arg Token The keyword.
+
 keyword(not).
 keyword(is).
 keyword(compute).
@@ -347,21 +355,23 @@ keyword('_false').
 keyword('_nmr_check').
 
 
-%! builtin(+Token:atom)
-% Predicates that will be executed by Prolog
+%!  builtin(+Token:atom)
 %
-% @param Token The predicate name.
+%   Predicates that will be executed by Prolog
+%
+%   @arg Token The predicate name.
+
 builtin(write).
 builtin(writef).
 builtin(nl).
 
-%! number(-Token:atom, -Position:compound, +CharsIn:list, -CharsOut:list)
-% An integer or floating point token. Can be positive or negative.
+%!  number(-Token:atom, -Position:compound)//
 %
-% @param Token The token returned.
-% @param Position The position info for the first character in the token.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   An integer or floating point token. Can be positive or negative.
+%
+%   @arg Token The token returned.
+%   @arg Position The position info for the first character in the token.
+
 number(X, Pos) -->
     [(C, Pos)],
     {char_type(C, digit)},
@@ -375,12 +385,12 @@ number(X, Pos) -->
     digits(Cs),
     number2(X, ['-', C | Cs]).
 
-%! number2(-Token:atom, +CharsIn:list, -CharsOut:list)
-% Integer or floating point token.
+%!  number2(-Token:atom)//
 %
-% @param Token The token returned.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Integer or floating point token.
+%
+%   @arg Token The token returned.
+
 number2(float(X), Y) -->
     [('.', _), (C, _)],
     {char_type(C, digit)},
@@ -400,12 +410,13 @@ number2(int(X), Y) -->
     !,
     {number_chars(X, Y)}.
 
-%! digits(-Digits:list, +CharsIn:list, -CharsOut:list)
-% Should only be called from number/4 and number2/4. Get digit characters.
+%!  digits(-Digits:list)//
 %
-% @param Digits The list of digits in the integer token.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Should only be  called  from  number/4   and  number2/4.  Get  digit
+%   characters.
+%
+%   @arg Digits The list of digits in the integer token.
+
 digits([C | T]) -->
     [(C, _)],
     {char_type(C, digit)},
@@ -414,14 +425,14 @@ digits([C | T]) -->
 digits([]) -->
     [].
 
-%! identifier(-AtomChars:list, -Pos:compound, +CharsIn:list, -CharsOut:list)
-% Detect and save tokens matching [_]*[a-z][_A-Za-z0-9]+. Returns a list of
-% characters, not an atom.
+%!  identifier(-AtomChars:list, -Pos:compound)//
 %
-% @param AtomChars List of characters in a token.
-% @param Pos The position info for the first character in the token.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Detect and save tokens matching   [_]*[a-z][_A-Za-z0-9]+.  Returns a
+%   list of characters, not an atom.
+%
+%   @arg AtomChars List of characters in a token.
+%   @arg Pos The position info for the first character in the token.
+
 identifier(X, Pos, Cin, Cout) :-
     Cin = [(_, Pos) | _], % Instantiate Pos.
     leading_underscores(X1, Cin, C1),
@@ -430,38 +441,38 @@ identifier(X, Pos, Cin, Cout) :-
     csyms(Xt, C2, Cout),
     append(X1, [C | Xt], X).
 
-%! variable(-AtomChars:list, -Pos:compound, +CharsIn:list, -CharsOut:list)
-% Detect and save tokens matching [A-Z][_A-Za-z0-9]+. Returns a list of
-% characters, not an atom.
+%!  variable(-AtomChars:list, -Pos:compound)//
 %
-% @param AtomChars List of characters in a token.
-% @param Pos The position info for the first character in the token.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Detect and save tokens matching   [A-Z][_A-Za-z0-9]+. Returns a list
+%   of characters, not an atom.
+%
+%   @arg AtomChars List of characters in a token.
+%   @arg Pos The position info for the first character in the token.
+
 variable(X, Pos, Cin, Cout) :-
     Cin = [(C, Pos) | C2],
     char_type(C, upper),
     csyms(Xt, C2, Cout),
     X = [C | Xt].
 
-%! leading_underscores(-Underscores:list, +CharsIn:list, -CharsOut:list)
-% Get any leading underscores. May be empty.
+%!  leading_underscores(-Underscores:list)//
 %
-% @param Underscores The list of underscores at the start of a token.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Get any leading underscores. May be empty.
+%
+%   @arg Underscores The list of underscores at the start of a token.
+
 leading_underscores(['_' | T], [('_', _) | T2], T3) :-
     leading_underscores(T, T2, T3).
 leading_underscores([], [X | T], [X | T]) :-
     X \= ('_', _).
 
-%! csyms(-AtomChars:list, +CharsIn:list, -CharsOut:list)
-% Get C symbols in an identifier. May be empty.
+%!  csyms(-AtomChars:list)//
 %
-% @param AtomChars The list of characters that will be part of the current
+%   Get C symbols in an identifier. May be empty.
+%
+%   @arg AtomChars The list of characters that will be part of the current
 %        token.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+
 csyms([C | T], [(C, _) | T2], T3) :-
     char_type(C, csym),
     !,
@@ -470,25 +481,29 @@ csyms([], [C | T2], [C | T2]) :-
     C = (C2, _),
     \+char_type(C2, csym).
 
-%! lex_error(+Char:char, +Position:compound)
-% Print error message for failure during tokenization.
+%!  lex_error(+Char:char, +Position:compound)
 %
-% @param Char The character which triggered the error.
-% @param Position The position info for the character.
+%   Print error message for failure during tokenization.
+%
+%   @arg Char The character which triggered the error.
+%   @arg Position The position info for the character.
+
 lex_error(Char, (Line, Col)) :-
     format(user_error, 'ERROR: ~w:~w: Illegal character: \"~w\"\n', [Line, Col, Char]).
 
-%! eof_error
-% Print error for unexpected end of file.
+%!  eof_error
+%
+%   Print error for unexpected end of file.
+
 eof_error :-
     format(user_error, 'ERROR: Unexpected end of file!\n').
 
-%! lex_recover(+CharsIn:list, -CharsOut:list)
-% Skip characters until whitespace is encountered. The idea is to produce as
-% many useful error messages as possible, so we want to keep going if possible.
+%!  lex_recover//
 %
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Skip characters until whitespace is  encountered.   The  idea  is to
+%   produce as many useful error messages  as   possible,  so we want to
+%   keep going if possible.
+
 lex_recover -->
     [(C, _)],
     {char_type(C, graph)},
