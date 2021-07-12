@@ -1,19 +1,3 @@
-:- module(call_graph, [
-                    build_call_graph/4,
-                    destroy_call_graph/0,
-                    a/4,
-                    ar/2
-                  ]).
-
-/** <module> Build the call graph used for NMR check construction and indexing.
-
-Given the input program, build a call graph and assert the components.
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -41,46 +25,67 @@ Given the input program, build a call graph and assert the components.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:-set_prolog_flag(multi_arity_warnings,off).
+:- module(call_graph,
+          [ build_call_graph/4,
+            destroy_call_graph/0,
+            a/4,
+            ar/2
+          ]).
+
+/** <module> Build the call graph used for NMR check construction and indexing.
+
+Given the input program, build a call graph and assert the components.
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
 
 :- use_module(common).
 
-%! a(?Head:int, ?Goal:int, ?Negation:int, ?ID:int) is det
-% Arc in the call graph from Head to Goal. Both head and goal will always be
-% positive with Negation indicating whether or not Goal was originally negated.
-% ID is the arc ID used to get associated rule IDs from ar/2.
+%!  a(?Head:int, ?Goal:int, ?Negation:int, ?ID:int) is det
 %
-% @param Head Rule head.
-% @param Goal Absolute value of rule goal.
-% @param Negation 1 or 0 indicating if Goal was originally negated.
-% @param ID Arc ID. See ar/2.
+%   Arc in the call graph from Head  to   Goal.  Both head and goal will
+%   always be positive with Negation indicating  whether or not Goal was
+%   originally negated. ID is the arc ID used to get associated rule IDs
+%   from ar/2.
+%
+%   @arg Head Rule head.
+%   @arg Goal Absolute value of rule goal.
+%   @arg Negation 1 or 0 indicating if Goal was originally negated.
+%   @arg ID Arc ID. See ar/2.
 
-%! ar(?ArcID:int, ?RuleIDs:list) is det
-% Associate an arc ID with a list of rule IDs. Each rule contains the
-% associated arc in the call graph; this avoids duplicate arcs.
+%!  ar(?ArcID:int, ?RuleIDs:list) is det
 %
-% @param ArcID An integer ID indicating an arc. See a/4.
-% @param RuleIDs A list of rule IDs with matching arcs in the call graph.
+%   Associate an arc ID with a list of  rule IDs. Each rule contains the
+%   associated arc in the call graph; this avoids duplicate arcs.
+%
+%   @arg ArcID An integer ID indicating an arc. See a/4.
+%   @arg RuleIDs A list of rule IDs with matching arcs in the call graph.
 
-%! e(Literal:int) is det
-% A literal to skip when building the call graph.
+%!  e(Literal:int) is det
 %
-% @param Literal The literal to skip.
+%   A literal to skip when building the call graph.
+%
+%   @arg Literal The literal to skip.
+
 :- dynamic
     a/4, % a(head, goal, negation, id)
     ar/2, % ar(arc_id, rule_ids)
     e/1.
 
-%! build_call_graph(+Rules:list, -Nodes:list, +Excludes:list, +SkipDuals:int)
-% Build and assert the call graph. Return a list of nodes. Don't includes rules
-% with heads present in the list of exclude. If SkipDuals is 1, rules with
-% negative heads won't be included in the call graph.
+%!  build_call_graph(+Rules:list, -Nodes:list, +Excludes:list, +SkipDuals:int)
 %
-% @param Rules Rules to use in building call graph.
-% @param Nodes Nodes in call graph.
-% @param Excludes Literals to exclude from call graph. Each member must be of
+%   Build and assert the call  graph.  Return   a  list  of nodes. Don't
+%   includes rules with  heads  present  in   the  list  of  exclude. If
+%   SkipDuals is 1, rules with negative heads   won't be included in the
+%   call graph.
+%
+%   @arg Rules Rules to use in building call graph.
+%   @arg Nodes Nodes in call graph.
+%   @arg Excludes Literals to exclude from call graph. Each member must be of
 %        the form e(X), where X is the literal to exclude.
-% @param SkipDuals 1 or 0 indicating if rules with negated heads should be
+%   @arg SkipDuals 1 or 0 indicating if rules with negated heads should be
 %        included in call graph.
 build_call_graph(R, Ns, E, SkipDuals) :-
     R \= [],
@@ -95,12 +100,14 @@ build_call_graph(R, Ns, E, SkipDuals) :-
     assert_all(Rs).
 build_call_graph([], [], _, _).
 
-%! get_nodes(+Arcs:list, -Nodes:list)
-% Get a list of nodes in the graph. These are the positive literals that occur
-% as rule heads.
+%!  get_nodes(+Arcs:list, -Nodes:list)
 %
-% @param Arcs List of arcs in call graph, of the form a(Head, Goal, Neg, ID).
-% @param Nodes Nodes in call graph.
+%   Get a list of nodes in the   graph.  These are the positive literals
+%   that occur as rule heads.
+%
+%   @arg Arcs List of arcs in call graph, of the form a(Head, Goal, Neg, ID).
+%   @arg Nodes Nodes in call graph.
+
 get_nodes([X | T], [N | Ns]) :-
     X = a(N, _, _, _),
     get_nodes(T, N, Ns).
@@ -116,24 +123,24 @@ get_nodes([X | T], N, [Y | Ns]) :-
     get_nodes(T, Y, Ns).
 get_nodes([], _, []).
 
-%! get_arcs(+Rules:list, +ArcsIn:list, -ArcsOut:list, +SkipDuals:int)
-% Get call graph edges w/ negation parity from rules. If SkipDuals is 1, don't
-% get edges for rules with negative heads. If rule/4 fails (rules have no ID),
-% use rule/3 and an ID of -1.
+%!  get_arcs(+Rules:list, +ArcsIn:list, -ArcsOut:list, +SkipDuals:int)
 %
-% @param Rules The list of rules in the program.
-% @param ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
-% @param ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
-% @param SkipDuals 1 or 0 indicating whether or not to skip rules with negated
+%   Get call graph edges w/ negation parity  from rules. If SkipDuals is
+%   1, don't get edges for rules with   negative  heads. If rule/4 fails
+%   (rules have no ID), use rule/3 and an ID of -1.
+%
+%   @arg Rules The list of rules in the program.
+%   @arg ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
+%   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
+%   @arg SkipDuals 1 or 0 indicating whether or not to skip rules with negated
 %        heads.
+
 get_arcs([R | T], Gi, Go, SD) :-
     rule(R, H, I, Y), % Rules have IDs.
     predicate(H, F, _), % get functor of head
-    \+e(F),
-    (
-            SD =:= 0 % Don't skip duals
-    ;
-            \+is_dual(F)
+    \+ e(F),
+    (   SD =:= 0 % Don't skip duals
+    ;   \+ is_dual(F)
     ),
     !,
     get_arcs2(F, I, Y, Gi, G1),
@@ -143,11 +150,9 @@ get_arcs([R | T], Gi, Go, SD) :-
     c_rule(R, H, Y), % rules have no IDs attached.
     I is -1,
     predicate(H, F, _), % get functor of head
-    \+e(F),
-    (
-            SD =:= 0 % Don't skip duals
-    ;
-            \+is_dual(F)
+    \+ e(F),
+    (   SD =:= 0 % Don't skip duals
+    ;   \+ is_dual(F)
     ),
     !,
     get_arcs2(F, I, Y, Gi, G1),
@@ -157,41 +162,46 @@ get_arcs([_ | T], Gi, Go, SD) :-
 get_arcs([], G, G, _) :-
     !.
 
-%! get_arcs2(+Head:ground, +ID:int, +Goals:list, +ArcsIn:list, -ArcsOut:list)
-% Get call graph arcs for a single rule. Format is: a(head, goal, negation, id).
+%!  get_arcs2(+Head:ground, +ID:int, +Goals:list, +ArcsIn:list, -ArcsOut:list)
 %
-% @param Head Head of a rule.
-% @param ID Rule ID.
-% @param Goals Body of rule.
-% @param ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
-% @param ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
+%   Get call graph arcs for a  single   rule.  Format  is: a(head, goal,
+%   negation, id).
+%
+%   @arg Head Head of a rule.
+%   @arg ID Rule ID.
+%   @arg Goals Body of rule.
+%   @arg ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
+%   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
+
 get_arcs2(H, I, [Y | T], Gi, [G | Go]) :-
     predicate(Y, Gy, _), % if goal is a predicate, get the functor
-    \+is_dual(Gy),
+    \+ is_dual(Gy),
     !,
     G = a(H, Gy, 0, I),
     get_arcs2(H, I, T, Gi, Go).
 get_arcs2(H, I, [Y | T], Gi, [G | Go]) :-
-    Y = not(Y2), % negated goal
+    Y = not(Y2),
     !,
     predicate(Y2, Gn, _), % get the functor
     G = a(H, Gn, 1, I),
     get_arcs2(H, I, T, Gi, Go).
 get_arcs2(H, I, [Y | T], Gi, Go) :-
-    \+predicate(Y, _, _), % goal isn't a predicate; skip it
+    \+ predicate(Y, _, _), % goal isn't a predicate; skip it
     !,
     get_arcs2(H, I, T, Gi, Go).
 get_arcs2(_, _, [], G, G) :-
     !.
 
-%! merge_arcs(+ArcsIn:list, -ArcsOut:list, -IDgroups:list)
-% Ensure that at most one arc for each negation exists between two nodes. Create
-% a list of IDs for an arc to later associate with rules. Use the first rule ID
-% as the ID for the list of rules.
+%!  merge_arcs(+ArcsIn:list, -ArcsOut:list, -IDgroups:list)
 %
-% @param ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
-% @param ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
-% @param IDgroups List of ID groups of the form ar(ID, IDlist).
+%   Ensure that at most one arc  for   each  negation exists between two
+%   nodes. Create a list of  IDs  for   an  arc  to later associate with
+%   rules. Use the first rule ID as the ID for the list of rules.
+%
+%   @arg ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
+%   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
+%   @arg IDgroups List of ID groups of the form ar(ID, IDlist).
+
 merge_arcs([X | T], [X | As], [Ar | Is]) :-
     X = a(H, G, N, I),
     merge_arcs2(H, G, N, T, To, Rs),
@@ -199,15 +209,18 @@ merge_arcs([X | T], [X | As], [Ar | Is]) :-
     merge_arcs(To, As, Is).
 merge_arcs([], [], []).
 
-%! merge_arcs2(+Head:int, +Goal:int, +Neg:int, +ArcsIn:list, -ArcsOut:list, -IDs:list)
-% Get rules associate with a single arc in the final graph
+%!  merge_arcs2(+Head:int, +Goal:int, +Neg:int,
+%!              +ArcsIn:list, -ArcsOut:list, -IDs:list)
 %
-% @param Head Head of rule.
-% @param Goal Rule goal. Always positive, with Neg indicating negation.
-% @param Neg 1 or 0 indicating if goal is negated.
-% @param ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
-% @param ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
-% @param IDs IDs associated with the current arc.
+%   Get rules associate with a single arc in the final graph
+%
+%   @arg Head Head of rule.
+%   @arg Goal Rule goal. Always positive, with Neg indicating negation.
+%   @arg Neg 1 or 0 indicating if goal is negated.
+%   @arg ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
+%   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
+%   @arg IDs IDs associated with the current arc.
+
 merge_arcs2(H, G, N, [X | T], To, [I | Rs]) :-
     X = a(H, G, N, I),
     merge_arcs2(H, G, N, T, To, Rs).
@@ -215,17 +228,21 @@ merge_arcs2(H, G, N, [X | T], [X | T], []) :-
     X \= a(H, G, N, _).
 merge_arcs2(_, _, _, [], [], []).
 
-%! assert_all(+List:list)
-% Assert each element in a list.
+%!  assert_all(+List:list)
 %
-% @param List List of facts to assert.
+%   Assert each element in a list.
+%
+%   @arg List List of facts to assert.
+
 assert_all([X | T]) :-
     assertz(X),
     assert_all(T).
 assert_all([]).
 
-%! destroy_call_graph
-% Retract the assertions for the call graph.
+%!  destroy_call_graph
+%
+%   Retract the assertions for the call graph.
+
 destroy_call_graph :-
     retractall(a(_,_,_,_)),
     retractall(ar(_,_)).
