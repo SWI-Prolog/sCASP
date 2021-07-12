@@ -1,19 +1,3 @@
-:- module(interactive, [
-                    help/0,
-                    get_user_query/1,
-                    get_user_response/0
-                   ]).
-
-/** <module> User interaction
-
-Predicates related to interaction with the user, particularly when running in
-interactive mode.
-
-@author Kyle Marple
-@version 20170128
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -41,9 +25,23 @@ interactive mode.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(interactive, [
+                    help/0,
+                    get_user_query/1,
+                    get_user_response/0
+                   ]).
+
+/** <module> User interaction
+
+Predicates related to interaction with the user, particularly when running in
+interactive mode.
+
+@author Kyle Marple
+@version 20170128
+@license BSD-3
+*/
+
 :- use_module(library(lists)).
-%:- use_module(library(writef)).
-:- use_module(ciao_auxiliar).
 :- use_module(io).
 :- use_module(text_dcg).
 :- use_module(tokenizer).
@@ -96,9 +94,11 @@ get_user_query(Q) :-
     ),
     !.
 
-%! get_user_response is det
-% A query has succeeded, so get input from the user to accept ('.') or reject
-% (';') it.
+%!  get_user_response is det
+%
+%   A query has succeeded, so get input from the user to accept ('.') or
+%   reject (';') it.
+
 get_user_response :-
     write(' ? '),
     get_single_char(C),
@@ -106,11 +106,13 @@ get_user_response :-
     !,
     get_user_response2(C).
 
-%! get_user_response2(+Char:char) is det
-% Process the user's response. For invalid responses, print an error and give
-% them another chance.
+%!  get_user_response2(+Char:char) is det
 %
-% @param Char The one character response.
+%   Process the user's response. For invalid   responses, print an error
+%   and give them another chance.
+%
+%   @argx Char The one character response.
+
 get_user_response2(C) :- % accept
     member(C, ['.', 'c', 'a', '\n']),
     !.
@@ -124,15 +126,15 @@ get_user_response2(C) :- % redo
 get_user_response2(C) :- % help
     member(C, ['?', 'h']),
     !,
-    write(';, n, r, space, tab:\treject\n'),
-    write('., c, a, enter:\t\taccept\n'),
-    write('?, h:\t\t\thelp\n'),
-    write('Action? '),
+    format(';, n, r, space, tab:\treject\n'),
+    format('., c, a, enter:\t\taccept\n'),
+    format('?, h:\t\t\thelp\n'),
+    format('Action? '),
     !,
     get_user_response.
 get_user_response2(C) :-
-    writef('Unknown action: ~w (h for help)\n', [C]),
-    write('Action? '),
+    format('Unknown action: ~w (h for help)\n', [C]),
+    format('Action? '),
     !,
     get_user_response.
 

@@ -1,20 +1,3 @@
-:- module(debug, [
-                    write_list/1,
-                    write_program/0,
-                    if_debug/2,
-                    force/1
-             ]).
-
-/** <module> Debugging predicates
-
-Predicates used only for debugging and that will have no purpose in a final
-release.
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -42,8 +25,23 @@ release.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-%:- use_module(library(writef)).
-:- use_module(ciao_auxiliar).
+:- module(debug,
+          [ write_list/1,
+            write_program/0,
+            if_debug/2,
+            force/1
+          ]).
+
+/** <module> Debugging predicates
+
+Predicates used only for debugging and that will have no purpose in a final
+release.
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
+
 :- use_module(common).
 :- use_module(options).
 :- use_module(output). % for formatting and metacalls to fill_in_variable_values/5.
@@ -65,53 +63,54 @@ debugging(X) :-
 %
 % @param List The list to write.
 write_list([X | T]) :-
-    writef('~w\n', [X]),
+    format('~w\n', [X]),
     !,
     write_list(T).
 write_list([]).
 
-%! write_program is det
-% Write the rules, NMR check and query. Just for debugging purposes.
+%!  write_program is det
+%
+%   Write the rules, NMR check and query. Just for debugging purposes.
+
 write_program :-
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
-    write('Rules:\n'),
+    format('Rules:\n'),
     write_rules(Rs, 0),
     new_var_struct(V),
-    (defined_nmr_check(NMR) ->
-            format_term_list(NMR, NMR2, _, V),
-            writef('\nNMR Check:\n~w\n', [NMR2])
-    ;
-            true
+    (   defined_nmr_check(NMR)
+    ->  format_term_list(NMR, NMR2, _, V),
+        format('\nNMR Check:\n~w\n', [NMR2])
+    ;   true
     ),
-    (defined_query(Q, _) ->
-            format_term_list(Q, Q2, _, V),
-            writef('\nQuery\n~w\n', [Q2])
-    ;
-            true
+    (   defined_query(Q, _)
+    ->  format_term_list(Q, Q2, _, V),
+        format('\nQuery\n~w\n', [Q2])
+    ;   true
     ),
-    write('\n'),
+    nl,
     !.
 
-%! write_rules(+Rules:list, +LastHead:compound) is det
-% Write the rules in the program, formatted for readability.
+%!  write_rules(+Rules:list, +LastHead:compound) is det
 %
-% @param Rules The list of rules.
-% @param LastHead The functor of the head of the last rule. Check to print a
-%        blank line between clauses of different predicates. Use 0 for initial
-%        value to avoid extra blank line at start.
+%   Write the rules in the program, formatted for readability.
+%
+%   @arg Rules The list of rules.
+%   @arg LastHead The functor of the head of the last rule. Check to
+%        print a blank line between clauses of different predicates. Use
+%        0 for initial value to avoid extra blank line at start.
+
 write_rules([X | T], Lh) :-
     c_rule(X, H, B),
     H =.. [F | _],
-    ((F \= Lh, Lh \= 0) -> % blank line between predicates
-            write('\n')
-    ;
-            true
+    (   (F \= Lh, Lh \= 0) % blank line between predicates
+    ->  nl
+    ;   true
     ),
     new_var_struct(V),
     format_term(H, H2, _, V),
-    writef('~w', [H2]),
+    format('~w', [H2]),
     write_body(B),
-    writef('.\n'),
+    format('.\n'),
     !,
     write_rules(T, F).
 write_rules([], _).
@@ -123,7 +122,7 @@ write_rules([], _).
 write_body([X | T]) :-
     new_var_struct(V),
     format_term(X, X2, _, V),
-    writef(' :-\n\t~w', [X2]),
+    format(' :-\n\t~w', [X2]),
     write_body2(T).
 write_body([]).
 
@@ -134,7 +133,7 @@ write_body([]).
 write_body2([X | T]) :-
     new_var_struct(V),
     format_term(X, X2, _, V),
-    writef(',\n\t~w', [X2]),
+    format(',\n\t~w', [X2]),
     !,
     write_body2(T).
 write_body2([]).
@@ -156,15 +155,18 @@ if_debug(L, _) :-
 if_debug(_, _) :-
     \+debugging(_).
 
-%! force(+Call:callable) is nondet
-% Call the goal on backtracking, even if it would otherwise be deterministic.
-% The primary use is to force write/1 or writef/2 to print when backtracking.
+%!  force(+Call:callable) is nondet
 %
-% @param Call The goal to call.
+%   Call the goal  on  backtracking,  even   if  it  would  otherwise be
+%   deterministic. The primary use is to   force  write/1 or writef/2 to
+%   print when backtracking.
+%
+%   @arg Call The goal to call.
+
 force(X) :-
-    once(call(X)).
+    once(X).
 force(X) :-
-    write('force! '),
+    format('force! '),
     call(X),
     !,
     fail.

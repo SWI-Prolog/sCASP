@@ -1,20 +1,3 @@
-:- module(tokenizer, [tokenize/2]).
-
-/** <module> Tokenizer for file parsing
-
-Read a list of character and position pairs into a list of tokens and position
-info. Note that the tokenizer is more general than the input file format, so
-the presence of keywords, operators or tokens in this file should not bee seen
-as implying support by the overall system.
-
-Thanks to Feliks Kluzniak, who provided the algorithm on which the scanner is
-based, and convinced me that DCGs could produce meaningful error messages.
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -42,9 +25,24 @@ based, and convinced me that DCGs could produce meaningful error messages.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(tokenizer, [tokenize/2]).
+
+/** <module> Tokenizer for file parsing
+
+Read a list of character and position pairs into a list of tokens and position
+info. Note that the tokenizer is more general than the input file format, so
+the presence of keywords, operators or tokens in this file should not bee seen
+as implying support by the overall system.
+
+Thanks to Feliks Kluzniak, who provided the algorithm on which the scanner is
+based, and convinced me that DCGs could produce meaningful error messages.
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
+
 :- use_module(library(lists)).
-%:- use_module(library(writef)).
-:- use_module(ciao_auxiliar).
 :- use_module(common).
 
 %! tokenize(+CharPairs:list, -Tokens:list)
@@ -171,12 +169,12 @@ get_token(_, 1) --> % an error has occurred, try to recover.
 % @param CharsOut Output character list.
 token((X, Pos)) -->
     identifier(Y2, Pos), % match [_]*[a-z][_A-Za-z0-9]+
-    {c_name(Y, Y2)}, % get atom
+    {atom_chars(Y, Y2)}, % get atom
     {check_type(Y, X)},
     !.
 token((var(Y), Pos)) -->
     variable(Y2, Pos), % match [A-Z][_A-Za-z0-9]+
-    {c_name(Y, Y2)}, % get atom
+    {atom_chars(Y, Y2)}, % get atom
     !.
 token((X, Pos)) -->
     number(X, Pos),
@@ -190,12 +188,14 @@ token((C, Pos)) --> % any other visible characters that aren't letters or digits
     [(C, Pos)],
     {char_type(C, punct)}.
 
-%! op_tok(-Token:compound, +CharsIn:list, -CharsOut:list)
-% Token for a multi-character operator that won't be matched as an id.
+%!  op_tok(-Token:compound, +CharsIn:list, -CharsOut:list)
 %
-% @param Token The token returned.
-% @param CharsIn Input character list.
-% @param CharsOut Output character list.
+%   Token for a multi-character operator that won't be matched as an id.
+%
+%   @arg Token The token returned.
+%   @arg CharsIn Input character list.
+%   @arg CharsOut Output character list.
+
 op_tok((':-', Pos)) -->
     [(':', Pos)], [('-', _)].
 op_tok((=:=, Pos)) -->
@@ -236,7 +236,7 @@ op_tok(('?-', Pos)) -->
     [('?', Pos)], [('-', _)].
 op_tok((\/, Pos)) -->
     [('\\', Pos)], [('/', _)].
-%% Default constraints
+% Default constraints
 op_tok(('#=<', Pos)) -->
     [('#', Pos)], [('=', _)], [('<', _)].
 op_tok(('#=', Pos)) -->
@@ -249,7 +249,7 @@ op_tok(('#>=', Pos)) -->
     [('#', Pos)], [('>', _)], [('=', _)].
 op_tok(('#>', Pos)) -->
     [('#', Pos)], [('>', _)].
-%% clp(q/r)
+% clp(q/r)
 op_tok((.=., Pos)) -->
     [('.', Pos)], [('=', _)], [('.', _)].
 op_tok((.<>., Pos)) -->
@@ -262,14 +262,15 @@ op_tok((.>=., Pos)) -->
     [('.', Pos)], [('>', _)], [('=', _)], [('.', _)].
 op_tok((.=<., Pos)) -->
     [('.', Pos)], [('=', _)], [('<', _)], [('.', _)].
-%% operator for human output
+% operator for human output
 op_tok((::, Pos)) -->
     [(':', Pos)], [(':', _)].
 
 
-%! quoted_string(-Token:compound, +CharsIn:list, -CharsOut:list)
-% A string in single quotes. When looking for terminal quote, ignore those
-% escaped by a backslash.
+%!  quoted_string(-Token:compound, +CharsIn:list, -CharsOut:list)
+%
+%   A string in single quotes. When   looking for terminal quote, ignore
+%   those escaped by a backslash.
 %
 % @param Token The token returned.
 % @param CharsIn Input character list.
@@ -279,7 +280,7 @@ quoted_string((str(X), Pos)) -->
     !,
     [(Y, _)],
     quoted_string2(X2, Y),
-    {c_name(X, ['\'', Y | X2])}.
+    {atom_chars(X, ['\'', Y | X2])}.
 
 %! quoted_string(-String:compound, +LastChar:compound, +CharsIn:list, -CharsOut:list)
 % Get all characters until an un-escaped single quote is encountered.
@@ -386,18 +387,18 @@ number2(float(X), Y) -->
     !, % floating point
     digits(Cs),
     {append(Y, ['.', C | Cs], Cs3)},
-    {c_name(X, Cs3)}.
+    {number_chars(X, Cs3)}.
 number2(rat(X), Y) -->
     [('/', _), (C, _)],
     {char_type(C, digit)},
     !, % rational '/'
     digits(Cs),
     {append(Y, ['/', C | Cs], Cs3)},
-    {c_name(X, Cs3)}.
+    {number_chars(X, Cs3)}.
 number2(int(X), Y) -->
     [], % integer
     !,
-    {c_name(X, Y)}.
+    {number_chars(X, Y)}.
 
 %! digits(-Digits:list, +CharsIn:list, -CharsOut:list)
 % Should only be called from number/4 and number2/4. Get digit characters.

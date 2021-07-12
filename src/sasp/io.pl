@@ -1,33 +1,3 @@
-:- module(io,
-          [ load_source_files/1,
-            read_query/2,
-            (pred)/1,
-            show/1,
-            asp_table/1
-          ]).
-
-/** <module> Handle opening and closing files and directing output
-
-Input and output handling. Handles the opening and closing of files and
-provides a wrapper for the tokenizer to ensure that files are properly closed
-even if an error occurs.
-
-JW: A program is parsed by load_source_files/5.  This emits a list of
-
-  - c(N, Query)
-    Created from `N { Query }.` or `?- Query.` (where N = 1).
-    sort_by_type/4 selects the _last_ query as c(Q,Nmr_check,N)
-  - Literal-Body
-    Where Body is a list of literals that expresses the conjunction.
-
-
-
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -55,12 +25,35 @@ JW: A program is parsed by load_source_files/5.  This emits a list of
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:-set_prolog_flag(multi_arity_warnings,off).
+:- module(io,
+          [ load_source_files/1,
+            read_query/2,
+            (pred)/1,
+            show/1,
+            asp_table/1
+          ]).
+
+/** <module> Handle opening and closing files and directing output
+
+Input and output handling. Handles the opening and closing of files and
+provides a wrapper for the tokenizer to ensure that files are properly closed
+even if an error occurs.
+
+JW: A program is parsed by load_source_files/5.  This emits a list of
+
+  - c(N, Query)
+    Created from `N { Query }.` or `?- Query.` (where N = 1).
+    sort_by_type/4 selects the _last_ query as c(Q,Nmr_check,N)
+  - Literal-Body
+    Where Body is a list of literals that expresses the conjunction.
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
 
 :- use_module(library(lists)).
-:- use_module(ciao_auxiliar).
 :- use_module(common).
-%:- use_module(debug).
 :- use_module(program).
 :- use_module(text_dcg).
 :- use_module(tokenizer).

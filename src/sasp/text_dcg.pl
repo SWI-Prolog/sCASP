@@ -1,32 +1,3 @@
-:- module(text_dcg, [
-                    parse_program/4,
-                    parse_query/2
-                ]).
-
-/** <module> DCG grammar for s(ASP) programs.
-
-Parse tokens into a list of rules. Language is ungrounded ASP. Thanks to Feliks
-Kluzniak for advice and examples on getting proper error messages from DCGs.
-
-Input programs are normal logic programs with the following additions:
-
-    * The following directives are supported:
-    * =|#include file.asp.|=
-    will include file.asp.
-    * =|#compute N { Q }.|=
-    will override default settings in automatic mode, computing N stable
-    models using query Q.
-    * =|#abducible X.|=
-    will declare a predicate X to be an abducible, meaning that it can be
-    either true or false as needed.
-    * Atoms and predicates may begin with an underscore, indicating that they
-    should be skipped when printing solutions.
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -54,9 +25,36 @@ Input programs are normal logic programs with the following additions:
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(text_dcg,
+          [ parse_program/4,
+            parse_query/2
+          ]).
+
+/** <module> DCG grammar for s(ASP) programs.
+
+Parse tokens into a list of rules. Language is ungrounded ASP. Thanks to Feliks
+Kluzniak for advice and examples on getting proper error messages from DCGs.
+
+Input programs are normal logic programs with the following additions:
+
+    * The following directives are supported:
+    * =|#include file.asp.|=
+    will include file.asp.
+    * =|#compute N { Q }.|=
+    will override default settings in automatic mode, computing N stable
+    models using query Q.
+    * =|#abducible X.|=
+    will declare a predicate X to be an abducible, meaning that it can be
+    either true or false as needed.
+    * Atoms and predicates may begin with an underscore, indicating that they
+    should be skipped when printing solutions.
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
+
 :- use_module(library(lists)).
-%:- use_module(library(writef)).
-:- use_module(ciao_auxiliar).
 :- use_module(common).
 :- use_module(program).
 
@@ -406,7 +404,7 @@ asp_predicate(X) -->
     !,
     {handle_prefixes(Y, Y2)},
     {atom_chars(Y2, Y3)},
-    {c_name(Y4, ['c', '_' | Y3])}, % prefix for classical negation
+    {atom_chars(Y4, ['c', '_' | Y3])}, % prefix for classical negation
     asp_predicate2(X, Y4).
 asp_predicate(builtin_1(X)) -->
     [(builtin(Y), _)], % built-in, don't add prefixes
@@ -437,14 +435,14 @@ asp_predicate2(Z, X) -->
     {number_chars(C, C2)}, % get char codes for digits
     {atom_chars(X, X2)},
     {append(X2, ['_' | C2], X3)},
-    {c_name(X4, X3)},
+    {name(X4, X3)},
     {predicate(Z, X4, Y)}.
 asp_predicate2(X, Y) -->
     [],
     !,
     {atom_chars(Y, Y2)},
     {append(Y2, ['_', '0'], Y3)},
-    {c_name(Y4, Y3)},
+    {name(Y4, Y3)},
     {predicate(X, Y4, [])}.
 
 %! terms(-Terms:list, +TokensIn:list, -TokensOut:list)
@@ -811,12 +809,12 @@ syntax_msg(int(X), 'Expected integer') :-
     var(X).
 syntax_msg(int(X), Msg) :-
     integer(X),
-    swritef(Msg, 'Expected integer ~w', [X]).
+    format(string(Msg), 'Expected integer ~w', [X]).
 syntax_msg(X, Msg) :-
     visible_token(X, Vtok),
-    swritef(Msg, 'Expected \"~w\"', [Vtok]).
+    format(string(Msg), 'Expected \"~w\"', [Vtok]).
 syntax_msg(X, Msg) :-
-    swritef(Msg, 'Expected \"~w\"', [X]).
+    format(string(Msg), 'Expected \"~w\"', [X]).
 
 %! visible_token(+Type:atom, -String:string)
 % For tokens replaced during scanning, get the proper character or string to

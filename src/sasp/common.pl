@@ -1,33 +1,3 @@
-:- module(common, [
-                    predicate/3,
-                    c_rule/3,
-                    rule/4,
-                    negate_functor/2,
-                    is_atom/3,
-                    is_compound/3,
-                    is_dual/1,
-                    split_functor/3,
-                    create_unique_functor/3,
-                    fatal_error/2,
-                    write_error/1,
-                    write_error/2,
-                    write_verbose/2,
-                    write_verbose/3,
-                    var_list/4,
-                    list_diff/3,
-                    list_intersection/3,
-                    operator/3
-              ]).
-
-/** <module> Common predicates used in multiple files
-
-Common and utility predicates that may be called from multiple locations.
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -55,9 +25,37 @@ Common and utility predicates that may be called from multiple locations.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(common,
+          [ predicate/3,
+            c_rule/3,
+            rule/4,
+            negate_functor/2,
+            is_atom/3,
+            is_compound/3,
+            is_dual/1,
+            split_functor/3,
+            create_unique_functor/3,
+            fatal_error/2,
+            write_error/1,
+            write_error/2,
+            write_verbose/2,
+            write_verbose/3,
+            var_list/4,
+            list_diff/3,
+            list_intersection/3,
+            operator/3
+          ]).
+
+/** <module> Common predicates used in multiple files
+
+Common and utility predicates that may be called from multiple locations.
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
+
 :- use_module(library(lists)).
-%:- use_module(library(writef)).
-:- use_module(ciao_auxiliar).
 :- use_module(debug).
 :- use_module(options).
 :- use_module(variables).

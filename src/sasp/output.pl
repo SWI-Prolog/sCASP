@@ -60,7 +60,6 @@ that may be used for warning and error output.
 
 :- use_module(library(lists)).
 :- use_module(library(rbtrees)).
-:- use_module(ciao_auxiliar).
 :- use_module(chs).
 :- use_module(common).
 :- use_module(options).

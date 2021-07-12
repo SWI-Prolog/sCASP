@@ -1,21 +1,3 @@
-:- module(solve, [
-                    solve/1,
-                    solve_unify/5,
-                    solve_subdnunify/5,
-                    solve_dnunify/5,
-                    occurs_check/3
-             ]).
-
-/** <module> Solve input ASP program
-
-With the program asserted and the NMR check computed, solve for a partial answer
-set using the provided query.
-
-@author Kyle Marple
-@version 20170510
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -43,8 +25,25 @@ set using the provided query.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(solve, [
+                    solve/1,
+                    solve_unify/5,
+                    solve_subdnunify/5,
+                    solve_dnunify/5,
+                    occurs_check/3
+             ]).
+
+/** <module> Solve input ASP program
+
+With the program asserted and the NMR check computed, solve for a partial answer
+set using the provided query.
+
+@author Kyle Marple
+@version 20170510
+@license BSD-3
+*/
+
 :- use_module(library(lists)).
-:- use_module(ciao_auxiliar).
 :- use_module(chs).
 :- use_module(common).
 :- use_module(debug).

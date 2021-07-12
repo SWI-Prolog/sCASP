@@ -57,7 +57,6 @@ Predicates related to storing, accessing and modifying variables.
 
 :- use_module(library(lists)).
 :- use_module(library(rbtrees)).
-:- use_module(ciao_auxiliar).
 :- use_module(common).
 :- use_module(solve).
 :- use_module(options).
@@ -510,8 +509,7 @@ unify_vars(V1, V2, Vsi, Vso, _) :-
     ),
     (   (L1 =:= -1 ; L2 =:= -1) % if either var is unloopable or a loop var, both must be
     ->  L3 is -1
-    ;   max(L1, L2, M),
-        L3 is M
+    ;   L3 is max(L1,L2)
     ),
     var_con(Val, C3, F3, L3),
     update_var_value(V1, Val, Vsi, Vs1), % update the value to the MGU
@@ -742,7 +740,7 @@ get_unique_vars3(G, G, Vs, Vs, V, V) :-
     !.
 
 %!  generate_unique_var(-Var:ground, +VarsIn:compound,
-%!                      -VarsOut:compound, +Name:rule Name) is det
+%!                      -VarsOut:compound, +Name:ruleName) is det
 %
 %   Using the counter in the variable struct, generate a unique variable
 %   name and then update the counter by incrementing it.
