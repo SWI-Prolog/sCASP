@@ -9,7 +9,7 @@
             dump_clpq_var/3
           ]).
 % from clpqr_ops.pl
-:- op(700, xfx, [(.=.),(.<>.),(.<.),(.=<.),(.>.),(.>=.)]).
+:- op(700, xfx, [(.<>.),(.<.),(.=<.),(.>.),(.>=.)]).
 
 /** <module> Extension of the constraint solver CLP(Q)
 
