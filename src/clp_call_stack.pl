@@ -20,12 +20,7 @@ an attribute.
 
 
 :- use_module(clp_disequality_rt).
-:- op(700, xfx, [(.\=.), (.=.)]).
 
-
-		 /*******************************
-		 *       MAIN PREDICATES        *
-		 *******************************/
 
 A ~> Att :- get_attr(A, clp_call_stack, rules(Att)).
 A <~ Att :- put_attr(A, clp_call_stack, rules(Att)).
@@ -38,18 +33,34 @@ dump_rules([X|Xs], Ns, Ds) :-
     \+ get_attr(X, clp_call_stack, rules(_)),
     dump_rules(Xs, Ns, Ds).
 
-% Attributes predicates %%
-:- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
-attr_unify_hook(rules(Att), B) :- get_attr(B, clp_call_stack, rules(AttB)), Att = AttB.
+
+		 /*******************************
+		 *        ATTRIBUTE HOOKS	*
+		 *******************************/
+
+:- multifile
+    attr_unify_hook/2,
+    attribute_goals/3,
+    attr_portray_hook/2.
+
+attr_unify_hook(rules(Att), B) :-
+    get_attr(B, clp_call_stack, rules(AttB)),
+    Att = AttB.
 attr_unify_hook(neg(A), B) :- not_unify(B,A).
-attribute_goals(X) --> [X ~> G], {get_attr(X, clp_call_stack, rules(G))}.
-attribute_goals(X) --> [X.\=.G], {get_attr(X, clp_call_stack, neg(G))}.
+
+attribute_goals(X) -->
+    [X ~> G],
+    { get_attr(X, clp_call_stack, rules(G))
+    }.
+attribute_goals(X) -->
+    [X.\=.G],
+    { get_attr(X, clp_call_stack, neg(G))
+    }.
+
 attr_portray_hook(rules(Att), A) :- format(" ~w  .is ~w ", [A, Att]).
 attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
-% Attributes predicates %%
 
 
-% ------------------------------------------------------------- %%
 		 /*******************************
 		 *        TCLP INTERFACE        *
 		 *******************************/
@@ -144,12 +155,5 @@ attr_portray_hook(neg(Att),   A) :- format("~w.\\=.~w", [A, Att]).
 % %       entail_neg_list(List1, List2).
 
 % apply_answer_(X, st(X,S1)) :- clpq_meta(S1).
-
-% ------------------------------------------------------------- %%
-
-:- if(\+ current_predicate(subsumes_term/2)).
-:- endif.
-sub_list(D1,D2) :-
-    append(_, X, D2), subsumes_term(D1,X).
 
 
