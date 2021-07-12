@@ -1,25 +1,26 @@
-:- module(scasp_io, [
-    load_program/1,
-    write_program/0,
-    print_goal/1,
-    process_query/3,
-    ask_for_more_models/0,
-    allways_ask_for_more_models/0,
-    print_query/1,      % query
-    print_justification_tree/1, % justification tree
-    print_model/1,      % model
-    select_printable_literals/3,
-    print_unifier/2,    % bindings
-    pretty_term/4,
-    print_check_calls_calling/2,
-    if_user_option/2,
-    set/2,
-    parse_args/3,
-    current_option/2,
-    counter/2,
-    set_options/1,
-    print_html/3
-    ]).
+:- module(scasp_io,
+          [ load_program/1,
+            write_program/0,
+            print_goal/1,
+            process_query/3,
+            ask_for_more_models/0,
+            allways_ask_for_more_models/0,
+            print_query/1,      % query
+            print_justification_tree/1, % justification tree
+            print_model/1,      % model
+            select_printable_literals/3,
+            print_unifier/2,    % bindings
+            pretty_term/4,
+            print_check_calls_calling/2,
+            if_user_option/2,
+            set/2,
+            parse_args/3,
+            current_option/2,
+            counter/2,
+            set_options/1,
+            print_html/3,
+            pr_query/1
+          ]).
 :- op(900, fy, user:not).
 
 /** <module> Module for input / output predicates
@@ -32,21 +33,13 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 @author Joaquin Arias
 */
 
-:- use_module('./sasp/comp_duals').
-:- use_module('./sasp/nmr_check').
-:- use_module('./sasp/output').
-:- reexport('./sasp/output', [
-    pr_rule/2,
-    pr_query/1,
-    pr_user_predicate/1,
-    pr_table_predicate/1,
-    pr_show_predicate/1,
-    pr_pred_predicate/1
-                            ]).
-:- use_module('./sasp/main').
+:- use_module(sasp/comp_duals).
+:- use_module(sasp/nmr_check).
+:- use_module(sasp/output).
+:- use_module(sasp/main).
 
-:- use_module('./scasp_load_compiled').
-:- use_module('./clp_disequality_rt').
+:- use_module(scasp_load_compiled).
+:- use_module(clp_disequality).
 
 :- op(700, xfx, ['#=' ,
                  '#<>',

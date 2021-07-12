@@ -30,8 +30,9 @@
 :- set_prolog_flag(optimise, true).
 
 :- use_module(scasp_io).
+:- use_module(sasp/output).
 :- use_module(clp_call_stack).
-:- use_module(clp_disequality_rt).
+:- use_module(clp_disequality).
 :- use_module(clp_clpq).
 
 

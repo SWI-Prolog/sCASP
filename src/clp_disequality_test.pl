@@ -2,7 +2,7 @@
           [ run_test/0
           ]).
 
-:- use_module(clp_disequality_rt).
+:- use_module(clp_disequality).
 
 run_test :-
     template(_A = 5),
@@ -17,18 +17,16 @@ run_test :-
     template((s(_K) = s(5))).
 
 template(Goal) :-
-    nl,print('--------------------------'),nl,
+    format('\n--------------------------\n'),
     copy_term(Goal, Copy),
     format('TEST ~w',Copy),nl,
     term_variables(Goal, Var),
     term_variables(Copy, CVar),
-    (
-        intercept(call(Goal),_,fail),
+    (   intercept(call(Goal),_,fail),
         format('Result: '),
         print_list(-(Var,CVar)),nl,
         fail
-    ;
-        \+ call(Goal),
+    ;   \+ call(Goal),
         format('Result: \n\tfails\n')
     ).
 template(_).

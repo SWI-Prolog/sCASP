@@ -4,15 +4,8 @@
 
 % :- use_module(library(assertions/assrt_lib)).
 
+:- use_module(sasp/output).
 :- use_module(scasp_io).
-:- reexport(scasp_io, [
-            pr_rule/2,
-            pr_query/1,
-            pr_user_predicate/1,
-            pr_table_predicate/1,
-            pr_show_predicate/1,
-            pr_pred_predicate/1
-        ]).
 
 :- op(700, fx, [not, #]).
 :- op(700, xfx, [(.\=.), (.=.)]).

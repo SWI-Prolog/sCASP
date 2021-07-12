@@ -1,4 +1,4 @@
-:- module(clp_disequality_rt,
+:- module(clp_disequality,
           [ get_neg_var/2,
             not_unify/2,
             loop_list/2,
@@ -241,20 +241,20 @@ entail_neg_list(L1, L2) :-
 %% Auxiliar predicates %%
 neg_var(A,List) :-
     (
-        get_attr(A,clp_disequality_rt,neg(List)), true ->
+        get_attr(A,clp_disequality,neg(List)), true ->
         true
     ;
         var(A),
         List = [],
-        put_attr(A,clp_disequality_rt,neg(List))
+        put_attr(A,clp_disequality,neg(List))
     ).
 
 get_neg_var(A,List) :-
-    get_attr(A,clp_disequality_rt,neg(List)).
+    get_attr(A,clp_disequality,neg(List)).
 
 get_neg_var_or_empty(A,List) :-
     var(A),
-    (   get_attr(A,clp_disequality_rt,neg(List))
+    (   get_attr(A,clp_disequality,neg(List))
     ->  true
     ;   List = []
     ).
@@ -263,23 +263,23 @@ get_neg_var_or_empty(A,List) :-
 unbound(A) :-
     var(A),
     (
-        get_attr(A,clp_disequality_rt,neg(List)), true ->
+        get_attr(A,clp_disequality,neg(List)), true ->
         List == []
     ;
         true
     ).
-clean(A) :- del_attr(A, clp_disequality_rt).
-update(A,List) :- put_attr(A,clp_disequality_rt,neg(List)).
+clean(A) :- del_attr(A, clp_disequality).
+update(A,List) :- put_attr(A,clp_disequality,neg(List)).
 add(A,Value) :-
     (
         neg_var(A,NegListA), true ->
         ord_add_element(NegListA, Value, NegList),
         update(A,NegList)
     ;
-        put_attr(A,clp_disequality_rt,neg([Value]))
+        put_attr(A,clp_disequality,neg([Value]))
     ).
 dump_neg_list(A,neg(List)) :-
-    get_attr(A,clp_disequality_rt,neg(List)).
+    get_attr(A,clp_disequality,neg(List)).
 
 
 :- multifile attr_unify_hook/2, attribute_goals/3, attr_portray_hook/2.
@@ -295,12 +295,12 @@ attr_unify_hook(neg(A),B) :-
 
 attribute_goals(X) -->
     [.\=.(X, G)],
-     {get_attr(X,clp_disequality_rt,neg(G))}.
+     {get_attr(X,clp_disequality,neg(G))}.
 attr_portray_hook(neg(List), Var) :-
     format("~w.\\=.~w",[Var,List]).
 
 :- multifile portray_attribute/2.
-portray_attribute(att(_,false,att(clp_disequality_rt,neg(List),_)),Var) :-
+portray_attribute(att(_,false,att(clp_disequality,neg(List),_)),Var) :-
     (
         List == [] ->
         display(Var)

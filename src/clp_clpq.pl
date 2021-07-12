@@ -22,7 +22,7 @@ variable.
 @author Joaquin Arias
 */
 
-:- use_module(clp_disequality_rt).
+:- use_module(clp_disequality).
 
 :- use_module(library(clpq)).
 :- use_module(library(clpr), []).                                % avoid undef

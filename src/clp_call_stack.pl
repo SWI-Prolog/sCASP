@@ -19,7 +19,7 @@ an attribute.
 */
 
 
-:- use_module(clp_disequality_rt).
+:- use_module(clp_disequality).
 
 
 A ~> Att :- get_attr(A, clp_call_stack, rules(Att)).
