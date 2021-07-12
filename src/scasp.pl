@@ -377,11 +377,11 @@ check_goal(Goal, StackIn, StackOut, Model) :-
 
 % coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
-    (current_option(assume,on)*->(
-           mark_prev_goal(Goal,StackIn, StackMark),
-           StackOut = [[],chs(Goal)|StackMark]);(
-           StackOut = [[],chs(Goal)|StackIn]
-       )),
+    (   current_option(assume,on)
+    ->  mark_prev_goal(Goal,StackIn, StackMark),
+        StackOut = [[],chs(Goal)|StackMark]
+    ;   StackOut = [[],chs(Goal)|StackIn]
+    ),
     JGoal = [],
     AddGoal = chs(Goal),
     Model = [AddGoal|JGoal].
@@ -415,7 +415,10 @@ mark_prev_goal(_Goal,[],[]).
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
     !,
-    (current_option(prev_forall, on)*->solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model);solve_c_forall(Goal, [Goal|StackIn], StackOut, Model)),
+    (   current_option(prev_forall, on)
+    ->  solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model)
+    ;   solve_c_forall(Goal, [Goal|StackIn], StackOut, Model)
+    ),
     GoalModel = [Goal|Model].
 solve_goal(Goal, StackIn, [[], Goal|StackIn], GoalModel) :-
     Goal = not(is(V, Expresion)),
@@ -424,7 +427,9 @@ solve_goal(Goal, StackIn, [[], Goal|StackIn], GoalModel) :-
     V .\=. NV,
     GoalModel = [Goal].
 solve_goal(Goal, _, _, _) :-
-    Goal = not(true), !, fail.
+    Goal = not(true),
+    !,
+    fail.
 solve_goal(Goal, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= builtin(_),
     table_predicate(Goal),
@@ -437,17 +442,17 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= builtin(_),
     \+ table_predicate(Goal),
     predicate(Goal),
-    (solve_goal_predicate(Goal, [Goal|StackIn], StackOut, Model)*->true;(
-            shown_predicate(Goal),
-            if_user_option(
-                trace_failures,
-                (
-                    if_user_option(show_tree, print_check_calls_calling(Goal, [Goal|StackIn])),
-                    format("\nFAILURE to prove the literal: ~@\n\n", [print_goal(Goal)])
-                )
-            ),
-            fail
-        )).
+    (   solve_goal_predicate(Goal, [Goal|StackIn], StackOut, Model)
+    *-> true
+    ;   shown_predicate(Goal),
+        if_user_option(
+            trace_failures,
+            ( if_user_option(show_tree, print_check_calls_calling(Goal, [Goal|StackIn])),
+              format("\nFAILURE to prove the literal: ~@\n\n", [print_goal(Goal)])
+            )
+        ),
+        fail
+    ).
 solve_goal(call(Goal),StackIn,StackOut,[call(Goal)|Model]) :- !,
     solve_goal(Goal,StackIn,StackOut,Model).
 solve_goal(not(call(Goal)),StackIn,StackOut,[not(call(Goal))|Model]) :- !,
@@ -933,10 +938,6 @@ type_loop_fail_pos(Goal, S) :-
 %
 %   Success if Goal is a user predicate
 
-
-:- op(1200, xfx, =>).
-
-% Check if the goal Goal is a user defined predicate
 predicate(builtin(_)) => fail.
 predicate(not(_ is _)) => fail.
 predicate(not(true)) => fail.
@@ -949,9 +950,7 @@ predicate(Goal) =>
 %!  table_predicate(?Goal)
 %
 %   Success if Goal is defined as a tabled predicate with  the directive
-%   _table pred/n._
-
-
+%   `:- table pred/n.`
 
 table_predicate(Goal) :-
     functor(Goal, Name, Arity),
@@ -969,7 +968,6 @@ shown_predicate(Goal) :-
 %   Success  if  Goal  is  a  builtin  prolog  predicate  (the  compiler
 %   introduced its dual)
 
-
 prolog_builtin(true).
 prolog_builtin(fail).
 prolog_builtin(=).
@@ -983,7 +981,6 @@ prolog_builtin(=<).
 %
 %   Success if Goal is a builtin constraint predicate
 
-
 clp_builtin(.=.).
 clp_builtin(.<>.).
 clp_builtin(.<.).
@@ -994,7 +991,6 @@ clp_builtin(.=<.).
 %!  clp_builtin_translate(?Goal, ?Goal_T)
 %
 %   Translate s(CASP) constraints into CLP(Q/R) syntax
-
 
 clp_builtin_translate('#=', .=.).
 clp_builtin_translate('#<>', .<>.).
@@ -1007,7 +1003,6 @@ clp_builtin_translate('#=<', .=<.).
 %
 %   Success  if  Goal  is  a  builtin  constraint  predicate  to extract
 %   interval limits
-
 
 clp_interval(inf).
 clp_interval(sup).
@@ -1067,7 +1062,8 @@ member_var(Vars, Var) :-
 %   of vars `Vars. It calls solve/4
 %
 %   @arg Forall is a term forall(Var, Goal).
-%   @tbd Improve the efficiency by removing redundant justifications w.o. losing solutions.
+%   @tbd Improve the efficiency by removing redundant justifications w.o.
+%   losing solutions.
 
 solve_c_forall(Forall, StackIn, [[]|StackOut], Model) :-
     collect_vars(Forall, c_forall(Vars0, Goal0)),    % c_forall([F,G], not q_1(F,G))
@@ -1094,9 +1090,9 @@ solve_other_forall(Goal,
                    OtherVars, StackIn, StackOutExit, ModelExit) :-
     append(Vars,OtherVars,AllVars),
     my_copy_vars(AllVars,   [Goal,StackIn,OtherVars,Vars],
-                 _AllVars1, [Goal1,StackIn1,OtherVars1,Vars1]), % Vars should remain free
+                 _AllVars1, [Goal1,StackIn1,OtherVars1,Vars1]),
     my_copy_vars(AllVars, [Goal,StackIn,OtherVars,Vars],
-                 _AllVars2, [Goal2,StackIn2,OtherVars2,Vars2]), % Vars should remain free
+                 _AllVars2, [Goal2,StackIn2,OtherVars2,Vars2]),
 
     if_user_option(check_calls,
                    format("solve other forall:\n\c
@@ -1124,12 +1120,13 @@ solve_other_forall(Goal,
 
     solve_var_forall_(Goal1,
                       entry(Vars1, Initial_Const),
-                      dual(Vars1, [Initial_Const]), OtherVars1, StackIn1, StackOut, Model), !,
+                      dual(Vars1, [Initial_Const]), OtherVars1,
+                      StackIn1, StackOut, Model),
+    !,
     (   OtherVars = OtherVars1,
         StackOutExit = StackOut,
         ModelExit = Model
-    ;
-        \+ ground(OtherVars),
+    ;   \+ ground(OtherVars),
         apply_const_store(Constraints2),
         % disequality and clp for numbers
         dump_constraint(OtherVars1, OtherVars2, Dump1, []-[], Pend-Pend1), !,
