@@ -1,24 +1,7 @@
-:- module(main, [
-                    main/0,
-                    main/1,
-                    debugmain/1
-                 ]).
-
-/** <module> s(ASP) Ungrounded Stable Models Solver
-
-Read in a normal logic program. Compute dual rules and the NMR check. Execute
-the modified program according to the stable model semantics and output the
-results.
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
-*  
+*
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
 *     * Redistributions of source code must retain the above copyright
@@ -29,7 +12,7 @@ results.
 *     * Neither the name of the University of Texas at Dallas nor the
 *       names of its contributors may be used to endorse or promote products
 *       derived from this software without specific prior written permission.
-*  
+*
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -42,12 +25,26 @@ results.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:-set_prolog_flag(multi_arity_warnings,off).
+:- module(main,
+          [ main/0,
+            main/1,
+            debugmain/1
+          ]).
+
+/** <module> s(ASP) Ungrounded Stable Models Solver
+
+Read in a normal logic program. Compute dual rules and the NMR check. Execute
+the modified program according to the stable model semantics and output the
+results.
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
 
 :- use_module(library(lists)).
 :- use_module(common).
 :- use_module(comp_duals).
-%:- use_module(debug).
 :- use_module(interactive). % for help output
 :- use_module(io).
 :- use_module(nmr_check).
@@ -55,53 +52,61 @@ results.
 :- use_module(program). % for destroy_program/0
 :- use_module(debug).
 :- use_module(options).
-:- use_module(solve).
 :- use_module(output).
 
-%! main
-% Used by compiled executable. Not for interactive runs.
+%!  main
+%
+%   Used by compiled executable. Not for interactive runs.
 main :-
-    %time(submain),
     submain,
+    !,
     halt.
 main :-
     halt(1).
 
-%! submain
-% Original contents of the first clause of main/0. Split to allow the call to
-% submain to be wrapped in main/0, ex. with time/1 or profile/1.
+%!  submain
+%
+%   Original contents of the first clause of  main/0. Split to allow the
+%   call to submain to  be  wrapped  in   main/0,  ex.  with  time/1  or
+%   profile/1.
+
 submain :-
     once(parse_args(Sources)),
     main2(Sources).
 
-%! main(+Source:filepath)
-% Wrapper for interactive runs.
+%!  main(+Source:filepath)
 %
-% @param Source Path of input file, or list of paths for multiple files.
+%   Wrapper for interactive runs.
+%
+%   @arg Source Path of input file, or list of paths for multiple files.
+%
 main(Sources) :-
     Sources = [_ | _],
-    !, % list of input files
+    !,
     once(parse_args2(Sources,Files)),
     main2(Files).
 main(Source) :-
-    !, % single input file
     main([Source]).
 
-%! debugmain(+Args:list)
-% Simulate calling from command line by passing the command line args as a list
-% of strings. For debugging using the Prolog console.
-% Ex. debugmain(['-vv','-nf','file.asp']).
+%!  debugmain(+Args:list)
 %
-% @param Args The list of commandline arguments, including input files.
+%   Simulate calling from command line by  passing the command line args
+%   as a list of strings. For debugging   using  the Prolog console. Ex.
+%   debugmain(['-vv','-nf','file.asp']).
+%
+%   @arg Args The list of commandline arguments, including input files.
+
 debugmain(Args) :-
     once(parse_args2(Args, Sources)),
     main2(Sources).
 
-%! main2(+Sources:list)
-% Output of each call should be deterministic, so backtracking is not necessary
-% at this level.
+%!  main2(+Sources:list)
 %
-% @param Sources A list of paths of input files.
+%   Output of each call should be  deterministic, so backtracking is not
+%   necessary at this level.
+%
+%   @arg Sources A list of paths of input files.
+
 main2(_) :-
     user_option(help, 1),
     !,
@@ -117,22 +122,20 @@ main2(Sources) :-
     once(comp_duals),
     once(generate_nmr_check),
     write_verbose(0, 'Preparation of input program complete.\n'),
-%        user_option(mode, Mode),
-    (
-        user_option(generate_pr_rules, true) ->
-        generate_pr_rules(Sources)
-    ;
-        true
-%           once(solve(Mode))
+    (   user_option(generate_pr_rules, true)
+    ->  generate_pr_rules(Sources)
+    ;   true
     ),
-    if_debug(0,write_program),
+    if_debug(0, write_program),
     destroy_program,
     option_cleanup.
 
-%! parse_args(-Sources:list)
-% Handle command-line arguments. Strip first entry.
+%!  parse_args(-Sources:list)
 %
-% @param Sources Paths of input files.
+%   Handle command-line arguments. Strip first entry.
+%
+%   @arg Sources Paths of input files.
+
 parse_args(Sources) :-
     current_prolog_flag(argv, Args),
     parse_args2(Args, Sources).
@@ -142,12 +145,14 @@ parse_args(_) :-
     !,
     fail.
 
-%! parse_args2(+Args:list, -Sources:list)
-% Checks individual arguments given from command-line. Call parse_args/1
-% instead of this.
+%!  parse_args2(+Args:list, -Sources:list)
 %
-% @param Args List of command-line arguments.
-% @param Sources Paths of input files.
+%   Checks  individual  arguments   given    from   command-line.   Call
+%   parse_args/1 instead of this.
+%
+%   @arg Args List of command-line arguments.
+%   @arg Sources Paths of input files.
+
 parse_args2([X | T], S) :-
     member(X, ['-v', '--verbose']),
     !,
@@ -227,12 +232,12 @@ parse_args2([X | T], S) :-
     set_user_option(list_abducibles, true),
     parse_args2(T, S).
 parse_args2([X | T], S) :-
-    member(X, ['-?', '-h', '--help']),
+    memberchk(X, ['-?', '-h', '--help']),
     !,
     set_user_option(help, 1),
     parse_args2(T, S).
 parse_args2([X | T], [X | S]) :-
-    \+ atom_concat('-', _, X), % if it isn't a flag, assume source file.
+    \+ sub_atom(X, 0, _, _, -), % no option: source file
     !,
     parse_args2(T, S).
 parse_args2([], []).
