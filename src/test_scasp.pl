@@ -110,7 +110,9 @@ pass_data(File, PassFile, PassData) :-
     (   exists_file(PassFile)
     ->  setup_call_cleanup(
             open(PassFile, read, In),
-            read_term(In, PassData, []),
+            read_term(In, PassData,
+                      [ module(scasp_ops)
+                      ]),
             close(In))
     ;   true
     ).
@@ -118,7 +120,12 @@ pass_data(File, PassFile, PassData) :-
 save_test_data(Into, Result) :-
     setup_call_cleanup(
         open(Into, write, Out),
-        format(Out, '~q.~n', [Result]),
+        write_term(Out, Result,
+                   [ module(scasp_ops),
+                     quoted(true),
+                     fullstop(true),
+                     nl(true)
+                   ]),
         close(Out)).
 
 %!  test_files(+Argv, -Files) is det.
