@@ -53,7 +53,7 @@ replace_goals :-
            replace_goals([file(File)])).
 
 replace_goals(Options) :-
-    replace_goal(if(A,B,C), (A*->B,C), true, Options),
+    replace_goal(if(A,B,C), (A*->B;C), true, Options),
     replace_goal(num(X), number(X), true, Options),
     replace_goal(struct(X), compound(X), true, Options),
     replace_goal(varset(T,Vs), term_variables(T,Vs), true, Options),
