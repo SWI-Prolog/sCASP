@@ -1,6 +1,7 @@
-#!/usr/bin/env swipl
-
-:- module(test,[main/1]).
+:- module(test_scasp,
+          [ test_scasp/0,
+            qtest_scasp/0
+          ]).
 :- use_module(scasp, [scasp_test/2]).
 :- use_module(library(lists), [member/2]).
 :- use_module(library(main), [main/0, argv_options/3]).
@@ -12,9 +13,23 @@
 
 :- initialization(main, main).
 
+test_scasp :-
+    main([]).
+
+qtest_scasp :-
+    main([ '../test/pq.pl',
+           '../test/vars.pl',
+           '../test/classic_negation_incostistent.pl',
+           '../test/birds.pl',
+           '../test/family.pl',
+           '../test/hamcycle.pl',
+           '../test/hamcycle_two.pl',
+           '../test/hanoi.pl'
+         ]).
+
 %!  main(+Argv)
 %
-%   Usage: swipl test.pl [option ...] [dir ...] [file ...]
+%   Usage: swipl test_scasp.pl [option ...] [dir ...] [file ...]
 %
 %   Options:
 %
