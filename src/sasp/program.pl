@@ -1,26 +1,3 @@
-:- module(program, [
-                    defined_rule/3,
-                    defined_query/2,
-                    defined_predicates/1,
-                    defined_nmr_check/1,
-                    reserved_prefix/1,
-                    has_prefix/2,
-                    assert_program/1,
-                    assert_rule/1,
-                    assert_nmr_check/1,
-                    destroy_program/0
-               ]).
-
-/** <module> Input program access
-
-Allow access to input program rules and query by asserting them and exporting
-the resulting dynamic predicates.
-
-@author Kyle Marple
-@version 20170628
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -48,56 +25,91 @@ the resulting dynamic predicates.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(program,
+          [ defined_rule/3,
+            defined_query/2,
+            defined_predicates/1,
+            defined_nmr_check/1,
+            reserved_prefix/1,
+            has_prefix/2,
+            assert_program/1,
+            assert_rule/1,
+            assert_nmr_check/1,
+            destroy_program/0
+          ]).
+
+/** <module> Input program access
+
+Allow access to input program rules and query by asserting them and exporting
+the resulting dynamic predicates.
+
+@author Kyle Marple
+@version 20170628
+@license BSD-3
+*/
+
 :- use_module(library(lists)).
 :- use_module(common).
 :- use_module(options).
 
-%! defined_rule(+Head:ground, +FullHead:compound, -Body:list) is nondet
-% Dynamic predicate for asserted rules.
+%!  defined_rule(+Head:ground, +FullHead:compound, -Body:list) is nondet
 %
-% @param Head Head predicate has head/arity (no args).
-% @param FullHead A predicate struct containing the head predicate with args.
-% @param Body list of body goals.
+%   Dynamic predicate for asserted rules.
+%
+%   @arg Head Head predicate has head/arity (no args).
+%   @arg FullHead A predicate struct containing the head predicate with args.
+%   @arg Body list of body goals.
 
-%! defined_query(-Goals:list, -SolCount:int) is det
-% Dynamic predicate for query.
+%!  defined_query(-Goals:list, -SolCount:int) is det
 %
-% @param Goals List of goals in the query.
-% @param SolCount The number of answer sets to compute.
+%   Dynamic predicate for query.
+%
+%   @arg Goals List of goals in the query.
+%   @arg SolCount The number of answer sets to compute.
 
-%! defined_predicates(-Predicates:list) is det
-% Dynamic predicate for the list of predicate symbols defined in the input
-% program.
+%!  defined_predicates(-Predicates:list) is det
 %
-% @param Predicates List of predicate structs.
+%   Dynamic predicate for the list of   predicate symbols defined in the
+%   input program.
+%
+%   @arg Predicates List of predicate structs.
 
-%! defined_nmr_check(+Subchecks:list) is det
-% Dynamic predicate for the list of NMR sub-checks.
+%!  defined_nmr_check(+Subchecks:list) is det
 %
-% @param Subchecks The list of subcheck goals.
+%   Dynamic predicate for the list of NMR sub-checks.
+%
+%   @arg Subchecks The list of subcheck goals.
+
 :- dynamic
     defined_rule/3,
     defined_query/2,
     defined_predicates/1,
     defined_nmr_check/1.
 
-%! program(?ProgramStruct:compound, ?Rules:list, ?OptimizationStatements:list, ?Query:compound) is det
-% Convert a program structure into its components, or vice-versa.
+%!  program(?ProgramStruct:compound, ?Rules:list, ?OptimizationStatements:list,
+%!          ?Query:compound) is det
 %
-% @param ProgramStruct Program structure.
-% @param Rules List of rules.
-% @param OptimizationStatements List of optimization statements.
-% @param Query Query structure.
+%   Convert a program structure into its components, or vice-versa.
+%
+%   @arg ProgramStruct Program structure.
+%   @arg Rules List of rules.
+%   @arg OptimizationStatements List of optimization statements.
+%   @arg Query Query structure.
+
 program(p(Rules, OptStmts, Query), Rules, OptStmts, Query).
 
-%! query(?QueryStruct:compound, ?Query:list, ?NMR_Check:list, ?SolutionCount:int) is det
-% Convert a query structure to its components, or vice-versa. NMR_Check will be
-% unbound until after nmr_check:generate_nmr_check/0 has finished.
+%!  query(?QueryStruct:compound, ?Query:list, ?NMR_Check:list,
+%!        ?SolutionCount:int) is det
 %
-% @param QueryStruct Query structure.
-% @param Query List of query goals.
-% @param NMR_Check List of NMR check goals (heads of NMR sub-checks).
-% @param SolutionCount Hard-coded solution count.
+%   Convert  a  query  structure  to   its  components,  or  vice-versa.
+%   NMR_Check will be unbound until after nmr_check:generate_nmr_check/0
+%   has finished.
+%
+%   @arg QueryStruct Query structure.
+%   @arg Query List of query goals.
+%   @arg NMR_Check List of NMR check goals (heads of NMR sub-checks).
+%   @arg SolutionCount Hard-coded solution count.
+
 query(c(Q, Nmr_check, N), Q, Nmr_check, N).
 
 %!  reserved_prefix(+Prefix:ground) is det
@@ -118,24 +130,24 @@ reserved_prefix('c'). % classical negation
 reserved_prefix('n'). % dual rule prefix
 reserved_prefix('d'). % dummy prefix
 
-%! has_prefix(+Functor:atom, -Prefix:atom) is semidet.
+%!  has_prefix(+Functor:atom, -Prefix:atom) is semidet.
 %
-%  Succeed if Functor begins  with  a   reserved  prefix,  returning the
-%  character part of the (first) prefix.
+%   Succeed if Functor begins with  a   reserved  prefix,  returning the
+%   character part of the (first) prefix.
 %
-%  @arg Functor The functor to test.
-%  @arg Prefix The character of the (first) reserved prefix of the
-%  functor.
+%   @arg Functor The functor to test.
+%   @arg Prefix The character of the (first) reserved prefix of the
+%        functor.
 
 has_prefix(F, C) :-
     sub_atom(F, 1, _, _, '_'),
     sub_atom(F, 0, 1, _, C),
     reserved_prefix(C). % the letter is a reserved prefix
 
-%! assert_program(+Statements:list) is det
+%!  assert_program(+Statements:list) is det
 %
-%  Get rules, initial query and called   predicates  and assert them for
-%  easy access.  This fills the dynamic predicates
+%   Get rules, initial query and called   predicates and assert them for
+%   easy access. This fills the dynamic predicates
 %
 %    - defined_predicates(List) with a list of predicate identifiers,
 %      atoms encoded as <name>_<arity>, e.g., `parent_2` for parent/2.
@@ -166,15 +178,17 @@ assert_program(_) :-
     !,
     fail.
 
-%! format_program(+Statements:list, -Program:compound) is det
-% Convert the list of statements to a program structure containing a list of
-% rules and a single query. Queries are generated from compute statements. Use
-% the last compute statement encountered, or a default one if no other is found.
-% The default will always succeed during execution, so the answer set returned
-% will rely on the NMR check.
+%!  format_program(+Statements:list, -Program:compound) is det
 %
-% @param Statements List of rules and compute statements produced by DCG.
-% @param Program Program data struct.
+%   Convert the list of statements to   a program structure containing a
+%   list of rules and a single query. Queries are generated from compute
+%   statements. Use the last compute statement encountered, or a default
+%   one if no other is found.  The   default  will always succeed during
+%   execution, so the answer set returned will rely on the NMR check.
+%
+%   @arg Statements List of rules and compute statements produced by DCG.
+%   @arg Program Program data struct.
+
 format_program(X, P) :-
     X \= [],
     !,
@@ -189,14 +203,18 @@ format_program([], P) :-
     program(P, [], _, Q),
     !.
 
-%! sort_by_type(+Statements:list, -Rules:list, +ComputeIn:compound, -ComputeOut:compound) is det
-% Take a list of statements, return a list of rules and the last compute
-% statement encountered. Compute statement will be formatted as a query.
+%!  sort_by_type(+Statements:list, -Rules:list,
+%!               +ComputeIn:compound, -ComputeOut:compound) is det
 %
-% @param Statements List of rules and compute statements produced by DCG.
-% @param Rules extracted from Statements.
-% @param ComputeIn compute statement.
-% @param ComputeOut compute statement. Only the final compute statement is kept.
+%   Take a list of statements,  return  a   list  of  rules and the last
+%   compute statement encountered. Compute statement   will be formatted
+%   as a query.
+%
+%   @arg Statements List of rules and compute statements produced by DCG.
+%   @arg Rules extracted from Statements.
+%   @arg ComputeIn compute statement.
+%   @arg ComputeOut compute statement. Only the final compute statement is kept.
+
 sort_by_type([X | T], [X | R], Ci, Co) :-
     c_rule(X, _, _),
     !,
@@ -208,14 +226,16 @@ sort_by_type([X | T], R, _, Co) :-
     sort_by_type(T, R, C, Co).
 sort_by_type([], [], C, C).
 
-%! get_predicates(+Program:compound, -Predicates:list) is det
-% Get a list of the predicate symbols used in the rules or query of the program.
-% This includes predicates that are called but not defined. The internal-use
-% predicate _false_0 should be included explictly, in case a hard-coded query
-% overrode the default one.
+%!  get_predicates(+Program:compound, -Predicates:list) is det
 %
-% @param Program A program struct.
-% @param Predicates A list of predicate symbols defined in the program.
+%   Get a list of the predicate symbols used   in  the rules or query of
+%   the program. This includes  predicates  that   are  called  but  not
+%   defined. The internal-use predicate  _false_0   should  be  included
+%   explictly, in case a hard-coded query overrode the default one.
+%
+%   @arg Program A program struct.
+%   @arg Predicates A list of predicate symbols defined in the program.
+
 get_predicates(P, Ps) :-
     program(P, R, _, Q),
     get_predicates2(R, ['_false_0'], Ps1), % ensure that _false_0 is present
@@ -223,12 +243,14 @@ get_predicates(P, Ps) :-
     get_predicates3(Qs, Ps1, Ps),
     !.
 
-%! get_predicates2(+Rules:list, +PredicatesIn:list, -PredicatesOut:list) is det
-% Get the predicates defined or called in a list of rules.
+%!  get_predicates2(+Rules:list, +PredicatesIn:list, -PredicatesOut:list) is det
 %
-% @param Rules A list of rules.
-% @param PredicatesIn Input list of predicates.
-% @param PredicatesOut Output list of predicates.
+%   Get the predicates defined or called in a list of rules.
+%
+%   @arg Rules A list of rules.
+%   @arg PredicatesIn Input list of predicates.
+%   @arg PredicatesOut Output list of predicates.
+
 get_predicates2([R | T], Psi, Pso) :-
     c_rule(R, H, B),
     predicate(H, F, _), % get the functor
@@ -247,13 +269,16 @@ get_predicates2([R | T], Psi, Pso) :-
 get_predicates2([], Ps, Ps) :-
     !.
 
-%! get_predicates3(+Goals:list, +PredicatesIn:list, -PredicatesOut:list) is det
-% Get the predicates called in a list of goals. Note that this includes only
-% predicates structs as defined by common:predicate/3, not operators.
+%!  get_predicates3(+Goals:list, +PredicatesIn:list, -PredicatesOut:list) is det
 %
-% @param Goals A list of goals.
-% @param PredicatesIn Input list of predicates.
-% @param PredicatesOut Output list of predicates.
+%   Get the predicates called  in  a  list   of  goals.  Note  that this
+%   includes only predicates structs as   defined by common:predicate/3,
+%   not operators.
+%
+%   @arg Goals A list of goals.
+%   @arg PredicatesIn Input list of predicates.
+%   @arg PredicatesOut Output list of predicates.
+
 get_predicates3([G | T], Psi, Pso) :-
     G = [_ | _], % list; skip
     !,
@@ -312,66 +337,79 @@ handle_classical_negations([_ | T], S) :-
 handle_classical_negations([], _) :-
     !.
 
-
-%! assert_program_struct(+Program:compound) is det
-% Assert rules and query from program struct.
+%!  assert_program_struct(+Program:compound) is det
 %
-% @param Program A program struct.
+%   Assert rules and query from program struct.
+%
+%   @arg Program A program struct.
+
 assert_program_struct(P) :-
     program(P, R, _, Q),
     assert_rules(R),
     assert_query(Q),
     !.
 
-%! assert_rules(+Rules:list) is det
-% Assert each rule in a list.
+%!  assert_rules(+Rules:list) is det
 %
-% @param Rules A list of rules.
+%   Assert each rule in a list.
+%
+%   @arg Rules A list of rules.
+
 assert_rules([H | T]) :-
     assert_rule(H),
     !,
     assert_rules(T).
 assert_rules([]).
 
-%! assert_rule(+Rule:compound) is det
-% Assert a program rule.
+%!  assert_rule(+Rule:compound) is det
 %
-% @param Rule A rule struct.
+%   Assert a program rule.
+%
+%   @arg Rule A rule struct.
 assert_rule(R) :-
     c_rule(R, H2, B),
     predicate(H2, H, _), % get the head without args
     assertz(defined_rule(H, H2, B)),
     !.
 
-%! assert_query(+Query:compound) is det
-% Assert the initial query.
+%!  assert_query(+Query:compound) is det
 %
-% @param Query A query struct.
+%   Assert the initial query.
+%
+%   @arg Query A query struct.
+
 assert_query(Q) :-
     query(Q, Qs, _, N),
     assertz(defined_query(Qs, N)),
     !.
 
-%! assert_nmr_check(+NMR:list) is det
-% Assert the NMR check.
+%!  assert_nmr_check(+NMR:list) is det
 %
-% @param NMR The list of goals in the NMR check.
+%   Assert the NMR check.
+%
+%   @arg NMR The list of goals in the NMR check.
+
 assert_nmr_check(NMR) :-
     c_rule(R, '_nmr_check_0', NMR),
     assert_rule(R),
     assertz(defined_nmr_check(['_nmr_check_0'])),
     !.
 
-%! assert_predicates(+Predicates:list) is det.
-% Assert the list of defined predicate symbols.
+%!  assert_predicates(+Predicates:list) is det.
 %
-% @param Predicates A list of predicates.
+%   Assert the list of defined predicate symbols.
+%
+%   @arg Predicates A list of predicates.
+
 assert_predicates(Ps) :-
     assertz(defined_predicates(Ps)),
     !.
 
-%! destroy_program
-% Remove all asserted predicates to allow multiple funs with different programs.
+%!  destroy_program
+%
+%   Remove all asserted predicates to allow multiple funs with different
+%   programs.
+
 destroy_program :-
     once(retractall(defined_rule(_, _, _))),
     once(retractall(defined_query(_, _))),
