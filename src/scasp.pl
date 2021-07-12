@@ -37,11 +37,6 @@
         ]).
 
 :- use_module(clp_call_stack).
-:- op(700, xfx, ['~>', '<~']).
-:- reexport(clp_call_stack, [
-            '~>'/2,
-            '<~'/2
-        ]).
 
 :- use_module(clp_disequality_rt).
 :- op(700, xfx, [(.\=.), (.=.)]).

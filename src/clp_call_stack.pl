@@ -1,10 +1,11 @@
 :- module(clp_call_stack,
-          [ ~> / 2,
-            <~ / 2,
-            dump_rules/3
-          ]).
+          [ (~>)/2,
+            (<~)/2,
+            dump_rules/3,
 
-% ------------------------------------------------------------- %%
+            op(700, xfx, ~>),
+            op(700, xfx, <~)
+          ]).
 
 /** <module> Call stack constraint solver and TCLP interface.
 
@@ -18,19 +19,13 @@ an attribute.
 */
 
 
-% ------------------------------------------------------------- %%
 :- use_module(clp_disequality_rt).
 :- op(700, xfx, [(.\=.), (.=.)]).
 
-%:- use_package(attr).
 
-:- op(700, xfx, [(~>), (<~), (<~>)]).
-
-% ------------------------------------------------------------- %%
 		 /*******************************
 		 *       MAIN PREDICATES        *
 		 *******************************/
-
 
 A ~> Att :- get_attr(A, clp_call_stack, rules(Att)).
 A <~ Att :- put_attr(A, clp_call_stack, rules(Att)).
