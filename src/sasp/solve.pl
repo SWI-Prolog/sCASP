@@ -25,13 +25,13 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(solve, [
-                    solve/1,
-                    solve_unify/5,
-                    solve_subdnunify/5,
-                    solve_dnunify/5,
-                    occurs_check/3
-             ]).
+:- module(solve,
+          [ solve/1,
+            solve_unify/5,
+            solve_subdnunify/5,
+            solve_dnunify/5,
+            occurs_check/3
+          ]).
 
 /** <module> Solve input ASP program
 
@@ -53,12 +53,14 @@ set using the provided query.
 :- use_module(program).
 :- use_module(variables).
 
-%! solve(+Mode:ground) is nondet
-% This predicate serves as a wrapper for solve2/1, to provide an error message
-% if it fails.
+%!  solve(+Mode:ground) is nondet
 %
-% @param Mode 'auto' or 'user', indicating if the built-in query should be used
+%   This predicate serves as a wrapper for solve2/1, to provide an error
+%   message if it fails.
+%
+%   @arg Mode 'auto' or 'user', indicating if the built-in query should be used
 %        or if the user should be asked to provide one.
+
 solve(Mode) :-
     if_debug(0, write_program),
     solve2(Mode),
@@ -68,40 +70,40 @@ solve(_) :-
     !,
     fail.
 
-%! solve2(+Mode:ground) is det
-% Execute in interactive or automatic mode according to the value of Mode.
+%!  solve2(+Mode:ground) is det
 %
-% @param Mode 'auto' or 'user', indicating if the built-in query should be used
+%   Execute in interactive or automatic mode   according to the value of
+%   Mode.
+%
+%   @arg Mode 'auto' or 'user', indicating if the built-in query should be used
 %        or if the user should be asked to provide one.
+
 solve2(auto) :- % get built-in query and run it
     defined_query(_, N), % get hardcoded answer set count
-    (user_option(ascount) -> % Force ascount specified by user
-            user_option(ascount, N1)
-    ;
-            N1 = N
+    (   user_option(ascount) % Force ascount specified by user
+    ->  user_option(ascount, N1)
+    ;   N1 = N
     ),
-    (N1 = 0 -> % When finding all answer sets, Ensure a negative value is passed.
-            N2 is -1
-    ;
-            N2 = N1
+    (   N1 = 0  % When finding all answer sets, Ensure a negative value is passed.
+    ->  N2 is -1
+    ;   N2 = N1
     ),
     nb_setval(ans_cnt, 0), % Initialize global variable ans_cnt
     !,
     auto_solve(N2).
-
 solve2(user) :-
     get_user_query(Q),
     !,
     user_solve(Q).
 
-
-
-%! auto_solve(+MaxAS:int)
-% Use the hard-coded or default query to find the specified number of answer
-% sets without user interaction. A non-backtracking global variable, 'ans_cnt',
-% is used to track progress.
+%!  auto_solve(+MaxAS:int)
 %
-% @param MaxAS The number of answer sets to find. MaxAS < 0 for all.
+%   Use the hard-coded or default query to  find the specified number of
+%   answer sets without user  interaction.   A  non-backtracking  global
+%   variable, 'ans_cnt', is used to track progress.
+%
+%   @arg MaxAS The number of answer sets to find. MaxAS < 0 for all.
+
 auto_solve(N) :-
     defined_query(Q, _),
     defined_nmr_check(NMR),
@@ -110,16 +112,14 @@ auto_solve(N) :-
     new_var_struct(Vi),
     new_chs(CHSi),
     %force(write('as\n')),
-    (
-        user_option(statistics_run_time, true) ->
-        statistics(runtime,_),
+    (   user_option(statistics_run_time, true)
+    ->  statistics(runtime,_),
         solve_goals(Q2, Vi, Vo, CHSi, CHSo, [], _, J, 0), % find an answer set
         statistics(runtime,[_,T]),
         nl, print(solve_run_time(T,'00 ms')), nl, nl
-    ;
-        solve_goals(Q2, Vi, Vo, CHSi, CHSo, [], _, J, 0) % find an answer set
+    ;   solve_goals(Q2, Vi, Vo, CHSi, CHSo, [], _, J, 0) % find an answer set
     ),
-    if_debug(1, write('SOLUTION FOUND! PRINTING CHS:\n')),
+    if_debug(1, format('SOLUTION FOUND! PRINTING CHS:\n')),
     b_getval(ans_cnt, I), % ans_cnt won't reset on backtracking
     I2 is I + 1,
     nb_setval(ans_cnt, I2),
@@ -127,40 +127,37 @@ auto_solve(N) :-
     once(print_chs(CHSo, Vo, 0)),
     once(print_vars(Qv, Vo)),
     if_debug(2, print_var_struct(Vo)),
-    (user_option(list_abducibles, true) ->
-            print_abducibles(CHSo, Vo)
-    ;
-            true
+    (   user_option(list_abducibles, true)
+    ->  print_abducibles(CHSo, Vo)
+    ;   true
     ),
-    (user_option(justification, true) ->
-            print_justification(J)
-    ;
-            true
+    (   user_option(justification, true)
+    ->  print_justification(J)
+    ;   true
     ),
-    (user_option(html_justification, true) ->
-            print_html(J,[Q,CHSo,Qv,Vo])
-    ;
-            true
+    (   user_option(html_justification, true)
+    ->  print_html(J,[Q,CHSo,Qv,Vo])
+    ;   true
     ),
     nl, nl,
-    (I2 =\= N -> % Never true for N < 0 (find all)
-            fail % backtrack to find the required number of answer sets
-    ;
-            true % succeed when required number of sets found
+    (   I2 =\= N % Never true for N < 0 (find all)
+    ->  fail % backtrack to find the required number of answer sets
+    ;   true % succeed when required number of sets found
     ).
 auto_solve(-1) :-
     b_getval(ans_cnt, I),
     I > 0, % we were finding all answer sets, and got at least 1.
     !.
 auto_solve(_) :-
-    write('false.\n\n'), % No remaining answer sets, and we didn't hit our target.
-    !.
+    format('false.\n\n'). % No remaining answer sets. didn't hit our target.
 
-%! user_solve(+Query:list) is det
-% Execute Query in interactive mode.
+%!  user_solve(+Query:list) is det
 %
-% @param Query The user-supplied query. May be a list of goals or a one-element
+%   Execute Query in interactive mode.
+%
+%   @arg Query The user-supplied query. May be a list of goals or a one-element
 %        list containing calling a built-in such as 'exit'.
+
 user_solve(['exit_0']) :-
     !. % exit
 user_solve(['halt_0']) :-
@@ -171,122 +168,117 @@ user_solve(Q) :-
     append(Q, NMR, Q2),
     new_var_struct(Vi),
     new_chs(CHSi),
-    (
-        user_option(statistics_run_time, true) ->
-        statistics(runtime,_),
+    (   user_option(statistics_run_time, true)
+    ->  statistics(runtime,_),
         solve_goals(Q2, Vi, Vo, CHSi, CHSo, [], _, J, 0), % find an answer set
         statistics(runtime,[_,T]),
         nl, print(solve_run_time(T,'00 ms')), nl, nl
-    ;
-        solve_goals(Q2, Vi, Vo, CHSi, CHSo, [], _, J, 0) % find an answer set
+    ;   solve_goals(Q2, Vi, Vo, CHSi, CHSo, [], _, J, 0) % find an answer set
     ),
     %force(write('post solve_goals\n')),
     if_debug(1, write('SOLUTION FOUND! PRINTING CHS:\n')),
     once(print_chs(CHSo, Vo, 0)),
     once(print_vars(Qv, Vo)),
-    (user_option(list_abducibles, true) ->
-            print_abducibles(CHSo, Vo)
-    ;
-            true
+    (   user_option(list_abducibles, true)
+    ->  print_abducibles(CHSo, Vo)
+    ;   true
     ),
-    (user_option(justification, true) ->
-            print_justification(J)
-    ;
-            true
+    (   user_option(justification, true)
+    ->  print_justification(J)
+    ;   true
     ),
-    (user_option(html_justification, true) ->
-            print_html(J,[Q,CHSo,Qv,Vo])
-    ;
-            true
+    (   user_option(html_justification, true)
+    ->  print_html(J,[Q,CHSo,Qv,Vo])
+    ;   true
     ),
-    (get_user_response ->
-            !, % user accepted answer set
-            solve2('user') % do it all over again
-    ;
-            fail % user rejected answer set
+    (   get_user_response
+    ->  !, % user accepted answer set
+        solve2(user) % do it all over again
+    ;   fail % user rejected answer set
     ).
 user_solve(_) :-
-    write('false.\n'), % No remaining answer sets.
+    format('false.\n'), % No remaining answer sets.
     !,
     solve2(user). % Get another query.
 
-%! solve_goals(+Goals:list, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:list, +InNMR:int)
-% Solve a list of goals.
+%!  solve_goals(+Goals:list, +VarsIn:compound, -VarsOut:compound,
+%!              +CHSin:list, -CHSout:list, +CallStack:list,
+%!              -EvenLoops:list, -Justification:list, +InNMR:int)
 %
-% @param Goals The list of goals to solve.
-% @param VarsIn Input var struct.
-% @param VarsOut Output var struct.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   Solve a list of goals.
+%
+%   @arg Goals The list of goals to solve.
+%   @arg VarsIn Input var struct.
+%   @arg VarsOut Output var struct.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoops List of even loops involving parent goal.
-% @param Justification A list of structures representing the rules and goals
+%   @arg EvenLoops List of even loops involving parent goal.
+%   @arg Justification A list of structures representing the rules and goals
 %        used to satisfy the current goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 solve_goals([X | T], Vi, Vo, CHSi, CHSo, Cs, E, [Jg | Jt], NMR) :-
-    if_debug(1, (
-            format_term(X, X2, C, Vi),
-            length(Cs, L),
-            indent(L),
-            writef('CALL (~w): current goal is ~w (', [L, X2]),
-            print_var_constraints(C),
-            write(')'),
-            nl,
-            !
-            )),
-    (X = '_nmr_check_0' -> % set flag when we enter the NMR check
-            NMR2 = 1
-    ;
-            NMR2 = NMR
+    if_debug(1,
+             ( format_term(X, X2, C, Vi),
+               length(Cs, L),
+               indent(L),
+               format('CALL (~w): current goal is ~w (', [L, X2]),
+               print_var_constraints(C),
+               format(')'),
+               nl,
+               !
+             )),
+    (   X = '_nmr_check_0' % set flag when we enter the NMR check
+    ->  NMR2 = 1
+    ;   NMR2 = NMR
     ),
-    %force(write('sgs\n')),
     solve_goal(X, Vi, V1, CHSi, CHS1, Cs, E1, Jg, NMR2),
-    %force(writef('sgs post ~w\n', [X])),
-    %fill_in_variable_values(X, Xp, [], _, V1),
-    %force(writef('post-s2s3: ~w\n', [Xp])),
-    if_debug(1, (
-            format_term(X, X3, C2, V1),
-            format_term_list(T, T2, _, V1),
-            indent(L),
-            writef('FIN: (~w): fin goal ~w (', [L, X3]),
-            print_var_constraints(C2),
-            writef('), T = ~w\n', [T2])
-            )),
-    %force(write('solve_goals solve_goals\n')),
+    if_debug(1,
+             ( format_term(X, X3, C2, V1),
+               format_term_list(T, T2, _, V1),
+               indent(L),
+               format('FIN: (~w): fin goal ~w (', [L, X3]),
+               print_var_constraints(C2),
+               format('), T = ~w\n', [T2])
+             )),
     solve_goals(T, V1, Vo, CHS1, CHSo, Cs, E2, Jt, NMR),
     append(E1, E2, E).
 solve_goals([], V, V, C, C, _, [], [], _). % no goals left; inductive success
 
-%! solve_goal(+Goal:compound, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:compound, +InNMR:int)
-% Solve a single goal. Determine if it's a predicate or an expression, then call
-% the appropriate solver.
+%!  solve_goal(+Goal:compound, +VarsIn:compound, -VarsOut:compound,
+%!             +CHSin:list, -CHSout:list, +CallStack:list,
+%!             -EvenLoops:list, -Justification:compound, +InNMR:int)
 %
-% @param Goal The list of goal to solve.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   Solve a single goal. Determine if it's a predicate or an expression,
+%   then call the appropriate solver.
+%
+%   @arg Goal The list of goal to solve.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoops List of even loops involving parent goal.
-% @param Justification A struct of the form -(Goal, Constraints, List) where
+%   @arg EvenLoops List of even loops involving parent goal.
+%   @arg Justification A struct of the form -(Goal, Constraints, List) where
 %        list contains info on the rules used to satisfy Goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 solve_goal(G, Vi, Vo, CHSi, CHSo, Cs, E, J, NMR) :-
-    G = forall(V, G2), % forall
+    G = forall(V, G2),
     !,
     print(solve_goal(V,G2)),nl,
-    (
-        solve_forall(V, G2, Vi, Vo, CHSi, CHSo, Cs, E, J, NMR)->
-        print('OK_solve_goal'(V,G2)),nl
-    ;
-        print('NO_solve_goal'(V,G2)),nl,fail
+    (   solve_forall(V, G2, Vi, Vo, CHSi, CHSo, Cs, E, J, NMR)
+    ->  print('OK_solve_goal'(V,G2)),nl
+    ;   print('NO_solve_goal'(V,G2)),nl,
+        fail
     ).
 solve_goal(G, V, V, CHS, CHS, _, [], -(builtin(G3), C, []), _) :-
-    G = builtin_1(G2), % Call to builtin
+    G = builtin_1(G2),
     !,
     format_term(G2, G3, C, V), % fill in variables, strip prefixes, etc.
     call(G3).
@@ -318,22 +310,26 @@ solve_goal(G, _, _, _, _, _, _, _, _) :-
     !,
     fail.
 
-%! solve_predicate(+Goal:compound, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:compound, +InNMR:int)
-% Solve a single goal that we know is a predicate. Check the CHS first, then
-% act based on the result.
+%!  solve_predicate(+Goal:compound, +VarsIn:compound, -VarsOut:compound,
+%!                  +CHSin:list, -CHSout:list, +CallStack:list,
+%!                  -EvenLoops:list, -Justification:compound, +InNMR:int)
 %
-% @param Goal The goal being solved.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   Solve a single goal that  we  know   is  a  predicate. Check the CHS
+%   first, then act based on the result.
+%
+%   @arg Goal The goal being solved.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoops List of even loops involving parent goal.
-% @param Justification A struct of the form -(Goal, Constraints, List) where
+%   @arg EvenLoops List of even loops involving parent goal.
+%   @arg Justification A struct of the form -(Goal, Constraints, List) where
 %        list contains info on the rules used to satisfy Goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 solve_predicate(G, Vi, Vo, CHSi, CHSo, Cs, E, -(Gj, Cj, [J]), NMR) :-
     G = not(G2),
     !,
@@ -347,9 +343,7 @@ solve_predicate(G, Vi, Vo, CHSi, CHSo, Cs, E, -(Gj, Cj, [J]), NMR) :-
             write(') against: '),
             once(print_chs(CHSi, Vi, 0)), nl
             )),
-    %force(write('pre-chsa\n')),
     check_chs(Fn, A, Vi, V1, CHSi, Cs, Cflag, El),
-    %force(writef('post-chs a: ~w\n', [Fn])),
     if_debug(5, (
             format_term(G, Gp2, C2, V1),
             writef('SP: chs check got flag: ~w for ~w (', [Cflag, Gp2]),
@@ -381,9 +375,7 @@ solve_predicate(G, Vi, Vo, CHSi, CHSo, Cs, E, -(Gj, Cj, [J]), NMR) :-
             write(') against: '),
             once(print_chs(CHSi, Vi, 0)), nl
             )),
-    %force(write('pre-chs b\n')),
     check_chs(F, A, Vi, V1, CHSi, Cs, Cflag, El),
-    %force(writef('post-chs b: ~w\n', [F])),
     if_debug(5, (
             format_term(G, Gp2, C2, V1),
             writef('SP: chs check got flag: ~w for ~w (', [Cflag, Gp2]),
@@ -392,35 +384,39 @@ solve_predicate(G, Vi, Vo, CHSi, CHSo, Cs, E, -(Gj, Cj, [J]), NMR) :-
             )),
     expand_call(Cflag, G, V1, Vo, CHSi, CHSo, Cs, El, E, J, NMR).
 
-%! expand_call(+CHSflag:int, +Goal:compound, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, +EvenLoopIn:compound, -EvenLoopOut:list, -Justification:compound, +InNMR:int)
-% Solve a single goal that we know is a predicate. Check the CHS first, then
-% act based on the result.
+%!  expand_call(+CHSflag:int, +Goal:compound, +VarsIn:compound, -VarsOut:compound,
+%!              +CHSin:list, -CHSout:list, +CallStack:list,
+%!              +EvenLoopIn:compound, -EvenLoopOut:list,
+%!              -Justification:compound, +InNMR:int)
 %
-% @param CHSflag Result of checking the CHS for the call. -1, 0, 1 or 2,
-% indicating possible positive loop, not present, coinductive success, or check
-% intervening negations, respectively.
-% @param Goal The goal being solved.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   Solve a single goal that  we  know   is  a  predicate. Check the CHS
+%   first, then act based on the result.
+%
+%   @arg CHSflag Result of checking the CHS for the call. -1, 0, 1 or 2,
+%        indicating possible positive loop, not present, coinductive
+%        success, or check intervening negations, respectively.
+%   @arg Goal The goal being solved.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoopIn Even loop involving current goal, if one exists.
-% @param EvenLoopOut List of even loops involving parent goal.
-% @param Justification A struct of the form -(Goal, Constraints, List) where
+%   @arg EvenLoopIn Even loop involving current goal, if one exists.
+%   @arg EvenLoopOut List of even loops involving parent goal.
+%   @arg Justification A struct of the form -(Goal, Constraints, List) where
 %        list contains info on the rules used to satisfy Goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 expand_call(1, G, Vi, Vo, CHS, CHS, _, Ei, Eo, -(chs__success, G2, C), _) :- % coinductive success
     Ei = -(L, Lv),
-    (Lv = [] ->
-            Eo = [],
-            Vo = Vi
-    ;
-            gen_sub_vars(Lv, Lv2, Vi, Vo),
-            E2 = -(L, Lv2),
-            Eo = [E2]
+    (   Lv = []
+    ->  Eo = [],
+        Vo = Vi
+    ;   gen_sub_vars(Lv, Lv2, Vi, Vo),
+        E2 = -(L, Lv2),
+        Eo = [E2]
     ),
     format_term(G, G2, C, Vi), % fill in variables, strip prefixes, etc.
     !.
@@ -441,11 +437,10 @@ expand_call(Cflag, G, Vi, Vo, CHSi, CHSo, Cs, _, Eo, J, NMR) :- % not present
             write(')'), nl
             )),
     once(findall(R, (defined_rule(F, H, B), c_rule(R, H, B)), Rs)), % get potentially matching clauses
-    (Cflag =:= -1 ->
-          fail % !!! REMOVE ONCE CALL BELOW COMPLETE !!!
-    %%            strip_used_rules(Cs, Rs, Rs2, G, V1),
-    ;
-            Rs2 = Rs
+    (   Cflag =:= -1
+    ->  fail % !!! REMOVE ONCE CALL BELOW COMPLETE !!!
+             %     strip_used_rules(Cs, Rs, Rs2, G, V1),
+    ;   Rs2 = Rs
     ),
     if_debug(4, (
             format_term(G, G4, C3, V1),
@@ -466,24 +461,28 @@ expand_call(Cflag, G, Vi, Vo, CHSi, CHSo, Cs, _, Eo, J, NMR) :- % not present
             write(')'), nl
             )).
 
-%! expand_call2(+Goal:compound, +Rules:list, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:compound, +InNMR:int)
-% Given a list of rules whose heads have the same name and arity as the call
-% being expanded, check that the args unify and then expand. Skip any rules
-% whose args don't unify.
+%!  expand_call2(+Goal:compound, +Rules:list, +VarsIn:compound, -VarsOut:compound,
+%!               +CHSin:list, -CHSout:list, +CallStack:list,
+%!               -EvenLoops:list, -Justification:compound, +InNMR:int)
 %
-% @param Goal The original call.
-% @param Rules List of rules matching the head/arity of goal being expanded.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   Given a list of rules whose heads have   the  same name and arity as
+%   the call being expanded, check that the  args unify and then expand.
+%   Skip any rules whose args don't unify.
+%
+%   @arg Goal The original call.
+%   @arg Rules List of rules matching the head/arity of goal being expanded.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoops List of even loops involving parent goal.
-% @param Justification A struct of the form -(Goal, Constraints, List) where
+%   @arg EvenLoops List of even loops involving parent goal.
+%   @arg Justification A struct of the form -(Goal, Constraints, List) where
 %        list contains info on the rules used to satisfy Goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 expand_call2(G, [X | _], Vi, Vo, CHSi, CHSo, Cs, E, -(expand__call(G2), C, Js), NMR) :- % match
     c_rule(X, H, B),
     once(get_unique_vars(H, H2, B, B2, Vi, V1)),
@@ -515,44 +514,18 @@ expand_call2(G, [_ | T], Vi, Vo, CHSi, CHSo, Cs, E, J, NMR) :- % not a match or 
     !,
     expand_call2(G, T, Vi, Vo, CHSi, CHSo, Cs, E, J, NMR).
 
-%! strip_used_rules(+CallStack:list, +RulesIn:list, -RulesOut:list, +Goal:compound, +Vars:compound) is det
-% When encountering a potential positive loop, instead of failing, we want to
-% force it to execute *while skipping rules that have already been tried*. To
-% do this, check matching call stack entries and remove their rules from the
-% list of rules produced by expand_call/11. The process is very similar to
-% chs:check_negations/8.
+%!  gen_sub_vars(+LoopVars:list, -SubVars:list,
+%!               +VarsIn:compound, -VarsOut:compound)
 %
-% @param CallStack The list of ancestor calls. Used to ensure that positive
-%        loops fail.
-% @param RulesIn Input rule list.
-% @param RulesOut Output rule list.
-% @param Goal The goal to process.
-% @param Vars The var struct to use.
-% strip_used_rules([-(X, R) | T], Rsi, Rso, G, V) :-
-%         % recreate positive loop check from chs:check_negations/8
-%         predicate(G, F, A1),
-%         predicate(X, F, A2),
-%         solve_unify(G, X, V, V2, 1),
-%       nl,display(rule(R,'\n',Rsi)),nl,
-%         chs_entry(E1, F, A1, _, _),
-%         chs_entry(E2, F, A2, _, _),
-%         % !!!STOPPED HERE!!!
-%         !,
-%         strip_used_rules(T, Rsi, Rso, G, V).
-% strip_used_rules([_ | T], Rsi, Rso, G, V) :- % current entry isn't an exact match
-%         !,
-%         strip_used_rules(T, Rsi, Rso, G, V).
-% strip_used_rules([], Rs, Rs, _, _) :-
-%         !.
+%   For each loop variable, create a   unique  variable to substitute in
+%   the CHS. Ignore variables marked as part of a forall (loopvar flag =
+%   -1).
+%
+%   @arg LoopVars The list of loop variables.
+%   @arg SubVars The list of pairs for substitutions.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
 
-%! gen_sub_vars(+LoopVars:list, -SubVars:list, +VarsIn:compound, -VarsOut:compound)
-% For each loop variable, create a unique variable to substitute in the CHS.
-% Ignore variables marked as part of a forall (loopvar flag = -1).
-%
-% @param LoopVars The list of loop variables.
-% @param SubVars The list of pairs for substitutions.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
 gen_sub_vars([X | T], [-(X, Y) | T2], Vi, Vo) :-
     is_unbound(X, Vi, Con, F, Lv), % get value
     Lv =\= -1,
@@ -568,15 +541,17 @@ gen_sub_vars([X | T], T2, Vi, Vo) :-
 gen_sub_vars([], [], V, V) :-
     !.
 
-%! get_sub_vars(+Cycles:list, -SubVars:list, +VarsIn:compound, -VarsOut:compound)
-% Given a list of cycle structures, get one substitution variable per value ID.
-% If the value IDs of two non-substitution variables in different cycles match,
-% unify them.
+%!  get_sub_vars(+Cycles:list, -SubVars:list, +VarsIn:compound, -VarsOut:compound)
 %
-% @param Cycles The list of cycle structures.
-% @param SubVars The list of structs for variable substitution.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
+%   Given a list of cycle structures,  get one substitution variable per
+%   value ID. If the value  IDs   of  two  non-substitution variables in
+%   different cycles match, unify them.
+%
+%   @arg Cycles The list of cycle structures.
+%   @arg SubVars The list of structs for variable substitution.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
+
 get_sub_vars([], [], V, V) :- % even loops should be uncommon, so start with base case
     !.
 get_sub_vars([X], Y, V, V) :- % only one cycle, just return subst. structs
@@ -589,17 +564,21 @@ get_sub_vars([X, Y | T], Sv, Vsi, Vso) :-
     !,
     get_sub_vars([-(_, Z) | T], Sv, Vs1, Vso).
 
-%! get_sub_vars2(+VarsA:list, +VarsB:list, -VarsC:list, +VarsIn:compound, -VarsOut:compound)
-% Test each member of the first list against every member of the second to see
-% if they have the same value ID. If so, unify their substitution variables and
-% remove the element from the second list. When the first list is empty, return
-% the remaining elements from the second list.
+%!  get_sub_vars2(+VarsA:list, +VarsB:list, -VarsC:list,
+%!                +VarsIn:compound, -VarsOut:compound)
 %
-% @param VarsA First list of subst. structs.
-% @param VarsB Second list of subst. structs.
-% @param VarsC Output list of subst. structs.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
+%   Test each member of the  first  list   against  every  member of the
+%   second to see if they have the  same   value  ID. If so, unify their
+%   substitution variables and remove the element  from the second list.
+%   When the first list is empty, return the remaining elements from the
+%   second list.
+%
+%   @arg VarsA First list of subst. structs.
+%   @arg VarsB Second list of subst. structs.
+%   @arg VarsC Output list of subst. structs.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
+
 get_sub_vars2([X | T], Y, [X | T2], Vsi, Vso) :-
     X = -(Ax, Bx),
     get_value_id(Ax, Xi, Vsi),
@@ -609,17 +588,21 @@ get_sub_vars2([X | T], Y, [X | T2], Vsi, Vso) :-
 get_sub_vars2([], Y, Y, V, V) :-
     !.
 
-%! get_sub_vars3(+SubsIn:list, -SubsOut:list, +ID:int, +SubVar:ground, +VarsIn:compound, -VarsOut:compound)
-% Given a list of variable substitution structs, get the value ID for each
-% non-sub variable and test against the given ID. If they match, unify the
-% substitution variable with SubVar and remove the struct from the list.
+%!  get_sub_vars3(+SubsIn:list, -SubsOut:list, +ID:int,
+%!                +SubVar:ground, +VarsIn:compound, -VarsOut:compound)
 %
-% @param SubsIn Input list of sub structs.
-% @param SubsOut Output list of sub structs.
-% @param ID The ID to test against.
-% @param SubVar The variable to unify matches with.
-% @param VarsIn Input variables.
-% @param VarsOut Output variables.
+%   Given a list of variable substitution structs,  get the value ID for
+%   each non-sub variable and test against the  given ID. If they match,
+%   unify the substitution variable with SubVar   and  remove the struct
+%   from the list.
+%
+%   @arg SubsIn Input list of sub structs.
+%   @arg SubsOut Output list of sub structs.
+%   @arg ID The ID to test against.
+%   @arg SubVar The variable to unify matches with.
+%   @arg VarsIn Input variables.
+%   @arg VarsOut Output variables.
+
 get_sub_vars3([X | T], [X | T2], I, S, Vi, Vo) :- % Not a match
     X = -(Xa, _),
     get_value_id(Xa, I2, Vi),
@@ -637,12 +620,13 @@ get_sub_vars3([X | T], T2, I, S, Vi, Vo) :- % Match
 get_sub_vars3([], [], _, _, V, V) :-
     !.
 
-%! remove_cycle_heads(+EvenLoopsIn:list, -EvenLoopsOut:list)
-% For each even loop struct in the list, remove the first goal in the cycle. If
-% the cycle would be empty, drop it from the list.
+%!  remove_cycle_heads(+EvenLoopsIn:list, -EvenLoopsOut:list)
 %
-% @param EvenLoopsIn Input cycles.
-% @param EvenLoopsOut Output cycles.
+%   For each even loop struct in the list,  remove the first goal in the
+%   cycle. If the cycle would be empty, drop it from the list.
+%
+%   @arg EvenLoopsIn Input cycles.
+%   @arg EvenLoopsOut Output cycles.
 remove_cycle_heads([E | T], Eo) :-
     E = -([_ | Ct], Cv),
     (Ct = [] ->
@@ -655,12 +639,14 @@ remove_cycle_heads([E | T], Eo) :-
     remove_cycle_heads(T, T2).
 remove_cycle_heads([], []).
 
-%! solve_expression(Goal:compound, +VarsIn:compound, -VarsOut:compound)
-% Solve a single goal that we know is an expression.
+%!  solve_expression(Goal:compound, +VarsIn:compound, -VarsOut:compound)
 %
-% @param Goal An expression to solve.
-% @param VarsIn Input variable list.
-% @param VarsOut Output variable list.
+%   Solve a single goal that we know is an expression.
+%
+%   @arg Goal An expression to solve.
+%   @arg VarsIn Input variable list.
+%   @arg VarsOut Output variable list.
+
 solve_expression(=(G1, G2), Vi, Vo) :-
     solve_unify(G1, G2, Vi, Vo, 0),
     !.
@@ -870,13 +856,15 @@ solve_expression(@=<(G1, G2), V, V) :-
     V1 @=< V2,
     !.
 
-%! solve_subexpr(+Goal:compound, +Vars:list, -Value:compound)
-% Solve a sub-expression, returning a value. Note that any variables must be
-% bound. Fail otherwise.
+%!  solve_subexpr(+Goal:compound, +Vars:list, -Value:compound)
 %
-% @param Goal An expression to solve.
-% @param Vars Variable list.
-% @param Value The value returned.
+%   Solve a sub-expression, returning a value.   Note that any variables
+%   must be bound. Fail otherwise.
+%
+%   @arg Goal An expression to solve.
+%   @arg Vars Variable list.
+%   @arg Value The value returned.
+
 solve_subexpr(G, _, G) :-
     number(G),
     !.
@@ -1044,12 +1032,14 @@ solve_subexpr('^'(G1, G2), V, Val) :-
 solve_subexpr(G, _, G) :- % G is not a variable, number or expression. For now, assume atom.
     !.
 
-%! check_type(+Goal, +Type:atom)
-% Given a goal and a type, ensure that Goal is of type Type. Otherwise, print an
-% exception and halt.
+%!  check_type(+Goal, +Type:atom)
 %
-% @param Goal The goal to test.
-% @param Type The type to match.
+%   Given a goal  and  a  type,  ensure   that  Goal  is  of  type Type.
+%   Otherwise, print an exception and halt.
+%
+%   @arg Goal The goal to test.
+%   @arg Type The type to match.
+
 check_type(X, number) :-
     number(X),
     !.
@@ -1060,15 +1050,18 @@ check_type(_, _) :-
     throw(invalid_type),
     !.
 
-%! solve_unify(+Goal1:compound, +Goal2:compound, +VarsIn:compound, -VarsOut:compound, +OccursCheck:int)
-% Solve a unification (=(G1, G2)).
+%!  solve_unify(+Goal1:compound, +Goal2:compound,
+%!              +VarsIn:compound, -VarsOut:compound, +OccursCheck:int)
 %
-% @param Goal1 A goal to unify.
-% @param Goal2 A goal to unify.
-% @param VarsIn Input variable list.
-% @param VarsOut Output variable list.
-% @param OccursCheck 1 or 0 indicating whether or not to perform the occurs
+%   Solve a unification (=(G1, G2)).
+%
+%   @arg Goal1 A goal to unify.
+%   @arg Goal2 A goal to unify.
+%   @arg VarsIn Input variable list.
+%   @arg VarsOut Output variable list.
+%   @arg OccursCheck 1 or 0 indicating whether or not to perform the occurs
 %        check when unifying a variable with a structure.
+
 solve_unify(G1, G2, Vi, Vo, O) :- % var var, binding doesn't matter
     is_var(G1),
     is_var(G2),
@@ -1146,16 +1139,19 @@ solve_unify(G1, G2, Vi, Vo, O) :- % atom/term var
     ),
     update_var_value(G2, val(Gv), V1, Vo).
 
-%! solve_subunify(+Args1:list, +Args2:list, +VarsIn:compound, -VarsOut:compound, +OccursCheck:int)
-% Given args for two compound terms, succeed if every matching pair unifies and
-% the lists are the same length.
+%!  solve_subunify(+Args1:list, +Args2:list,
+%!                 +VarsIn:compound, -VarsOut:compound, +OccursCheck:int)
 %
-% @param Args1 A list of args to process.
-% @param Args2 A list of args to process.
-% @param VarsIn Input variable list.
-% @param VarsOut Output variable list.
-% @param OccursCheck 1 or 0 indicating whether or not to perform the occurs
+%   Given args for two compound terms,   succeed  if every matching pair
+%   unifies and the lists are the same length.
+%
+%   @arg Args1 A list of args to process.
+%   @arg Args2 A list of args to process.
+%   @arg VarsIn Input variable list.
+%   @arg VarsOut Output variable list.
+%   @arg OccursCheck 1 or 0 indicating whether or not to perform the occurs
 %        check when unifying a variable with a structure.
+
 solve_subunify([X | T], [Y | T2], Vi, Vo, O) :-
     solve_unify(X, Y, Vi, V1, O), % this pair is unifiable
     !,
@@ -1163,14 +1159,17 @@ solve_subunify([X | T], [Y | T2], Vi, Vo, O) :-
 solve_subunify([], [], V, V, _) :-
     !.
 
-%! solve_dnunify(+Goal1:compound, +Goal2:compound, +VarsIn:compound, -VarsOut:compound, -Flag:int)
-% Solve a does-not-unify (\=(G1, G2)).
+%!  solve_dnunify(+Goal1:compound, +Goal2:compound,
+%!                +VarsIn:compound, -VarsOut:compound, -Flag:int)
 %
-% @param Goal1 A goal to process.
-% @param Goal2 A goal to process.
-% @param VarsIn Input variable list.
-% @param VarsOut Output variable list.
-% @param Flag Used by recursive calls. 1 if constraints are set, 2 otherwise.
+%   Solve a does-not-unify (\=(G1, G2)).
+%
+%   @arg Goal1 A goal to process.
+%   @arg Goal2 A goal to process.
+%   @arg VarsIn Input variable list.
+%   @arg VarsOut Output variable list.
+%   @arg Flag Used by recursive calls. 1 if constraints are set, 2 otherwise.
+
 solve_dnunify(G1, G2, V, _, 1) :- % both unbound vars
     is_unbound(G1, V, _, _, _),
     is_unbound(G2, V, _, _, _),
@@ -1215,15 +1214,18 @@ solve_dnunify(G1, G2, V, V, 2) :- % term term, different functor or arity -> suc
 solve_dnunify(_, _, V, V, 2) :- % bound to different types; automatically succeeds
     !.
 
-%! solve_subdnunify(+Args1:list, +Args2:list, +VarsIn:compound, -VarsOut:compound, -Flag:int)
-% Wrapper for solve_subdnunify2/5 so that we can check if at least one pair of
-% args didn't unify.
+%!  solve_subdnunify(+Args1:list, +Args2:list,
+%!                   +VarsIn:compound, -VarsOut:compound, -Flag:int)
 %
-% @param Args1 A list of args to process.
-% @param Args2 A list of args to process.
-% @param VarsIn Input variable list.
-% @param VarsOut Output variable list.
-% @param Flag Used by recursive calls.
+%   Wrapper for solve_subdnunify2/5 so that we can check if at least one
+%   pair of args didn't unify.
+%
+%   @arg Args1 A list of args to process.
+%   @arg Args2 A list of args to process.
+%   @arg VarsIn Input variable list.
+%   @arg VarsOut Output variable list.
+%   @arg Flag Used by recursive calls.
+
 solve_subdnunify(X, Y, Vi, Vo, F) :-
     once(solve_subdnunify2(X, Y, Vi, V1, F)),
     (
@@ -1233,33 +1235,37 @@ solve_subdnunify(X, Y, Vi, Vo, F) :-
     ),
     !.
 
-%! solve_subdnunify2(+Args1:list, +Args2:list, +VarsIn:compound, -VarsOut:compound, -Flag:int)
-% Given args for two compound terms WITH THE SAME ARITIES, attempt to unify
-% each pair. If a pair does not unify and one arg is a variable, call
-% solve_dnunify/5 on the pair, set the flag to 1 and keep going. If a pair does
-% not unify and neither arg is a variable, set output flag to 2 and return
-% immediately.
+%!  solve_subdnunify2(+Args1:list, +Args2:list,
+%!                    +VarsIn:compound, -VarsOut:compound, -Flag:int)
 %
-% @param Args1 A list of args to process.
-% @param Args2 A list of args to process.
-% @param VarsIn Input variable list.
-% @param VarsOut Output variable list.
-% @param Flag Output flag.
+%   Given args for two compound terms WITH  THE SAME ARITIES, attempt to
+%   unify each pair. If a pair does not unify and one arg is a variable,
+%   call solve_dnunify/5 on the pair, set the  flag to 1 and keep going.
+%   If a pair does not unify and neither   arg is a variable, set output
+%   flag to 2 and return immediately.
+%
+%   @arg Args1 A list of args to process.
+%   @arg Args2 A list of args to process.
+%   @arg VarsIn Input variable list.
+%   @arg VarsOut Output variable list.
+%   @arg Flag Output flag.
+
 solve_subdnunify2([X | _], [Y | _], Vi, Vo, Fo) :-
     solve_dnunify(X, Y, Vi, Vo, Fo).
 solve_subdnunify2([X | T], [Y | T2], Vi, Vo, Fo) :-
     solve_unify(X, Y, Vi, V1, 0), % args unify; keep going
     !,
     solve_subdnunify2(T, T2, V1, Vo, Fo).
-%solve_subdnunify2([], [], V, V, _) :-
-%        !.
 
-%! occurs_check(+Var:ground, Goal:compound, +Vars:compound) is det
-% Perform the occurs check: fail if variable Var occurs in Goal, else succeed.
+%!  occurs_check(+Var:ground, Goal:compound, +Vars:compound) is det
 %
-% @param Var The variable.
-% @param Goal The goal.
-% @param Vars The var struct to get variable IDs from.
+%   Perform the occurs check: fail if variable  Var occurs in Goal, else
+%   succeed.
+%
+%   @arg Var The variable.
+%   @arg Goal The goal.
+%   @arg Vars The var struct to get variable IDs from.
+
 occurs_check(X, _, _) :-
     \+is_var(X),
     !.
@@ -1286,41 +1292,48 @@ occurs_check(X, Y, V) :-
 occurs_check(_, _, _) :- % if we haven't failed, succeed.
     !.
 
-%! occurs_check2(+Var:ground, Goals:list, +Vars:compound) is det
-% Perform occurs_check/3 on each member of Goals.
+%!  occurs_check2(+Var:ground, Goals:list, +Vars:compound) is det
 %
-% @param Var The variable.
-% @param Goals The goals.
-% @param Vars The var struct to get variable IDs from.
+%   Perform occurs_check/3 on each member of Goals.
+%
+%   @arg Var The variable.
+%   @arg Goals The goals.
+%   @arg Vars The var struct to get variable IDs from.
+
 occurs_check2(X, [Y | T], V) :-
     occurs_check(X, Y, V),
     !,
     occurs_check2(X, T, V).
-occurs_check2(_, [], _) :-
-    !.
+occurs_check2(_, [], _).
 
-%! solve_forall(+Var:ground, +Goal:compound, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:compound, +InNMR:int)
-% Solve a goal for all values of the variables Var. That is, the goal must
-% succeed with Var unbound, or, if the goal succeeds with Var constrained, it
-% must also succeed for each value it is constrained against.
+%!  solve_forall(+Var:ground, +Goal:compound,
+%!               +VarsIn:compound, -VarsOut:compound,
+%!               +CHSin:list, -CHSout:list, +CallStack:list,
+%!               -EvenLoops:list, -Justification:compound, +InNMR:int)
 %
-% If a variable is already bound when entering the forall, ignore it and execute
-% the goal normally. If constrained, ignore pre-existing constraints when
-% checking all possible values.
+%   Solve a goal for all values of the  variables Var. That is, the goal
+%   must succeed with Var unbound, or,  if   the  goal succeeds with Var
+%   constrained, it must also succeed for   each value it is constrained
+%   against.
 %
-% @param Var The variable to solve for.
-% @param Goal The goal to solve.
-% @param VarsIn Input var struct.
-% @param VarsOut Output var struct.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   If a variable is already bound when   entering the forall, ignore it
+%   and execute the goal normally.   If constrained, ignore pre-existing
+%   constraints when checking all possible values.
+%
+%   @arg Var The variable to solve for.
+%   @arg Goal The goal to solve.
+%   @arg VarsIn Input var struct.
+%   @arg VarsOut Output var struct.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoops List of even loops involving parent goal.
-% @param Justification A struct of the form -(Goal, Constraints, List) where
+%   @arg EvenLoops List of even loops involving parent goal.
+%   @arg Justification A struct of the form -(Goal, Constraints, List) where
 %        list contains info on the rules used to satisfy Goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 solve_forall(V, G, Vi, Vo, Ci, Co, Cs, E, -(forall(Vj, Gj), C, Js), NMR) :-
     is_unbound(V, Vi, Old, _, _), % Variable must be unbound or constrained, else fail
     var_con(Val, Old, 1, -1), % variable CANNOT become a loop variable and flag must be stripped if present
@@ -1347,27 +1360,32 @@ solve_forall(V, G, Vi, Vo, Ci, Co, Cs, E, -(forall(Vj, Gj), C, Js), NMR) :-
             writef('FORALL CHS marked success via forall for ~w\n', [G3])
             )).
 
-%! solve_forall2(+Var:list, +OldValue, +Goal:compound, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:list, +InNMR:int)
-% Since solve_forall/8 has solved the goals once, the variable should have a
-% value, be it bound, unbound or constrained. If bound, we simply fail. For
-% constraints, we first check the original value and remove any pre-existing
-% constraints, then call the goal for each ground value. If the variable is
-% unbound, we simply succeed.
+%!  solve_forall2(+Var:list, +OldValue, +Goal:compound,
+%!                +VarsIn:compound, -VarsOut:compound,
+%!                +CHSin:list, -CHSout:list, +CallStack:list,
+%!                -EvenLoops:list, -Justification:list, +InNMR:int)
 %
-% @param Var The variable to solve for.
-% @param OldValue The value of the variable before calling Goal in solve_forall/8.
-% @param Goal The goal to solve.
-% @param VarsIn Input var struct.
-% @param VarsOut Output var struct.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   Since solve_forall/8 has solved the goals  once, the variable should
+%   have a value, be it bound,  unbound   or  constrained.  If bound, we
+%   simply fail. For constraints, we first  check the original value and
+%   remove any pre-existing constraints, then  call   the  goal for each
+%   ground value. If the variable is unbound, we simply succeed.
+%
+%   @arg Var The variable to solve for.
+%   @arg OldValue The value of the variable before calling Goal in solve_forall/8.
+%   @arg Goal The goal to solve.
+%   @arg VarsIn Input var struct.
+%   @arg VarsOut Output var struct.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoops List of even loops involving parent goal.
-% @param Justification A list of structures representing the rules and goals
+%   @arg EvenLoops List of even loops involving parent goal.
+%   @arg Justification A list of structures representing the rules and goals
 %        used to satisfy the current goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 solve_forall2(Var, _, _, V, V, C, C, _, [], [], _) :- % var is unbound; we're done
     is_unbound(Var, V, [], _, _),
     if_debug(4, writef('solve forall: var ~w is unbound\n', [Var])),
@@ -1406,26 +1424,33 @@ solve_forall2(Var, _, _, V, _, _, _, _, _, _, _) :-
     !,
     fail.
 
-%! solve_forall3(+Var:ground, +Values:list, +Goals:list, +VarsIn:compound, -VarsOut:compound, +CHSin:list, -CHSout:list, +CallStack:list, -EvenLoops:list, -Justification:list, +InNMR:int) is nondet
-% Since a variable from solve_forall2/9 has succeeded with constraints, call
-% Goals once with the variable bound to each constrained value. If it succeeds
-% for all of them, it succeeds for all possible values. Note that no changes to
-% variable values will be returned.
+%!  solve_forall3(+Var:ground, +Values:list, +Goals:list,
+%!                +VarsIn:compound, -VarsOut:compound,
+%!                +CHSin:list, -CHSout:list, +CallStack:list,
+%!                -EvenLoops:list, -Justification:list,
+%!                +InNMR:int) is nondet
 %
-% @param Var The variable to solve for.
-% @param Values The list of values to solve for.
-% @param Goals The goal to solve.
-% @param VarsIn Input var struct.
-% @param VarsOut Output var struct.
-% @param CHSin Input CHS.
-% @param CHSout Output CHS.
-% @param CallStack The list of ancestor calls. Used to ensure that positive
+%   Since  a  variable  from   solve_forall2/9    has   succeeded   with
+%   constraints, call Goals  once  with  the   variable  bound  to  each
+%   constrained value. If it succeeds for all   of them, it succeeds for
+%   all possible values. Note that no changes to variable values will be
+%   returned.
+%
+%   @arg Var The variable to solve for.
+%   @arg Values The list of values to solve for.
+%   @arg Goals The goal to solve.
+%   @arg VarsIn Input var struct.
+%   @arg VarsOut Output var struct.
+%   @arg CHSin Input CHS.
+%   @arg CHSout Output CHS.
+%   @arg CallStack The list of ancestor calls. Used to ensure that positive
 %        loops fail.
-% @param EvenLoops List of even loops involving parent goal.
-% @param Justification A list of structures representing the rules and goals
+%   @arg EvenLoops List of even loops involving parent goal.
+%   @arg Justification A list of structures representing the rules and goals
 %        used to satisfy the current goal.
-% @param InNMR 1 if the goal was first added after entering the NMR check, 0
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
 %        otherwise.
+
 solve_forall3(Var, [X | T], G, Vi, Vo, Ci, Co, Cs, E, [-(G3, C, J1) | Jt], NMR) :-
     substitute(Var, X, G, G2), % substitute value for variable
     format_term(G2, G3, C, Vi),
@@ -1440,11 +1465,11 @@ solve_forall3(Var, [X | T], G, Vi, Vo, Ci, Co, Cs, E, [-(G3, C, J1) | Jt], NMR) 
     append(E1, E2, E).
 solve_forall3(_, [], _, V, V, C, C, _, [], [], _).
 
-%! get_forall_goal(+GoalIn:compound, -GoalOut:compound) is det
+%!  get_forall_goal(+GoalIn:compound, -GoalOut:compound) is det
 % For a potentially nested forall, get the inner, non-forall goal.
 %
-% @param GoalIn Input goal.
-% @param GoalOut Output goal.
+%   @arg GoalIn Input goal.
+%   @arg GoalOut Output goal.
 get_forall_goal(Gi, Go) :-
     Gi = forall(_, G2),
     !,
@@ -1461,13 +1486,16 @@ get_forall_goal(G, G) :-
     G \= not(_),
     !.
 
-%! substitute(+Var:ground, +Value:ground, +GoalIn:compound, -GoalOut:compound) is det
-% Substitute each occurrence of Var in GoalIn with Value.
+%!  substitute(+Var:ground, +Value:ground,
+%!             +GoalIn:compound, -GoalOut:compound) is det
 %
-% @param Var The variable to replace.
-% @param Value The value to substitute.
-% @param GoalIn Input goal.
-% @param GoalOut Output goal.
+%   Substitute each occurrence of Var in GoalIn with Value.
+%
+%   @arg Var The variable to replace.
+%   @arg Value The value to substitute.
+%   @arg GoalIn Input goal.
+%   @arg GoalOut Output goal.
+
 substitute(X, Y, X, Y)  :- % match
     !.
 substitute(X, Y, Gi, Go) :-
@@ -1478,18 +1506,21 @@ substitute(X, Y, Gi, Go) :-
 substitute(_, _, G, G) :- % not a match or a compound term; keep original
     !.
 
-%! substitute2(+Var:ground, +Value:ground, +GoalsIn:compound, -GoalsOut:compound) is det
-% For each goal in GoalsIn, substitute each occurrence of Var in with Value.
+%!  substitute2(+Var:ground, +Value:ground,
+%!              +GoalsIn:compound, -GoalsOut:compound) is det
 %
-% @param Var The variable to replace.
-% @param Value The value to substitute.
-% @param GoalsIn Input goals.
-% @param GoalsOut Output goals.
+%   For each goal in GoalsIn, substitute each  occurrence of Var in with
+%   Value.
+%
+%   @arg Var The variable to replace.
+%   @arg Value The value to substitute.
+%   @arg GoalsIn Input goals.
+%   @arg GoalsOut Output goals.
+
 substitute2(X, Y, [G | T], [G2 | T2]) :-
     substitute(X, Y, G, G2),
     !,
     substitute2(X, Y, T, T2).
-substitute2(_, _, [], []) :-
-    !.
+substitute2(_, _, [], []).
 
 
