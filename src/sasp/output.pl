@@ -62,12 +62,7 @@ that may be used for warning and error output.
 :-set_prolog_flag(multi_arity_warnings,off).
 
 :- use_module(library(lists)).
-:- if(exists_source(library(rbtrees))).
 :- use_module(library(rbtrees)).
-:- else.
-:- use_module(rbtrees).
-:- endif.
-%:- use_module(library(writef)).
 :- use_module(ciao_auxiliar).
 :- use_module(chs).
 :- use_module(common).

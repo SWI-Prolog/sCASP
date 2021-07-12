@@ -58,12 +58,7 @@ Predicates related to storing, accessing and modifying variables.
 :-set_prolog_flag(multi_arity_warnings,off).
 
 :- use_module(library(lists)).
-:- if(exists_source(library(rbtrees))).
 :- use_module(library(rbtrees)).
-:- else.
-:- use_module(rbtrees).
-:- endif.
-%:- use_module(library(writef)).
 :- use_module(ciao_auxiliar).
 :- use_module(common).
 :- use_module(output). % for format_term/4.

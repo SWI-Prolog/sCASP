@@ -43,11 +43,7 @@ Handle CHS-related operations.
 */
 
 :- use_module(library(lists)).
-:- if(exists_source(library(rbtrees))).
 :- use_module(library(rbtrees)).
-:- else.
-:- use_module(rbtrees).
-:- endif.
 :- use_module(common).
 :- use_module(debug).
 :- use_module(output). % for fill_in_variable_values/5
