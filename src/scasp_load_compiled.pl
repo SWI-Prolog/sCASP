@@ -1,11 +1,10 @@
 :- module(scasp_load_compiled,
           [ read_compiled_source/1
           ]).
-
-% :- use_module(library(assertions/assrt_lib)).
-
 :- use_module(sasp/output).
-:- use_module(scasp_io).
+
+/** <module> Load a precompiled program
+*/
 
 :- op(700, fx, [not, #]).
 :- op(700, xfx, [(.\=.), (.=.)]).
@@ -61,21 +60,17 @@ assert_clause(Fact) :-
     capture_minus([Fact],[MFact]),
     assert_rule(MFact,[]).
 
-
 assert_rule(global_constraint,Body) :- !,
-    assert(pr_rule(o_nmr_check,Body)),
-    assert(pr_user_predicate(o_nmr_check/0)),
-    assert(pr_user_predicate(global_constraints/0)).
+    assertz(pr_rule(o_nmr_check,Body)),
+    assertz(pr_user_predicate(o_nmr_check/0)),
+    assertz(pr_user_predicate(global_constraints/0)).
 assert_rule(Head,Body) :-
-    Head =.. [Name|Args],
-    length(Args,La),
-    (   pr_user_predicate(Name/La) ->
-        true
-    ;
-        assert(pr_user_predicate(Name/La))
+    functor(Head, Name, La),
+    (   pr_user_predicate(Name/La)
+    ->  true
+    ;   assertz(pr_user_predicate(Name/La))
     ),
-    assert(pr_rule(Head,Body)).
-
+    assertz(pr_rule(Head,Body)).
 
 capture_minus([],[]).
 capture_minus([-Neg|Bs],[MNeg|MBs]) :- !,

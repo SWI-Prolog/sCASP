@@ -18,8 +18,7 @@
             current_option/2,
             counter/2,
             set_options/1,
-            print_html/3,
-            pr_query/1
+            print_html/3
           ]).
 :- op(900, fy, user:not).
 
