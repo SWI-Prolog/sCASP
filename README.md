@@ -6,15 +6,14 @@
 
 ## Status of the SWI-Prolog port
 
-All tests pass. Running depends on the Ciao emulation package at
-https://www.swi-prolog.org/pack/list?p=ciao.
+The source is currently being refactored extensively.  Done:
 
-The current source is a bit of a mess, consisting of a first sASP layer
-by Kyle Marple on top of SWI-Prolog, the sCASP version implemented on
-top of Ciao by Joaquin Arias, the Ciao emulation layer by Edison Mera
-and a rather quick and dirty port to SWI-Prolog by Jan Wielemaker. It
-addresses the feasibility of a port.  Ultimately we should see a full
-port with a maintainable portable core.
+  - Avoid the need for the Ciao emulation add-on.
+  - Make comments and layout consistent (incomplete).
+  - Migrate all printing to format/1-3 (incomplete)
+  - Get rid of global operators.  Use SWI-Prolog operator
+    import/export.
+  - Enhance small trivial things.
 
 # s(CASP)
 
