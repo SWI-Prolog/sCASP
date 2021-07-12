@@ -20,13 +20,7 @@
     set_options/1,
     print_html/3
     ]).
-:- if(current_prolog_flag(version_data, swi(_,_,_,_))).
-:- style_check(-singleton).
 :- op(900, fy, user:not).
-goal_expansion(abort, halt).
-:- endif.
-
-%% ------------------------------------------------------------- %%
 
 /** <module> Module for input / output predicates
 
@@ -37,9 +31,6 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 
 @author Joaquin Arias
 */
-
-
-%% ------------------------------------------------------------- %%
 
 :- use_module('./sasp/comp_duals').
 :- use_module('./sasp/nmr_check').
@@ -56,8 +47,6 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 
 :- use_module('./scasp_load_compiled').
 :- use_module('./clp_disequality_rt').
-
-%% ------------------------------------------------------------- %%
 
 :- op(700, xfx, ['#=' ,
                  '#<>',
@@ -91,7 +80,8 @@ scasp_version :-
 :- dynamic loaded_file/1.
 load_program([]) :-
     display('ERROR: No imput file specified!'),nl,nl,
-    s_help, abort. % halt.
+    s_help,
+    halt(1).
 load_program(C) :-
     retractall(loaded_file(_)),
     current_option(compiled, on), !,
@@ -1050,27 +1040,25 @@ check_compatibilities :-
     current_option(check_calls,on),
     current_option(human,on), !,
     format('ERROR: verboser and human output do not allowed together!\n\n',[]),
-    s_help, abort,
-    fail.
+    s_help,
+    halt(1).
 check_compatibilities.
 
 
 set_user_options([]).
 set_user_options([O | Os]) :-
-    (
-        set_user_option(O) ->
-        set_user_options(Os)
-    ;
-        format('ERROR: The option ~w is not supported!\n\n',[O]),
-        s_help, abort,
-        fail
+    (   set_user_option(O)
+    ->  set_user_options(Os)
+    ;   format('ERROR: The option ~w is not supported!\n\n',[O]),
+        s_help,
+        halt(1)
     ).
 
 :- dynamic html_name/1.
-set_user_option('--help_all')           :- help_all, abort.
-set_user_option('-h')                   :- s_help, abort.
-set_user_option('-?')                   :- s_help, abort.
-set_user_option('--help')               :- s_help, abort.
+set_user_option('--help_all')           :- help_all, halt.
+set_user_option('-h')                   :- s_help, halt.
+set_user_option('-?')                   :- s_help, halt.
+set_user_option('--help')               :- s_help, halt.
 set_user_option('-i')                   :- set(interactive, on).
 set_user_option('--interactive')        :- set(interactive, on).
 set_user_option('-a').
