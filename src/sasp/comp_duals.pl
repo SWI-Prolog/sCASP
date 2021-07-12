@@ -1,19 +1,3 @@
-:- module(comp_duals, [
-                    comp_duals/0,
-                    comp_duals3/2,
-                    define_forall/3,
-                    plain_dual/1
-                  ]).
-
-/** <module> Dual rule computation
-
-Computation of dual rules (rules for the negation of a literal).
-
-@author Kyle Marple
-@version 20170127
-@license BSD-3
-*/
-
 /*
 * Copyright (c) 2016, University of Texas at Dallas
 * All rights reserved.
@@ -41,15 +25,33 @@ Computation of dual rules (rules for the negation of a literal).
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(comp_duals, [
+                    comp_duals/0,
+                    comp_duals3/2,
+                    define_forall/3,
+                    plain_dual/1
+                  ]).
+
+/** <module> Dual rule computation
+
+Computation of dual rules (rules for the negation of a literal).
+
+@author Kyle Marple
+@version 20170127
+@license BSD-3
+*/
+
 :- use_module(library(lists)).
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).
 
-%! comp_duals is det
-% Compute rules for the negations of positive literals (dual rules), even if
-% there are no clauses for the positive literal (negation will be a fact).
-% Wrapper for comp_duals2/1.
+%!  comp_duals is det
+%
+%   Compute rules for the negations of   positive literals (dual rules),
+%   even if there are no clauses for the positive literal (negation will
+%   be a fact). Wrapper for comp_duals2/1.
+
 comp_duals :-
     write_verbose(0, 'Computing dual rules...\n'),
     defined_predicates(Preds),
@@ -62,10 +64,14 @@ comp_duals :-
 
 scasp_builtin('call_1').
 scasp_builtin('findall_3').
-%! comp_duals2(+Predicates:list) is det
-% For each predicate in Predicates, get matching rules and call comp_duals3/2.
+
+%!  comp_duals2(+Predicates:list) is det
 %
-% @param Predicates List of predicates in the program.
+%   For each predicate in  Predicates,  get   matching  rules  and  call
+%   comp_duals3/2.
+%
+%   @arg Predicates List of predicates in the program.
+
 comp_duals2([X | T]) :-
     X = '_false_0', % skip headless rules; handled by NMR check
     !,
@@ -82,13 +88,16 @@ comp_duals2([X | T]) :-
 comp_duals2([]) :-
     !.
 
-%! comp_duals3(+Predicate:ground, +Rules:list) is det
-% Compute the dual for a single positive literal. Make sure that Predicate is
-% used for the dual head instead of taking the head from one of the rules. This
-% allows a new head to be passed during NMR sub-check creation.
+%!  comp_duals3(+Predicate:ground, +Rules:list) is det
 %
-% @param Predicate The head of each rule in Rules, of the form Head/arity.
-% @param Rules The list of rules for a single predicate.
+%   Compute the dual for  a  single   positive  literal.  Make sure that
+%   Predicate is used for the dual head  instead of taking the head from
+%   one of the rules. This allows a  new   head  to be passed during NMR
+%   sub-check creation.
+%
+%   @arg Predicate The head of each rule in Rules, of the form Head/arity.
+%   @arg Rules The list of rules for a single predicate.
+
 comp_duals3(P, R) :-
     R \= [], % predicate is defined by one or more rules.
     !,
@@ -105,16 +114,18 @@ comp_duals3(P, R) :-
     assert_rule(Rd),
     !.
 
-%! comp_dual(+DualHead:compound, +Rules:list, +DualBody:list, +Count:int) is det
-% Compute the dual for a predicate with multiple rules. First, compute the dual
-% of each individual rule, replacing each head with a new, unique one. Then
-% create the overall dual using the heads of the individual duals as goals. When
-% finished, assert the overall dual.
+%!  comp_dual(+DualHead:compound, +Rules:list, +DualBody:list, +Count:int) is det
 %
-% @param DualHead The head of the dual rule.
-% @param Rules The list of rules.
-% @param DualBody The body of the outer dual rule.
-% @param Count Counter used to ensure that new heads are unique.
+%   Compute the dual for a predicate with multiple rules. First, compute
+%   the dual of each individual rule, replacing   each  head with a new,
+%   unique one. Then create the overall  dual   using  the  heads of the
+%   individual duals as goals. When finished, assert the overall dual.
+%
+%   @arg DualHead The head of the dual rule.
+%   @arg Rules The list of rules.
+%   @arg DualBody The body of the outer dual rule.
+%   @arg Count Counter used to ensure that new heads are unique.
+
 comp_dual(Hn, [X | T], Db, C) :-
     c_rule(X, H, B),
     % get unique head with Hn2 including original args and Hn3 using variable args
@@ -140,17 +151,20 @@ comp_dual(Hn, [], Db, _) :-
     assert_rule(Rd),
     !.
 
-%! comp_dual2(+DualHead:compound, +Body:list, +BodyVars:list) is det
-% Compute the dual for a single clause. Since any body variables in the original
-% rule are existentially, they must be universally quantified in the dual. This
-% is accomplished by creating a new predicate with both the original head
-% variables and the body variables in the head, which will contain the duals of
-% the original goals. The "inner dual" will then call this new predicate in a
-% forall over the body variables.
+%!  comp_dual2(+DualHead:compound, +Body:list, +BodyVars:list) is det
 %
-% @param DualHead The head of the dual rule.
-% @param Body The body of the original rule.
-% @param BodyVars The list of variables in the body but not the head.
+%   Compute the dual for a single clause.   Since  any body variables in
+%   the original rule  are  existentially,   they  must  be  universally
+%   quantified in the dual.  This  is   accomplished  by  creating a new
+%   predicate with both  the  original  head   variables  and  the  body
+%   variables in the head, which will contain  the duals of the original
+%   goals. The "inner dual" will  then  call   this  new  predicate in a
+%   forall over the body variables.
+%
+%   @arg DualHead The head of the dual rule.
+%   @arg Body The body of the original rule.
+%   @arg BodyVars The list of variables in the body but not the head.
+
 comp_dual2(Hn, Bg, Bv) :-
     Bv \= [],
     !,
@@ -172,31 +186,32 @@ comp_dual2(Hn, Bg, []) :-
     comp_dual3(Hn, Bg, []).
 
 :- dynamic plain_dual/1. % see scasp_io
-%! comp_dual3(+DualHead:compound, +Body:list, +UsedGoals:list) is det
-% Compute the innermost dual for a single rule by negating each goal in turn.
-% Unlike grounded ASP, it is not enough to have a single-goal clause for each
-% original goal. Because side effects are possible, the sub-dual for a given
-% goal must include all previous goals and retain program order.
+%!  comp_dual3(+DualHead:compound, +Body:list, +UsedGoals:list) is det
 %
-% @param DualHead The head of the dual rule.
-% @param Body The body goals to negate.
-% @param UsedGoals The goals that have already been processed, in original
+%   Compute the innermost dual for a single   rule by negating each goal
+%   in turn. Unlike grounded ASP, it is not enough to have a single-goal
+%   clause for each original goal. Because   side  effects are possible,
+%   the sub-dual for a given goal must   include  all previous goals and
+%   retain program order.
+%
+%   @arg DualHead The head of the dual rule.
+%   @arg Body The body goals to negate.
+%   @arg UsedGoals The goals that have already been processed, in original
 %        order.
+
 comp_dual3(Hn, [X | T], U) :-
     X = builtin_1(_), % handle built-ins specially
-    (  plain_dual(on) ->
-        append([], [X], U2)
-    ;
-        append(U, [X], U2)
+    (   plain_dual(on)
+    ->  append([], [X], U2)
+    ;   append(U, [X], U2)
     ),
     !,
     comp_dual3(Hn, T, U2).
 comp_dual3(Hn, [X | T], U) :-
     dual_goal(X, X2),
-    (  plain_dual(on) ->
-        append([], [X2], Db)
-    ;
-        append(U, [X2], Db) % Keep all goals prior to the dual one.
+    (   plain_dual(on)
+    ->  append([], [X2], Db)
+    ;   append(U, [X2], Db) % Keep all goals prior to the dual one.
     ),
     c_rule(Rd, Hn, Db), % Clause for negation of body goal
     assert_rule(Rd),
@@ -206,11 +221,12 @@ comp_dual3(Hn, [X | T], U) :-
 comp_dual3(_, [], _) :-
     !.
 
-%! dual_goal(+GoalIn:compound, -GoalOut:compound) is det
-% Given a goal, negated it.
+%!  dual_goal(+GoalIn:compound, -GoalOut:compound) is det
 %
-% @param GoalIn The original goal.
-% @param GoalOut The negated goal.
+%   Given a goal, negated it.
+%
+%   @arg GoalIn The original goal.
+%   @arg GoalOut The negated goal.
 
 % constraint
 dual_goal(#=(A, B), #<>(A,B)).
@@ -249,26 +265,30 @@ dual_goal(X, not(X)) :-
     predicate(X, _, _),
     !.
 
-%! define_forall(+GoalIn:compound, -GoalOut:compound, +BodyVars:list) is det
-% If BodyVars is empty, just return the original goal. Otherwise, define a
-% forall for the goal. For multiple body variables, the forall will be nested,
-% with each layer containing a single variable.
+%!  define_forall(+GoalIn:compound, -GoalOut:compound, +BodyVars:list) is det
 %
-% @param GoalIn Input goal.
-% @param GoalOut Output goal.
-% @param BodyVars Body variables present in GoalIn.
+%   If BodyVars is empty, just  return   the  original  goal. Otherwise,
+%   define a forall for  the  goal.   For  multiple  body variables, the
+%   forall will be nested, with each layer containing a single variable.
+%
+%   @arg GoalIn Input goal.
+%   @arg GoalOut Output goal.
+%   @arg BodyVars Body variables present in GoalIn.
+
 define_forall(Gi, Go, [X | T]) :-
     define_forall(Gi, G2, T), % get inner portion
     Go = forall(X, G2). % build outer portion
 define_forall(G, G, []) :-
     !.
 
-%! outer_dual_head(+Head:compound, -DualHead:ground) is det
-% Create the dual version of a rule head by negating the predicate name and
-% replacing the args with a variable list of the same arity.
+%!  outer_dual_head(+Head:compound, -DualHead:ground) is det
 %
-% @param Head The initial, positive head, a predicate struct.
-% @param DualHead The dual head, a predicate struct.
+%   Create the dual version of a  rule   head  by negating the predicate
+%   name and replacing the args with a variable list of the same arity.
+%
+%   @arg Head The initial, positive head, a predicate struct.
+%   @arg DualHead The dual head, a predicate struct.
+
 outer_dual_head(H, D) :-
     predicate(H, P, _),
     negate_functor(P, Pd),
@@ -277,14 +297,18 @@ outer_dual_head(H, D) :-
     predicate(D, Pd, Ad),
     !.
 
-%! abstract_structures(+ArgsIn:list, -ArgsOut:list, +Counter:int, -Goals:list) is det
-% Given a list of args, abstract any structures by replacing them with variables
-% and adding a goal unifying the variable with the structure.
+%!  abstract_structures(+ArgsIn:list, -ArgsOut:list, +Counter:int,
+%!                      -Goals:list) is det
 %
-% @param ArgsIn The original args from a clause head.
-% @param ArgsOut Output new args.
-% @param Counter Input counter.
-% @param Goals Goals unifying non-variables with the variables replacing them.
+%   Given a list of args, abstract any structures by replacing them with
+%   variables  and  adding  a  goal  unifying   the  variable  with  the
+%   structure.
+%
+%   @arg ArgsIn The original args from a clause head.
+%   @arg ArgsOut Output new args.
+%   @arg Counter Input counter.
+%   @arg Goals Goals unifying non-variables with the variables replacing them.
+
 abstract_structures([X | T], [Y | T2], C, [G | Gt]) :-
     X =.. [_ | Xt], % X is a compound term; process it.
     Xt \= [],
@@ -302,21 +326,26 @@ abstract_structures([X | T], [X | T2], C, G) :-
 abstract_structures([], [], _, []) :-
     !.
 
-%! prep_args(+OrigArgs:list, +VarArgs:list, +NewArgsIn:list, -NewArgsOut:list, +VarsSeen:list, +Counter:int, -Goals:list) is det
-% Given two sets of args, check if each of the original args is a variable. If
-% so, check if it's a member of NewArgsIn. If it's not, add it to output args.
-% If it isn't a variable, or the variable is present in NewArgsIn, add the
-% corresponding variable from VarArgs. The result is a list of variables that
-% keeps any variables in the original head. When an element from VarArgs is
-% used, add a unification (=) goal to Goals.
+%!  prep_args(+OrigArgs:list, +VarArgs:list,
+%!            +NewArgsIn:list, -NewArgsOut:list,
+%!            +VarsSeen:list, +Counter:int, -Goals:list) is det
 %
-% @param OrigArgs The original args from a clause head.
-% @param VarArgs A list of unique variable names of the same length as OrigArgs.
-% @param NewArgsIn Input new args.
-% @param NewArgsOut Output new args.
-% @param VarsSeen List of variables encountered in original args.
-% @param Counter Input counter.
-% @param Goals Goals unifying non-variables with the variables replacing them.
+%   Given two sets of args, check if  each   of  the  original args is a
+%   variable. If so, check if it's a   member of NewArgsIn. If it's not,
+%   add it to output args. If it isn't   a  variable, or the variable is
+%   present in NewArgsIn, add the   corresponding variable from VarArgs.
+%   The result is a list of variables   that  keeps any variables in the
+%   original  head.  When  an  element  from  VarArgs  is  used,  add  a
+%   unification (=) goal to Goals.
+%
+%   @arg OrigArgs The original args from a clause head.
+%   @arg VarArgs A list of unique variable names of the same length as OrigArgs.
+%   @arg NewArgsIn Input new args.
+%   @arg NewArgsOut Output new args.
+%   @arg VarsSeen List of variables encountered in original args.
+%   @arg Counter Input counter.
+%   @arg Goals Goals unifying non-variables with the variables replacing them.
+
 prep_args([X | T], [Y | T2], Ai, Ao, Vs, C, [G | Gt]) :-
     is_var(X),
     member(X, Vs), % X has already been seen
@@ -344,17 +373,21 @@ prep_args([], _, Ai, Ao, _, _, []) :-
     reverse(Ai, Ao), % Restore proper ordering
     !.
 
-%! prep_args2(+ArgsIn:list, -ArgsOut:list, +VarsSeenIn:list, -VarsSeenOut:list, +CounterIn:int, -CounterOut:int, -UniGoals:list) is det
-% Given the arguments from a compound term, create unifiability goals to be
-% used in the dual.
+%!  prep_args2(+ArgsIn:list, -ArgsOut:list,
+%!             +VarsSeenIn:list, -VarsSeenOut:list,
+%!             +CounterIn:int, -CounterOut:int, -UniGoals:list) is det
 %
-% @param ArgsIn Input args.
-% @param ArgsOut Output args.
-% @param VarsSeenIn Input vars seen.
-% @param VarsSeenOut Output vars seen.
-% @param CounterIn Input counter.
-% @param CounterOut Output counter.
-% @param UniGoals List of unification goals.
+%   Given the arguments from a compound  term, create unifiability goals
+%   to be used in the dual.
+%
+%   @arg ArgsIn Input args.
+%   @arg ArgsOut Output args.
+%   @arg VarsSeenIn Input vars seen.
+%   @arg VarsSeenOut Output vars seen.
+%   @arg CounterIn Input counter.
+%   @arg CounterOut Output counter.
+%   @arg UniGoals List of unification goals.
+
 prep_args2([X | T], [Y | T2], Vsi, Vso, Ci, Co, [G | Gt]) :-
     is_var(X),
     !,
