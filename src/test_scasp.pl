@@ -8,7 +8,7 @@
 :- use_module(library(option), [option/3, option/2]).
 :- use_module(library(time), [call_with_time_limit/2]).
 
-:- include(public_ops).
+:- use_module(scasp_ops).
 :- use_module(diff).
 
 :- initialization(main, main).

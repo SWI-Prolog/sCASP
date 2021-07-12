@@ -39,20 +39,7 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 
 :- use_module(scasp_load_compiled).
 :- use_module(clp_disequality).
-
-:- op(700, xfx, ['#=' ,
-                 '#<>',
-                 '#<' ,
-                 '#>' ,
-                 '#=<',
-                 '#>='
-                 ]).
-
-:- op(700, xfx, ['::']).
-
-:- op(700, xfx, ['| ']). %% such as
-
-:- include(public_ops).
+:- use_module(scasp_ops).
 
 %!  scasp_version
 %
