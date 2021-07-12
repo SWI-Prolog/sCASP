@@ -1458,7 +1458,6 @@ print_html_body([X,Y|Xs]):-
 :- dynamic(printingHTML/0).
 open_output_file(Stream,File,Current) :-
     current_output(Current),
-    open(File,append,_F),close(_F), %% if File does not exists open it
     open(File,write,Stream),
     set_output(Stream),
     asserta(printingHTML).
