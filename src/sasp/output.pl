@@ -1321,6 +1321,12 @@ revar_(X,Y,Dic0,Dic) :-
     revars(As,Bs,Dic0,Dic),
     Y=..[F|Bs].
 
+%!  varatm(@Term)
+%
+%   True when Term is an atom that  starts   with  a  capital or _.
+%
+%   @tbd Very similar to is_var/1 from variables.pl
+
 varatm(X) :- atom(X), atom_codes(X, [C|_]), varc(C).
 
 special_atom(A/B,rat(A,B)) :-
