@@ -206,8 +206,8 @@ main_solve(Q0) :-
 
     statistics(runtime, _),
     (   call_nth(solve(Query, [], StackOut, Model), Counter)
-    *-> nl,
-        format('\nno models\n\n'),
+    *-> nl
+    ;   format('\nno models\n\n'),
         fail
     ),
     statistics(runtime, [_|[T]]),
@@ -290,8 +290,8 @@ collect_min_models(Q0) :-
 
     print_query(PQ),
     (   call_nth(take_min(Query, _MinModel, Model, StackOut, T), Counter)
-    *-> nl,
-        format('\nno models\n\n'),
+    *-> nl
+    ;   format('\nno models\n\n'),
         fail
     ),
 
