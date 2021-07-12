@@ -23,7 +23,6 @@
             solve_c_forall/4
           ]).
 :- set_prolog_flag(optimise, true).
-:- style_check(-singleton).
 
 :- use_module(scasp_io).
 :- reexport(scasp_io, [
@@ -50,8 +49,6 @@
 :- use_module(clp_clpq).
 
 :- op(700, fx, [not, (?=), (??), (?)]).
-
-:- use_module(library(aggregate)).
 
 :- initialization(main, main).
 
@@ -629,7 +626,7 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     clp_interval(Op), !,
     exec_goal(Goal),
     Model = [Goal].
-solve_goal_builtin(not(Goal), _StackIn, _StackIn, _Model) :-
+solve_goal_builtin(not(Goal), StackIn, StackIn, _Model) :-
     Goal =.. [Op|_],
     clp_interval(Op), !,
     if_user_option(warning,format("\nWARNING s(CASP): Failure calling negation of ~p\n",[Goal])),
@@ -1021,9 +1018,6 @@ clp_builtin_translate('#>', .>.).
 clp_builtin_translate('#>=', .>=.).
 clp_builtin_translate('#=<', .=<.).
 
-:- if(exists_source(library(clpq/solver_q))).
-:- use_module(library(clpq/solver_q), [inf/2, sup/2]).
-:- endif.
 %!  clp_interval(?Goal)
 %
 %   Success  if  Goal  is  a  builtin  constraint  predicate  to extract
@@ -1232,7 +1226,6 @@ apply_constraint(A = B) =>
 apply_constraint(CLPConstraint) =>
     apply_clpq_constraints(CLPConstraint).
 
-:- use_module(clp_clpq).
 find_duals(C_Vars-C_Vars1, OtherVars, Duals) :-
     % disequality and clp for numbers
     dump_constraint(C_Vars, C_Vars1, Dump, []-[], Pending-Pending1), !,
