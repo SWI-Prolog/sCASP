@@ -41,6 +41,9 @@ qtest_scasp :-
 %
 %   Default runs tests from `../test`
 
+main(['-q']) :-
+    !,
+    qtest_scasp.
 main(Argv) :-
     argv_options(Argv, Positional, Options),
     test_files(Positional, Files),
