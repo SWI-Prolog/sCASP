@@ -25,12 +25,12 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(comp_duals, [
-                    comp_duals/0,
-                    comp_duals3/2,
-                    define_forall/3,
-                    plain_dual/1
-                  ]).
+:- module(comp_duals,
+          [ comp_duals/0,
+            comp_duals3/2,
+            define_forall/3,
+            set_plain_dual/1
+          ]).
 
 /** <module> Dual rule computation
 
@@ -45,6 +45,8 @@ Computation of dual rules (rules for the negation of a literal).
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).
+
+:- dynamic plain_dual/1. % see scasp_io
 
 %!  comp_duals is det
 %
@@ -185,7 +187,6 @@ comp_dual2(Hn, Bg, []) :-
     !, % no body variables
     comp_dual3(Hn, Bg, []).
 
-:- dynamic plain_dual/1. % see scasp_io
 %!  comp_dual3(+DualHead:compound, +Body:list, +UsedGoals:list) is det
 %
 %   Compute the innermost dual for a single   rule by negating each goal
@@ -427,3 +428,7 @@ prep_args2([X | T], [Y | T2], Vsi, Vso, Ci, Co, [G | Gt]) :-
     prep_args2(T, T2, Vsi, Vso, C1, Co, Gt).
 prep_args2([], [], Vs, Vs, C, C, []) :-
     !.
+
+set_plain_dual(OnOff) :-
+    retractall(plain_dual(_)),
+    assertz(plain_dual(OnOff)).

@@ -41,6 +41,8 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 :- use_module(clp_disequality).
 :- use_module(scasp_ops).
 
+:- dynamic loaded_file/1.       % Files:list
+
 %!  scasp_version
 %
 %   print the current version of s(CASP)
@@ -56,7 +58,6 @@ scasp_version :-
 %   (with dual and nmr_check)
 
 
-:- dynamic loaded_file/1.
 load_program([]) :-
     display('ERROR: No imput file specified!'),nl,nl,
     s_help,
@@ -1047,8 +1048,8 @@ set_user_option(Option) :- atom_chars(Option,['-','n'|Ns]),number_chars(N,Ns),se
 set_user_option('-c')                   :- set(compiled, on).
 set_user_option('--compiled')           :- set(compiled, on).
 
-set_user_option('-d')                   :- assert(plain_dual(on)).
-set_user_option('--plaindual')          :- assert(plain_dual(on)).
+set_user_option('-d')                   :- set_plain_dual(on).
+set_user_option('--plaindual')          :- set_plain_dual(on).
 
 set_user_option('-r')                   :- set(real, on), set(decimals,5).
 set_user_option(Option)                 :- atom_concat('-r=',Ns,Option),atom_number(Ns,D),set(real,on), set(decimals,D).
