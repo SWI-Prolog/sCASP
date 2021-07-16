@@ -30,6 +30,7 @@
 :- set_prolog_flag(optimise, true).
 
 :- use_module(scasp_io).
+:- use_module(scasp_ops).
 :- use_module(sasp/output).
 :- use_module(clp_call_stack).
 :- use_module(clp_disequality).
@@ -608,29 +609,23 @@ solve_goal_builtin(builtin(Goal), StackIn, StackIn, Model) :- !,
     exec_goal(Goal),
     Model = [builtin(Goal)].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
-    Goal =.. [Op|_],
-    clp_builtin(Op), !,
+    clp_builtin(Goal), !,
     exec_goal(apply_clpq_constraints(Goal)),
     Model = [Goal].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
-    Goal =.. [Op|_],
-    clp_interval(Op), !,
+    clp_interval(Goal), !,
     exec_goal(Goal),
     Model = [Goal].
 solve_goal_builtin(not(Goal), StackIn, StackIn, _Model) :-
-    Goal =.. [Op|_],
-    clp_interval(Op), !,
+    clp_interval(Goal), !,
     if_user_option(warning,format("\nWARNING s(CASP): Failure calling negation of ~p\n",[Goal])),
     fail.
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
-    Goal =.. [Op|Operands],
-    clp_builtin_translate(Op, Op_T), !,
-    Goal_T =.. [Op_T|Operands],
+    clp_builtin_translate(Goal, Goal_T), !,
     exec_goal(apply_clpq_constraints(Goal_T)),
     Model = [Goal].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
-    Goal =.. [Op|_],
-    prolog_builtin(Op), !,
+    prolog_builtin(Goal), !,
     exec_goal(Goal),
     Model = [Goal].
 % The predicate is not defined as user_predicates neither builtin
@@ -967,42 +962,42 @@ shown_predicate(Goal) :-
 
 prolog_builtin(true).
 prolog_builtin(fail).
-prolog_builtin(=).
-prolog_builtin(\=).
-prolog_builtin(<).
-prolog_builtin(>).
-prolog_builtin(>=).
-prolog_builtin(=<).
+prolog_builtin(_ = _).
+prolog_builtin(_ \= _).
+prolog_builtin(_ < _).
+prolog_builtin(_ > _).
+prolog_builtin(_ >= _).
+prolog_builtin(_ =< _).
 
 %!  clp_builtin(?Goal)
 %
 %   Success if Goal is a builtin constraint predicate
 
-clp_builtin(.=.).
-clp_builtin(.<>.).
-clp_builtin(.<.).
-clp_builtin(.>.).
-clp_builtin(.>=.).
-clp_builtin(.=<.).
+clp_builtin(_ .=. _).
+clp_builtin(_ .<>. _).
+clp_builtin(_ .<. _).
+clp_builtin(_ .>. _).
+clp_builtin(_ .>=. _).
+clp_builtin(_ .=<. _).
 
 %!  clp_builtin_translate(?Goal, ?Goal_T)
 %
 %   Translate s(CASP) constraints into CLP(Q/R) syntax
 
-clp_builtin_translate('#=', .=.).
-clp_builtin_translate('#<>', .<>.).
-clp_builtin_translate('#<', .<.).
-clp_builtin_translate('#>', .>.).
-clp_builtin_translate('#>=', .>=.).
-clp_builtin_translate('#=<', .=<.).
+clp_builtin_translate(A #=  B, A .=.  B).
+clp_builtin_translate(A #<> B, A .<>. B).
+clp_builtin_translate(A #<  B, A .<.  B).
+clp_builtin_translate(A #>  B, A .>.  B).
+clp_builtin_translate(A #>= B, A .>=. B).
+clp_builtin_translate(A #=< B, A .=<. B).
 
 %!  clp_interval(?Goal)
 %
 %   Success  if  Goal  is  a  builtin  constraint  predicate  to extract
 %   interval limits
 
-clp_interval(inf).
-clp_interval(sup).
+clp_interval(inf(_Expr, _Inf)).
+clp_interval(sup(_Expr, _Inf)).
 
 %!  my_copy_term(+Var, +Term, -NewVar, -NewTerm) is det.
 %
