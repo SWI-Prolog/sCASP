@@ -16,7 +16,6 @@
             set/2,
             parse_args/3,
             current_option/2,
-            counter/2,
             set_options/1,
             print_html/3
           ]).
@@ -269,7 +268,6 @@ printable_model_([First,Second|Rest]) :-
     ),
     printable_model_([Second|Rest]).
 
-%printable_literal(not(X)) :- printable_literal(X).
 printable_literal(X) :-
     X \= abducible(_),
     \+ aux_predicate(X),
@@ -282,6 +280,44 @@ printable_literal(X) :-
     ;
         X \= proved(_)
     ).
+
+
+%!  print_check_calls_calling(?Goal, ?StackIn)
+%
+%   Auxiliar predicate to print StackIn the current stack and Goal. This
+%   predicate is executed when the flag `check_calls` is _on_. NOTE: use
+%   check_calls/0 to activate the flag
+
+print_check_calls_calling(Goal,I) :-
+    reverse(I,RI),
+    format('\n--------------------- Calling: ~@ -------------',
+           [print_goal(Goal)]),
+    print_check_stack(RI,4), !,
+    nl,
+    retractall(sp_tab(_)),
+    retractall(pr_repeat(_,_)),
+    retractall(pr_print(_)).
+
+%!  print_check_stack(A, B)
+%
+%   simple output of the stack to run faster during verboser
+
+print_check_stack([],_).
+print_check_stack([[]|As],I) :- !,
+    I1 is I - 4,
+    print_check_stack(As,I1).
+print_check_stack([A|As],I) :-
+    nl, tab(I),
+    print_goal(A),
+    I1 is I + 4,
+    print_check_stack(As,I1).
+
+%!  print_goal(+Goal)
+%
+%   Print an sCASP goal. The first clause   does  the actual work at the
+%   moment to emit the goal as closely as we can to the Ciao output such
+%   that we can compare traces created   using  ``scasp -v``. The second
+%   uses default notation for constraints.
 
 print_goal(Goal) :- !,
     ciao_goal(Goal, Ciao),
