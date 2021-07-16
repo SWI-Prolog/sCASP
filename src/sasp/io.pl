@@ -139,7 +139,7 @@ process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
                                access(read)
                              ]),
           E, (print_message(error, E), fail)),
-    !, % include directive
+    !,
     process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([table(X) | T], C, Si, So, Fsi, Fso) :-
     assertz(asp_table(X)),
@@ -154,32 +154,30 @@ process_directives([pred(X) | T], C, Si, So, Fsi, Fso) :-
     !,
     process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([abducible(X) | T], C, Si, So, Fsi, Fso) :-
-    X =.. [F | A],
-    X2 = abducible_1(X),
-    X2 =.. [F2 | A2],
-    atom_chars(F, Fc),
-    atom_chars(Fn, ['_' | Fc]), % user predicates with an underscore will have a dummy prefix, so this is guaranteed to be unused.
-    Xn =.. [Fn | A],
-    atom_chars(F2, Fc2),
-    atom_chars(Fn2, ['_' | Fc2]), % user predicates with an underscore will have a dummy prefix, so this is guaranteed to be unused.
-    Xn2 =.. [Fn2 | A2],
-    c_rule(R1, X, [not(Xn), X2]), % set abducible(X) true iff X succeeds via this rule.
-    c_rule(R2, Xn, [not(X)]), % A simple even loop
-    c_rule(R3, X2, [not(Xn2)]), % rule to allow abducible(X) to be true or false.
-    c_rule(R4, Xn2, [not(X2)]), % A simple even loop
-    append(Si, [R1, R2, R3, R4], S2), % add to statements
-    !, % abducible directive
+    abducible_rules(X, Rules),
+    append(Si, Rules, S2),
+    !,
     process_directives(T, C, S2, So, Fsi, Fso).
 process_directives([c(X, Y) | T], C, Si, So, Fsi, Fso) :-
     append(Si, [c(X, Y)], S2), % Compute directive. Treat as a statement.
-    !, % include directive
+    !,
     process_directives(T, C, S2, So, Fsi, Fso).
 process_directives([X | _], _, _, _, _, _) :-
     write_error('Could not process directive: ~w\n', [X]),
     !,
     fail.
-process_directives([], _, S, S, F, F) :-
-    !.
+process_directives([], _, S, S, F, F).
+
+abducible_rules(Head,
+                [ Head                 - [ not AHead, abducible_1(Head) ],
+                  AHead                - [ not Head ],
+                  abducible_1(Head)    - [ not '_abducible_1'(Head) ],
+                  '_abducible_1'(Head) - [ not abducible_1(Head) ]
+                ]) :-
+    Head =.. [F|Args],
+    atom_concat('_', F, AF),
+    AHead =.. [AF|Args].
+
 
 %!  input(?Source, -CharPairs:list)
 %
