@@ -164,69 +164,6 @@ loop_var_disequality_(A, [_|NegBs]) :-
     loop_var_disequality_(A, NegBs).
 
 
-%%%%%%%%%%%%%%%%%%%%%%
-%% Entailment check %%
-%%%%%%%%%%%%%%%%%%%%%%
-
-% entail(A,B) :-
-%       ground(A),
-%       ground(B), !,
-%       A = B.
-
-%% - A negative constrained variable A entails another negative
-%% constrained variables B if the prohibited value list of A is a
-%% subset of the list of B.
-entail(A,B) :-
-    neg_var(A,NegListA),
-    neg_var(B,NegListB), !,
-    ord_subset(NegListA, NegListB).
-
-%% - A negative constrained variable A entails a non-variable value if
-%% the non-variable value does not constructively unify with any
-%% element in the variable's prohibited value list.
-entail(A,B) :-
-    neg_var(A, NegListA),
-    nonvar(B), !,
-    not_unify(B, NegListA).
-
-%% - A compound term A entails a compound term B if recursively:
-%% first, the functors and arities are equal and then each argument of
-%% A entails its pair of B.
-
-%% particular case for lists (they are also struct)
-entail([A|As], [B|Bs]) :- true, !,
-    length(As,N), length(Bs,N),
-    entail(A,B),
-    entail(As,Bs).
-
-entail(A,B) :-
-    compound(A),
-    compound(B), !,
-    A =.. [Name | La],
-    B =.. [Name | Lb],
-    entail(La,Lb).
-
-%% - In cases where neither argument contains a negatively constrained
-%% variable, subsumption is used to check entailment.
-entail(A,B) :-
-    subsumes_term(A,B).
-
-
-%%%%%%%%%
-entail_neg_list(L1, L2) :-
-    ord_subset(L1, L2).
-
-%%%%%%%%%%%%%%%%%%%
-%% Join operator %%
-%%%%%%%%%%%%%%%%%%%
-
-% join(A, B, Join) :-
-%       neg_var(A, NegListA),
-%       neg_var(B, NegListB),
-%       keep_more_particular(NegListA,NegListB,NegListJoin),
-%       add(Join,NegListJoin).
-
-
 		 /*******************************
 		 *     AUXILIAR PREDICATES      *
 		 *******************************/
