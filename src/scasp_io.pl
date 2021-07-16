@@ -91,15 +91,8 @@ load_program(X) :-
 %   Call  c(asp)  to print  the source  code of  the translation  of the
 %   programs already loaded by load_program/1
 
-
 write_program :-
     print_human_program.
-%% Hiden option for debugging
-write_program_sasp :-
-    loaded_file(Files),
-    main(['-d0'|Files]).
-
-:- dynamic cont/0.
 
 %!  process_query(?Q, ?Query, ?TotalQuery)
 %
@@ -107,35 +100,33 @@ write_program_sasp :-
 %   models in the interaction and top-level mode (even when the query is
 %   ground). Returns in TotalQuery a list  with the  sub_goals in  Q and
 %   _o_nmr_check_ to run the global constraints
+%
+%   @arg Q is a query with variables represented as atoms, e.g., `'X'`
+%   @arg Query is a list representation of Q with atom-variables changed
+%        to normal variables.
+%   @arg TotalQuery appends `true` or `o_nmr_check` depending on the
+%        `no_nmr` option.
 
-
-process_query(Q,Query,TotalQuery) :-
+process_query(Q, Query, TotalQuery) :-
     revar(Q,A),
-    (
-        is_list(A) -> As = A ; As = [A]
-    ),
-    (
-        As = [not(_)|_] ->
-            %        Query = [true|As]
-            Query = As
-    ;
-        Query = As
+    (   is_list(A)
+    ->  Query = A
+    ;   Query = [A]
     ),
     retractall(cont),
-    (
-        ground(Query) -> assert(cont) ; true
+    (   ground(Query)
+    ->  assert(cont)
+    ;   true
     ),
-    ( current_option(no_nmr,on) ->
-        append(Query, [true], TotalQuery)
-    ;
-        append(Query, [o_nmr_check], TotalQuery)
+    (   current_option(no_nmr, on)
+    ->  append(Query, [true], TotalQuery)
+    ;   append(Query, [o_nmr_check], TotalQuery)
     ).
 
 %!  ask_for_more_models
 %
 %   Ask  if  the  user  want  to generate  more models  (interactive and
 %   top-level mode)
-
 
 ask_for_more_models :-
     (   cont
@@ -163,7 +154,6 @@ allways_ask_for_more_models :-
 %
 %   Print the Query
 
-
 print_query([not(o_false)]) :- !,
     format('% QUERY: Query not defined\n', []).
 print_query([true,A|As]) :- !,
@@ -187,20 +177,14 @@ list_to_conj(List, Conj) :-
 %
 %   Print the justification tree using StackOut, the final call stack
 
-
-%% Print output predicates to presaent the results of the query
 print_justification_tree(StackOut) :-
     format('\nJUSTIFICATION_TREE:',[]),
-    print_s(StackOut), !,
-    true.
+    print_s(StackOut), !.
 
 %!  print_model(?Model)
 %
 %   Print the partial model of the program using Model.
 
-
-%% The model is obtained from the model.
-% TODO: use the StackOut instead of the model.
 print_model(Model) :-
     format('\nMODEL:\n',[]),
     print_model_(Model).
@@ -217,32 +201,26 @@ print_model_(Model):-
 %   Predicate to print PVars = Vars the binding of the variables  in the
 %   query
 
-
 print_unifier(Bindings,PVars) :-
     format('BINDINGS:',[]),
     print_unifier_(Bindings,PVars).
 
 print_unifier_([],[]).
 print_unifier_([Binding|Bs],[PV|PVars]) :-
-    ( PV == Binding ->
-        true
-    ;
-        ( Binding =.. [_,PB,{PConst}], PV == PB ->
-            (current_option(human,on) ->
-                format(' \n~p',[@(Binding:'')])
-            ;
-                format(" \n~p",[PConst])
+    (   PV == Binding
+    ->  true
+    ;   (   Binding =.. [_,PB,{PConst}], PV == PB
+        ->  (   current_option(human,on)
+            ->  format(' \n~p',[@(Binding:'')])
+            ;   format(" \n~p",[PConst])
             )
-        ;
-            (current_option(human,on) ->
-                format(' \n~p equal ~p',[PV,@(Binding:'')])
-            ;
-                format(" \n~p = ~p",[PV,Binding])
+        ;   (   current_option(human,on)
+            ->  format(' \n~p equal ~p',[PV,@(Binding:'')])
+            ;   format(" \n~p = ~p",[PV,Binding])
             )
         )
     ),
     print_unifier_(Bs,PVars).
-
 
 
 select_printable_literals([],Ac,Ac) :- !.
@@ -260,11 +238,10 @@ printable_model_([Last]) :-
     print(Last).
 printable_model_([First,Second|Rest]) :-
     print(First),
-    (  printingHTML ->
-        format(',  ', []),
+    (   printingHTML
+    ->  format(',  ', []),
         tab_html(5)
-    ;
-        format(',  ', [])
+    ;   format(',  ', [])
     ),
     printable_model_([Second|Rest]).
 
@@ -274,11 +251,9 @@ printable_literal(X) :-
     \+ neg_aux_predicate(X),
     X \= 'o_nmr_check',
     X \= chs(_),
-    (
-        pr_show_predicate(_) ->
-        pr_show_predicate(X)
-    ;
-        X \= proved(_)
+    (   pr_show_predicate(_)
+    ->  pr_show_predicate(X)
+    ;   X \= proved(_)
     ).
 
 
@@ -530,11 +505,10 @@ pr_pred_term(A, Type) :-
 pr_pred_term( Error :: print(Error) , default ).
 
 
-print_human(Conector) :-
-    (   current_option(human,on) ->
-        human(Conector,A)
-    ;
-        A = Conector
+print_human(Connector) :-
+    (   current_option(human,on)
+    ->  human(Connector,A)
+    ;   A = Connector
     ),
     write(A).
 
@@ -567,7 +541,6 @@ pr_pred_negated(not(Predicate) :: Human, Type ) :-
     Human = ( format('there is no evidence that ',[]), PrH ).
 
 
-
 pr_pred_default( (A=A)        :: format('~p is ~p',[A,A])) :- !.
 pr_pred_default(true          :: format('\r',[])) :- !.
 pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
@@ -597,20 +570,18 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     atom_chars(Aux,['o','_'|C_Aux]), !,
     append(__C_Pred,['_'|C_Num],C_Aux),
     number_chars(N,C_Num),
-    ( Args == [] ->
-        Human = format('\'rule ~p\' holds',[N])
-    ;
-        Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)])
+    (   Args == []
+    ->  Human = format('\'rule ~p\' holds',[N])
+    ;   Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)])
     ).
 pr_pred_default(Forall  :: Human) :-
     Forall = forall(_,_), !,
     pr_pred_default_forall(Forall, Human).
 pr_pred_default(Other              :: (H0, H1)) :-
     Other =.. [Name|Args],
-    ( Args = [] ->
-        H0 = format('\'~p\' holds',[Name])
-    ;
-        H0 = format('\'~p\' holds (for ~p)',[Name,@(Args)])
+    (   Args == []
+    ->  H0 = format('\'~p\' holds',[Name])
+    ;   H0 = format('\'~p\' holds (for ~p)',[Name,@(Args)])
     ),
     pr_var_default(Args,H1).
 
@@ -963,19 +934,17 @@ set_default_options :-
     set(verbose,0).
 
 set_default_tree_options :-
-    ( current_option(print_tree,on) ->
-        ( \+ current_option(short,on), \+ current_option(long,on) ->
-            set(mid,on)
-        ;
-            true
+    (   current_option(print_tree,on)
+    ->  (   \+ current_option(short,on),
+            \+ current_option(long,on)
+        ->  set(mid,on)
+        ;   true
         ),
-        ( \+ current_option(pos,on) ->
-            set(neg,on)
-        ;
-            true
+        (   \+ current_option(pos,on)
+        ->  set(neg,on)
+        ;   true
         )
-    ;
-        true
+    ;   true
     ).
 
 check_compatibilities :-
