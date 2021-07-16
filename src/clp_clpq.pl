@@ -6,10 +6,10 @@
             entail_terms/2,
             dual_clpq/2,
             apply_clpq_constraints/1,
-            dump_clpq_var/3
+            dump_clpq_var/3,
+
+            op(700, xfx, [(.<>.),(.<.),(.=<.),(.>.),(.>=.)])
           ]).
-% from clpqr_ops.pl
-:- op(700, xfx, [(.<>.),(.<.),(.=<.),(.>.),(.>=.)]).
 
 /** <module> Extension of the constraint solver CLP(Q)
 
