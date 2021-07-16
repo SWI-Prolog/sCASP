@@ -1,12 +1,17 @@
 :- module(casp_english,
           []).
 
-:- multifile prolog:message//1.
+:- multifile
+    prolog:message//1,
+    prolog:error_message//1.
 
 prolog:message(scasp(Term)) -->
     casp_message(Term).
 prolog:message(sasp(Term)) -->
     sasp_message(Term).
+
+prolog:error_message(sasp(Term)) -->
+    sasp_error(Term).
 
 		 /*******************************
 		 *            CASP		*
@@ -31,3 +36,6 @@ syntax_error(unexpected_eof) -->
     ['Unexpected end of file'-[] ].
 syntax_error(lexical(Char, (File, Line, Col))) -->
     ['~w:~d:~d Illegal character: ~w'-[File, Line, Col, Char] ].
+
+sasp_error(syntax(invalid_program)) -->
+    ['One or more errors occurred during parsing'-[]].

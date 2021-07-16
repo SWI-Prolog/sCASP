@@ -72,17 +72,24 @@ JW: A program is parsed by load_source_files/5.  This emits a list of
 %   @arg Files The list of files to load.
 
 load_source_files(Fs) :-
-    once(load_source_files(Fs, [], S, 0, Errs)),
-    Errs = 0,
-    assert_program(S),
-    %write_program,
-    !.
-load_source_files(_) :-
-    write(user_error, 'One or more errors occurred while loading input files!\n'),
-    !,
-    fail.
+    read_source_files(Fs, Statements),
+    assert_program(Statements).
 
-%!  load_source_files(+Files:list, +StmtsIn:list, -StmtsOut:list,
+%!  read_source_files(+Files:list, -Statements:list) is det.
+%
+%   Read a list of ASP source files into a list of statements.
+
+:- det(read_source_files/2).
+
+read_source_files(Files, Statements) :-
+    read_source_files(Files, [], Statements, 0, Errs),
+    (   Errs == 0
+    ->  true
+    ;   throw(error(sasp(syntax(invalid_program)), _))
+    ).
+
+
+%!  read_source_files(+Files:list, +StmtsIn:list, -StmtsOut:list,
 %!                    +ErrorsIn:int, -ErrorsOut:int) is det
 %
 %   Given a list of source files, read, tokenize and parse them, merging
@@ -96,9 +103,7 @@ load_source_files(_) :-
 %   @arg ErrorsIn Input error count.
 %   @arg ErrorsOut Output error count.
 
-:- det(load_source_files/5).
-
-load_source_files([X|T], Si, So, Ei, Eo) :-
+read_source_files([X|T], Si, So, Ei, Eo) :-
     absolute_file_name(X, X2,
                        [ access(read),
                          extensions([asp,pl,''])
@@ -106,13 +111,12 @@ load_source_files([X|T], Si, So, Ei, Eo) :-
     write_verbose(0, 'Loading file ~w...\n', [X2]),
     input(X2, CharPairs),
     tokenize(CharPairs, Toks),
-    once(parse_program(Toks, S, D, E)),
+    parse_program(Toks, S, D, E),
     E2 is Ei + E,
     append(Si, S, S2),
-    once(process_directives(D, X2, S2, S3, T, T2)),
-    !,
-    load_source_files(T2, S3, So, E2, Eo).
-load_source_files([], S, S, E, E).
+    process_directives(D, X2, S2, S3, T, T2),
+    read_source_files(T2, S3, So, E2, Eo).
+read_source_files([], S, S, E, E).
 
 %!  process_directives(+Directives:list, +CurFile:ground,
 %!                     +StmtsIn:list, -StmtsOut:list,
@@ -139,15 +143,15 @@ process_directives([include(X) | T], C, Si, So, Fsi, [X2 | Fso]) :-
     process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([table(X) | T], C, Si, So, Fsi, Fso) :-
     assertz(asp_table(X)),
-    !, % include directive
+    !,
     process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([show(X) | T], C, Si, So, Fsi, Fso) :-
     assertz(show(X)),
-    !, % include directive
+    !,
     process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([pred(X) | T], C, Si, So, Fsi, Fso) :-
     assertz(pred(X)),
-    !, % include directive
+    !,
     process_directives(T, C, Si, So, Fsi, Fso).
 process_directives([abducible(X) | T], C, Si, So, Fsi, Fso) :-
     X =.. [F | A],

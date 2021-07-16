@@ -58,6 +58,10 @@ Input programs are normal logic programs with the following additions:
 :- use_module(common).
 :- use_module(program).
 
+:- det((parse_program/4,
+        parse_query/2
+       )).
+
 %!  parse_program(+Tokens:list, -Statements:list, -Directives:list, -Errors:int)
 %
 %   Parse the list of tokens into a list of statements.
@@ -70,12 +74,10 @@ Input programs are normal logic programs with the following additions:
 
 parse_program(Toks, Stmts, Directives, Errs) :-
     write_verbose(1, 'Parsing input...\n'),
-    once(asp_program(Stmts, Directives, 0, Errs, Toks, [])),
+    asp_program(Stmts, Directives, 0, Errs, Toks, []),
     !.
 parse_program(_, _, _, _) :-
-    write(user_error, 'One or more errors occurred during parsing!\n'),
-    !,
-    fail.
+    throw(error(sasp(syntax(invalid_program)), _)).
 
 %!  parse_query(+Tokens:list, -Query:list)
 %

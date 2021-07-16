@@ -72,7 +72,7 @@ main :-
 
 submain :-
     parse_args(Sources),
-    main2(Sources).
+    sasp_load(Sources).
 
 %!  main(+Source:filepath)
 %
