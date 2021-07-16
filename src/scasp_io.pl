@@ -41,7 +41,11 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 :- use_module(clp_disequality).
 :- use_module(scasp_ops).
 
+:- meta_predicate
+    if_user_option(+, 0).
+
 :- dynamic loaded_file/1.       % Files:list
+:- dynamic cont/0.
 
 %!  scasp_version
 %
@@ -279,77 +283,6 @@ printable_literal(X) :-
         X \= proved(_)
     ).
 
-
-% TODO: remove if it is not needed
-%% Initial interpreters...
-query2([]).
-query2([X|Xs]) :-
-    query2(Xs),
-    query2(X).
-query2(X) :-
-    pr_rule(X, Body),
-    query2(Body).
-
-
-% TODO: remove if it is not needed
-%:- table query3/3.
-query3([X|Xs], I, O) :-
-    format('Calling ~w \t with stack = ~w', [X, I]), nl,
-    query3(X,  [X|I], O1),
-    query3(Xs, O1,    O).
-query3([], I, I) :- !.
-query3(X,  I, O) :-
-    pr_rule(X, Body),
-    query3(Body, I, O).
-
-
-% TODO: remove if it is not needed
-print_constraints('| ',_,Const) :-
-    format("~w",[Const]).
-print_constraints('∉',PB,(Const)) :- !,
-    print_constraints_not(PB,Const).
-print_constraints('∉',PB,(Const,Cs)) :-
-    print_constraints_not(PB,Const),
-    format(", ",[]),
-    print_constraints('∉',PB,Cs).
-print_constraints_not(PB,Const) :-
-    format("~w \\= ~w",[PB,Const]).
-
-
-%!  print_check_calls_calling(?Goal, ?StackIn)
-%
-%   Auxiliar predicate to print StackIn the current stack and Goal. This
-%   predicate is executed when the flag `check_calls` is _on_. NOTE: use
-%   check_calls/0 to activate the flag
-
-
-print_check_calls_calling(Goal,I) :-
-    reverse(I,RI),
-    format('\n--------------------- Calling: ~@ -------------',
-           [print_goal(Goal)]),
-    print_check_stack(RI,4), !,
-    nl,
-%    print(('¿'+Goal+'?')),nl,
-    retractall(sp_tab(_)),
-    retractall(pr_repeat(_,_)),
-    retractall(pr_print(_)).
-
-%!  print_check_stack(A, B)
-%
-%   simple output of the stack to run faster during verboser
-
-print_check_stack([],_).
-print_check_stack([[]|As],I) :- !,
-    I1 is I - 4,
-    print_check_stack(As,I1).
-print_check_stack([A|As],I) :-
-    nl, tab(I),
-    print_goal(A),
-    I1 is I + 4,
-    print_check_stack(As,I1).
-
-%print_goal(Goal) :- !,
-%    print(Goal).
 print_goal(Goal) :- !,
     ciao_goal(Goal, Ciao),
     print(Ciao).
@@ -960,13 +893,6 @@ pretty_constraints_(A,A).
 pretty_rat(rat(A,B),A/B) :- !.
 pretty_rat(A,A).
 
-pretty_clpq(\=, Pretty) => Pretty = #<> .
-pretty_clpq(= , Pretty) => Pretty = #= .
-pretty_clpq(< , Pretty) => Pretty = #< .
-pretty_clpq(> , Pretty) => Pretty = #> .
-pretty_clpq(=<, Pretty) => Pretty = #=< .
-pretty_clpq(>=, Pretty) => Pretty = #>= .
-
 pretty_clp(N,PN) :- pretty_clp_(N,PN), !.
 
 pretty_clp_(.=.,  '#=' ).
@@ -988,7 +914,7 @@ pretty_clp_(>=,>=).
 %% Set options
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- dynamic current_option/2, counter/2.
+:- dynamic current_option/2.
 
 set_options(Options) :-
     set_default_options,
@@ -1092,26 +1018,19 @@ set_user_option('--prev_forall')        :- set(prev_forall,on).
 set_user_option('--raw')                :- set(raw,on).
 
 
-
-
-
-%!  if_user_option(?Name, ?Call)
+%!  if_user_option(:Name, :Call)
 %
-%   If the flag Name is on them the call Call is executed
+%   If the flag Name is `on` then the call Call is executed
 
-
-if_user_option(Name,Call) :-
-    (
-        current_option(Name,on) ->
-        call(Call)
-    ;
-        true
+if_user_option(Name, Call) :-
+    (   current_option(Name,on)
+    ->  call(Call)
+    ;   true
     ).
 
-%!  set(?Option, ?Value)
+%!  set(+Option, +Value)
 %
 %   Used to set-up the user options
-
 
 set(Option, Value) :-
     retractall(current_option(Option, _)),
