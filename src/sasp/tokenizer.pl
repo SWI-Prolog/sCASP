@@ -259,7 +259,8 @@ op_tok(::)    --> expand.
 %   A string in single quotes. When   looking for terminal quote, ignore
 %   those escaped by a backslash.
 %
-%   @arg Token The token returned.
+%   @arg Token The token returned.  This is a term str(Atom), where Atom
+%   starts and ends with a single quote.
 
 quoted_string((str(X), Pos)) -->
     [('\'', Pos)],

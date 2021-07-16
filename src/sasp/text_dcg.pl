@@ -464,7 +464,8 @@ asp_predicate(X) -->
 %!                 +TokensIn:list, -TokensOut:list)
 %
 %   If atom is a compound term, get a list of args. Add the arity to the
-%   predicate name for easy matching later on.
+%   predicate name for easy matching  later   on,  e.g,  bird(X) becomes
+%   bird_1(X).
 %
 %   @arg Atom The final atom, concatenated with arguments.
 %   @arg Name The initial atom, prior to reading any arguments.
@@ -773,7 +774,7 @@ strip_quotes(Si, So) :-
 strip_quotes(S, S) :-
     !. % first char is not a quote
 
-%!  incr(+IntIn:int, -IntOut:int, +TokensIn:list, -TokensOut:list)
+%!  incr(+IntIn:int, -IntOut:int)//
 %
 %   DCG-ready increment.
 %
@@ -782,8 +783,8 @@ strip_quotes(S, S) :-
 %   @arg TokensIn Input list of tokens.
 %   @arg TokensOut Output list of tokens.
 
-incr(I, I2, T, T) :-
-    I2 is I + 1.
+incr(I, I2) -->
+    { I2 is I + 1 }.
 
 %!  follow(+FollowList:list, +TokensIn:list, -TokensOut:list)
 %
@@ -794,11 +795,14 @@ incr(I, I2, T, T) :-
 %   @arg TokensIn Input list of tokens.
 %   @arg TokensOut Output list of tokens.
 
-follow(Xs, [T | Ts], [T | Ts]) :-
-    T = (T2, _),
-    member(T2, Xs).
+follow(Xs) -->
+    peek((T2,_)),
+    { memberchk(T2, Xs) }.
 
-%!  terminal(+Expected:callable, +TokensIn:list, -TokensOut:list)
+peek(H, T, T) :-
+    T = [H|_].
+
+%!  terminal(+Expected:callable)//
 %
 %   Consume a terminal. Print  an  error   message  if  incorrect  token
 %   encountered.
@@ -821,6 +825,7 @@ terminal(Expected) -->
 %
 %   @arg TokensIn Input list of tokens.
 %   @arg TokensOut Output list of tokens.
+
 empty_list([], []).
 
 %!  replace_underscore(-Var:compound)

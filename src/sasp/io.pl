@@ -47,6 +47,16 @@ JW: A program is parsed by load_source_files/5.  This emits a list of
   - Literal-Body
     Where Body is a list of literals that expresses the conjunction.
 
+Variables are represented as Prolog atoms   using variable syntax. The _
+is translated into `'Var0'`, `'Var1'`, etc.
+
+In addition, #table, #pred and  #show   asserts  the corresponding facts
+into the database. TBD: Avoid that.
+
+@tbd: Use normal clauses
+@tbd: Represent query as N{Query} or ?- Query
+@tbd: Use Prolog variables or perhaps '$VAR'(Name) terms.
+
 @author Kyle Marple
 @version 20170127
 @license BSD-3

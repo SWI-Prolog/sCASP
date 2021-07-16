@@ -165,18 +165,15 @@ has_prefix(F, C) :-
 %
 %  @arg Statements List of rules and compute statements produced by DCG.
 
+:- det(assert_program/1).
+
 assert_program(Stmts) :-
     write_verbose(0, 'Converting program to internal format...\n'),
     format_program(Stmts, Program),
     get_predicates(Program, Predicates),
     assert_predicates(Predicates),
     assert_program_struct(Program),
-    handle_classical_negations(Predicates, []),
-    !.
-assert_program(_) :-
-    write_error('could not convert input program to internal format'),
-    !,
-    fail.
+    handle_classical_negations(Predicates, []).
 
 %!  format_program(+Statements:list, -Program:compound) is det
 %
