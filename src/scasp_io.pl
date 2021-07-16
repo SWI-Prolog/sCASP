@@ -234,16 +234,17 @@ select_printable_literals(_,Ac0,Ac0).
 
 
 printable_model_([]).
-printable_model_([Last]) :-
-    print(Last).
-printable_model_([First,Second|Rest]) :-
+printable_model_([First|Rest]) :-
     print(First),
-    (   printingHTML
-    ->  format(',  ', []),
-        tab_html(5)
-    ;   format(',  ', [])
-    ),
-    printable_model_([Second|Rest]).
+    (   Rest == []
+    ->  true
+    ;   (   printingHTML
+        ->  format(',  ', []),
+            tab_html(5)
+        ;   format(',  ', [])
+        ),
+        printable_model_(Rest)
+    ).
 
 printable_literal(X) :-
     X \= abducible(_),
@@ -1088,15 +1089,10 @@ help_all :-
     format('\n').
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Parse arguments
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %!  parse_args(?Args, ?Options, ?Sources)
 %
 %   Select  from  the  list  of   arguments  in   Args  which   are  the
 %   user-options, Options and which are the program files, Sources
-
 
 parse_args([],[],[]).
 parse_args([O | Args], [O | Os], Ss) :-
@@ -1106,70 +1102,69 @@ parse_args([S | Args], Os, [S | Ss]) :-
     parse_args(Args, Os, Ss).
 
 
-
 :- use_module('html/html_head').
 :- use_module('html/jquery_tree').
 :- use_module('html/html_tail').
-%!  print_html(?Query, ?Model, ?StackOut)
+
+%!  print_html(?Query, ?Model, ?StackOut) is det.
 %
 %   Generate a html file with the  model and  the justification  tree of
 %   the `Sources` for the Query using Model and StackOut resp.
 
+:- det(( print_html/3,
+         print_html_to_current_output/3,
+         print_html_human_query/1,
+         print_html_query/1,
+         print_model_/1,
+         print_html_stack/1
+       )).
 
-%% Print output predicates to presaent the results of the query
 print_html(Query, Model, StackOut) :-
     write('\nBEGIN HTML JUSTIFICATION'),
-    (   html_name(F) ->
-        (   atom_concat(_,'.html',F) ->
-            File = F
-        ;
-            atom_concat(F,',html',File)
-        )
-    ;
-        loaded_file([S|_Sources]),
+    (   html_name(F)
+    ->  ensure_extension(F, html, File)
+    ;   loaded_file([S|_Sources]),
         create_file_name(S,File)
     ),
-    open_output_file(Stream,File,Current),
-    (   load_html_head(Head),
-        format('~w', [Head]),
-        (   current_option(human,on)	% Skip output of the model in human mode
-        ->  print_html_human_query(Query),
-            nl
-        ;   print_html_query(Query),nl,
-            format('<h3>Model:</h3>\n', []),
-            print_model_(Model)
-        ),
-        br,br,nl,
-        format('<h3> Justification: \c
-                <button onclick="expand()">Expand All</button>\c
-                <button onclick="depth(+1)">+1</button>\c
-                <button onclick="depth(-1)">-1</button>\c
-                <button onclick="collapse()">Collapse All</button>\c
-                </h3>\n\n'),
-        print_html_stack(StackOut),
-        load_jquery_tree(Jquery_tree),
-        format('~w~n~n', [Jquery_tree]),
-        load_html_tail(Tail),
-        format('~w~n', [Tail])
-    *-> true
-    ;   true
-    ),
-    close_output_file(Stream,Current),
-    write(' and END\n'),
-    !.
+    setup_call_cleanup(
+        open_output_file(Stream,File,Current),
+        print_html_to_current_output(Query, Model, StackOut),
+        close_output_file(Stream,Current)),
+    write(' and END\n').
 
+ensure_extension(Base, Ext, File) :-
+    file_name_extension(_, Ext, Base),
+    !,
+    File = Base.
+ensure_extension(Base, Ext, File) :-
+    file_name_extension(Base, Ext, File).
 
 create_file_name(Source,File) :-
-    atom_chars(Source,C_S),
-    reverse(C_S,RC_S),
-    remove_ext(RC_S,RC_Name),
-    reverse(RC_Name,C_Name),
-    atom_chars(Name,C_Name),
-    atom_concat(Name,'html',File).
-remove_ext([C|Rs],S) :-
-    C \= '.', !,
-    remove_ext(Rs,S).
-remove_ext(Rs,Rs).
+    file_name_extension(Base, _Ext, Source),
+    file_name_extension(Base, html, File).
+
+print_html_to_current_output(Query, Model, StackOut) :-
+    load_html_head(Head),
+    format('~w', [Head]),
+    (   current_option(human,on)	% Skip output of the model in human mode
+    ->  print_html_human_query(Query),
+        nl
+    ;   print_html_query(Query),nl,
+        format('<h3>Model:</h3>\n', []),
+        print_model_(Model)
+    ),
+    br,br,nl,
+    format('<h3> Justification: \c
+            <button onclick="expand()">Expand All</button>\c
+            <button onclick="depth(+1)">+1</button>\c
+            <button onclick="depth(-1)">-1</button>\c
+            <button onclick="collapse()">Collapse All</button>\c
+            </h3>\n\n'),
+    print_html_stack(StackOut),
+    load_jquery_tree(Jquery_tree),
+    format('~w~n~n', [Jquery_tree]),
+    load_html_tail(Tail),
+    format('~w~n', [Tail]).
 
 print_html_query([[true|PQ],_,Bindings,PVars]) :- !,
     print_html_query([PQ,_,Bindings,PVars]).
@@ -1204,20 +1199,18 @@ print_html_human_query([PQ,PAnswer,Bindings,PVars]) :-
 
 print_html_unifier([],[]).
 print_html_unifier([Binding|Bs],[PV|PVars]) :-
-    ( PV == Binding ->
-        true
-    ;
-        (   Binding =.. [_,PB,{PConst}], PV = $(PB) ->
-            (   current_option(human,on) ->
-                tab_html(15),format('when ~p',[@(Binding:store)]),br,nl
-            ;
-                tab_html(15),format("~p",[PConst]),br,nl
+    (   PV == Binding
+    ->  true
+    ;   tab_html(15),
+        (   Binding =.. [_,PB,{PConst}],
+            PV = $(PB)
+        ->  (   current_option(human,on)
+            ->  format('when ~p',[@(Binding:store)]),br,nl
+            ;   format("~p",[PConst]),br,nl
             )
-        ;
-            (   current_option(human,on) ->
-                tab_html(15),format('when ~p is ~p',[PV,@(Binding:'')]),br,nl
-            ;
-                tab_html(15),format("~p = ~p",[PV,Binding]),br,nl
+        ;   (   current_option(human,on)
+            ->  format('when ~p is ~p',[PV,@(Binding:'')]),br,nl
+            ;   format("~p = ~p",[PV,Binding]),br,nl
             )
         )
     ),
@@ -1235,54 +1228,49 @@ print_html_stack(StackOut) :-
 print_html_stack_([],_,_) :-
     print_human('.'),
     retract(pr_print(Sp)),
+    !,
     nl,tab(Sp), format('</li> '),
     close_ul(Sp,5).
 print_html_stack_([[]|As],I,I0) :- !,
-    (   sp_tab(I) ->
-        retract(sp_tab(I)),
-        I1 = I
-    ;
-        I1 is I - 4
+    (   retract(sp_tab(I))
+    ->  I1 = I
+    ;   I1 is I - 4
     ),
     print_html_stack_(As,I1,I0).
 print_html_stack_([A|As],I,I0) :- !,
-    (  I0 > I ->
-        retractall(pr_repeat(I0,_))
-    ;
-        true
+    (   I0 > I
+    ->  retractall(pr_repeat(I0,_))
+    ;   true
     ),
-    ( [A|As] == [o_nmr_check,[],[],[]] ->
-        print_html_zero_nmr(A,I,I1)
-    ;
-        print_html_term(A,I,I1)
+    (   [A|As] == [o_nmr_check,[],[],[]]
+    ->  print_html_zero_nmr(A,I,I1)
+    ;   print_html_term(A,I,I1)
     ),
     print_html_stack_(As,I1,I).
 
 print_html_term(A,I,I1) :-
     pr_human_term((A::Human),Type), !,
-    (   current_option(mid,on), Type \= (pred), Type \= mid ->
-        asserta(sp_tab(I)),
+    (   current_option(mid,on),
+        Type \= (pred),
+        Type \= mid
+    ->  asserta(sp_tab(I)),
         I1 = I
-    ;
-        (   current_option(short,on), Type \= (pred) ->
-            asserta(sp_tab(I)),
+    ;   (   current_option(short,on),
+            Type \= (pred)
+        ->  asserta(sp_tab(I)),
             I1 = I
-        ;
-            (   retract(pr_print(Sp)) ->
-                (   Sp > I ->
-                    print_human('.'),
+        ;   (   retract(pr_print(Sp))
+            ->  (   Sp > I
+                ->  print_human('.'),
                     nl,tab(Sp), format('</li> '),
                     close_ul(Sp,I)
-                ;
-                    Sp < I,
-                    print_human(' :-'),
+                ;   Sp < I
+                ->  print_human(' :-'),
                     nl,tab(I), format('<ul>')
-                ;
-                    print_human(','),
+                ;   print_human(','),
                     nl,tab(Sp), format('</li> ')
                 )
-            ;
-                true
+            ;   true
             ),
             nl,tab(I),format('<li> '),
             nl,tab(I),call(Human),
@@ -1292,16 +1280,14 @@ print_html_term(A,I,I1) :-
     ).
 
 print_html_zero_nmr(_,I,I1) :-
-    (   current_option(short,on) ->
-        asserta(sp_tab(I)),
+    (   current_option(short,on)
+    ->  asserta(sp_tab(I)),
         I1 = I
-    ;
-        nl,tab(I),format('<li> '),
+    ;   nl,tab(I),format('<li> '),
         nl,tab(I),
-        (   current_option(human,on) ->
-            format('There are no nmr to be checked',[])
-        ;
-            print(global_constraint)
+        (   current_option(human,on)
+        ->  format('There are no nmr to be checked',[])
+        ;   print(global_constraint)
         ),
         I1 is I + 4
     ).
@@ -1315,10 +1301,12 @@ close_ul(I0,I) :-
     close_ul(I1,I).
 
 
-%! tab_html(+Level:int) is det
-% Write Level spaces.
+%!  tab_html(+Level:int) is det
 %
-% @param Level The level to tabs to.
+%   Write Level spaces.
+%
+%   @arg Level The level to tabs to.
+
 tab_html(N) :-
     N > 0,
     N1 is N - 1,
@@ -1339,12 +1327,15 @@ print_html_human_body([L|Ls]) :-
     format(', and'),br,nl,
     print_html_human_body(Ls).
 
-print_html_body([]) :- format('.').
-print_html_body([X]):-
-    print(X),format('.').
-print_html_body([X,Y|Xs]):-
-    print(X),format(','),tab_html(2),nl,
-    print_html_body([Y|Xs]).
+print_html_body([]) :-
+    format('.').
+print_html_body([X|Xs]):-
+    print(X),
+    (   Xs == []
+    ->  format('.')
+    ;   format(','),tab_html(2),nl,
+        print_html_body(Xs)
+    ).
 
 :- dynamic(printingHTML/0).
 open_output_file(Stream,File,Current) :-
