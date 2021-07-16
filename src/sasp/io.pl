@@ -99,20 +99,15 @@ load_source_files(_) :-
 load_source_files([X | T], Si, So, Ei, Eo) :-
     absolute_file_name(X, X2),
     write_verbose(0, 'Loading file ~w...\n', [X2]),
-    once(input(X2, CharPairs)),
+    input(X2, CharPairs),
     once(tokenize(CharPairs, Toks)),
-    %writef('got tokens: ~w\n\n', [Toks]),
     once(parse_program(Toks, S, D, E)),
     E2 is Ei + E,
-    %writef('got statements ~w\n', [S]),
-    %writef('got directives ~w\n', [D]),
     append(Si, S, S2),
     once(process_directives(D, X2, S2, S3, T, T2)),
-    %writef('loaded file ~w\n', [X]),
     !,
     load_source_files(T2, S3, So, E2, Eo).
-load_source_files([], S, S, E, E) :-
-    !.
+load_source_files([], S, S, E, E).
 
 %!  process_directives(+Directives:list, +CurFile:ground,
 %!                     +StmtsIn:list, -StmtsOut:list,
@@ -177,7 +172,7 @@ process_directives([X | _], _, _, _, _, _) :-
 process_directives([], _, S, S, F, F) :-
     !.
 
-%!  input(?Source:filepath, -CharPairs:list)
+%!  input(?Source, -CharPairs:list)
 %
 %   Read the entire program into a list,  then store each character with
 %   its position. Ensure that input  file   is  closed  properly even if
@@ -185,80 +180,25 @@ process_directives([], _, S, S, F, F) :-
 %
 %   @arg Source Input file, if given. If no input file is supplied (Source is
 %        unbound), an error message will be printed and the call will fail.
-%   @arg CharPairs List of character-position pairs.
+%   @arg CharPairs List of Char-Pos pairs, where Pos is a term
+%        (File, Line, Col).
 
 input(Source, CharPairs) :-
     write_verbose(1, 'Reading file...\n'),
-    once(open_input(Source, Sread)),
-    input2(Sread, Source, CharPairs),
-    !.
+    read_input_to_string(Source, String),
+    string_chars(String, Chars),
+    add_positions(Chars, Source, CharPairs).
 
-%!  input2(+Stream:stream, +Source:filepath, -CharPairs:list)
-%
-%   Read the entire file into a list, then store each character with its
-%   position. Ensure that input file is  closed properly even if reading
-%   fails.
-%
-%   @arg Stream Input stream from input/2.
-%   @arg Source Input source. Stored with token position info.
-%   @arg CharPairs List of character-position pairs.
-
-input2(current_input, Source, CharPairs) :-
-    read_file(current_input, Chars),
-    add_positions(Chars, Source, CharPairs),
-    !.
-input2(Sread, Source, CharPairs) :-
-    Sread \= current_input,
-    read_file(Sread, Chars),
-    add_positions(Chars, Source, CharPairs),
-    close(Sread),
-    !.
-input2(Sread, _, _) :- % close the file even if tokenizer fails
-    Sread \= current_input,
-    close(Sread),
-    !,
-    fail.
-
-%!  open_input(+File:filepath, -Stream:stream)
-%
-%   If reading from a file, open it   and  return the stream. Otherwise,
-%   return the current input stream.
-%
-%   @arg File Input file path. Will print an error and fail if unbound.
-%   @arg Stream Stream to use for input.
-
-open_input(File, Stream) :-
-    nonvar(File),
-    !,
-    open(File, read, Stream).
-open_input(_, current_input).
-
-%!  read_file(+Input:stream, -Chars:list)
-%
-%   Read the stream Input into a list of characters.
-%
-%   @arg Input Input stream.
-%   @arg Chars The list of characters read from the file.
-
-read_file(Input, Chars) :-
-    write_verbose(1, 'Reading input...\n'),
-    get_char(Input, Firstchar),
-    read_file2(Input, Firstchar, Chars).
-
-%!  read_file2(+Input:stream, +FirstChar:char, -Chars:list)
-%
-%   Read the entire file into a list of characters.
-%
-%   @arg Input Input stream.
-%   @arg FirstChar The previous character read from the file.
-%   @arg Chars The list of characters read from the file.
-
-read_file2(_, Char, []) :-
-    Char = end_of_file,
-    !.
-read_file2(Input, Char, [Char | Chars]) :-
-    catch(get_char(Input, Char2),_,Chars=[]),
-    read_file2(Input, Char2, Chars).
+read_input_to_string(Source, String), var(Source) =>
+    String = current_input,
+    read_string(current_input, _Len, String).
+read_input_to_string(current_input, String) =>
+    read_string(current_input, _Len, String).
+read_input_to_string(File, String) =>
+    setup_call_cleanup(
+        open(File, read, In),
+        read_string(In, _, String),
+        close(In)).
 
 %!  read_query(+Input:stream, -CharsOut:list) is det
 %
@@ -347,7 +287,8 @@ add_positions(Cin, Source, Cout) :-
     write_verbose(1, 'Storing character positions...\n'),
     add_positions2(Cin, Cout, Source, 1, 1).
 
-%!  add_positions2(+CharsIn:list, -CharsOut:list, +Source:filepath, +Line:int, +Col:int)
+%!  add_positions2(+CharsIn:list, -CharsOut:list,
+%!                 +Source:filepath, +Line:int, +Col:int)
 %
 %   Add position information to characters.
 %

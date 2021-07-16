@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(main,
+:- module(sasp_main,
           [ main/0,
             main/1,
             debugmain/1
@@ -71,7 +71,7 @@ main :-
 %   profile/1.
 
 submain :-
-    once(parse_args(Sources)),
+    parse_args(Sources),
     main2(Sources).
 
 %!  main(+Source:filepath)
@@ -83,8 +83,8 @@ submain :-
 main(Sources) :-
     Sources = [_ | _],
     !,
-    once(parse_args2(Sources,Files)),
-    main2(Files).
+    parse_args2(Sources,Files),
+    sasp_load(Files).
 main(Source) :-
     main([Source]).
 
@@ -97,30 +97,29 @@ main(Source) :-
 %   @arg Args The list of commandline arguments, including input files.
 
 debugmain(Args) :-
-    once(parse_args2(Args, Sources)),
-    main2(Sources).
+    parse_args2(Args, Sources),
+    sasp_load(Sources).
 
-%!  main2(+Sources:list)
+%!  sasp_load(+Sources:list)
 %
-%   Output of each call should be  deterministic, so backtracking is not
-%   necessary at this level.
+%   Load the files from Sources.
 %
 %   @arg Sources A list of paths of input files.
 
-main2(_) :-
+sasp_load(_) :-
     user_option(help, 1),
     !,
     help.
-main2([]) :- % require an input file
+sasp_load([]) :- % require an input file
     write(user_error, 'ERROR: No input file specified!\n\n'),
     help,
     !.
-main2(Sources) :-
-    once(set_stack_sizes),
-    once(set_default_options),
-    once(load_source_files(Sources)),
-    once(comp_duals),
-    once(generate_nmr_check),
+sasp_load(Sources) :-
+    set_stack_sizes,
+    set_default_options,
+    load_source_files(Sources),
+    comp_duals,
+    generate_nmr_check,
     write_verbose(0, 'Preparation of input program complete.\n'),
     (   user_option(generate_pr_rules, true)
     ->  generate_pr_rules(Sources)
@@ -138,14 +137,14 @@ main2(Sources) :-
 
 parse_args(Sources) :-
     current_prolog_flag(argv, Args),
-    parse_args2(Args, Sources).
+    parse_args2(Args, Sources),
+    !.
 parse_args(_) :-
     write_error('invalid command-line arguments'),
     help,
-    !,
     fail.
 
-%!  parse_args2(+Args:list, -Sources:list)
+%!  parse_args2(+Args:list, -Sources:list) is semidet.
 %
 %   Checks  individual  arguments   given    from   command-line.   Call
 %   parse_args/1 instead of this.
