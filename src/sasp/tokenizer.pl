@@ -207,77 +207,51 @@ token((C, Pos)) --> % any other visible characters that aren't letters or digits
 %
 %   Token for a multi-character operator that won't be matched as an id.
 %
-%   @arg Token The token returned.
+%   @arg Token The token returned as a pair(Atom, Pos)
 
-op_tok((':-', Pos)) -->
-    [(':', Pos)], [('-', _)].
-op_tok((=:=, Pos)) -->
-    [('=', Pos)], [(':', _)], [('=', _)].
-op_tok((=\=, Pos)) -->
-    [('=', Pos)], [('\\', _)], [('=', _)].
-op_tok((=.., Pos)) -->
-    [('=', Pos)], [('.', _)], [('.', _)].
-op_tok((\=, Pos)) -->
-    [('\\', Pos)], [('=', _)].
-op_tok((=<, Pos)) -->
-    [('=', Pos)], [('<', _)].
-op_tok((<<, Pos)) -->
-    [('<', Pos)], [('<', _)].
-op_tok((>=, Pos)) -->
-    [('>', Pos)], [('=', _)].
-op_tok((>>, Pos)) -->
-    [('>', Pos)], [('>', _)].
-op_tok(('-->', Pos)) -->
-    [('-', Pos)], [('-', _)], [('>', _)].
-op_tok(('->', Pos)) -->
-    [('-', Pos)], [('>', _)].
-op_tok(('**', Pos)) -->
-    [('*', Pos)], [('*', _)].
-op_tok((/\, Pos)) -->
-    [('/', Pos)], [('\\', _)].
-op_tok((//, Pos)) -->
-    [('/', Pos)], [('/', _)].
-op_tok((@>=, Pos)) -->
-    [('@', Pos)], [('>', _)], [('=', _)].
-op_tok((@=<, Pos)) -->
-    [('@', Pos)], [('=', _)], [('<', _)].
-op_tok((@<, Pos)) -->
-    [('@', Pos)], [('<', _)].
-op_tok((@>, Pos)) -->
-    [('@', Pos)], [('>', _)].
-op_tok(('?-', Pos)) -->
-    [('?', Pos)], [('-', _)].
-op_tok((\/, Pos)) -->
-    [('\\', Pos)], [('/', _)].
+term_expansion((op_tok(Tok) --> expand),
+               (op_tok((Tok,Pos)) --> [(C0,Pos)|Body])) :-
+    atom_chars(Tok, [C0|T]),
+    maplist(c_pos, T, Body).
+
+c_pos(C, (C,_)).
+
+op_tok(:-)    --> expand.
+op_tok(=:=)   --> expand.
+op_tok(=\=)   --> expand.
+op_tok(=..)   --> expand.
+op_tok(\=)    --> expand.
+op_tok(=<)    --> expand.
+op_tok(<<)    --> expand.
+op_tok(>=)    --> expand.
+op_tok(>>)    --> expand.
+op_tok(-->)   --> expand.
+op_tok(->)    --> expand.
+op_tok(**)    --> expand.
+op_tok(/\)    --> expand.
+op_tok(//)    --> expand.
+op_tok(@>=)   --> expand.
+op_tok(@=<)   --> expand.
+op_tok(@<)    --> expand.
+op_tok(@>)    --> expand.
+op_tok(?-)    --> expand.
+op_tok(\/)    --> expand.
 % Default constraints
-op_tok(('#=<', Pos)) -->
-    [('#', Pos)], [('=', _)], [('<', _)].
-op_tok(('#=', Pos)) -->
-    [('#', Pos)], [('=', _)].
-op_tok(('#<>', Pos)) -->
-    [('#', Pos)], [('<', _)], [('>', _)].
-op_tok(('#<', Pos)) -->
-    [('#', Pos)], [('<', _)].
-op_tok(('#>=', Pos)) -->
-    [('#', Pos)], [('>', _)], [('=', _)].
-op_tok(('#>', Pos)) -->
-    [('#', Pos)], [('>', _)].
-% clp(q/r)
-op_tok((.=., Pos)) -->
-    [('.', Pos)], [('=', _)], [('.', _)].
-op_tok((.<>., Pos)) -->
-    [('.', Pos)], [('<', _)], [('>', _)], [('.', _)].
-op_tok((.<., Pos)) -->
-    [('.', Pos)], [('<', _)], [('.', _)].
-op_tok((.>., Pos)) -->
-    [('.', Pos)], [('>', _)], [('.', _)].
-op_tok((.>=., Pos)) -->
-    [('.', Pos)], [('>', _)], [('=', _)], [('.', _)].
-op_tok((.=<., Pos)) -->
-    [('.', Pos)], [('=', _)], [('<', _)], [('.', _)].
+op_tok(#=<)   --> expand.
+op_tok(#=)    --> expand.
+op_tok(#<>)   --> expand.
+op_tok(#<)    --> expand.
+op_tok(#>=)   --> expand.
+op_tok(#>)    --> expand.
+% clpq/r)
+op_tok(.=.)   --> expand.
+op_tok(.<>.)  --> expand.
+op_tok(.<.)   --> expand.
+op_tok(.>.)   --> expand.
+op_tok(.>=.)  --> expand.
+op_tok(.=<.)  --> expand.
 % operator for human output
-op_tok((::, Pos)) -->
-    [(':', Pos)], [(':', _)].
+op_tok(::)    --> expand.
 
 
 %!  quoted_string(-Token:compound)//
