@@ -39,6 +39,7 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 :- use_module(scasp_load_compiled).
 :- use_module(clp_disequality).
 :- use_module(scasp_ops).
+:- use_module(english).
 
 :- meta_predicate
     if_user_option(+, 0).
@@ -57,31 +58,27 @@ scasp_version :-
 
 %!  load_program(?Files)
 %
-%   Call s(aso) to  generate and  assert the  translation of  the progam
+%   Call s(asp) to generate and assert   the  translation of the program
 %   (with dual and nmr_check)
 
-
 load_program([]) :-
-    display('ERROR: No imput file specified!'),nl,nl,
+    print_message(error, scasp(no_input_files)),
     s_help,
     halt(1).
 load_program(C) :-
-    retractall(loaded_file(_)),
     current_option(compiled, on), !,
-    (   is_list(C) ->
-        Files = C
-    ;
-        Files = [C]
+    retractall(loaded_file(_)),
+    (   is_list(C)
+    ->  Files = C
+    ;   Files = [C]
     ),
     read_compiled_source(C),
     assert(loaded_file(Files)).
 load_program(X) :-
     retractall(loaded_file(_)),
-    (
-        is_list(X) ->
-        Files = X
-    ;
-        Files = [X]
+    (   is_list(X)
+    ->  Files = X
+    ;   Files = [X]
     ),
     main(['-g'| Files]),
     assert(loaded_file(Files)).
