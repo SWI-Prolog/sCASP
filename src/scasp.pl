@@ -24,7 +24,6 @@
             solve_c_forall/4,
 
             op(700, fx, not),
-            op(700, fx, ?=),
             op(700, fx, ??),
             op(700, fx, ?)
           ]).
