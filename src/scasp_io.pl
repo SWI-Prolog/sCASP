@@ -629,13 +629,7 @@ user_predicate(A) :- !,
     A =.. [Name|Args],
     length(Args,La),
     pr_user_predicate(Name/La).
-%%
-user_neg_predicate(not(A)) :- !,
-    user_predicate(A).
-user_neg_predicate(A) :- !,
-    A =.. [Name|_],
-    atom_concat('-',_,Name).
-%%
+
 aux_predicate(-(o_,_)) :- !.
 aux_predicate(A) :-
     A =.. [Name|_],
@@ -1497,21 +1491,6 @@ print_human_body_(L) :-
     pr_human_term(L::Format,_),
     nl,tab(5),
     call(Format).
-
-print_human_body_forall(Forall,I) :-
-    Forall = forall(_,InForall), !,
-    pr_human_term(Forall::Format,_),
-    nl,tab(I),
-    call(Format),
-    I1 is I + 3,
-    print_human_body_forall(InForall,I1).
-
-print_human_body_forall(InForall,I) :-
-    pr_human_term(InForall::Format,_),
-    nl,tab(I),
-    call(Format).
-
-
 
 %!  dual_reverse(A, B)
 %
