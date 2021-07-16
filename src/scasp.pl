@@ -20,6 +20,7 @@
             check_calls/0,
             pos_loops/0,
             print_on/0,
+            print_tree_on/0,
             solve_c_forall/4,
 
             op(700, fx, not),
@@ -221,18 +222,6 @@ defined_query(_) :-
 defined_query(Q) :-
     pr_query(Q).
 
-%!  collect_min_models(?Query)
-%
-%   Collect the minimal models of a query Query
-
-
-% %% USE Tabling to collect the minimal models (Uncomment next two lines) %%
-% :- use_package(tclp_aggregates).
-% :- agg_entail take_min(_,ord_subset,nt,nt,nt).
-% %% USE Tabling to collect the minimal models
-
-% Define aggregate modes
-nt(_A, _B).
 
 % Predicate aggregated
 take_min(Query, MinModel, Model, StackOut, T) :-
@@ -281,47 +270,54 @@ collect_min_models(Q0) :-
 %
 %   Turn on the flag `check_calls`
 
+check_calls :- set(check_calls, on).
+
 %!  pos_loops
 %
 %   Turn on the flag `pos_loops`
+
+pos_loops :- set(pos_loops, on).
 
 %!  print_on
 %
 %   Turn on the flag `print`
 
+print_on :- set(print, on).
+
 %!  print_tree_on
 %
 %   Turn on the flag `print_tree`
 
+print_tree_on :-
+    set(print_tree, on).
 
 clear_flags :-
     set(check_calls, off),
     set(pos_loops, off),
     set(print, off),
     set(print_tree, off).
-check_calls :- set(check_calls, on).
-pos_loops :- set(pos_loops, on).
-print_on :- set(print, on).
-print_tree_on :- set(print_tree, on).
 
 %!  ??(?Query)
 %
 %   Shorcut predicate to ask queries in the top-level returning also the
 %   justification tree. It calls solve_query/1
 
+?? Q :-
+    set(print, on),
+    solve_query(Q).
+
 %!  ? (?Query)
 %
 %   Shorcut  predicate  to  ask  queries  in  the  top-level.  It  calls
 %   solve_query/1
 
-
-?? Q :-
-    set(print, on),
-    solve_query(Q).
-
 ? Q :-
     set(print, off),
     solve_query(Q).
+
+%!  solve_query(+Q)
+%
+%   Solve a query from the interactive toplevel.
 
 solve_query(Q) :-
     process_query(Q, _, Query),
@@ -338,6 +334,7 @@ solve_query(Q) :-
 
     ask_for_more_models.
 
+
 		 /*******************************
 		 *        SOLVE THE QUERY	*
 		 *******************************/
@@ -349,20 +346,17 @@ solve_query(Q) :-
 %   visited to prove the sub-goals and in Model  the model  with support
 %   the sub-goals
 
-
 solve([], StackIn, [[]|StackIn], []).
 solve([Goal|Goals], StackIn, StackOut, Model) :-
     if_user_option(check_calls, print_check_calls_calling(Goal, StackIn)),
     check_goal(Goal, StackIn, StackMid, Modelx), Modelx = [AddGoal|JGoal],
     if_user_option(check_calls, format('Success ~@\n', [print_goal(Goal)])),
     solve(Goals, StackMid, StackOut, Modelxs), Modelxs = JGoals,
-    (
-        shown_predicate(Goal) ->
-        Model = [AddGoal, JGoal|JGoals]
-    ;
-        %           Model = [AddGoal, JGoal|JGoals]
-        Model = [JGoal|JGoals]
+    (   shown_predicate(Goal)
+    ->  Model = [AddGoal, JGoal|JGoals]
+    ;   Model = [JGoal|JGoals]
     ).
+
 
 %!  check_goal(?Goal, ?StackIn, ?StackOut, ?Model)
 %
@@ -370,7 +364,6 @@ solve([Goal|Goals], StackIn, StackOut, Model) :-
 %   goals already visited StackIn to  determine if  it is  a coinductive
 %   success, a coinductive failure, an already proved sub-goal, or if it
 %   has to be evaluated
-
 
 check_goal(Goal, StackIn, StackOut, Model) :-
     check_CHS(Goal, StackIn, Check), %% Check condition for coinductive success
@@ -405,13 +398,13 @@ mark_prev_goal(Goal,[I|In],[assume(Goal)|In]) :- Goal == I, !.
 mark_prev_goal(Goal,[I|In],[I|Mk]) :- mark_prev_goal(Goal,In,Mk).
 mark_prev_goal(_Goal,[],[]).
 
+
 %!  solve_goal(?Goal, ?StackIn, ?StackOut, ?GoalModel)
 %
 %   Solve a  simple sub-goal  Goal where  StackIn is  the list  of goals
 %   already visited and returns in StackOut the list of goals visited to
 %   prove  the  sub-goals  and  in  `Model` the  model with  support the
 %   sub-goals
-
 
 solve_goal(Goal, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
@@ -448,7 +441,8 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
     ;   shown_predicate(Goal),
         if_user_option(
             trace_failures,
-            ( if_user_option(show_tree, print_check_calls_calling(Goal, [Goal|StackIn])),
+            ( if_user_option(show_tree,
+                             print_check_calls_calling(Goal, [Goal|StackIn])),
               format("\nFAILURE to prove the literal: ~@\n\n", [print_goal(Goal)])
             )
         ),
@@ -470,46 +464,44 @@ solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
 
-% deprecated -- use flag: '--prev_forall' %%
 %!  solve_goal_forall(forall(?Var, ?Goal), ?StackIn, ?StackOut, ?GoalModel)
 %
 %   Solve a sub-goal of the form `forall(Var,Goal)`  and success  if Var
 %   success in all its domain for the goal Goal. It calls solve/4
 
-
 solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
     my_copy_term(Var, Goal, NewVar, NewGoal),
     my_copy_term(Var, Goal, NewVar2, NewGoal2),
     solve([NewGoal], StackIn, [[]|StackMid], ModelMid),
-    if_user_option(check_calls, format('\tSuccess solve ~@\n\t\t for the ~@\n',
-                                       [print_goal(NewGoal), print_goal(forall(Var, Goal))])),
+    if_user_option(check_calls,
+                   format('\tSuccess solve ~@\n\t\t for the ~@\n',
+                          [print_goal(NewGoal), print_goal(forall(Var, Goal))])),
     check_unbound(NewVar, List),
-    (
-        List == ground ->
-        if_user_option(check_calls,
-                       format('The var ~p is grounded so try with other clause\n', [NewVar])),
+    (   List == ground
+    ->  if_user_option(check_calls,
+                       format('The var ~p is grounded so try with other clause\n',
+                              [NewVar])),
         fail
-    ;
-        List == [] ->
-        StackOut = StackMid,
+    ;   List == []
+    ->  StackOut = StackMid,
         Model = ModelMid
-    ;
-        List = 'clpq'(NewVar3, Constraints) ->
-        findall('dual'(NewVar3, ConDual), dual_clpq(Constraints, ConDual), DualList),
-        %       dual_clpq(Constraints, ConDual),
+    ;   List = clpq(NewVar3, Constraints)
+    ->  findall(dual(NewVar3, ConDual),
+                dual_clpq(Constraints, ConDual),
+                DualList),
         if_user_option(check_calls,
                        format('Executing ~@ with clpq ConstraintList = ~p\n',
                               [print_goal(Goal), DualList])),
-        exec_with_clpq_constraints(NewVar2, NewGoal2, 'entry'(NewVar3, []), DualList, StackMid, StackOut, ModelList), !,
+        exec_with_clpq_constraints(NewVar2, NewGoal2,
+                                   entry(NewVar3, []),
+                                   DualList, StackMid, StackOut, ModelList), !,
         append(ModelMid, ModelList, Model)
-    ;
-        !,   %% Position of the cut in s(CASP) - remove answers in max.lp
+    ;   !,   %% Position of the cut in s(CASP) - remove answers in max.lp
         if_user_option(check_calls,
                        format('Executing ~@ with clp_disequality list = ~p\n',
                               [print_goal(Goal), List])),
-        exec_with_neg_list(NewVar2, NewGoal2, List, StackMid, StackOut, ModelList),
-        %% !,   %% Position of the cut in s(ASP) - remove answers in hamcycle_two.lp
-        %% Without cuts the evaluation may loop - e.g. queens.lp
+        exec_with_neg_list(NewVar2, NewGoal2,
+                           List, StackMid, StackOut, ModelList),
         append(ModelMid, ModelList, Model)
     ).
 
@@ -524,49 +516,67 @@ check_unbound(Var, []) :-
     var(Var), !.
 
 exec_with_clpq_constraints(_, _, _, [], StackIn, StackIn, []).
-exec_with_clpq_constraints(Var, Goal, 'entry'(ConVar, ConEntry), ['dual'(ConVar, ConDual)|Duals], StackIn, StackOut, Model) :-
+exec_with_clpq_constraints(Var, Goal, entry(ConVar, ConEntry),
+                           [dual(ConVar, ConDual)|Duals],
+                           StackIn, StackOut, Model) :-
     my_copy_term(Var, [Goal, StackIn], Var01, [Goal01, StackIn01]),
     append(ConEntry, ConDual, Con),
     my_copy_term(ConVar, Con, ConVar01, Con01),
     my_copy_term(Var, Goal, Var02, Goal02),
     my_copy_term(ConVar, ConEntry, ConVar02, ConEntry02),
     Var01 = ConVar,
-    (
-        apply_clpq_constraints(Con) ->
-        if_user_option(check_calls, format('Executing ~p with clpq_constrains ~p\n', [Goal01, Con])),
+    (   apply_clpq_constraints(Con)
+    ->  if_user_option(check_calls,
+                       format('Executing ~p with clpq_constrains ~p\n',
+                              [Goal01, Con])),
         solve([Goal01], StackIn01, [[]|StackOut01], Model01),
-        if_user_option(check_calls, format('Success executing ~p with constrains ~p\n', [Goal01, Con])),
-        if_user_option(check_calls, format('Check entails Var = ~p with const ~p and ~p\n', [Var01, ConVar01, Con01])),
-        (
-            entails([Var01], ([ConVar01], Con01)) ->
-            if_user_option(check_calls, format('\tOK\n', [])),
+        if_user_option(check_calls,
+                       format('Success executing ~p with constrains ~p\n',
+                              [Goal01, Con])),
+        if_user_option(check_calls,
+                       format('Check entails Var = ~p with const ~p and ~p\n',
+                              [Var01, ConVar01, Con01])),
+        (   entails([Var01], ([ConVar01], Con01))
+        ->  if_user_option(check_calls, format('\tOK\n', [])),
             StackOut02 = StackOut01,
             Model03 = Model01
-        ;
-            if_user_option(check_calls, format('\tFail\n', [])),
+        ;   if_user_option(check_calls, format('\tFail\n', [])),
             dump_clpq_var([Var01], [ConVar01], ExitCon),
-            findall('dual'(ConVar01, ConDual01), dual_clpq(ExitCon, ConDual01), DualList),
-            %               dual_clpq(ExitCon, ConDual01),
-            if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, DualList])),
-            exec_with_clpq_constraints(Var, Goal, 'entry'(ConVar01, Con01), DualList, StackOut01, StackOut02, Model02),
+            findall(dual(ConVar01, ConDual01),
+                    dual_clpq(ExitCon, ConDual01),
+                    DualList),
+            if_user_option(check_calls,
+                           format('Executing ~p with clpq ConstraintList = ~p\n',
+                                  [Goal, DualList])),
+            exec_with_clpq_constraints(Var, Goal, entry(ConVar01, Con01),
+                                       DualList, StackOut01, StackOut02, Model02),
             append(Model01, Model02, Model03)
         )
-    ;
-        if_user_option(check_calls, format('Skip execution of an already checked constraint ~p (it is inconsitent with ~p)\n', [ConDual, ConEntry])),
+    ;   if_user_option(check_calls,
+                       format('Skip execution of an already checked \c
+                              constraint ~p (it is inconsitent with ~p)\n',
+                              [ConDual, ConEntry])),
         StackOut02 = StackIn01,
         Model03 = []
     ),
-    if_user_option(check_calls, format('Executing ~p with clpq ConstraintList = ~p\n', [Goal, Duals])),
-    exec_with_clpq_constraints(Var02, Goal02, 'entry'(ConVar02, ConEntry02), Duals, StackOut02, StackOut, Model04),
+    if_user_option(check_calls,
+                   format('Executing ~p with clpq ConstraintList = ~p\n',
+                          [Goal, Duals])),
+    exec_with_clpq_constraints(Var02, Goal02,
+                               entry(ConVar02, ConEntry02),
+                               Duals, StackOut02, StackOut, Model04),
     append(Model03, Model04, Model).
 
 exec_with_neg_list(_, _, [], StackIn, StackIn, []).
 exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
     my_copy_term(Var, [Goal, StackIn], NewVar, [NewGoal, NewStackIn]),
     NewVar = Value,
-    if_user_option(check_calls, format('Executing ~p with value ~p\n', [NewGoal, Value])),
+    if_user_option(check_calls,
+                   format('Executing ~p with value ~p\n', [NewGoal, Value])),
     solve([NewGoal], NewStackIn, [[]|NewStackMid], ModelMid),
-    if_user_option(check_calls, format('Success executing ~p with value ~p\n', [NewGoal, Value])),
+    if_user_option(check_calls,
+                   format('Success executing ~p with value ~p\n',
+                          [NewGoal, Value])),
     exec_with_neg_list(Var, Goal, Vs, NewStackMid, StackOut, Models),
     append(ModelMid, Models, Model).
 
@@ -575,20 +585,16 @@ exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
 %   Used to evaluate predicates under tabling. This predicates should be
 %   defined in the program using the directive _#table pred/n._
 
-
-% TABLED to avoid loops and repeated answers
 solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel) :-
     pr_rule(Goal, Body),
     AttStackIn ~> stack(StackIn),
     solve(Body, StackIn, StackOut, Model),
     AttStackOut <~ stack(StackOut),
     AttModel <~ model([Goal|Model]).
-% TABLED to avoid loops and repeated answers
 
 %!  solve_goal_predicate(?Goal, ?StackIn, ?StackOut, ?GoalModel)
 %
 %   Used to evaluate a user predicate
-
 
 solve_goal_predicate(Goal, StackIn, StackOut, GoalModel) :-
     pr_rule(Goal, Body),
@@ -598,7 +604,6 @@ solve_goal_predicate(Goal, StackIn, StackOut, GoalModel) :-
 %!  solve_goal_builtin(?Goal, ?StackIn, ?StackOut, ?AttModel)
 %
 %   Used to evaluate builtin predicates predicate
-
 
 solve_goal_builtin(is(X, Exp), StackIn, StackIn, Model) :-
     capture_rational(Exp, CaptExp), !, %% If it fails later the call(Goal) will also fail...
@@ -637,15 +642,14 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     if_user_option(check_calls,
         format('The predicate ~p is not user_defined / builtin\n', [Goal])),
-    ( Goal = not(_) ->
-        Model = [Goal] %% the negation of a not defined predicate success.
-    ;
-        fail %% a not defined predicate allways fails.
+    (   Goal = not(_)
+    ->  Model = [Goal] %% the negation of a not defined predicate success.
+    ;   fail %% a not defined predicate allways fails.
     ).
 
 exec_goal(A \= B) :- !,
     if_user_option(check_calls, format('exec ~@\n', [print_goal(A \= B)])),
-    .\=.(A, B),
+    A .\=. B,
     if_user_option(check_calls, format('ok   ~@\n', [print_goal(A \= B)])).
 exec_goal(Goal) :-
     (   current_option(check_calls, on)
@@ -688,9 +692,6 @@ process_vsmlist_([t(V, [[]|S], M)|Rs], [V|Vs], S1, M1) :-
     process_vsmlist_(Rs, Vs, S0, M0),
     append(S0, S, S1),
     append(M, M0, M1).
-
-
-
 
 % TODO: What to do with the negation of findall/3 (if required)
 exec_neg_findall(Goal, _) :-
