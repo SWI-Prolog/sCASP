@@ -47,7 +47,7 @@ based, and convinced me that DCGs could produce meaningful error messages.
 :- use_module(library(lists)).
 :- use_module(common).
 
-%!  tokenize(+CharPairs:list, -Tokens:list)
+%!  tokenize(+CharPairs:list, -Tokens:list) is semidet.
 %
 %   Convert a list of character/position pairs to   a list of tokens and
 %   positions.
@@ -57,13 +57,15 @@ based, and convinced me that DCGs could produce meaningful error messages.
 
 tokenize(CharPairs, Tokens) :-
     write_verbose(1, 'Tokenizing input...\n'),
-    once(tokens(Tokens, 0, Errors, CharPairs, [])),
-    Errors =:= 0,
-    !.
-tokenize(_, _) :-
-    write(user_error, 'One or more errors occured during scanning!\n'),
-    !,
-    fail.
+    (   phrase(tokens(Tokens, 0, Errors), CharPairs)
+    ->  (   Errors =:= 0
+        ->  true
+        ;   print_message(error, sasp(illegal_tokens(Errors))),
+            fail
+        )
+    ;   print_message(error, sasp(illegal_tokens)),
+        fail
+    ).
 
 %!  tokens(-Tokens:list, +ErrorsIn:int, -ErrorsOut:int)//
 %
@@ -81,8 +83,7 @@ tokens([Token | T], ErrorsIn, ErrorsOut) -->
     !,
     tokens(T, E3, ErrorsOut).
 tokens([], ErrorsIn, ErrorsOut) -->
-    space_or_comment(ErrorsIn, ErrorsOut),
-    [].
+    space_or_comment(ErrorsIn, ErrorsOut).
 
 %!  space_or_comment(+ErrorsIn:int, -ErrorsOut:int)//
 %
@@ -93,7 +94,8 @@ tokens([], ErrorsIn, ErrorsOut) -->
 
 space_or_comment(ErrorsIn, ErrorsOut) -->
     [(C, _)],
-    {\+char_type(C, graph)},
+    { char_type(C, space) },
+    !,
     space_or_comment(ErrorsIn, ErrorsOut).
 space_or_comment(ErrorsIn, ErrorsOut) -->
     start_comment(X),
@@ -112,7 +114,7 @@ space_or_comment(Errors, Errors) -->
 %   @arg ID A unique identifier to link the start and end of a comment type.
 
 start_comment(pl) -->
-    [('%', _)].
+    [('%', _)], !.
 start_comment(c) -->
     [('/', _)], [('*', _)].
 
@@ -124,12 +126,17 @@ start_comment(c) -->
 %   @arg ErrorCode 1 or 0 indicating if an error has occurred.
 
 end_comment(pl, 0) -->
-    [('\n', _)].
-end_comment(pl, 0, [], []). % if last line, don't require a terminal newline.
+    [('\n', _)], !.
+end_comment(pl, 0) -->
+    eof.
 end_comment(c, 0) -->
-    [('*', _)], [('/', _)].
-end_comment(_, 1, [], []) :- % An error has occurred.
-    eof_error.
+    [('*', _)], [('/', _)],
+    !.
+end_comment(c, 1) -->
+    eof,
+    {eof_error}.
+
+eof([], []).
 
 %!  skip_comment(+ID:atom, -ErrorCode:int)//
 %
@@ -160,8 +167,9 @@ get_token(T, 0) -->
     !.
 get_token(_, 1) --> % an error has occurred, try to recover.
     [(C, Pos)],
-    {char_type(C, graph), % don't match whitespace
-    lex_error(C, Pos)},
+    { \+ char_type(C, space),
+      lex_error(C, Pos)
+    },
     lex_recover,
     !.
 
@@ -392,7 +400,7 @@ number(X, Pos) -->
 %   @arg Token The token returned.
 
 number2(float(X), Y) -->
-    [('.', _), (C, _)],
+    c(.), c(C),
     {char_type(C, digit)},
     !, % floating point
     digits(Cs),
@@ -417,8 +425,8 @@ number2(int(X), Y) -->
 %
 %   @arg Digits The list of digits in the integer token.
 
-digits([C | T]) -->
-    [(C, _)],
+digits([C|T]) -->
+    c(C),
     {char_type(C, digit)},
     !,
     digits(T).
@@ -433,13 +441,12 @@ digits([]) -->
 %   @arg AtomChars List of characters in a token.
 %   @arg Pos The position info for the first character in the token.
 
-identifier(X, Pos, Cin, Cout) :-
-    Cin = [(_, Pos) | _], % Instantiate Pos.
-    leading_underscores(X1, Cin, C1),
-    C1 = [(C, _) | C2],
-    char_type(C, lower),
-    csyms(Xt, C2, Cout),
-    append(X1, [C | Xt], X).
+identifier(Chars, Pos) -->
+    pos(Pos),
+    leading_underscores(Chars, [C|CSyms]),
+    c(C),
+    { char_type(C, lower) },
+    csyms(CSyms).
 
 %!  variable(-AtomChars:list, -Pos:compound)//
 %
@@ -449,22 +456,26 @@ identifier(X, Pos, Cin, Cout) :-
 %   @arg AtomChars List of characters in a token.
 %   @arg Pos The position info for the first character in the token.
 
-variable(X, Pos, Cin, Cout) :-
-    Cin = [(C, Pos) | C2],
-    char_type(C, upper),
-    csyms(Xt, C2, Cout),
-    X = [C | Xt].
+variable(X, Pos) -->
+    pos(Pos),
+    c(C),
+    { char_type(C, upper),
+      X = [C | Xt]
+    },
+    csyms(Xt).
 
-%!  leading_underscores(-Underscores:list)//
+%!  leading_underscores(-Underscores:list, ?Tail)//
 %
 %   Get any leading underscores. May be empty.
 %
 %   @arg Underscores The list of underscores at the start of a token.
 
-leading_underscores(['_' | T], [('_', _) | T2], T3) :-
-    leading_underscores(T, T2, T3).
-leading_underscores([], [X | T], [X | T]) :-
-    X \= ('_', _).
+leading_underscores(['_'|T0], T) -->
+    c('_'),
+    !,
+    leading_underscores(T0, T).
+leading_underscores(T, T) -->
+    [].
 
 %!  csyms(-AtomChars:list)//
 %
@@ -473,13 +484,13 @@ leading_underscores([], [X | T], [X | T]) :-
 %   @arg AtomChars The list of characters that will be part of the current
 %        token.
 
-csyms([C | T], [(C, _) | T2], T3) :-
-    char_type(C, csym),
+csyms([C|T]) -->
+    c(C),
+    { char_type(C, csym) },
     !,
-    csyms(T, T2, T3).
-csyms([], [C | T2], [C | T2]) :-
-    C = (C2, _),
-    \+char_type(C2, csym).
+    csyms(T).
+csyms([]) -->
+    [].
 
 %!  lex_error(+Char:char, +Position:compound)
 %
@@ -488,31 +499,32 @@ csyms([], [C | T2], [C | T2]) :-
 %   @arg Char The character which triggered the error.
 %   @arg Position The position info for the character.
 
-lex_error(Char, (Line, Col)) :-
-    format(user_error, 'ERROR: ~w:~w: Illegal character: \"~w\"\n', [Line, Col, Char]).
+lex_error(Char, Pos) :-
+    print_message(error, sasp(syntax_error(lexical(Char, Pos)))).
 
 %!  eof_error
 %
 %   Print error for unexpected end of file.
 
 eof_error :-
-    format(user_error, 'ERROR: Unexpected end of file!\n').
+    print_message(error, sasp(syntax_error(unexpected_eof))).
 
-%!  lex_recover//
+%!  lex_recover// is det.
 %
 %   Skip characters until whitespace is  encountered.   The  idea  is to
 %   produce as many useful error messages  as   possible,  so we want to
 %   keep going if possible.
 
 lex_recover -->
-    [(C, _)],
-    {char_type(C, graph)},
+    c(C),
+    { \+ char_type(C, space)},
     !,
     lex_recover.
 lex_recover -->
     [].
 
+pos(Pos, Chars, Chars) :-
+    Chars = [(_,Pos)|_].
 
-
-
-
+c(C) -->
+    [(C,_Pos)].

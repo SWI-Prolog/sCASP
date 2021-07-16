@@ -96,11 +96,16 @@ load_source_files(_) :-
 %   @arg ErrorsIn Input error count.
 %   @arg ErrorsOut Output error count.
 
-load_source_files([X | T], Si, So, Ei, Eo) :-
-    absolute_file_name(X, X2),
+:- det(load_source_files/5).
+
+load_source_files([X|T], Si, So, Ei, Eo) :-
+    absolute_file_name(X, X2,
+                       [ access(read),
+                         extensions([asp,pl,''])
+                       ]),
     write_verbose(0, 'Loading file ~w...\n', [X2]),
     input(X2, CharPairs),
-    once(tokenize(CharPairs, Toks)),
+    tokenize(CharPairs, Toks),
     once(parse_program(Toks, S, D, E)),
     E2 is Ei + E,
     append(Si, S, S2),
