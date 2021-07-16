@@ -288,13 +288,12 @@ rule_clause(X) -->
     !,
     terminal('.').
 
-%!  compute(-ComputeStatement:compound, +TokensIn:list, -TokensOut:list)
+%!  compute(-ComputeStatement:compound)//
 %
 %   Compute statement.
 %
 %   @arg ComputeStatement The compute statement struct returned.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
+
 compute(c(X, Y)) -->
     terminal(int(X)),
     !,
@@ -306,14 +305,12 @@ compute(c(X, Y)) -->
     !,
     terminal('.').
 
-%!  asp_rule(-Rule:compound, +Head:callable, +TokensIn:list, -TokensOut:list)
+%!  asp_rule(-Rule:compound, +Head:callable)//
 %
 %   Individual rules: normal rule or fact.
 %
 %   @arg Rule The rule struct returned.
 %   @arg Head The rule head.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 asp_rule(X, Y) -->
     [(':-', _)],
@@ -328,14 +325,12 @@ asp_rule(_, _) -->
     !,
     {fail}.
 
-%!  head(-Head:callable, +TokensIn:list, -TokensOut:list)
+%!  head(-Head:callable)//
 %
 %   A rule head may be a single predicate or a disjunction of predicates
 %   (not yet supported).
 %
 %   @arg Head The rule head.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 %head(disjunct([X, Y | T])) -->
 %        asp_predicate(X),
@@ -346,12 +341,13 @@ asp_rule(_, _) -->
 head(X) -->
     asp_predicate(X).
 
-%%! disjunction(-Goals:list, +TokensIn:list, -TokensOut:list)
-% A disjunction of literals. Note the first portion is handled by head/3.
+% ! disjunction(-Goals:list)//
+%
+%   A disjunction of literals. Note the first portion is handled by
+%   head/3.
 %
 %   @arg Goals List of goals in a disjunctive rule head.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
+%
 %disjunction([X | T]) -->
 %        [('|', _)],
 %        !,
@@ -364,15 +360,13 @@ head(X) -->
 %        !,
 %        {fail}.
 
-%!  body(-Goals:list, +TokensIn:list, -TokensOut:list)
+%!  body(-Goals:list)//
 %
 %   The body of a rule is a list  of predicates. Because commas are also
 %   operators, it's easier to read the body   as an infix expression and
 %   then convert it to a list.
 %
 %   @arg Goals List of goals in the body of a rule.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 body(X) -->
     infix_expression(Y),
@@ -383,26 +377,22 @@ body(_) -->
     !,
     {fail}.
 
-%!  infix_expression(-Predicate:compound, +TokensIn:list, -TokensOut:list)
+%!  infix_expression(-Predicate:compound)//
 %
 %   An infix predicate consists  of  a   term,  an  infix  operator, and
 %   another term.
 %
 %   @arg Predicate An infix predicate, converted to prefix form.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 infix_expression(X) -->
     get_infix(X2),
     {infix_to_prefix(X, X2)}.
 
-%!  get_infix(-Expression:compound, +TokensIn:list, -TokensOut:list)
+%!  get_infix(-Expression:compound)//
 %
 %   Get an infix expression. Can be a single leaf.
 %
 %   @arg Expression An infix expression converted to prefix form.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 get_infix(X) -->
     get_infix2(A),
@@ -416,13 +406,11 @@ get_infix(X) -->
 get_infix(X) -->
     get_infix2(X). % end
 
-%!  get_infix2(-Expression:compound, +TokensIn:list, -TokensOut:list)
+%!  get_infix2(-Expression:compound)//
 %
 %   Leaves of an infix expression: parenthesized expressions or terms.
 %
 %   @arg Expression An infix expression converted to prefix form.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 get_infix2(X) -->
     [('(', _)],
@@ -433,14 +421,12 @@ get_infix2(X) -->
 get_infix2([X]) -->
     asp_term(X).
 
-%!  asp_predicate(-Predicate:compound, +TokensIn:list, -TokensOut:list)
+%!  asp_predicate(-Predicate:compound)//
 %
 %   A predicate is an atom followed  by  a   list  of  terms.  If not an
 %   operator, it may be classically negated.
 %
 %   @arg Atom An atom constructed by concatenating the applicable tokens.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 asp_predicate(X) -->
     [('-', _)], % classical negation
@@ -483,26 +469,23 @@ asp_predicate2(Pred, Name) -->
       predicate(Pred, Name_0, [])
     }.
 
-%!  terms(-Terms:list, +TokensIn:list, -TokensOut:list)
+%!  terms(-Terms:list)//
 %
 %   A comma-separated list of terms.
 %
 %   @arg Terms List of tokens for terms.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
-terms([X | T]) -->
-    asp_term(X), % possibly asp_atom?
+terms([X|T]) -->
+    asp_term(X),
     !,
     terms2(T).
 
-%!  terms2(-Terms:list, +TokensIn:list, -TokensOut:list)
+%!  terms2(-Terms:list)//
 %
-%   Get terms after the first element.
+%   Get terms after the first element.  Assume we parsed ``(Term1`` and
+%   stops when it peeks ``)``.
 %
 %   @arg Terms List of tokens for terms.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 terms2(X) -->
     [(',', _)],
