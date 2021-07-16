@@ -23,8 +23,6 @@ disequality.
 @author Joaquin Arias
 */
 
-:- dynamic disunify/2.
-
 
 		 /*******************************
 		 *   CONSTRUCTIVE UNIFICATION   *
