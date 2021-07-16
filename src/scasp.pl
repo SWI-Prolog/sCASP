@@ -98,7 +98,6 @@ scasp_exec(Args, [PQ, PAnswer, PVars, Bindings, Printable_Model]) :-
 main(Args) :-
     print_on,
     retractall(current_option(_, _)),
-    retractall(counter(_, _)),
     parse_args(Args, Options, Sources),
     set_options(Options),
     load(Sources),
@@ -187,26 +186,23 @@ main_solve(Q0) :-
 
     print_unifier(Bindings, PVars),
 
-    (
-        Number = -1,
-        allways_ask_for_more_models, nl, nl
-    ;
-        Number = 0,
-        nl, nl,
+    (   Number == -1
+    ->  allways_ask_for_more_models, nl, nl
+    ;   Number == 0
+    ->  nl, nl,
         statistics(runtime, _),
         fail
-    ;
-        Number > 0,
-        nl, nl,
+    ;   Number > 0
+    ->  nl, nl,
         statistics(runtime, _),
         Counter = Number
-    ).
+    ),
+    !.
 
 
 %!  run_defined_query
 %
 %   Used from the interactive mode to run the defined query.
-
 
 run_defined_query :-
     defined_query(A),
