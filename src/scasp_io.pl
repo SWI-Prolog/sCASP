@@ -1360,12 +1360,9 @@ close_output_file(Stream,Current) :-
 br :- format('<br>').
 
 
-
-
 %!  print_human_program
 %
 %   Output pretty print of the program + dual rules + nmr-checks
-
 
 print_human_program :-
     pr_query(Query),
@@ -1376,15 +1373,13 @@ print_human_program :-
     print_human_program_('% QUERY',PrettyQuery),
     nl,
     print_human_program_('% USER PREDICATES',UserRules),
-    (  current_option(short,on) ->
-        true
-    ;
-        current_option(mid,on),
-        dual_reverse(DualRules,[_|R_DualRules]),
+    (   current_option(short, on)
+    ->  true
+    ;   current_option(mid, on)
+    ->  dual_reverse(DualRules,[_|R_DualRules]),
         nl,nl,
         print_human_program_('% DUAL RULES',R_DualRules)
-    ;
-        dual_reverse(DualRules,[_|R_DualRules]),
+    ;   dual_reverse(DualRules,[_|R_DualRules]),
         nl,nl,
         print_human_program_('% DUAL RULES',R_DualRules),
         nmr_reverse(NMRChecks,R_NMRChecks),
@@ -1402,8 +1397,8 @@ pretty_term_rules([R|Rs],[P|Ps]) :-
 filter([],[],[],[]).
 filter([R|Rs], Us, Ds, [R|Ns]) :-
     R = rule(not(Head),_),
-    Head =.. [Pred|_],
-    ( atom_concat(o_chk,_,Pred), ! ; atom_concat(o__chk,_,Pred), ! ),
+    chk_pred(Head),
+    !,
     filter(Rs,Us,Ds,Ns).
 filter([R|Rs], Us, Ds, [R|Ns]) :-
     R = rule(o_nmr_check,_), !,
@@ -1417,28 +1412,32 @@ filter([R|Rs], Us, [R|Ds], Ns) :-
 filter([R|Rs], [R|Us], Ds, Ns) :-
     filter(Rs,Us,Ds,Ns).
 
+chk_pred(Pred) :-
+    functor(Pred, Name, _),
+    (   sub_atom(Name, 0, _, _, o_chk)
+    ;   sub_atom(Name, 0, _, _, o__chk)
+    ),
+    !.
 
 print_human_program_(Title,Rules) :-
-    format('~w:',[Title]),
+    format('~w:', [Title]),
     nl,
-    (  Title == '% QUERY' ->
-        print_human_query(Rules)
-    ;
-        print_human_rules(Rules)
+    (   Title == '% QUERY'
+    ->  print_human_query(Rules)
+    ;   print_human_rules(Rules)
     ).
 
 
 print_human_query([not(o_false)]) :- !,
-    print('% Query not defined'), nl.
+    format('% Query not defined\n').
 print_human_query([true,A|As]) :- !,
     print_human_query([A|As]).
 print_human_query(Query) :-
-    ( current_option(human,on) ->
-        nl,
+    (   current_option(human,on)
+    ->  nl,
         format('I would like to know if'),
         print_human_body(Query)
-    ;
-        list_to_conj(Query,ConjPQ),
+    ;   list_to_conj(Query,ConjPQ),
         format('?- ~p.\n',[ConjPQ])
     ).
 
@@ -1447,18 +1446,19 @@ print_human_rules([R]) :-
     print_human_rules_(R).
 print_human_rules([R0,R1|Rs]) :-
     print_human_rules_(R0),
-    (  rule_eq(R0,R1) ->  true ; nl ),
+    (   rule_eq(R0,R1)
+    ->  true
+    ;   nl
+    ),
     print_human_rules([R1|Rs]).
 print_human_rules_(R) :-
     R = rule(Head,Body),
     print_human_head(Head),
-    ( Body == [] ->
-        format('.\n')
-    ;
-        (  current_option(human,on) ->
-            format(', if')
-        ;
-            format(' :-')
+    (   Body == []
+    ->  format('.\n')
+    ;   (   current_option(human,on)
+        ->  format(', if')
+        ;   format(' :-')
         ),
         print_human_body(Body)
     ).
@@ -1468,8 +1468,8 @@ rule_eq(rule(not(H),_),rule(not(H1),_)) :- !, rule_eq_(H,H1).
 rule_eq(rule(-H,_),rule(-H1,_)) :- !, rule_eq_(H,H1).
 rule_eq(rule(H,_),rule(H1,_)) :- !, rule_eq_(H,H1).
 
-rule_eq_(H,H1) :-
-    H =.. [Name|A], H1 =.. [Name|A1], length(A,L), length(A1,L).
+rule_eq_(H, H1) :-
+    same_functor(H, H1).                % JW: Why not arguments?
 
 print_human_head(Head) :-
     pr_human_term(Head::Format,_),
@@ -1480,16 +1480,15 @@ print_human_body([Last]) :- !,
     format('.\n').
 print_human_body([L|Ls]) :-
     print_human_body_(L),
-    ( current_option(human,on) ->
-        format(' and')
-    ;
-        format(',')
+    (   current_option(human,on)
+    ->  format(' and')
+    ;   format(',')
     ),
     print_human_body(Ls).
 
 print_human_body_(L) :-
     pr_human_term(L::Format,_),
-    nl,tab(5),
+    nl, tab(5),
     call(Format).
 
 %!  dual_reverse(A, B)
@@ -1511,26 +1510,22 @@ dual_reverse_([A|Rs], Ac0, Ac1) :-
     dual_reverse_(Rs, [A|Ac0], Ac1).
 
 dual_pred(rule(not(-(o_, A)), _), L) :-
-    A =.. [_|Args],
-    length(Args, L).
+    functor(A, _, L).
 dual_pred(rule(not(A), _), L) :-
-    A =.. [Name|Args],
-    length(Args, L),
+    functor(A, Name, L),
     atom_chars(Name, ['o', '_'|_]).
 
-dual_eq([A, B|As], Eq0, Eq, Rest) :-
+dual_eq([A,B|As], Eq0, Eq, Rest) :-
     dual_pred(A, La),
     dual_pred(B, Lb), !,
-    ( La = Lb ->
-        append(Eq0,[A],Eq1),
+    (   La =:= Lb
+    ->  append(Eq0,[A],Eq1),
         dual_eq([B|As], Eq1, Eq, Rest)
-    ;
-        La > Lb, %% B is forall del paquete Eq0 se pone primero
-        dual_eq(As, [], Eq1, Rest),
+    ;   La > Lb                         % B is forall del paquete Eq0 se pone primero
+    ->  dual_eq(As, [], Eq1, Rest),
         append([B|Eq0], [A], Eqm),
         append(Eqm, Eq1, Eq)
-    ;
-        La < Lb, %% Hay que hace un paquete para el proximo forall
+    ;                                   % Hay que hace un paquete para el proximo forall
         forall_eq([B|As], Forall, [F|RestForall]),
         append(Eq0,[A],Eq1),
         append(Eq1, [F|Forall], Eq2),
@@ -1572,7 +1567,7 @@ nmr_reverse_([A|Rs],Ac0,Ac1) :-
 
 nmr_check(rule(o_nmr_check,_)).
 nmr_chk(rule(not(A),_)) :-
-    A =.. [Name|_],
+    functor(A, Name, _),                % JW: chk_pred/1?
     \+ atom_concat(o_chk,_,Name).
 
 nmr_eq([A,B|As],[A|Eq],Rest) :-
