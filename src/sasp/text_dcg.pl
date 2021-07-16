@@ -460,8 +460,7 @@ asp_predicate(X) -->
     {handle_prefixes(Y, Y2)},
     asp_predicate2(X, Y2).
 
-%!  asp_predicate2(-Predicate:compound, +Name:atom,
-%!                 +TokensIn:list, -TokensOut:list)
+%!  asp_predicate2(-Predicate:callable, +Name:atom)//
 %
 %   If atom is a compound term, get a list of args. Add the arity to the
 %   predicate name for easy matching  later   on,  e.g,  bird(X) becomes
@@ -469,29 +468,20 @@ asp_predicate(X) -->
 %
 %   @arg Atom The final atom, concatenated with arguments.
 %   @arg Name The initial atom, prior to reading any arguments.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
-asp_predicate2(Z, X) -->
+asp_predicate2(Pred, Name) -->
     [('(', _)],
     !,
     terms(Y),
-    !,
     [(')', _)],
-    !,
-    {length(Y, C)}, % get arity)
-    {number_chars(C, C2)}, % get char codes for digits
-    {atom_chars(X, X2)},
-    {append(X2, ['_' | C2], X3)},
-    {name(X4, X3)},
-    {predicate(Z, X4, Y)}.
-asp_predicate2(X, Y) -->
-    [],
-    !,
-    {atom_chars(Y, Y2)},
-    {append(Y2, ['_', '0'], Y3)},
-    {name(Y4, Y3)},
-    {predicate(X, Y4, [])}.
+    { length(Y, Arity),
+      atomic_list_concat([Name, '_', Arity], Name_N),
+      predicate(Pred, Name_N, Y)
+    }.
+asp_predicate2(Pred, Name) -->
+    { atom_concat(Name, '_0', Name_0),
+      predicate(Pred, Name_0, [])
+    }.
 
 %!  terms(-Terms:list, +TokensIn:list, -TokensOut:list)
 %
