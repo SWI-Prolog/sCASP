@@ -446,7 +446,7 @@ olon_chks([R | T], [Go | Nmr], C) :-
     atom_chars(Hb, Hc), % Create base sub-check functor with correct arity
     create_unique_functor(Hb, C, H), % Create functor for sub-check head
     comp_duals3(H, [R2]),
-    var_list(A, 0, [], V), % Get place holder args for NMR check goal
+    var_list(A, V), % Get place holder args for NMR check goal
     predicate(G, H, V),
     define_forall(not(G), Go, V), % forall for every variable in the head.
     C1 is C + 1,

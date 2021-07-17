@@ -386,10 +386,9 @@ format_predicate3([], [], Uv, Uv, _).
 %   @arg Vars Variable struct for filling in values.
 
 format_predicate4(Xi, Xo, Uv, Uv, V) :-
-    is_var(Xi),
-    atom_chars(Xi, ['?' | Gt]), % get ID without flag
-    atom_chars(X2, Gt),
-    get_value_id(X2, ID, V),
+    is_var(Xi, Name),
+    atom_concat('?', X2, Name), % get ID without flag
+    get_value_id($X2, ID, V),
     member(-(ID, Xo), Uv), % Var with same value already selected.
     !.
 format_predicate4(Xi, Xo, Uv, Uv, V) :-
@@ -397,10 +396,9 @@ format_predicate4(Xi, Xo, Uv, Uv, V) :-
     member(-(ID, Xo), Uv), % Var with same value already selected.
     !.
 format_predicate4(X, X, Uv, [-(ID, X) | Uv], V) :-
-    is_var(X),
-    atom_chars(X, ['?' | Gt]), % get ID without flag
-    atom_chars(X2, Gt),
-    get_value_id(X2, ID, V),
+    is_var(X, Name),
+    atom_concat('?', X2, Name), % get ID without flag
+    get_value_id($X2, ID, V),
     !.
 format_predicate4(X, X, Uv, [-(ID, X) | Uv], V) :-
     get_value_id(X, ID, V),
@@ -409,7 +407,6 @@ format_predicate4(X, X, Uv, Uv, _) :- % variable without ID in V
     is_var(X),
     !.
 format_predicate4(Xi, Xo, Uvi, Uvo, V) :-
-    !, % non variable
     format_predicate2(Xi, Xo, Uvi, Uvo, V).
 
 %!  get_next_printable(+CHSin:compound, -CHSout:compound) is det
@@ -1358,10 +1355,11 @@ revar_(X,Y,Dic,Dic) :-
     !,
     Y=X.
 revar_(X,Y,Dic0,Dic) :-
-    varatm(X), !,
-    (   get_assoc(X, Dic0, Y)
+    is_var(X, Name),
+    !,
+    (   get_assoc(Name, Dic0, Y)
     ->  Dic = Dic0
-    ;   put_assoc(X, Dic0, Y, Dic)
+    ;   put_assoc(Name, Dic0, Y, Dic)
     ).
 revar_(X,Y,Dic,Dic) :-
     special_atom(X,Y),
@@ -1370,14 +1368,6 @@ revar_(X,Y,Dic0,Dic) :-
     X=..[F|As],
     revars(As,Bs,Dic0,Dic),
     Y=..[F|Bs].
-
-%!   varatm(@Term)
-%
-%   True when Term is an atom that  starts   with  a  capital or _.
-%
-%   @tbd Very similar to is_var/1 from variables.pl
-
-varatm(X) :- atom(X), atom_codes(X, [C|_]), varc(C).
 
 special_atom(A/B,rat(A,B)) :-
     number(A),
@@ -1395,9 +1385,6 @@ special_atom(X,Y) :-
     atom_chars(X,Codes),
     append(['\''|C_Y],['\''],Codes),
     atom_chars(Y,C_Y).
-
-varc(C) :- C >= 0'A, C =< 0'Z, !.
-varc(0'_).
 
 revars([],[],Dic,Dic).
 revars([X|Xs],[Y|Ys],Dic0,Dic) :-

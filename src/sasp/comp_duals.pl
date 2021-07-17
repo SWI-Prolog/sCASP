@@ -286,8 +286,8 @@ define_forall(G, G, []) :-
 outer_dual_head(H, D) :-
     predicate(H, P, _),
     negate_functor(P, Pd),
-    split_functor(Pd, _, A), % get the arity
-    var_list(A, 0, [], Ad), % get the arg list
+    split_functor(Pd, _, A),		% get the arity
+    var_list(A, Ad),			% get the arg list
     predicate(D, Pd, Ad),
     !.
 
@@ -303,22 +303,18 @@ outer_dual_head(H, D) :-
 %   @arg Counter Input counter.
 %   @arg Goals Goals unifying non-variables with the variables replacing them.
 
-abstract_structures([X | T], [Y | T2], C, [G | Gt]) :-
-    X =.. [_ | Xt], % X is a compound term; process it.
-    Xt \= [],
+abstract_structures([], [], _, []).
+abstract_structures([X | T], [$Y | T2], C, [G | Gt]) :-
+    compound(X),
+    \+ is_var(X),
     !,
-    number_chars(C, Cc), % get chars from counter
-    append(['_', 'Z'], Cc, Vc), % _Z# for unique names at this point
-    atom_chars(Y, Vc),
+    atom_concat('_Z', C, Y),
     C1 is C + 1,
-    G =.. [=, Y, X], % create unification goal
-    !,
+    G = ($Y = X),
     abstract_structures(T, T2, C1, Gt).
 abstract_structures([X | T], [X | T2], C, G) :-
-    !, % X is not a compound term
     abstract_structures(T, T2, C, G).
-abstract_structures([], [], _, []) :-
-    !.
+
 
 %!  prep_args(+OrigArgs:list, +VarArgs:list,
 %!            +NewArgsIn:list, -NewArgsOut:list,

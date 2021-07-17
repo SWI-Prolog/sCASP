@@ -514,7 +514,7 @@ asp_term(X) -->
 asp_term(X) -->
     asp_list(X),
     !.
-asp_term(X) -->
+asp_term($X) -->
     [(var(X), _)],
     !.
 asp_term(X) -->
@@ -526,7 +526,7 @@ asp_term(X) -->
 asp_term(X) -->
     [(rat(X), _)],
     !.
-asp_term(V) -->
+asp_term($V) -->
     [('_', _)], % replace underscore with unique variable
     {replace_underscore(V)},
     !.

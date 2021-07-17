@@ -28,6 +28,7 @@
 :- module(variables,
           [ var_con/4,
             is_var/1,
+            is_var/2,
             is_unbound/5,
             is_ground/2,
             new_var_struct/1,
@@ -95,34 +96,19 @@ var_struct(-(Var, Val, Cnt, Cnt2), Var, Val, Cnt, Cnt2).
 
 var_con(con(C, U, L), C, U, L).
 
-%!  is_var(+Test:compound) is det
+%!  is_var(@Term) is semidet.
+%!  is_var(@Term, Name) is semidet.
 %
 % Test an entry to see if it's   a variable (the first non-underscore is
 % an upper-case letter.
 %
-% @arg Test The item to be tested.
+% @arg Term is the term to be tested.
 
-is_var(X) :-
-    atom(X),
-    atom_chars(X, Xc),
-    is_var2(Xc),
-    !.
+is_var($X) :-
+    atom(X).
 
-%! is_var2(+TestChars:list) is det
-%
-%  Check characters in a list to see   if the first non-underscore is an
-%  upper-case letter, indicating a variable.
-%
-%  @arg TestChars The characters for an atom or variable.
-
-is_var2([X | _]):-
-    char_type(X, upper),
-    !.
-is_var2(['_']).
-is_var2([X | T]) :-
-    member(X, ['_', '?']),
-    !,
-    is_var2(T).
+is_var($X, X) :-
+    atom(X).
 
 %! is_unbound(+Goal:compound, +Vars:compound, -Constraints:list,
 %!            -Flag:int, -LoopVar:int) is det
@@ -159,34 +145,21 @@ is_ground(X, V) :-
 is_ground(X, V) :-
     is_var(X),
     !,
-    once(var_value(X, V, val(Val))), % bound variable; check value. check value
+    var_value(X, V, val(Val)),          % bound variable; check value.
     is_ground(Val, V).
 is_ground(X, V) :-
-    X =.. [_ | A],
-    A \= [], % compound term
+    compound(X),
     !,
-    is_ground2(A, V).
-is_ground(_, _) :-
-    !. % not a variable or compound term; succeed.
-
-%!  is_ground2(+Goals:list, +Vars:compound) is det
-%
-%   Succeed if is_ground/2 succeeds for each member of Goals.
-%
-%   @arg Goals The goals to be tested.
-%   @arg Vars The variable struct to get values from.
-
-is_ground2([X | T], V) :-
-    is_ground(X, V),
-    !,
-    is_ground2(T, V).
-is_ground2([], _) :-
-    !.
+    forall(arg(_, X, A),
+           is_ground(A, V)).
+is_ground(_, _).
 
 %! new_var_struct(-VarStruct:compound) is det
 %
 %  Create an empty var struct.  The   search  spaces are empty Red-Black
-%  trees and the counters are initialized to 0.
+%  trees and the counters are initialized  to   0.  The  `X` rbtree maps
+%  variable names to a variable id. The second   maps  an id to a value,
+%  which can be a term id(ID2) (dereferencing).
 %
 %  @arg VarStruct A variable structure.
 
@@ -209,21 +182,19 @@ new_var_struct(-(X, Y, 0, 0)) :-
 %   @arg VarStruct The variable struct.
 %   @arg Value The value of the variable.
 
-var_value(V, Vs, Val) :- % variable present in list
-    is_var(V),
+var_value(V, Vs, Val) :-		% variable present in list
+    is_var(V, Name),
     var_struct(Vs, V1, V2, _, _),
-    rb_lookup(V, ID, V1), % get ID
+    rb_lookup(Name, ID, V1),		% get ID
     !,
     get_val_by_id(ID, V2, Val).
-var_value(V, _, Val) :- % variable not in list; completely unbound
-    is_var(V), % fail if not a variable at all
-    atom_chars(V, [C | _]),
-    C \= '?', % not flagged
-    var_con(Val, [], 0, 0).
-var_value(V, _, Val) :- % variable not in list; completely unbound
-    is_var(V), % fail if not a variable at all
-    atom_chars(V, ['?' | _]), % flagged (printing only)
-    var_con(Val, [], 0, 1).
+var_value(V, _, Val) :-			% variable not in list; completely unbound
+    is_var(V, Name),			% fail if not a variable at all
+    sub_atom(Name, 0, 1, _, C),
+    (   C == ?                          % flagged (printing only)
+    ->  var_con(Val, [], 0, 1)
+    ;   var_con(Val, [], 0, 0)
+    ).
 
 %!  get_val_by_id(+ID:int, +ValStruct:compound, -Value:compound) is det
 %
@@ -235,12 +206,11 @@ var_value(V, _, Val) :- % variable not in list; completely unbound
 %   @arg Value The value associated with the ID.
 
 get_val_by_id(I, Vs, Vo) :-
-    rb_lookup(I, Val, Vs), % bind Val
-    (  Val = id(I2), % check recursively
-       get_val_by_id(I2, Vs, Vo)
-    ;  Vo = Val % value found
-    ),
-    !.
+    rb_lookup(I, Val, Vs),		% bind Val
+    (   Val = id(I2)                    % check recursively
+    ->  get_val_by_id(I2, Vs, Vo)
+    ;   Vo = Val                        % value found
+    ).
 
 %!  update_var_value(+Var:ground, +Value:compound,
 %!                   +VarStructIn:compound, -VarStructOut:compound) is det
@@ -254,17 +224,17 @@ get_val_by_id(I, Vs, Vo) :-
 %   @arg VarStructOut Output var struct.
 
 update_var_value(V, Val, Vsi, Vso) :-
-    is_var(V),
+    is_var(V, Name),
     var_struct(Vsi, V1, V2, NextVar, NextID),
-    get_value_id(V, ID, Vsi), % present in var struct; binds the ID to update
+    get_value_id(Name, ID, Vsi), % present in var struct; binds the ID to update
     !,
     rb_update(V2, ID, Val, V3), % update value
     var_struct(Vso, V1, V3, NextVar, NextID), % repack the struct
     !.
 update_var_value(V, Val, Vsi, Vso) :-
-    is_var(V), % not present in var struct; add it
+    is_var(V, Name), % not present in var struct; add it
     var_struct(Vsi, V1, V2, NV, ID),
-    rb_insert(V1, V, ID, V3), % create variable entry
+    rb_insert(V1, Name, ID, V3), % create variable entry
     rb_insert(V2, ID, Val, V4), % create value entry
     ID2 is ID + 1, % update NextID
     var_struct(Vso, V3, V4, NV, ID2), % pack the struct
@@ -283,7 +253,7 @@ update_var_value(V, Val, Vsi, Vso) :-
 %   @arg VarStructOut Output var struct.
 
 add_var_constraint(V, C, Vsi, Vso) :-
-    \+is_var(C),
+    \+ is_var(C),
     is_unbound(V, Vsi, Cs, F, L),
     F =< 1, % we are allowed to add constraints
     !,
@@ -341,9 +311,9 @@ add_var_constraint2(X, [X | T], [X | T]) :- % Already present
 %   @arg ID The ID of the variable.
 
 var_id(V, Vs, ID) :-
-    is_var(V),
+    is_var(V, Name),
     var_struct(Vs, V1, _, _, _),
-    rb_lookup(V, ID, V1), % binds ID
+    rb_lookup(Name, ID, V1), % binds ID
     !.
 
 %!  get_value_id(+Var:ground, -ID:int, +VarStruct:compound) is det
@@ -357,17 +327,15 @@ var_id(V, Vs, ID) :-
 %   @arg VarStruct Var struct.
 
 get_value_id(V, ID, Vs) :-
-    is_var(V),
+    is_var(V, Name),
     var_struct(Vs, V1, V2, _, _),
-    rb_lookup(V, I, V1), % binds ID
+    rb_lookup(Name, I, V1), % binds ID
     rb_lookup(I, Val, V2), % binds Val
     !,
-    (Val = id(ID2) -> % id found, check it
-            get_value_id2(ID2, ID, Vs)
-    ;
-            ID = I % value found; we're done
-    ),
-    !.
+    (   Val = id(ID2) % id found, check it
+    ->  get_value_id2(ID2, ID, Vs)
+    ;   ID = I % value found; we're done
+    ).
 
 %!  get_value_id2(+IDin:int, -IDout:int, +VarStruct:compound) is det
 %
@@ -404,8 +372,8 @@ get_value_ids([X | T], [I | T2], Vs) :-
 get_value_ids([], [], _) :-
     !.
 
-%! variable_intersection(+Goal1:compound, +Goal2:compound,
-%!                       +VarStruct:compound, -IntersectionVars:list)
+%!  variable_intersection(+Goal1:compound, +Goal2:compound,
+%!                        +VarStruct:compound, -IntersectionVars:list)
 %
 %   Given two goals, get the non-ground  variables present in each, then
 %   return those variables present in both lists.
@@ -456,12 +424,11 @@ remove_bound([], _, []) :-
 %   @arg VarStruct The variable struct.
 %   @arg IDVars List of variables corresponding to the IDs.
 
+ids_to_vars([], _, _, []).
 ids_to_vars([X | T], Gv, Vs, [X2 | T2]) :-
     id_to_var(X, Gv, Vs, X2),
     !,
     ids_to_vars(T, Gv, Vs, T2).
-ids_to_vars([], _, _, []) :-
-    !.
 
 %!  id_to_var(+ID:int, +GoalVarsIn:list, +VarStruct:compound, -IDVar:list)
 %
@@ -657,17 +624,16 @@ body_vars2([], _, Bv, Bv) :-
 
 body_vars3(G, Hv, Bvi, Bvo) :-
     is_var(G), % variable
-    \+member(G, Hv), % not a head variable
-    \+member(G, Bvi), % not already encountered
-    append(Bvi, [G], Bvo), % keep proper order.
-    !.
+    \+ memberchk(G, Hv), % not a head variable
+    \+ memberchk(G, Bvi), % not already encountered
+    !,
+    append(Bvi, [G], Bvo). % keep proper order.
 body_vars3(G, Hv, Bvi, Bvo) :-
     G =.. [_ | A],
     A \= [], % goal is a compound term
-    body_vars2(A, Hv, Bvi, Bvo), % check args for variables
-    !.
-body_vars3(_, _, Bv, Bv) :- % not a compound term or a new, non-head variable
-    !.
+    !,
+    body_vars2(A, Hv, Bvi, Bvo). % check args for variables
+body_vars3(_, _, Bv, Bv). % not a compound term or a new, non-head variable
 
 %!  get_unique_vars(+HeadIn:compound, -HeadOut:compound, +BodyIn:list,
 %!                  -BodyOut:list, +VarsIn:compound, -VarsOut:compound)

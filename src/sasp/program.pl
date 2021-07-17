@@ -324,7 +324,7 @@ handle_classical_negations([X|T], S) :-
     memberchk(Xn, P), % only add constraint if non-negated literal is actually used.
     !,
     split_functor(X, _, N), % get arity
-    var_list(N, 0, [], A), % get args,
+    var_list(N, A), % get args,
     X2 =.. [X | A],
     Xn2 =.. [Xn | A],
     predicate(H, '_false_0', []), % dummy head for headless rules

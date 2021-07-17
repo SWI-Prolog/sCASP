@@ -40,7 +40,7 @@
             write_error/2,
             write_verbose/2,
             write_verbose/3,
-            var_list/4,
+            var_list/2,
             list_diff/3,
             list_intersection/3,
             operator/3
@@ -317,29 +317,26 @@ write_verbose(_, _, _).
 write_indent(Depth) :-
     tab(user_error, 2*Depth).
 
-%!  var_list(+N:int, +Count:int, +ListIn:list, -ListOut:list) is det
+%!  var_list(+N:int, -Vars:list) is det
 %
 %   Get a list of N variables, each   of  which is different. Basically,
 %   just append a counter to '_X'.  The   '_'  prefix ensures they don't
 %   overlap with any existing variables in a rule.
 %
 %   @arg  N The size of the list to return.
-%   @arg  Count Counter to ensure that each variable has a unique name.
-%   @arg  ListIn Input list.
-%   @arg  ListOut output list.
+%   @arg  Vars output list.
 
-var_list(N, C, Li, Lo) :-
-    N > 0,
-    !,
-    number_chars(C, Cc), % get chars from counter
-    append(['_', 'X'], Cc, Vc),
-    atom_chars(V, Vc),
-    C1 is C + 1,
-    N1 is N - 1,
-    var_list(N1, C1, [V | Li], Lo).
-var_list(0, _, L, L2) :-
-    reverse(L, L2), % restore order
+:- det(var_list/2).
+
+var_list(0, []) :-
     !.
+var_list(I, [H|T]) :-
+    I2 is I-1,
+    var_list(I2, T),
+    mk_var(I2, H).
+
+mk_var(I, $Name) :-
+    atom_concat('_X', I, Name).
 
 %!  list_diff(+ListA:list, +ListB:list, -ListC:list) is det
 %
@@ -350,7 +347,7 @@ var_list(0, _, L, L2) :-
 %   @arg  ListC The output list.
 
 list_diff([X | T], Y, Z) :-
-    member(X, Y),
+    memberchk(X, Y),
     !,
     list_diff(T, Y, Z).
 list_diff([X | T], Y, [X | Z]) :-
@@ -368,7 +365,7 @@ list_diff([], _, []) :-
 %   @arg ListC The output list.
 
 list_intersection([X | T], Y, [X | Z]) :-
-    member(X, Y),
+    memberchk(X, Y),
     !,
     list_intersection(T, Y, Z).
 list_intersection([_ | T], Y, Z) :-
