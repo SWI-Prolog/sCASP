@@ -54,15 +54,12 @@ Computation of dual rules (rules for the negation of a literal).
 %   even if there are no clauses for the positive literal (negation will
 %   be a fact). Wrapper for comp_duals2/1.
 
+:- det(comp_duals/0).
+
 comp_duals :-
     write_verbose(0, 'Computing dual rules...\n'),
     defined_predicates(Preds),
-    comp_duals2(Preds),
-    !.
-comp_duals :-
-    write_error('could not compute dual rules'),
-    !,
-    fail.
+    comp_duals2(Preds).
 
 scasp_builtin('call_1').
 scasp_builtin('findall_3').
@@ -87,8 +84,7 @@ comp_duals2([X | T]) :-
     comp_duals3(X, Rs),
     !,
     comp_duals2(T).
-comp_duals2([]) :-
-    !.
+comp_duals2([]).
 
 %!  comp_duals3(+Predicate:ground, +Rules:list) is det
 %
@@ -100,21 +96,18 @@ comp_duals2([]) :-
 %   @arg Predicate The head of each rule in Rules, of the form Head/arity.
 %   @arg Rules The list of rules for a single predicate.
 
-comp_duals3(P, R) :-
-    R \= [], % predicate is defined by one or more rules.
-    !,
-    predicate(H, P, []), % create a dummy predicate for P.
-    outer_dual_head(H, Hd),
-    comp_dual(Hd, R, [], 1),
-    !.
-comp_duals3(P, R) :-
-    R = [], % Predicate is called but undefined. Dual will be a fact.
-    !,
+:- det(comp_duals3/2).
+
+comp_duals3(P, []) :-
+    !,		% Predicate is called but undefined. Dual will be a fact.
     predicate(H, P, []), % create a dummy predicate for outer_dual_head/2.
     outer_dual_head(H, Hd),
     c_rule(Rd, Hd, []),
-    assert_rule(Rd),
-    !.
+    assert_rule(Rd).
+comp_duals3(P, R) :- % predicate is defined by one or more rules.
+    predicate(H, P, []), % create a dummy predicate for P.
+    outer_dual_head(H, Hd),
+    comp_dual(Hd, R, [], 1).
 
 %!  comp_dual(+DualHead:compound, +Rules:list, +DualBody:list, +Count:int) is det
 %

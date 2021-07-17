@@ -52,7 +52,7 @@ the resulting dynamic predicates.
 :- use_module(common).
 :- use_module(options).
 
-%!  defined_rule(+Head:ground, +FullHead:compound, -Body:list) is nondet
+%!  defined_rule(+Name:atom, +FullHead:compound, -Body:list) is nondet
 %
 %   Dynamic predicate for asserted rules.
 %
@@ -80,10 +80,14 @@ the resulting dynamic predicates.
 %
 %   @arg Subchecks The list of subcheck goals.
 
+% These predicates are filled by assert_program/1 from the output of the
+% parser.  sasp_load/1 realizes the entire compilation chain.
+% Body terms contains variables as e.g. `'X'`.
+
 :- dynamic
-    defined_rule/3,
-    defined_query/2,
-    defined_predicates/1,
+    defined_rule/3,		% Name, Head, Body
+    defined_query/2,            % Body, Count
+    defined_predicates/1,       % list(Name) (1 clause)
     defined_nmr_check/1.
 
 %!  program(?ProgramStruct:compound, ?Rules:list, ?OptimizationStatements:list,
@@ -197,8 +201,7 @@ format_program(X, P) :-
 format_program([], P) :-
     predicate(G, '_false_0', []),
     query(Q, [not(G)], _, 1),
-    program(P, [], _, Q),
-    !.
+    program(P, [], _, Q).
 
 %!  sort_by_type(+Statements:list, -Rules:list,
 %!               +ComputeIn:compound, -ComputeOut:compound) is det
@@ -312,7 +315,8 @@ get_predicates3([], Ps, Ps) :-
 %   been seen.
 %   @tbd If we can get variables from the original, we should.
 
-handle_classical_negations([X | T], S) :-
+handle_classical_negations([], _).
+handle_classical_negations([X|T], S) :-
     has_prefix(X, 'c'), % classically negated literal
     \+ memberchk(X, S), % unprocessed classical negation
     atom_concat(c_, Xn, X), % non-negated literal
@@ -326,13 +330,10 @@ handle_classical_negations([X | T], S) :-
     predicate(H, '_false_0', []), % dummy head for headless rules
     c_rule(R, H, [X2, Xn2]),
     assert_rule(R), % assert rule
-    !,
     handle_classical_negations(T, [X | S]).
-handle_classical_negations([_ | T], S) :-
-    !, % not a classical negation, or it's already been seen
+% not a classical negation, or it's already been seen
+handle_classical_negations([_|T], S) :-
     handle_classical_negations(T, S).
-handle_classical_negations([], _) :-
-    !.
 
 %!  assert_program_struct(+Program:compound) is det
 %
@@ -343,8 +344,7 @@ handle_classical_negations([], _) :-
 assert_program_struct(P) :-
     program(P, R, _, Q),
     assert_rules(R),
-    assert_query(Q),
-    !.
+    assert_query(Q).
 
 %!  assert_rules(+Rules:list) is det
 %
@@ -352,22 +352,21 @@ assert_program_struct(P) :-
 %
 %   @arg Rules A list of rules.
 
-assert_rules([H | T]) :-
-    assert_rule(H),
-    !,
-    assert_rules(T).
 assert_rules([]).
+assert_rules([H|T]) :-
+    assert_rule(H),
+    assert_rules(T).
 
 %!  assert_rule(+Rule:compound) is det
 %
 %   Assert a program rule.
 %
 %   @arg Rule A rule struct.
+
 assert_rule(R) :-
     c_rule(R, H2, B),
     predicate(H2, H, _), % get the head without args
-    assertz(defined_rule(H, H2, B)),
-    !.
+    assertz(defined_rule(H, H2, B)).
 
 %!  assert_query(+Query:compound) is det
 %
@@ -377,8 +376,7 @@ assert_rule(R) :-
 
 assert_query(Q) :-
     query(Q, Qs, _, N),
-    assertz(defined_query(Qs, N)),
-    !.
+    assertz(defined_query(Qs, N)).
 
 %!  assert_nmr_check(+NMR:list) is det
 %
@@ -389,8 +387,7 @@ assert_query(Q) :-
 assert_nmr_check(NMR) :-
     c_rule(R, '_nmr_check_0', NMR),
     assert_rule(R),
-    assertz(defined_nmr_check(['_nmr_check_0'])),
-    !.
+    assertz(defined_nmr_check(['_nmr_check_0'])).
 
 %!  assert_predicates(+Predicates:list) is det.
 %
@@ -399,8 +396,7 @@ assert_nmr_check(NMR) :-
 %   @arg Predicates A list of predicates.
 
 assert_predicates(Ps) :-
-    assertz(defined_predicates(Ps)),
-    !.
+    assertz(defined_predicates(Ps)).
 
 %!  destroy_program
 %
@@ -408,7 +404,7 @@ assert_predicates(Ps) :-
 %   programs.
 
 destroy_program :-
-    once(retractall(defined_rule(_, _, _))),
-    once(retractall(defined_query(_, _))),
-    once(retractall(defined_predicates(_))),
-    once(retractall(defined_nmr_check(_))).
+    retractall(defined_rule(_, _, _)),
+    retractall(defined_query(_, _)),
+    retractall(defined_predicates(_)),
+    retractall(defined_nmr_check(_)).
