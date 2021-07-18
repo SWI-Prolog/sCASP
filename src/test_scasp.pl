@@ -51,7 +51,10 @@ main(Argv) :-
     (   Failed == 0
     ->  format(user_error, 'All tests passed!~n', [])
     ;   format(user_error, '~D tests failed~n', [Failed]),
-        halt(1)
+        (   current_prolog_flag(break_level, _)
+        ->  fail
+        ;   halt(1)
+        )
     ).
 
 run_tests(Files, Failed, Options) :-
