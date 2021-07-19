@@ -48,6 +48,10 @@ release.
 :- use_module(program).
 :- use_module(variables). % for formatting and new_var_struct/1.
 
+:- meta_predicate
+    if_debug(+, 0),
+    force(0).
+
 %! debugging(+Level:int)
 % Define debugging(Level) to enable if_debug/2 statements with a level less than
 % or equal to the given one.
