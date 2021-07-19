@@ -29,7 +29,6 @@
           [ format_term/4,
             format_term_list/4,
             print_chs/3,
-            rb_visit_to_list/3,
             fill_in_variable_values/5,
             print_vars/2,
             print_var_constraints/1,
