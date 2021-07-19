@@ -456,7 +456,7 @@ divide_chs([X | T], [X | P], N) :-
     divide_chs(T, P, N).
 divide_chs([], [], []).
 
-%!  strip_prefixes(+FunctorIn:ground, -FunctorOut:ground) is det
+%!  strip_prefixes(+FunctorIn:atom, -FunctorOut:atom) is det
 %
 %   Strip any reserved prefixes added during processing. If appropriate,
 %   modify the output functor to restore   formatting represented by the
@@ -470,41 +470,32 @@ divide_chs([], [], []).
 %   @arg FunctorOut Output functor
 
 strip_prefixes(Fi, Fo) :-
-    has_prefix(Fi, 'c'), % classical negation
-    atom_chars(Fi, ['c', '_' | Fc]),
-    atom_chars(F1, Fc),
+    atom_concat(c_, F1, Fi),		% 'c_': classical negation
     !,
     strip_prefixes(F1, F2),
-    atom_chars(F2, Fc2),
-    atom_chars(Fo, ['-' | Fc2]). % restore negation
+    atom_concat(-, F2, Fo).
 strip_prefixes(Fi, not(Fo)) :-
-    has_prefix(Fi, 'n'), % negation
-    atom_chars(Fi, ['n', '_' | Fc]),
-    atom_chars(F1, Fc),
+    atom_concat(n_, F1, Fi),		% 'n_': classical negation
     !,
     strip_prefixes(F1, Fo).
 strip_prefixes(Fi, Fo) :-
     has_prefix(Fi, C),
-    C \= 'd', % non-dummy prefix
-    atom_chars(Fi, [C, '_' | Fc]),
-    atom_chars(F1, Fc),
+    C \== 'd',				% non-dummy prefix
     !,
+    sub_atom(Fi, 2, _, 0, F1),
     strip_prefixes(F1, Fo).
 strip_prefixes(Fi, Fo) :-
-    has_prefix(Fi, 'd'), % dummy prefix, remove and finish
-    atom_chars(Fi, ['d', '_' | Fc]),
-    atom_chars(Fo, Fc),
+    atom_concat(d_, Fo, Fi),		% 'd_': dummy prefix, remove and finish
     !.
-strip_prefixes(Fi, Fo) :- % '_' prefixes change to 'o_'
-    atom_chars(Fi, ['_','c','_' | Fc]),
-    atom_chars(Fo, ['o', '_','-' | Fc]),
-    !.
-strip_prefixes(Fi, Fo) :- % '_' prefixes change to 'o_'
-    atom_chars(Fi, ['_' | Fc]),
-    atom_chars(Fo, ['o', '_' | Fc]),
-    !.
-strip_prefixes(F, F) :- % no prefixes
-    !.
+strip_prefixes(Fi, Fo) :-		% '_c_' prefixes change to 'o_'
+    atom_concat('_c_', Fc, Fi),
+    !,
+    atom_concat('o_-', Fc, Fo).
+strip_prefixes(Fi, Fo) :-		% '_' prefixes change to 'o_'
+    atom_concat('_', Fc, Fi),
+    !,
+    atom_concat('o_', Fc, Fo).
+strip_prefixes(F, F).
 
 %!  sort_chs(+CHSin:compound, -CHSout:compound) is det
 %
