@@ -34,10 +34,12 @@ qtest_scasp :-
 %   Options:
 %
 %     |----------------|-------------------------------------|
+%     | -q             | Only run the _quick_ tests          |
 %     | --timeout=Secs | Run tests with timeout (default 60) |
 %     | --save         | Save result if no .pass file exists |
 %     | --overwrite    | Overwrite .pass after we passed     |
 %     | --pass         | Overwrite .pass after we failed     |
+%     | --cov[=Dir]    | Dump coverage data in Dir (`cov`)   |
 %
 %   Default runs tests from `../test`
 
@@ -47,6 +49,17 @@ main(['-q']) :-
 main(Argv) :-
     argv_options(Argv, Positional, Options),
     test_files(Positional, Files),
+    (   option(cov(Cov), Options)
+    ->  cov_dir(Cov, Dir),
+        show_coverage(run_tests(Files, Options),
+                      [ dir(Dir) ])
+    ;   run_tests(Files, Options)
+    ).
+
+cov_dir(true, Dir) => Dir = cov.
+cov_dir(Dir0, Dir) => Dir = Dir0.
+
+run_tests(Files, Options) :-
     run_tests(Files, Failed, Options),
     (   Failed == 0
     ->  format(user_error, 'All tests passed!~n', [])
