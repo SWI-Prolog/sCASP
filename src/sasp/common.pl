@@ -100,7 +100,7 @@ c_rule(-(H, B), H, B).
 
 rule(-(-(H, I), B), H, I, B).
 
-%!  negate_functor(+Functor:compound, -NegFunctor:compound) is det
+%!  negate_functor(+Functor:atom, -NegFunctor:atom) is det
 %
 %   Given the functor of a predicate   (of  the form name/arity), return
 %   the negation.
@@ -109,17 +109,11 @@ rule(-(-(H, I), B), H, I, B).
 %   @arg  NegFunctor The negated functor.
 
 negate_functor(F, N) :-
-    atom_chars(F, Fc),
-    atom_chars('n_', Fn), % negation prefix
-    append(Fn, N2, Fc), % F is negative, negation is the positive literal.
-    atom_chars(N, N2),
-    !.
+    atom_concat(n_, N0, F),
+    !,
+    N = N0.
 negate_functor(F, N) :-
-    atom_chars(F, Fc),
-    atom_chars('n_', Fn), % negation prefix
-    append(Fn, Fc, N2),
-    atom_chars(N, N2),
-    !.
+    atom_concat(n_, F, N).
 
 %!  is_atom(+Goal:compound, +Vars:list, -Value:atom) is det
 %
