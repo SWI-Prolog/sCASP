@@ -74,7 +74,7 @@ Input programs are normal logic programs with the following additions:
 
 parse_program(Toks, Stmts, Directives, Errs) :-
     write_verbose(1, 'Parsing input...\n'),
-    asp_program(Stmts, Directives, 0, Errs, Toks, []),
+    phrase(asp_program(Stmts, Directives, 0, Errs), Toks),
     !.
 parse_program(_, _, _, _) :-
     throw(error(sasp(syntax(invalid_program)), _)).
@@ -109,8 +109,7 @@ syntax_error(Expected, [], []) :-
     format(user_error, 'ERROR: Unexpected end of file. ~w.\n', [ExpMsg]).
 
 %!  asp_program(-Statements:list, -Directives:list,
-%!              +ErrorsIn:int, -ErrorsOut:int,
-%!              +TokensIn:list, -TokensOut:list)
+%!              +ErrorsIn:int, -ErrorsOut:int)//
 %
 %   A program is a list of statements
 %
@@ -118,19 +117,15 @@ syntax_error(Expected, [], []) :-
 %   @arg Directives Directives that will need to be processed.
 %   @arg ErrorsIn Input error count.
 %   @arg ErrorsOut Output error count.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 asp_program(S, D, Ein, Eout) -->
     statements(S, D, Ein, Eout).
 
-%!  user_query(-Goals:list, +TokensIn:list, -TokensOut:list) is det
+%!  user_query(-Goals:list)// is det
 %
 %   A user query is a list of goals followed by a terminal period.
 %
 %   @arg Goals The query goals entered by the user.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 user_query(X) -->
     body(X),
@@ -141,8 +136,7 @@ user_query(_) -->
     {fail}.
 
 %!  statements(-Statements:list, -Directives:list,
-%!             +ErrorsIn:int, -ErrorsOut:int,
-%!             +TokensIn:list, -TokensOut:list)
+%!             +ErrorsIn:int, -ErrorsOut:int)//
 %
 %   Parse  individual  statements  and  directives,   and  handle  error
 %   recovery.
@@ -151,8 +145,6 @@ user_query(_) -->
 %   @arg Directives Directives that will need to be processed.
 %   @arg ErrorsIn Input error count.
 %   @arg ErrorsOut Output error count.
-%   @arg TokensIn Input list of tokens.
-%   @arg TokensOut Output list of tokens.
 
 statements(X, [D | T], Ein, Eout) -->
     {nb_setval(us_cnt, 0)}, % initialize underscore counter
@@ -169,7 +161,6 @@ statements([], [], Errs, Errs) -->
     !.
 statements(X, D, Ein, Eout) --> % An error occurred, recover and keep going.
     parse_recover,
-    !,
     incr(Ein, E2),
     statements(X, D, E2, Eout).
 
@@ -277,15 +268,13 @@ rule_clause(X) -->
     [(':-', _)],
     !,
     body(Y),
-    !,
     terminal('.'),
-    {predicate(G, '_false_0', [])}, % dummy head for headless rules
-    {c_rule(X, G, Y)}.
+    { predicate(G, '_false_0', []), % dummy head for headless rules
+      c_rule(X, G, Y)
+    }.
 rule_clause(X) -->
     head(Y),
-    !,
     asp_rule(X, Y),
-    !,
     terminal('.').
 
 %!  compute(-ComputeStatement:compound)//
@@ -296,13 +285,9 @@ rule_clause(X) -->
 
 compute(c(X, Y)) -->
     terminal(int(X)),
-    !,
     terminal('{'),
-    !,
     body(Y),
-    !,
     terminal('}'),
-    !,
     terminal('.').
 
 %!  asp_rule(-Rule:compound, +Head:callable)//
@@ -374,7 +359,6 @@ body(X) -->
     !.
 body(_) -->
     syntax_error(body),
-    !,
     {fail}.
 
 %!  infix_expression(-Predicate:compound)//
@@ -397,14 +381,19 @@ infix_expression(X) -->
 get_infix(X) -->
     get_infix2(A),
     [(B, _)],
-    {operator(B, S, _)},
-    {member(S, [xfx, yfx, xfy])},
+    { operator(B, S, _),
+      infix_associativity(S)
+    },
     !,
     get_infix(C),
     !,
     {append(A, [B | C], X)}.
 get_infix(X) -->
     get_infix2(X). % end
+
+infix_associativity(xfx).
+infix_associativity(xfy).
+infix_associativity(yfx).
 
 %!  get_infix2(-Expression:compound)//
 %
@@ -432,10 +421,10 @@ asp_predicate(X) -->
     [('-', _)], % classical negation
     asp_atom(Y),
     !,
-    {handle_prefixes(Y, Y2)},
-    {atom_chars(Y2, Y3)},
-    {atom_chars(Y4, ['c', '_' | Y3])}, % prefix for classical negation
-    asp_predicate2(X, Y4).
+    { handle_prefixes(Y, Y2),
+      atom_concat(c_, Y2, Y3)
+    },
+    asp_predicate2(X, Y3).
 asp_predicate(builtin_1(X)) -->
     [(builtin(Y), _)], % built-in, don't add prefixes
     !,
@@ -582,12 +571,14 @@ asp_list(X) -->
 asp_list2(X, Y) -->
     [('|', _)],
     infix_expression(Z),
-    {\+(Z =.. [',', _, _])}, % only one term in tail
-    {comma_list(Y, Y2)},
-    {asp_list3(Y2, Z, X)}.
+    { Z \= (_,_),
+      comma_list(Y, Y2),
+      asp_list3(Y2, Z, X)
+    }.
 asp_list2(X, Y) -->
-    {comma_list(Y, Y2)},
-    {asp_list3(Y2, [], X)}.
+    { comma_list(Y, Y2),
+      asp_list3(Y2, [], X)
+    }.
 asp_list2(_, _) -->
     syntax_error(list),
     !,
@@ -700,36 +691,33 @@ infix_op_pop(_, [], [], P, P) :-
 %   @arg PrefixIn The input expression.
 %   @arg PrefixOut The output expression.
 
-infix_para_pop([X | T], So, [A, B | Pi], Po) :-
-    X \= ')',
-    !,
-    Y =.. [X, A, B],
-    infix_para_pop(T, So, [Y | Pi], Po).
 infix_para_pop([')' | T], T, P, P) :-
     !. % discard closing para
+infix_para_pop([X | T], So, [A, B | Pi], Po) :-
+    Y =.. [X, A, B],
+    infix_para_pop(T, So, [Y | Pi], Po).
 
-%!  handle_prefixes(+FunctorIn:ground, -FunctorOut:ground)
+%!  handle_prefixes(+FunctorIn:atom, -FunctorOut:atom)
 %
 %   If the predicate begins with a reserved prefix, add the dummy prefix
 %   to ensure that it won't be treated  the same as predicates where the
 %   prefix is added internally. If no prefix, just return the original.
 
 handle_prefixes(Fi, Fo) :-
-    has_prefix(Fi, _), % has a reserved prefix; doesn't matter which one
-    atom_chars(Fi, Fc),
-    atom_chars(Fo, ['d', '_' | Fc]),
-    !.
-handle_prefixes(Fi, Fo) :-
-    reserved_prefix(Fi), % The name *is* a reserved prefix.
-    atom_chars(Fi, Fc),
-    atom_chars(Fo, ['d', '_' | Fc]),
-    !.
-handle_prefixes(Fi, Fo) :-
-    atom_chars(Fi, Fc),
-    Fc = ['_' | _], % starts with an underscore
-    atom_chars(Fo, ['d', '_' | Fc]),
-    !.
+    needs_dummy_prefix(Fi),
+    !,
+    atom_concat(d_, Fi, Fo).
 handle_prefixes(F, F).
+
+needs_dummy_prefix(F) :-
+    has_prefix(F, _),
+    !.
+needs_dummy_prefix(F) :-
+    reserved_prefix(F),
+    !.
+needs_dummy_prefix(F) :-
+    sub_atom(F, 0, _, _, '_').
+
 
 %!  strip_quotes(+StringIn:atom, -StringOut:atom) is det
 %
@@ -737,15 +725,16 @@ handle_prefixes(F, F).
 %   the first character is not a quote.
 
 strip_quotes(Si, So) :-
-    atom_chars(Si, [C | T]),
-    member(C, ['\'', '\"']),
+    sub_atom(Si, 0, 1, _, Q),
+    my_is_quote(Q),                     % or just is_quote/1?
+    sub_atom(Si, _, 1, _, Q),
     !,
-    reverse(T, T2), % reverse string
-    T2 = [C | T3], % quote must match
-    reverse(T3, T4), % restore correct order
-    atom_chars(So, T4).
-strip_quotes(S, S) :-
-    !. % first char is not a quote
+    sub_atom(Si, 1, _, 1, So).
+strip_quotes(S, S).
+
+my_is_quote('\'').
+my_is_quote('"').
+
 
 %!  incr(+IntIn:int, -IntOut:int)//
 %
