@@ -4,8 +4,8 @@
             main/1,
             load/1,
             run_defined_query/0,
-            '?'/1,
-            '??'/1,
+            (?)/1,
+            (??)/1,
             solve/4,
             check_goal/4,
             solve_goal/4,
@@ -116,14 +116,11 @@ main_loop :-
                            [ prompt('casp ~! ?- '),
                              variable_names(Bindings)
                            ]),
-    maplist(call, Bindings),            % sCASP vars are atoms, see revar/2.
+    maplist(bind_var, Bindings),            % sCASP vars are $(Name), see revar/2.
     conj_to_list(R, RQ),
     capture_classical_neg(RQ, Q),
-    (   (   R == end_of_file
-        ;   R == (exit)
-        ;   R == quit
-        ;   R == halt
-        )
+    (   atom(R),
+        end_of_input(R)
     ->  format('~N'),
         halt
     ;   conj_to_list(R, RQ),
@@ -133,6 +130,14 @@ main_loop :-
         ;   main_loop
         )
     ).
+
+bind_var(Name = Var) :-
+    Var = $Name.
+
+end_of_input(end_of_file).
+end_of_input(exit).
+end_of_input(quit).
+end_of_input(halt).
 
 conj_to_list(true, []) :-
     !.
@@ -149,19 +154,22 @@ capture_classical_neg([-S|Ss], [N|NSs]) :- !,
 capture_classical_neg([S|Ss], [S|NSs]) :-
     capture_classical_neg(Ss, NSs).
 
+%!  main_solve(+Query)
+%
+%   Solve a toplevel query. Query is a callable term where variables are
+%   represented as $Name.
+
 main_solve(Q0) :-
     current_option(minimal_model, on), !,
     collect_min_models(Q0),
     fail.
-
 main_solve(Q0) :-
     current_option(answers, Number),
 
-    process_query(Q0, Q, Query), term_variables(Q, Vars),
-    unifiable(Q0, Q, D0),
+    process_query(Q0, Q, Query, D0),
+    pairs_values(D0, Vars),
 
     pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
-
     print_query(PQ),
 
     statistics(runtime, _),
@@ -170,7 +178,7 @@ main_solve(Q0) :-
     ;   format('\nno models\n\n'),
         fail
     ),
-    statistics(runtime, [_|[T]]),
+    statistics(runtime, [_,T]),
 
     format('\tANSWER:\t~w (in ~w ms)\n', [Counter, T]),
 
@@ -302,7 +310,7 @@ clear_flags :-
     set(print, on),
     solve_query(Q).
 
-%!  ? (?Query)
+%!  ?(?Query)
 %
 %   Shorcut  predicate  to  ask  queries  in  the  top-level.  It  calls
 %   solve_query/1

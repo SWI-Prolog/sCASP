@@ -42,7 +42,8 @@
             pr_table_predicate/1,
             pr_show_predicate/1,
             pr_pred_predicate/1,
-            revar/2,
+            revar/2,			% +Term -VarTerm
+            revar/3,                    % +Term -VarTerm, -VarNames
             print_abducibles/2
           ]).
 
@@ -1324,6 +1325,7 @@ assert_pr_user_predicate([P|Ps]) :-
 
 
 %!  revar(+Term, -VarTerm) is det.
+%!  revar(+Term, -VarTerm, -Bindings) is det.
 %
 %   If Term is  a  term  that   contains  atoms  using  variable  syntax
 %   ([A-Z].*), VarTerm is a copy of Term with all such atoms replaced by
@@ -1332,10 +1334,20 @@ assert_pr_user_predicate([P|Ps]) :-
 %     - A term N/D is translated into rat(N,D)
 %     - An atom N/D is translated into rat(N,D)
 %     - A quoted atom is translated into its unquoted equivalent
+%
+%   @arg Bindings is a list `Name=Var` that contains the variable names.
 
 revar(X,Y) :-
     empty_assoc(Dic),
     revar_(X,Y,Dic,_).
+
+revar(X,Y,VarNames) :-
+    empty_assoc(Dic0),
+    revar_(X,Y,Dic0,Dic),
+    assoc_to_list(Dic, Pairs),
+    maplist(varname, Pairs, VarNames).
+
+varname(Name-Var, Name=Var).
 
 revar_(X,Y,Dic,Dic) :-
     var(X),

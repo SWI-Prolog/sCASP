@@ -2,7 +2,8 @@
           [ load_program/1,
             write_program/0,
             print_goal/1,
-            process_query/3,
+            process_query/3,		% +QGround, -QVar, -TotalQ
+            process_query/4,		% +QGround, -QVar, -TotalQ, -VarNames
             ask_for_more_models/0,
             allways_ask_for_more_models/0,
             print_query/1,      % query
@@ -91,21 +92,25 @@ load_program(X) :-
 write_program :-
     print_human_program.
 
-%!  process_query(?Q, ?Query, ?TotalQuery)
+%!  process_query(+Q, -Query, -TotalQuery) is det.
+%!  process_query(+Q, -Query, -TotalQuery, -VarNames) is det.
 %
 %   Initialize  internal  flags  to allows  the generation  of multiples
 %   models in the interaction and top-level mode (even when the query is
 %   ground). Returns in TotalQuery a list  with the  sub_goals in  Q and
 %   _o_nmr_check_ to run the global constraints
 %
-%   @arg Q is a query with variables represented as atoms, e.g., `'X'`
+%   @arg Q is a query with variables represented as $(Name)
 %   @arg Query is a list representation of Q with atom-variables changed
 %        to normal variables.
 %   @arg TotalQuery appends `true` or `o_nmr_check` depending on the
 %        `no_nmr` option.
 
 process_query(Q, Query, TotalQuery) :-
-    revar(Q,A),
+    process_query(Q, Query, TotalQuery, _).
+
+process_query(Q, Query, TotalQuery, VarNames) :-
+    revar(Q, A, VarNames),
     (   is_list(A)
     ->  Query = A
     ;   Query = [A]
@@ -793,19 +798,20 @@ human_portray_arg(A) :- print(A).
 %% (Also variables with attributes)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-lookup_mydict(D0,D1,A,PVar) :-
-    (   lookup_mydict_(D0,A,PVar) ->
-        D1 = D0
-    ;
-        length(D0,L),
-        atom_number(AtomL,L),
-        atom_concat('Var',AtomL,PVar),
-        D1 = [(A=PVar)|D0]
+lookup_mydict(D0, D1, A, PVar) :-
+    (   member(Name=Var, D0),
+        A == Var
+    ->  D1 = D0,
+        PVar = Name
+    ;   length(D0, L),
+        atom_concat('Var', L, PVar),
+        D1 = [PVar=A|D0]
     ).
 
-lookup_mydict_([],_,_) :- !, fail.
-lookup_mydict_([(V=PVar)|_],A,PVar) :- V == A, !.
-lookup_mydict_([_|Rs],A,PVar) :- lookup_mydict_(Rs,A,PVar).
+%!  pretty_term(+D0, -D1, +A, -PA) is det.
+%
+%   @arg  D0  is  a  _variable  dictionary  represented  as  a  list  of
+%   `Name=Var` terms.
 
 pretty_term(D0,D1,A,PA) :-
     var(A), !,
