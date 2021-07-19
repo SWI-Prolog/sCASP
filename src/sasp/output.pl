@@ -82,8 +82,8 @@ format_term(X, X, Con, V) :-
     !.
 format_term(X, Xo, Con, V) :-
     is_var(X),
-    var_value(X, V, val(X2)), % bound var
     !,
+    var_value(X, V, val(X2)), % bound var
     format_term(X2, Xo, Con, V).
 format_term(X, Xo, Con, V) :-
     X =.. [_ | _], % non-var
@@ -323,8 +323,6 @@ format_predicate2(Xi, Xo, Uv, Uv, _) :-
     predicate(Xi, X2, []),
     atom(X2), % compound term, predicate or atom
     atom_chars(X2, ['\'' | X3]), % quoted string; strip outermost quotes and arity
-    %% reverse(X3, ['0', '_', '\'' | X4]),
-    %% reverse(X4, X5),
     reverse(X3, ['0', '_' | X4]),
     reverse(X4, X5),
     atom_chars(Xo, ['\'' | X5]).
@@ -336,11 +334,10 @@ format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
     atom_chars(X3, Xc),
     strip_prefixes(X3, X4),
     format_predicate3(A, A2, Uvi, Uvo, V),
-    (X4 = not(Xn) -> % append args
-            Xn2 =.. [Xn | A2],
-            Xo = not(Xn2)
-    ;
-            Xo =.. [X4 | A2]
+    (   X4 = not(Xn) % append args
+    ->  Xn2 =.. [Xn | A2],
+        Xo = not(Xn2)
+    ;   Xo =.. [X4 | A2]
     ).
 format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
     Xi =.. [X2 | A], % compound term, but not a predicate or atom head

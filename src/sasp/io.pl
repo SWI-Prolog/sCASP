@@ -51,11 +51,13 @@ Variables are represented as Prolog atoms   using variable syntax. The _
 is translated into `'Var0'`, `'Var1'`, etc.
 
 In addition, #table, #pred and  #show   asserts  the corresponding facts
-into the database. TBD: Avoid that.
+into   the   database.   These   three     predicates    are   used   by
+generate_pr_rules/1, which predicate also removes these.
 
 @tbd: Use normal clauses
 @tbd: Represent query as N{Query} or ?- Query
-@tbd: Use Prolog variables or perhaps '$VAR'(Name) terms.
+@tbd: Use Prolog variables or perhaps '$VAR'(Name) terms (now $Var)
+@tbd: Avoid the need for asp_table/1, pred/1 and show/1.
 
 @author Kyle Marple
 @version 20170127
