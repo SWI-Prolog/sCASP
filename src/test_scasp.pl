@@ -103,6 +103,8 @@ run_test(File, Options) :-
     ->  format("different stacks, same models ~|~t~d ms~8+\n", [Used]),
         (   option(show_diff(true), Options)
         ->  diff_terms(PassStacks, Stacks)
+        ;   option(pass(true), Options)
+        ->  save_test_data(PassFile, Result)
         ;   true
         )
     ;   format("FAILED ~|~t~d ms~8+\n", [Used]),
