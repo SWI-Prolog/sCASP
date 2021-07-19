@@ -544,10 +544,9 @@ pr_pred_default(true          :: format('\r',[])) :- !.
 pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
     Operation =.. [Op,A,B],
     human_op(Op,HOp),
-    ( A = '$'(Var) ->
-        HA = Var
-    ;
-        HA = A
+    (   A = $Var
+    ->  HA = Var
+    ;   HA = A
     ), !.
 %% Note o_chk_N are handled by pr_pred_negated as global constraints
 pr_pred_default(not(Auxiliar) :: Human) :-
@@ -557,17 +556,16 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     atom_chars(Code, Chars_Code),
     append(C_N,['_'|_],Chars_Code),
     number_chars(N,C_N),
-    ( Args == [] ->
-        Human = format('\'G.Const. ~p\' holds',[N])
-    ;
-        Human = format('\'G.Const. ~p\' holds (for ~p)',[N,@(Args)])
+    (   Args == []
+    ->  Human = format('\'G.Const. ~p\' holds',[N])
+    ;   Human = format('\'G.Const. ~p\' holds (for ~p)',[N,@(Args)])
     ).
 pr_pred_default(not(Auxiliar) :: Human) :-
     Auxiliar =.. [Aux|Args],
     %% For o_PRED_N
-    atom_chars(Aux,['o','_'|C_Aux]), !,
-    append(__C_Pred,['_'|C_Num],C_Aux),
-    number_chars(N,C_Num),
+    split_string(Aux, "_", "", ["o",_|M]),
+    last(M, NumS),
+    number_string(N, NumS),
     (   Args == []
     ->  Human = format('\'rule ~p\' holds',[N])
     ;   Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)])
