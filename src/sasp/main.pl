@@ -74,14 +74,14 @@ submain :-
     parse_args(Sources),
     sasp_load(Sources).
 
-%!  main(+Source:filepath)
+%!  main(+ArgvOrFile)
 %
 %   Wrapper for interactive runs.
 %
 %   @arg Source Path of input file, or list of paths for multiple files.
-%
+
 main(Sources) :-
-    Sources = [_ | _],
+    is_list(Sources),
     !,
     parse_args2(Sources,Files),
     sasp_load(Files).
