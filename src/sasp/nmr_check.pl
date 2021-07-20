@@ -418,7 +418,7 @@ get_headless_rules([], Rc, Rc).
 %   @arg NMRCheck List of NMR sub-check goals.
 %   @arg Counter Counter used to ensure sub-check heads are unique.
 
-olon_chks([R | T], [not(G) | Nmr], C) :-
+olon_chks([R|T], [not(G)|Nmr], C) :-
     rule(R, X, _, Y),
     predicate(X, '_false_0', _), % headless rule
     !,
@@ -428,20 +428,17 @@ olon_chks([R | T], [not(G) | Nmr], C) :-
     predicate(G, H, []), % Create goal for NMR check
     C1 is C + 1,
     olon_chks(T, Nmr, C1).
-olon_chks([R | T], [Go | Nmr], C) :-
+olon_chks([R|T], [Go|Nmr], C) :-
     rule(R, X, _, Y),
     !,
-    (once(member(not(X), Y)) -> % negated head must match exactly, including args
-            c_rule(R2, X, Y)
-    ;
-            append(Y, [not(X)], Y2),
-            c_rule(R2, X, Y2) % add negated head to body
+    (   memberchk(not(X), Y) % negated head must match exactly, including args
+    ->  c_rule(R2, X, Y)
+    ;   append(Y, [not(X)], Y2),
+        c_rule(R2, X, Y2) % add negated head to body
     ),
     predicate(X, Hi, _),
     split_functor(Hi, _, A), % get arity of head
-    number_chars(A, Ac),
-    append(['_', 'c', 'h', 'k'], ['_' | Ac], Hc),
-    atom_chars(Hb, Hc), % Create base sub-check functor with correct arity
+    atom_concat('_chk_', A, Hb),
     create_unique_functor(Hb, C, H), % Create functor for sub-check head
     comp_duals3(H, [R2]),
     var_list(A, V), % Get place holder args for NMR check goal
@@ -473,15 +470,14 @@ assign_unique_ids(Ri, Ro) :-
 %   @arg ListOut A list of rules or goals with unique IDs attached.
 %   @arg Counter The next ID to assign.
 
-assign_unique_ids2([X | T], [X2 | T2], C) :-
+assign_unique_ids2([], [], _).
+assign_unique_ids2([X|T], [X2|T2], C) :-
     c_rule(X, H, B), % rule
     !,
     rule(X2, H, C, B),
     C1 is C + 1,
     assign_unique_ids2(T, T2, C1).
-assign_unique_ids2([X | T], [X2 | T2], C) :-
-    !, % goal
+assign_unique_ids2([X|T], [X2|T2], C) :-
     X2 = -(X, C),
     C1 is C + 1,
     assign_unique_ids2(T, T2, C1).
-assign_unique_ids2([], [], _).
