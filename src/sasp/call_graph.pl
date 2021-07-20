@@ -135,7 +135,7 @@ get_nodes([], _, []).
 %   @arg SkipDuals 1 or 0 indicating whether or not to skip rules with negated
 %        heads.
 
-get_arcs([R | T], Gi, Go, SD) :-
+get_arcs([R|T], Gi, Go, SD) :-
     rule(R, H, I, Y), % Rules have IDs.
     predicate(H, F, _), % get functor of head
     \+ e(F),
@@ -145,7 +145,7 @@ get_arcs([R | T], Gi, Go, SD) :-
     !,
     get_arcs2(F, I, Y, Gi, G1),
     get_arcs(T, G1, Go, SD).
-get_arcs([R | T], Gi, Go, SD) :-
+get_arcs([R|T], Gi, Go, SD) :-
     \+rule(R, _, _, _), % Rules do NOT have IDs. Otherwise, dual rules with IDs can trigger an error.
     c_rule(R, H, Y), % rules have no IDs attached.
     I is -1,
@@ -157,7 +157,7 @@ get_arcs([R | T], Gi, Go, SD) :-
     !,
     get_arcs2(F, I, Y, Gi, G1),
     get_arcs(T, G1, Go, SD).
-get_arcs([_ | T], Gi, Go, SD) :-
+get_arcs([_|T], Gi, Go, SD) :-
     get_arcs(T, Gi, Go, SD).
 get_arcs([], G, G, _) :-
     !.
@@ -173,26 +173,25 @@ get_arcs([], G, G, _) :-
 %   @arg ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
 %   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
 
-get_arcs2(H, I, [Y | T], Gi, [G | Go]) :-
+get_arcs2(_, _, [], G, G) :-
+    !.
+get_arcs2(H, I, [Y|T], Gi, [G|Go]) :-
     predicate(Y, Gy, _), % if goal is a predicate, get the functor
     \+ is_dual(Gy),
     !,
     G = a(H, Gy, 0, I),
     get_arcs2(H, I, T, Gi, Go).
-get_arcs2(H, I, [Y | T], Gi, [G | Go]) :-
+get_arcs2(H, I, [Y|T], Gi, [G|Go]) :-
     Y = not(Y2),
     !,
     predicate(Y2, Gn, _), % get the functor
     G = a(H, Gn, 1, I),
     get_arcs2(H, I, T, Gi, Go).
-get_arcs2(H, I, [Y | T], Gi, Go) :-
+get_arcs2(H, I, [Y|T], Gi, Go) :-
     \+ predicate(Y, _, _), % goal isn't a predicate; skip it
-    !,
     get_arcs2(H, I, T, Gi, Go).
-get_arcs2(_, _, [], G, G) :-
-    !.
 
-%!  merge_arcs(+ArcsIn:list, -ArcsOut:list, -IDgroups:list)
+%!  merge_arcs(+ArcsIn:list, -ArcsOut:list, -IDgroups:list) is det.
 %
 %   Ensure that at most one arc  for   each  negation exists between two
 %   nodes. Create a list of  IDs  for   an  arc  to later associate with
@@ -202,15 +201,17 @@ get_arcs2(_, _, [], G, G) :-
 %   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
 %   @arg IDgroups List of ID groups of the form ar(ID, IDlist).
 
-merge_arcs([X | T], [X | As], [Ar | Is]) :-
+:- det(merge_arcs/3).
+
+merge_arcs([X|T], [X|As], [Ar|Is]) :-
     X = a(H, G, N, I),
     merge_arcs2(H, G, N, T, To, Rs),
-    Ar = ar(I, [I | Rs]),
+    Ar = ar(I, [I|Rs]),
     merge_arcs(To, As, Is).
 merge_arcs([], [], []).
 
 %!  merge_arcs2(+Head:int, +Goal:int, +Neg:int,
-%!              +ArcsIn:list, -ArcsOut:list, -IDs:list)
+%!              +ArcsIn:list, -ArcsOut:list, -IDs:list) is det.
 %
 %   Get rules associate with a single arc in the final graph
 %
@@ -221,12 +222,13 @@ merge_arcs([], [], []).
 %   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
 %   @arg IDs IDs associated with the current arc.
 
-merge_arcs2(H, G, N, [X | T], To, [I | Rs]) :-
+merge_arcs2(_, _, _, [], [], []) :-
+    !.
+merge_arcs2(H, G, N, [X|T], To, [I|Rs]) :-
     X = a(H, G, N, I),
+    !,
     merge_arcs2(H, G, N, T, To, Rs).
-merge_arcs2(H, G, N, [X | T], [X | T], []) :-
-    X \= a(H, G, N, _).
-merge_arcs2(_, _, _, [], [], []).
+merge_arcs2(_, _, _, [X|T], [X|T], []).
 
 %!  assert_all(+List:list)
 %
@@ -234,7 +236,7 @@ merge_arcs2(_, _, _, [], [], []).
 %
 %   @arg List List of facts to assert.
 
-assert_all([X | T]) :-
+assert_all([X|T]) :-
     assertz(X),
     assert_all(T).
 assert_all([]).
