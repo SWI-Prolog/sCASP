@@ -37,8 +37,6 @@
             add_var_constraint/4,
             get_value_id/3,
             variable_intersection/4,
-            unify_vars/5,
-            test_constraints/4,
             body_vars/3,
             body_vars2/4,
             get_unique_vars/6,
@@ -59,7 +57,6 @@ Predicates related to storing, accessing and modifying variables.
 :- use_module(library(lists)).
 :- use_module(library(rbtrees)).
 :- use_module(common).
-:- use_module(solve).
 :- use_module(options).
 
 %! var_struct(?VarStruct:compound, ?Variables:list, ?Values:list,
@@ -301,21 +298,6 @@ add_var_constraint2(V, [X | T], [V, X | T]) :-
 add_var_constraint2(X, [X | T], [X | T]) :- % Already present
     !.
 
-%!  var_id(+Variable:ground, +VarStruct:compound, -Value:compound) is det
-%
-%   Given a variable and a variable  struct,   get  the ID for the given
-%   variable. Fail if not present.
-%
-%   @arg Variable The input variable.
-%   @arg VarStruct The variable struct.
-%   @arg ID The ID of the variable.
-
-var_id(V, Vs, ID) :-
-    is_var(V, Name),
-    var_struct(Vs, V1, _, _, _),
-    rb_lookup(Name, ID, V1), % binds ID
-    !.
-
 %!  get_value_id(+Var:ground, -ID:int, +VarStruct:compound) is det
 %
 %   Given a variable, get the final ID   linked  to it in the VarStruct.
@@ -447,138 +429,6 @@ id_to_var(X, [Y | _], Vs, Y) :-
     !.
 id_to_var(X, [_ | T], Vs, Iv) :-
     id_to_var(X, T, Vs, Iv).
-
-%!  unify_vars(+Var1:ground, +Var2:ground, +VarStructIn:compound,
-%!             -VarStructOut:compound, +OccursCheck:int) is det
-%
-%   Unify two variables by updating the value   of the first to the Most
-%   General Unifier and linking the second to the first.
-%
-%   @arg Var1 Variable one.
-%   @arg Var2 Variable two.
-%   @arg VarStructIn Input var struct.
-%   @arg VarStructOut Output var struct.
-%   @arg OccursCheck 1 or 0 indicating whether or not to perform the occurs
-%        check when unifying a variable with a structure.
-
-unify_vars(V1, V2, Vs, Vs, _) :-
-    get_value_id(V1, I, Vs),
-    get_value_id(V2, I, Vs),
-    !.
-unify_vars(V1, V2, Vsi, Vso, _) :-
-    is_unbound(V1, Vsi, C1, F1, L1),
-    is_unbound(V2, Vsi, C2, F2, L2), % both are unbound or constrained
-    !,
-    merge_constraints(C1, C2, C3), % get the MGU (here, merged constraints)
-    (   (F1 =:= 1 ; F2 =:= 1)
-    ->  F3 is 1
-    ;   F3 is 0
-    ),
-    (   (L1 =:= -1 ; L2 =:= -1) % if either var is unloopable or a loop var, both must be
-    ->  L3 is -1
-    ;   L3 is max(L1,L2)
-    ),
-    var_con(Val, C3, F3, L3),
-    update_var_value(V1, Val, Vsi, Vs1), % update the value to the MGU
-    var_id(V1, Vs1, ID),
-    update_var_value(V2, id(ID), Vs1, Vso), % Link V2 to V1
-    !.
-unify_vars(V1, V2, Vsi, Vso, O) :-
-    is_unbound(V1, Vsi, Con, F, _), % variable two is bound
-    !,
-    F \= 1, % variable is bindable; else fail
-    var_value(V2, Vsi, val(Val)),
-    once(test_constraints(Con, Val, Vsi, Vs1)),
-    (   O =:= 1
-    ->  occurs_check(V1, Val, Vsi)
-    ;   true
-    ),
-    var_id(V2, Vs1, ID),
-    update_var_value(V1, id(ID), Vs1, Vso), % Link V1 to V2
-    !.
-unify_vars(V1, V2, Vsi, Vso, O) :-
-    is_unbound(V2, Vsi, Con, F, _), % variable one is bound
-    !,
-    F \= 1,
-    var_value(V1, Vsi, val(Val)),
-    once(test_constraints(Con, Val, Vsi, Vs1)),
-    (   O =:= 1
-    ->  occurs_check(V2, Val, Vsi)
-    ;   true
-    ),
-    var_id(V1, Vs1, ID),
-    update_var_value(V2, id(ID), Vs1, Vso), % Link V1 to V2
-    !.
-unify_vars(V1, V2, Vsi, Vso, O) :- % both are at least partially bound
-    var_value(V1, Vsi, val(Val)),
-    var_value(V2, Vsi, val(Val2)),
-    !,
-    (   O =:= 1
-    ->  occurs_check(V1, Val2, Vsi),
-        occurs_check(V2, Val, Vsi)
-    ;   true
-    ),
-    solve_unify(Val, Val2, Vsi, Vs1, O), % unify the two values.
-    var_id(V1, Vs1, ID),
-    update_var_value(V2, id(ID), Vs1, Vso), % Link V2 to V1
-    !.
-
-%!  test_constraints(+Constraints:list, +Value:compound, +VarStructIn:compound,
-%!                   +VarStructOut:compound)
-%
-%   Given a list of constraints, ensure that none of them unify with the
-%   value. VarStruct is needed in case  the constraints include compound
-%   terms.
-%
-%   @arg Constraints A list of values that a variable cannot take.
-%   @arg Value A value to check. May be ground or partially ground.
-%   @arg VarStructIn Input var struct.
-%   @arg VarStructOut Output var struct.
-
-test_constraints([X | T], V, Vsi, Vso) :-
-    X =.. [F | A1],
-    V =.. [F | A2], % Compound terms with same functor
-    length(A1, L1),
-    length(A2, L2),
-    L1 =:= L2, % same arity
-    !,
-    once(solve_subdnunify(A1, A2, Vsi, Vs1, Flag)),
-    (   (Flag = 1, Vs2 = Vs1) % doesn't unify, but keep any changes
-    ;   (Flag = 2, Vs2 = Vsi) % doesn't unify, but drop any variable changes
-    ),
-    !,
-    test_constraints(T, V, Vs2, Vso).
-test_constraints([X | T], V, Vsi, Vso) :-
-    X =.. [_ | _],
-    V =.. [_ | _], % Compound terms with differing functors or arity
-    !,
-    test_constraints(T, V, Vsi, Vso).
-test_constraints([X | T], V, Vsi, Vso) :-
-    X \= V, % either not both compound terms or different functors
-    !,
-    test_constraints(T, V, Vsi, Vso).
-test_constraints([], _, Vs, Vs) :-
-    !.
-
-%!  merge_constraints(+ListA:list, +ListB:list, -ListC:list) is det
-%
-%   Merge variable constraint lists A and B into list C.
-%
-%   @arg ListA Input list 1.
-%   @arg ListB Input list 2.
-%   @arg ListC Output list.
-
-merge_constraints([], X, X) :-
-    !.
-merge_constraints(X, [], X) :-
-    !.
-merge_constraints([X | T], Y, Z) :-
-    member(X, Y), % skip duplicates
-    !,
-    merge_constraints(T, Y, Z).
-merge_constraints([X | T], Y, [X | T2]) :-
-    !, % not a duplicate
-    merge_constraints(T, Y, T2).
 
 %!  body_vars(+Head:compound, +Body:list, -BodyVars:list) is det
 %

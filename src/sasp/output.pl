@@ -60,7 +60,6 @@ that may be used for warning and error output.
 
 :- use_module(library(lists)).
 :- use_module(library(rbtrees)).
-:- use_module(chs).
 :- use_module(common).
 :- use_module(options).
 :- use_module(program).
@@ -1389,3 +1388,22 @@ revars([],[],Dic,Dic).
 revars([X|Xs],[Y|Ys],Dic0,Dic) :-
     revar_(X,Y,Dic0,Dic1),
     revars(Xs, Ys, Dic1, Dic).
+
+%!  chs_entry(+Entry:compound, ?Functor:ground, ?Args:list,
+%!            ?Success:int, ?InNMR:int) is det.
+%!  chs_entry(?Entry:compound, +Functor:ground, +Args:list,
+%!            +Success:int, +InNMR:int) is det.
+%
+%   Convert a CHS entry to its components and vice-versa.
+%
+%   @arg Entry The entry struct.
+%   @arg Functor The predicate functor.
+%   @arg Args The list of args.
+%   @arg Success A 1 or 0 indicating whether or not the predicate has succeeded
+%        yet (either via inductive success or recursive call). If 0, intervening
+%        negations will need to be checked before coinductive success occurs.
+%   @arg InNMR 1 if the goal was first added after entering the NMR check, 0
+%        otherwise.
+
+chs_entry(-(F, A, S, N), F, A, S, N).
+
