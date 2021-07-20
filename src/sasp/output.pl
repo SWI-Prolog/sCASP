@@ -493,91 +493,21 @@ strip_prefixes(F, F).
 %!  sort_chs(+CHSin:compound, -CHSout:compound) is det
 %
 %   Sort entries in the formatted CHS by functor. If functors match, use
-%   `@<` to compare the entries. Basically a modified merge sort.
+%   `@<` to compare the entries.
 %
 %   @arg CHSin The unsorted CHS. Entries of the form
-%        `-(Predicate, Constraints)`, where Predicate may be wrapped
-%        in a not().
+%        `Predicate-Constraints`, where Predicate may be wrapped
+%        as not(Pred).
 %   @arg CHSout The sorted CHS.
 
-sort_chs([], []).
-sort_chs([X], [X]).
-sort_chs(Ci, Co) :-
-    length(Ci, L),
-    L2 is L // 2,
-    split_chs(Ci, Ca, Cb, L2),
-    sort_chs(Ca, Ca2),
-    sort_chs(Cb, Cb2),
-    merge_chs(Ca2, Cb2, Co).
+sort_chs(CHSin, CHSout) :-
+    map_list_to_pairs(key_chs_order, CHSin, Pairs),
+    keysort(Pairs, Sorted),
+    pairs_values(Sorted, CHSout).
 
-%!  split_chs(+CHSi:list, -CHSl:list, -CHSr:list, +Count:int) is det
-%
-%   Split the CHS (or any other  list)   into  two lists: one with Count
-%   elements and one with the remainder of the list.
-%
-%   @arg CHSi The input CHS.
-%   @arg CHSl The left CHS. Will contain Count elements.
-%   @arg CHSr The right CHS. Will contain the remainder of the list.
-%   @arg Count The number of elements to go in the left list.
+key_chs_order(not(Pred)-_, Key) => Key = Pred.
+key_chs_order(Pred-_, Key)      => Key = Pred.
 
-split_chs([X | T], [X | T2], R, N) :-
-    N > 0,
-    !,
-    N1 is N - 1,
-    split_chs(T, T2, R, N1).
-split_chs(R, [], R, 0) :-
-    !.
-split_chs([], [], [], _) :-
-    !.
-
-%!  merge_chs(+CHSa:list, +CHSb:list, -CHSc:list) is det
-%
-%   Merge sorted CHSes A and B into sorted CHS C.
-%
-%   @arg CHSa First sorted list.
-%   @arg CHSb Second sorted list.
-%   @arg CHSc Output sorted list.
-
-merge_chs(X, [], X) :-
-    !.
-merge_chs([], X, X) :-
-    !.
-merge_chs([X | T], [Y | T2], [X | T3]) :-
-    chs_lte(X, Y), % X =< Y
-    !,
-    merge_chs(T, [Y | T2], T3).
-merge_chs(X, [Y | T2], [Y | T3]) :-
-    !,
-    merge_chs(X, T2, T3).
-
-%!  chs_lte(+A:compound, +B:compound) is det
-%
-%   Compare two CHS entries.  First,   check  functors, disregarding any
-%   not() wrappers. If functors match, compare the entries with =|@=<|=.
-
-chs_lte(-(not(A), _), -(not(B), _)) :-
-    !,
-    chs_lte(-(A, _), -(B, _)).
-chs_lte(-(not(A), _), -(B, _)) :-
-    !,
-    chs_lte(-(A, _), -(B, _)).
-chs_lte(-(A, _), -(not(B), _)) :-
-    !,
-    chs_lte(-(A, _), -(B, _)).
-chs_lte(-(A, _), -(B, _)) :-
-    A \= not(_),
-    B \= not(_),
-    A =.. [Fa | _],
-    B =.. [Fb | _],
-    Fa @< Fb, % clear less than, else check args below
-    !.
-chs_lte(-(A, _), -(B, _)) :-
-    A \= not(_),
-    B \= not(_),
-    A =.. [F | _],
-    B =.. [F | _], % functors match
-    A @=< B,
-    !.
 
 %!  fill_in_variable_values(+GoalIn:compound, -GoalOut:compound,
 %!                          +ConstraintsIn:list, -ConstraintsOut:list,
