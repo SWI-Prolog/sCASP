@@ -336,11 +336,15 @@ abstract_structures([X | T], [X | T2], C, G) :-
 %   @arg Counter Input counter.
 %   @arg Goals Goals unifying non-variables with the variables replacing them.
 
+:- det(prep_args/7).
+
+prep_args([], _, Ai, Ao, _, _, []) :-
+    reverse(Ai, Ao). % Restore proper ordering
 prep_args([X | T], [Y | T2], Ai, Ao, Vs, C, [G | Gt]) :-
     is_var(X),
-    member(X, Vs), % X has already been seen
-    G =.. [=, Y, X], % create unification goal
+    memberchk(X, Vs), % X has already been seen
     !,
+    G = (Y=X),     % create unification goal
     prep_args(T, T2, [Y | Ai], Ao, Vs, C, Gt).
 prep_args([X | T], [_ | T2], Ai, Ao, Vs, C, G) :-
     is_var(X),
@@ -351,17 +355,13 @@ prep_args([X | T], [Y | T2], Ai, Ao, Vs, C, Go) :-
     !,
     prep_args2(X2, X3, Vs, Vs2, C, C2, Gs),
     Xo =.. [F | X3],
-    G =.. [=, Y, Xo], % create unification goal
+    G = (Y=Xo), % create unification goal
     !,
     prep_args(T, T2, [Y | Ai], Ao, Vs2, C2, Gt),
     append([G | Gs], Gt, Go).
 prep_args([X | T], [Y | T2], Ai, Ao, Vs, C, [G | Gt]) :-
-    !, % X is not a variable or a compound term
-    G =.. [=, Y, X], % create unification goal
+    G = (Y=X), % create unification goal
     prep_args(T, T2, [Y | Ai], Ao, Vs, C, Gt).
-prep_args([], _, Ai, Ao, _, _, []) :-
-    reverse(Ai, Ao), % Restore proper ordering
-    !.
 
 %!  prep_args2(+ArgsIn:list, -ArgsOut:list,
 %!             +VarsSeenIn:list, -VarsSeenOut:list,
@@ -378,45 +378,36 @@ prep_args([], _, Ai, Ao, _, _, []) :-
 %   @arg CounterOut Output counter.
 %   @arg UniGoals List of unification goals.
 
-prep_args2([X | T], [Y | T2], Vsi, Vso, Ci, Co, [G | Gt]) :-
+:- det(prep_args2/7).
+
+prep_args2([], [], Vs, Vs, C, C, []).
+prep_args2([X|T], [Y|T2], Vsi, Vso, Ci, Co, [G|Gt]) :-
     is_var(X),
     !,
-    (member(X, Vsi) -> % X has been seen
-            Vs1 = Vsi
-    ;
-            Vs1 = [X | Vsi]
+    (   memberchk(X, Vsi) % X has been seen
+    ->  Vs1 = Vsi
+    ;   Vs1 = [X|Vsi]
     ),
-    number_chars(Ci, Cc), % get chars from counter
-    append(['_', 'Y'], Cc, Vc),
-    atom_chars(Y, Vc),
+    atom_concat('_Y', Ci, Y),
     C1 is Ci + 1,
-    G =.. [=, Y, X], % create unification goal
-    !,
+    G = (Y=X), % create unification goal
     prep_args2(T, T2, Vs1, Vso, C1, Co, Gt).
-prep_args2([X | T], [Y | T2], Vsi, Vso, Ci, Co, Go) :-
-    X =.. [F | X2], % X is a compound term
+prep_args2([X|T], [Y|T2], Vsi, Vso, Ci, Co, Go) :-
+    X =.. [F|X2], % X is a compound term
     !,
-    number_chars(Ci, Cc), % get chars from counter
-    append(['_', 'Y'], Cc, Vc),
-    atom_chars(Y, Vc),
+    atom_concat('_Y', Ci, Y),
     C1 is Ci + 1,
     prep_args2(X2, X3, Vsi, Vs1, C1, C2, Gs),
-    Xo =.. [F | X3],
-    G =.. [=, Y, Xo], % create unification goal
-    !,
+    Xo =.. [F|X3],
+    G = (Y=Xo), % create unification goal
     prep_args2(T, T2, Vs1, Vso, C2, Co, Gt),
-    append([G | Gs], Gt, Go).
-prep_args2([X | T], [Y | T2], Vsi, Vso, Ci, Co, [G | Gt]) :-
+    append([G|Gs], Gt, Go).
+prep_args2([X|T], [Y|T2], Vsi, Vso, Ci, Co, [G|Gt]) :-
     % X isn't a variable or compound term
-    number_chars(Ci, Cc), % get chars from counter
-    append(['_', 'Y'], Cc, Vc),
-    atom_chars(Y, Vc),
+    atom_concat('_Y', Ci, Y),
     C1 is Ci + 1,
-    G =.. [=, Y, X], % create unification goal
-    !,
+    G = (Y=X), % create unification goal
     prep_args2(T, T2, Vsi, Vso, C1, Co, Gt).
-prep_args2([], [], Vs, Vs, C, C, []) :-
-    !.
 
 set_plain_dual(OnOff) :-
     retractall(plain_dual(_)),
