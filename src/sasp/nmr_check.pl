@@ -51,14 +51,11 @@ Detect OLON rules and construct nmr_check.
 %   Compute   the   nmr_check    for    a     program.    Wrapper    for
 %   generate_nmr_check2/0.
 
+:- det(generate_nmr_check/0).
+
 generate_nmr_check :-
     write_verbose(0, 'Generating NMR check...\n'),
-    generate_nmr_check2,
-    !.
-generate_nmr_check :-
-    write_error('could not generate NMR check'),
-    !,
-    fail.
+    generate_nmr_check2.
 
 %!  generate_nmr_check2 is det
 %
@@ -69,9 +66,9 @@ generate_nmr_check :-
 
 generate_nmr_check2 :-
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs), % get all rules
-    once(olon_rules(Rs, Rc, [e('_false_0')])),
-    once(nmr_check(Rc, Nmrchk)),
-    once(retractall(defined_rule('_false_0', _, _))), % remove headless rules
+    olon_rules(Rs, Rc, [e('_false_0')]),
+    nmr_check(Rc, Nmrchk),
+    retractall(defined_rule('_false_0', _, _)), % remove headless rules
     negate_functor('_false_0', Nf),
     predicate(Np, Nf, []),
     c_rule(Nr, Np, []),
@@ -85,12 +82,11 @@ generate_nmr_check2 :-
 %   @arg OLONrules List of rules to create NMR sub-checks for.
 %   @arg NmrCheck List of NMR sub-check goals.
 
+nmr_check([], []) :-
+    !.
 nmr_check(Rc, Nmrchk) :-
-    Rc \= [],
-    !,
     write_verbose(1, 'Creating sub-checks...\n'),
     olon_chks(Rc, Nmrchk, 1).
-nmr_check([], []).
 
 :- dynamic no_olon/1, no_nmr/1. % see scasp_io
 
@@ -105,14 +101,16 @@ nmr_check([], []).
 %        exclude when building the call graph. These are literals created when
 %        factorizing headless rules, so they will always be part of the NMR
 %        check; we don't need to test them.
+
+:- det(olon_rules/3).
+
 olon_rules(R, Rc, E) :-
     write_verbose(1, 'Detecting rules that contain odd loops over negation...\n'),
-    once(assign_unique_ids(R, R1)),
-    once(sort(R1, R2)), % ensure that all rules with the same head are together
+    assign_unique_ids(R, R1),
+    sort(R1, R2), % ensure that all rules with the same head are together
     write_verbose(2, 'Building call graph...\n'),
-    once(build_call_graph(R2, Ns, E, 1)), % build call graph, skipping duals.
+    build_call_graph(R2, Ns, E, 1), % build call graph, skipping duals.
     dfs(Ns, Pc, _, _),
-    !,
     (   no_olon(on)
     ->  Rc1 = []
     ;   extract_ids(Pc, Ic),
@@ -364,7 +362,7 @@ extract_ids2([], I, I).
 
 extract_ids3([X | T], Ii, Io) :-
     X = a(_, _, _, I), % I is the arc ID
-    ar(I, Ri), % ar/2 associates an arc ID with a list of rule IDs
+    once(ar(I, Ri)), % ar/2 associates an arc ID with a list of rule IDs
     append(Ri, Ii, I1),
     extract_ids3(T, I1, Io).
 extract_ids3([], I, I).
