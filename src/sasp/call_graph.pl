@@ -108,20 +108,19 @@ build_call_graph([], [], _, _).
 %   @arg Arcs List of arcs in call graph, of the form a(Head, Goal, Neg, ID).
 %   @arg Nodes Nodes in call graph.
 
-get_nodes([X | T], [N | Ns]) :-
+get_nodes([X|T], [N|Ns]) :-
     X = a(N, _, _, _),
     get_nodes(T, N, Ns).
 get_nodes([], []).
 
-get_nodes([X | T], N, Ns) :-
-    X = a(Y, _, _, _),
-    Y = N,
-    get_nodes(T, N, Ns).
-get_nodes([X | T], N, [Y | Ns]) :-
-    X = a(Y, _, _, _),
-    Y \= N,
-    get_nodes(T, Y, Ns).
 get_nodes([], _, []).
+get_nodes([X|T], N, Ns) :-
+    X = a(Y, _, _, _),
+    (   Y = N
+    ->  get_nodes(T, N, Ns)
+    ;   Ns = [Y|Ns2],
+        get_nodes(T, Y, Ns2)
+    ).
 
 %!  get_arcs(+Rules:list, +ArcsIn:list, -ArcsOut:list, +SkipDuals:int)
 %
