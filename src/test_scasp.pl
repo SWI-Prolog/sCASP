@@ -1,6 +1,7 @@
 :- module(test_scasp,
           [ test_scasp/0,
-            qtest_scasp/0
+            qtest_scasp/0,
+            run_test/2                  % +File, +Options
           ]).
 :- use_module(scasp, [scasp_test/2]).
 :- use_module(library(lists), [member/2]).
@@ -80,6 +81,18 @@ run_tests([H|T], Failed0, Failed, Options) :-
     ;   Failed1 is Failed0+1,
         run_tests(T, Failed1, Failed, Options)
     ).
+
+%!  run_test(+File, +Options) is semidet.
+%
+%   Compute all stacks and models for File.  Options:
+%
+%     - save(true)
+%       Write new `.pass` file if there is none.
+%     - overwrite(true)
+%       Save the .pass file even if the test passed.
+%     - show_diff(true)
+%       Use `meld` to show the difference between the stacks if the
+%       test failed.
 
 run_test(File, Options) :-
     format("~w~t~45|", [File]),
