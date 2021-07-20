@@ -27,7 +27,6 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 @author Joaquin Arias
 */
 
-:- use_module(sasp/comp_duals).
 :- use_module(sasp/output).
 :- use_module(sasp/main).
 :- use_module(scasp_options).
@@ -64,7 +63,7 @@ load_program(X) :-
     ->  Files = X
     ;   Files = [X]
     ),
-    main(['-g'| Files]),
+    sasp_load(Files),
     assert(loaded_file(Files)).
 
 %!  write_program

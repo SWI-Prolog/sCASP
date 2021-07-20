@@ -26,9 +26,7 @@
 */
 
 :- module(sasp_main,
-          [ main/0,
-            main/1,
-            debugmain/1
+          [ sasp_load/1     % +Sources:list
           ]).
 
 /** <module> s(ASP) Ungrounded Stable Models Solver
@@ -42,10 +40,8 @@ results.
 @license BSD-3
 */
 
-:- use_module(library(lists)).
 :- use_module(common).
 :- use_module(comp_duals).
-:- use_module(interactive). % for help output
 :- use_module(io).
 :- use_module(nmr_check).
 :- use_module(options).
@@ -53,52 +49,6 @@ results.
 :- use_module(debug).
 :- use_module(options).
 :- use_module(output).
-
-%!  main
-%
-%   Used by compiled executable. Not for interactive runs.
-main :-
-    submain,
-    !,
-    halt.
-main :-
-    halt(1).
-
-%!  submain
-%
-%   Original contents of the first clause of  main/0. Split to allow the
-%   call to submain to  be  wrapped  in   main/0,  ex.  with  time/1  or
-%   profile/1.
-
-submain :-
-    parse_args(Sources),
-    sasp_load(Sources).
-
-%!  main(+ArgvOrFile)
-%
-%   Wrapper for interactive runs.
-%
-%   @arg Source Path of input file, or list of paths for multiple files.
-
-main(Sources) :-
-    is_list(Sources),
-    !,
-    parse_args2(Sources,Files),
-    sasp_load(Files).
-main(Source) :-
-    main([Source]).
-
-%!  debugmain(+Args:list)
-%
-%   Simulate calling from command line by  passing the command line args
-%   as a list of strings. For debugging   using  the Prolog console. Ex.
-%   debugmain(['-vv','-nf','file.asp']).
-%
-%   @arg Args The list of commandline arguments, including input files.
-
-debugmain(Args) :-
-    parse_args2(Args, Sources),
-    sasp_load(Sources).
 
 %!  sasp_load(+Sources:list)
 %
@@ -113,136 +63,13 @@ debugmain(Args) :-
 %
 %   @arg Sources A list of paths of input files.
 
-sasp_load(_) :-
-    user_option(help, 1),
-    !,
-    help.
-sasp_load([]) :- % require an input file
-    write(user_error, 'ERROR: No input file specified!\n\n'),
-    help,
-    !.
 sasp_load(Sources) :-
     set_default_options,
     load_source_files(Sources),
     comp_duals,
     generate_nmr_check,
     write_verbose(0, 'Preparation of input program complete.\n'),
-    (   user_option(generate_pr_rules, true)
-    ->  generate_pr_rules(Sources)
-    ;   true
-    ),
+    generate_pr_rules(Sources),
     if_debug(0, write_program),
     destroy_program,
     option_cleanup.
-
-%!  parse_args(-Sources:list)
-%
-%   Handle command-line arguments. Strip first entry.
-%
-%   @arg Sources Paths of input files.
-
-parse_args(Sources) :-
-    current_prolog_flag(argv, Args),
-    parse_args2(Args, Sources),
-    !.
-parse_args(_) :-
-    write_error('invalid command-line arguments'),
-    help,
-    fail.
-
-%!  parse_args2(+Args:list, -Sources:list) is semidet.
-%
-%   Checks  individual  arguments   given    from   command-line.   Call
-%   parse_args/1 instead of this.
-%
-%   @arg Args List of command-line arguments.
-%   @arg Sources Paths of input files.
-
-parse_args2([X | T], S) :-
-    member(X, ['-v', '--verbose']),
-    !,
-    set_user_option(verbose, 1),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    member(X, ['-vv', '--veryverbose']),
-    !,
-    set_user_option(veryverbose, 1),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    member(X, ['-a', '--auto']),
-    !,
-    set_user_option(mode, auto),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    member(X, ['-i', '--interactive']),
-    !,
-    set_user_option(mode, user),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    atom_chars(X, ['-', 's' | Nc]),
-    Nc \= [],
-    number_chars(N, Nc),
-    N >= 0,
-    !,
-    set_user_option(ascount, N),
-    set_user_option(ascount), % allow user-specified value to override hard-coded ones
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-s',
-    !,
-    set_user_option(ascount, 0), % find all
-    set_user_option(ascount), % allow user-specified value to override hard-coded ones
-    parse_args2(T, S).
-parse_args2([X | T], S) :- % intentionally undocumented option to enable debugging
-    atom_chars(X, ['-', 'd' | Nc]),
-    Nc \= [],
-    number_chars(N, Nc),
-    N >= 0,
-    !,
-    set_user_option(debug, N),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-d',
-    !,
-    set_user_option(debug, 0), % lowest level that actually adds debugging output
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-j',
-    !,
-    set_user_option(justification, true),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-w',
-    !,
-    set_user_option(html_justification, true),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-g',
-    !,
-    set_user_option(generate_pr_rules, true),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-t',
-    !,
-    set_user_option(statistics_run_time, true),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-n',
-    !,
-    set_user_option(hide_nmr, true),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    X = '-la',
-    !,
-    set_user_option(list_abducibles, true),
-    parse_args2(T, S).
-parse_args2([X | T], S) :-
-    memberchk(X, ['-?', '-h', '--help']),
-    !,
-    set_user_option(help, 1),
-    parse_args2(T, S).
-parse_args2([X | T], [X | S]) :-
-    \+ sub_atom(X, 0, _, _, -), % no option: source file
-    !,
-    parse_args2(T, S).
-parse_args2([], []).
