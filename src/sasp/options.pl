@@ -76,7 +76,7 @@ Predicates related to managing options that alter runtime behavior.
 %   accordingly.
 
 set_default_options :-
-    findall(-(X, Y), default_option(X, Y), Defaults),
+    findall(X-Y, default_option(X, Y), Defaults),
     set_default_options2(Defaults).
 
 %!  set_default_options2(+Options:list)
@@ -86,18 +86,14 @@ set_default_options :-
 %
 %   @arg Options List of options to set.
 
-set_default_options2([X | T]) :-
-    X = -(A, B),
-    \+ user_option(A, _), % not overridden by user
-    set_user_option(A, B),
-    !,
-    set_default_options2(T).
-set_default_options2([X | T]) :-
-    X = -(A, _),
-    user_option(A, _), % overridden by user
-    !,
-    set_default_options2(T).
 set_default_options2([]).
+set_default_options2([X | T]) :-
+    X = (A-B),
+    (   user_option(A, _)
+    ->  true
+    ;   set_user_option(A, B)
+    ),
+    set_default_options2(T).
 
 %!  set_user_option(+Mode:atom) is det
 %

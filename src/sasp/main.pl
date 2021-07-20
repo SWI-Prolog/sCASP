@@ -122,7 +122,6 @@ sasp_load([]) :- % require an input file
     help,
     !.
 sasp_load(Sources) :-
-    set_stack_sizes,
     set_default_options,
     load_source_files(Sources),
     comp_duals,
