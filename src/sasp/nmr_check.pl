@@ -162,11 +162,11 @@ dfs(N, Pc, Po, Pr) :-
 %   @arg PosIn Input list of paths with cycles and no negations.
 %   @arg PosOut Output list of paths with cycles and no negations.
 
-dfs2([X | T], V, Pci, Pco, Poi, Poo, Pri, Pro) :-
-    findall(a(X, Y, N, I), a(X, Y, N, I), As), % Get all arcs from X
-    dfs3(As, [v(X, 0) | V], Vo, [], 0, Pci, Pc1, Poi, Po1, Pri, Pr1),
-    dfs2(T, Vo, Pc1, Pco, Po1, Poo, Pr1, Pro).
 dfs2([], _, Pc, Pc, Po, Po, Pr, Pr).
+dfs2([X|T], V, Pci, Pco, Poi, Poo, Pri, Pro) :-
+    findall(a(X, Y, N, I), a(X, Y, N, I), As), % Get all arcs from X
+    dfs3(As, [v(X, 0)|V], Vo, [], 0, Pci, Pc1, Poi, Po1, Pri, Pr1),
+    dfs2(T, Vo, Pc1, Pco, Po1, Poo, Pr1, Pro).
 
 %!  dfs3(+Arcs:list, +VisitedIn:list, -VisitedOut:list, +Path:list,
 %!       +Negations:int, +OlonIn:list, -OlonOut:list,
@@ -192,36 +192,37 @@ dfs2([], _, Pc, Pc, Po, Po, Pr, Pr).
 %   @arg PosIn Input list of paths with cycles and no negations.
 %   @arg PosOut Output list of paths with cycles and no negations.
 
-dfs3([A | T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, [[A] | Pro]) :- % rule calls itself directly with no negation
+:- det(dfs3/11).
+
+dfs3([], V, V, _, _, Pc, Pc, Po, Po, Pr, Pr).
+dfs3([A|T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, [[A]|Pro]) :- % rule calls itself directly with no negation
     A = a(X, X, 0, _),
     !,
     dfs3(T, Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro).
-dfs3([A | T], Vi, Vo, P, N, Pci, [[A] | Pco], Poi, Poo, Pri, Pro) :- % rule calls itself directly with a negation
+dfs3([A|T], Vi, Vo, P, N, Pci, [[A]|Pco], Poi, Poo, Pri, Pro) :- % rule calls itself directly with a negation
     A = a(X, X, 1, _),
     !,
     dfs3(T, Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro).
-dfs3([A | T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro) :-
+dfs3([A|T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro) :-
     A = a(_, Y, _, _),
-    member(a(Y, _, _, _), P), % cycle
+    memberchk(a(Y, _, _, _), P), % cycle
     !,
-    check_cycle(Y, [A | P], Pci, Pc1, Poi, Po1, Pri, Pr1),
+    check_cycle(Y, [A|P], Pci, Pc1, Poi, Po1, Pri, Pr1),
     dfs3(T, Vi, Vo, P, N, Pc1, Pco, Po1, Poo, Pr1, Pro).
-dfs3([A | T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro) :-
+dfs3([A|T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro) :-
     A = a(_, Y, N2, _),
     update_negation(N, N2, N3),
-    member(v(Y, N3), Vi), % previously visited node, but not a cycle
+    memberchk(v(Y, N3), Vi), % previously visited node, but not a cycle
     !,
     dfs3(T, Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro).
-dfs3([A | T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro) :-
+dfs3([A|T], Vi, Vo, P, N, Pci, Pco, Poi, Poo, Pri, Pro) :-
     A = a(_, Y, N2, _), % not previously visited or a cycle; expand
     !,
     update_negation(N, N2, N3),
     set_append(v(Y, N3), Vi, V1),
     findall(a(Y, Y2, Y3, Y4), a(Y, Y2, Y3, Y4), As), % Get all arcs from Y
-    !,
-    once(dfs3(As, V1, V2, [A | P], N3, Pci, Pc1, Poi, Po1, Pri, Pr1)),
+    dfs3(As, V1, V2, [A|P], N3, Pci, Pc1, Poi, Po1, Pri, Pr1),
     dfs3(T, V2, Vo, P, N, Pc1, Pco, Po1, Poo, Pr1, Pro).
-dfs3([], V, V, _, _, Pc, Pc, Po, Po, Pr, Pr).
 
 %!  check_cycle(+Node:list, +Path:list, +OlonIn:list, -OlonOut:list,
 %!              +OrdIn:list, -OrdOut:list,
@@ -253,6 +254,8 @@ check_cycle(X, P, Pci, Pco, Poi, Poo, Pri, Pro) :-
 %   @arg Cycle List of arcs forming a cycle on Node.
 %   @arg Negations The number of negations in Cycle.
 
+:- det(get_cycle/4).
+
 get_cycle(X, P, C, N) :-
     get_cycle2(X, P, C, 0, N).
 
@@ -267,12 +270,13 @@ get_cycle(X, P, C, N) :-
 %   @arg NegsIn Input number of negations in Cycle.
 %   @arg NegsOut Output number of negations in Cycle.
 
-get_cycle2(X, [A | P], [A | C], Ni, No) :-
+get_cycle2(X, [A|P], [A|C], Ni, No) :-
     A = a(Y, _, N, _),
     X \= Y,
+    !,
     N2 is N + Ni,
     get_cycle2(X, P, C, N2, No).
-get_cycle2(X, [A | _], [A], Ni, No) :-
+get_cycle2(X, [A|_], [A], Ni, No) :-
     A = a(X, _, N, _),
     No is Ni + N.
 
@@ -291,14 +295,15 @@ get_cycle2(X, [A | _], [A], Ni, No) :-
 %   @arg PosIn Input list of paths with cycles and no negations.
 %   @arg PosOut Output list of paths with cycles and no negations.
 
-classify_cycle(0, C, Pc, Pc, Po, Po, Pr, [C | Pr]).
-classify_cycle(N, C, Pc, Pc, Po, [C | Po], Pr, Pr) :-
+classify_cycle(0, C, Pc, Pc, Po, Po, Pr, [C|Pr]).
+classify_cycle(N, C, Pc, Pc, Po, [C|Po], Pr, Pr) :-
     N > 0,
-    N mod 2 =:= 0.
-classify_cycle(N, C, Pc, [C | Pc], Po, Po, Pr, Pr) :-
+    N mod 2 =:= 0,
+    !.
+classify_cycle(N, C, Pc, [C|Pc], Po, Po, Pr, Pr) :-
     N mod 2 =:= 1.
 
-%!  update_negation(+NegsIn1:int, +NegsIn2:int, +NegsOut:int) is det
+%!  update_negation(+NegsIn1:int, +NegsIn2:int, -NegsOut:int) is det
 %
 %   Update negation value. 0 = no negations, 1 =  odd negs, 2 = even > 0
 %   negs.
@@ -310,8 +315,7 @@ classify_cycle(N, C, Pc, [C | Pc], Po, Po, Pr, Pr) :-
 update_negation(2, 1, 1) :-
     !.
 update_negation(X, Y, Z) :-
-    Z is X + Y,
-    !.
+    Z is X + Y.
 
 %!  set_append(+Element:callable, +Set:list, +SetOut:list) is det
 %
@@ -322,9 +326,9 @@ update_negation(X, Y, Z) :-
 %   @arg SetOut Output set.
 
 set_append(X, Y, Y) :-
-    member(X, Y),
+    memberchk(X, Y),
     !.
-set_append(X, Y, [X | Y]).
+set_append(X, Y, [X|Y]).
 
 %!  extract_ids(+Cycles:list, -IDs:list) is det
 %
@@ -345,7 +349,7 @@ extract_ids(C, I) :-
 %   @arg IdsIn Input list of rules IDs from Cycles.
 %   @arg IdsOut Output list of rules IDs from Cycles.
 
-extract_ids2([X | T], Ii, Io) :-
+extract_ids2([X|T], Ii, Io) :-
     extract_ids3(X, [], I),
     append(I, Ii, I1),
     extract_ids2(T, I1, Io).
@@ -360,7 +364,7 @@ extract_ids2([], I, I).
 %   @arg IdsIn Input list of rules IDs from Cycles.
 %   @arg IdsOut Output list of rules IDs from Cycles.
 
-extract_ids3([X | T], Ii, Io) :-
+extract_ids3([X|T], Ii, Io) :-
     X = a(_, _, _, I), % I is the arc ID
     once(ar(I, Ri)), % ar/2 associates an arc ID with a list of rule IDs
     append(Ri, Ii, I1),
@@ -376,12 +380,12 @@ extract_ids3([], I, I).
 %   @arg Members Rules whose ID is a member of IDs.
 %   @arg Nonmembers Rules whose ID is not in IDs.
 
-divide_rules([X | T], Is, [X | To], To2) :- % rule in list
+divide_rules([X|T], Is, [X|To], To2) :- % rule in list
     rule(X, _, I, _),
     member(I, Is),
     !,
     divide_rules(T, Is, To, To2).
-divide_rules([X | T], Is, To, [X | To2]) :- % rule not in list
+divide_rules([X|T], Is, To, [X|To2]) :- % rule not in list
     !,
     divide_rules(T, Is, To, To2).
 divide_rules([], _, [], []).
@@ -395,12 +399,12 @@ divide_rules([], _, [], []).
 %   @arg HeadlessIn Input list of headless rules (head = 1).
 %   @arg HeadlessOut Output list of headless rules (head = 1).
 
-get_headless_rules([X | T], Rci, [X | Rco]) :-
+get_headless_rules([X|T], Rci, [X|Rco]) :-
     rule(X, H, _, _),
     predicate(H, '_false_0', _), % headless rule
     !,
     get_headless_rules(T, Rci, Rco).
-get_headless_rules([_ | T], Rci, Rco) :-
+get_headless_rules([_|T], Rci, Rco) :-
     get_headless_rules(T, Rci, Rco).
 get_headless_rules([], Rc, Rc).
 
