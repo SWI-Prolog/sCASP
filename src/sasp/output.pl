@@ -208,20 +208,20 @@ print_chs3([]) :-
 %   @arg Flag An integer 0, 1 or 2 indicating the print mode.
 
 format_chs(CHSi, CHSo, V, F) :-
-    F \= 2,
-    once(get_next_printable(CHSi, CHS2)),
-    CHS2 \= [],
+    F \== 2,
+    get_next_printable(CHSi, CHS2),
+    CHS2 \== [],
     !,
     format_chs2(CHS2, CHS3, [], _, V, F), % Reduce number of unique vars in CHS
     sort_chs(CHS3, CHS4), % sort entries by literal and then constraints
     divide_chs(CHS4, CHSp, CHSn),
-    (   F = 0
+    (   F == 0
     ->  append(CHSp, CHSn, CHSo) % print pos and neg, putting negative entries after positive ones.
     ;   CHSo = CHSp % print positive literals only
     ).
 format_chs(CHSi, CHSo, V, F) :-
-    CHSi \= [],
-    F = 2,
+    CHSi \== [],
+    F == 2,
     !,
     format_chs2(CHSi, CHS2, [], _, V, F), % Reduce number of unique vars in CHS
     sort_chs(CHS2, CHS3), % sort entries by literal and then constraints
@@ -413,47 +413,41 @@ format_predicate4(Xi, Xo, Uvi, Uvo, V) :-
 %   @arg CHSin Input CHS.
 %   @arg CHSout Output CHS.
 
-get_next_printable([X | T], CHS) :-
+get_next_printable([], []).
+get_next_printable([X|T], CHS) :-
     user_option(hide_nmr, true),
     chs_entry(X, _, _, _, 1), % nmr check literal
     !,
     get_next_printable(T, CHS).
-get_next_printable([X | T], CHS) :-
+get_next_printable([X|T], CHS) :-
     chs_entry(X, 'abducible_1', _, _, _), % Abducible entry; skip it.
     !,
     get_next_printable(T, CHS).
-get_next_printable([X | T], CHS) :-
+get_next_printable([X|T], CHS) :-
     chs_entry(X, X2, _, _, _),
-    strip_prefixes(X2, X3),
-    (  X3 = not(X4)
-    ;  X3 \= not(_),
-       X4 = X3
+    strip_prefixes(X2, X3),      % Also n_X --> not(X)
+    (   X3 = not(X4)
+    ->  true
+    ;   X4 = X3
     ),
-    (  atom_chars(X4, ['o', '_' | _])
-    ;  atom_chars(X4, ['_' | _])   % non-printing literal; skip it.
-    ),
+    non_printable(X4),           % was only `_`, and `o__`
     !,
     get_next_printable(T, CHS).
-get_next_printable([X | T], [X | T2]) :-
-    !,
+get_next_printable([X|T], [X|T2]) :-
     get_next_printable(T, T2).
-get_next_printable([], []) :-
-    !.
 
 %!  divide_chs(+CHSin:compound, -CHSpos:list, -CHSneg:list) is det
 %
 %   Split the CHS by negative  and   positive  literals. Input should be
 %   sorted by literal. Each output will remain sorted by literal.
 
+divide_chs([], [], []).
 divide_chs([X | T], P, [X | N]) :-
     X = -(not(_), _), % negated literal
     !,
     divide_chs(T, P, N).
 divide_chs([X | T], [X | P], N) :-
-    X \= -(not(_), _), % positive literal
-    !,
     divide_chs(T, P, N).
-divide_chs([], [], []).
 
 %!  strip_prefixes(+FunctorIn:atom, -FunctorOut:atom) is det
 %

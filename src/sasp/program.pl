@@ -33,6 +33,7 @@
             reserved_prefix/1,
             has_prefix/2,
             replace_prefix/4,    % +FunctorIn,+OldPrefix,+NewPrefix,-Functor
+            non_printable/1,     % +Name
             assert_program/1,
             assert_rule/1,
             assert_nmr_check/1,
@@ -154,6 +155,19 @@ has_prefix(F, C) :-
 replace_prefix(F0, P0, P, F) :-
     string_concat(P0, B, F0),
     atom_concat(P, B, F).
+
+%!  non_printable(+Name) is semidet.
+%
+%   True if Name should not be printed. This   is true if it starts with
+%   an underscore or has a normal prefix and then an underscore.
+
+non_printable(Name) :-
+    sub_atom(Name, 0, _, _, '_'),
+    !.
+non_printable(Name) :-
+    sub_atom(Name, 1, _, _, '__'),
+    !.
+
 
 %!  assert_program(+Statements:list) is det
 %
