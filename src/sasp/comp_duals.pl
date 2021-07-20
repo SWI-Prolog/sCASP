@@ -28,8 +28,7 @@
 :- module(comp_duals,
           [ comp_duals/0,
             comp_duals3/2,
-            define_forall/3,
-            set_plain_dual/1
+            define_forall/3
           ]).
 
 /** <module> Dual rule computation
@@ -45,8 +44,7 @@ Computation of dual rules (rules for the negation of a literal).
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).
-
-:- dynamic plain_dual/1. % see scasp_io
+:- use_module('../scasp_options').
 
 %!  comp_duals is det
 %
@@ -193,7 +191,7 @@ comp_dual2(Hn, Bg, Bv) :-
 
 comp_dual3(Hn, [X | T], U) :-
     X = builtin_1(_), % handle built-ins specially
-    (   plain_dual(on)
+    (   current_option(plain_dual, on)
     ->  append([], [X], U2)
     ;   append(U, [X], U2)
     ),
@@ -201,7 +199,7 @@ comp_dual3(Hn, [X | T], U) :-
     comp_dual3(Hn, T, U2).
 comp_dual3(Hn, [X | T], U) :-
     dual_goal(X, X2),
-    (   plain_dual(on)
+    (   current_option(plain_dual, on)
     ->  append([], [X2], Db)
     ;   append(U, [X2], Db) % Keep all goals prior to the dual one.
     ),
@@ -405,7 +403,3 @@ prep_args2([X|T], [Y|T2], Vsi, Vso, Ci, Co, [G|Gt]) :-
     C1 is Ci + 1,
     G = (Y=X), % create unification goal
     prep_args2(T, T2, Vsi, Vso, C1, Co, Gt).
-
-set_plain_dual(OnOff) :-
-    retractall(plain_dual(_)),
-    assertz(plain_dual(OnOff)).
