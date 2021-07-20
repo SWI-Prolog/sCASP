@@ -468,10 +468,12 @@ solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
 
-%!  solve_goal_forall(forall(?Var, ?Goal), ?StackIn, ?StackOut, ?GoalModel)
+%!  solve_goal_forall(+Forall, ?StackIn, ?StackOut, ?GoalModel)
 %
 %   Solve a sub-goal of the form `forall(Var,Goal)`  and success  if Var
 %   success in all its domain for the goal Goal. It calls solve/4
+%
+%   @arg Forall is a term forall(?Var, ?Goal)
 
 solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
     my_copy_term(Var, Goal, NewVar, NewGoal),

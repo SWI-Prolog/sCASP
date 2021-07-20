@@ -80,3 +80,9 @@ or later.
     swipl -l src/scasp.pl
     ?- gxref.
 
+## Documentation
+
+    swipl --pldoc -l src/scasp.pl
+
+(better from the `src` dir as you  get   the  files from the current dir
+rather than the main README.md as entry point).
