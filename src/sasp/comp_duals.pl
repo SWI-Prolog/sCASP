@@ -160,9 +160,10 @@ comp_dual(Hn, [], Db, _) :-
 %   @arg Body The body of the original rule.
 %   @arg BodyVars The list of variables in the body but not the head.
 
+comp_dual2(Hn, Bg, []) :-
+    !, % no body variables
+    comp_dual3(Hn, Bg, []).
 comp_dual2(Hn, Bg, Bv) :-
-    Bv \= [],
-    !,
     Hn =.. [F | A1],
     append(A1, Bv, A2),
     length(A2, L),
@@ -176,9 +177,6 @@ comp_dual2(Hn, Bg, Bv) :-
     c_rule(Rd, Hn, [G]), % create dual
     assert_rule(Rd),
     !.
-comp_dual2(Hn, Bg, []) :-
-    !, % no body variables
-    comp_dual3(Hn, Bg, []).
 
 %!  comp_dual3(+DualHead:compound, +Body:list, +UsedGoals:list) is det
 %
