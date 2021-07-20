@@ -329,8 +329,7 @@ format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
     predicate(Xi, X2, A),
     atom(X2), % compound term, predicate or atom
     !,
-    split_functor(X2, Xc, _), % strip arity
-    atom_chars(X3, Xc),
+    split_functor(X2, X3, _), % strip arity
     strip_prefixes(X3, X4),
     format_predicate3(A, A2, Uvi, Uvo, V),
     (   X4 = not(Xn) % append args

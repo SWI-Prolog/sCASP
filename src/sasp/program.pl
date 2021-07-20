@@ -32,6 +32,7 @@
             defined_nmr_check/1,
             reserved_prefix/1,
             has_prefix/2,
+            replace_prefix/4,    % +FunctorIn,+OldPrefix,+NewPrefix,-Functor
             assert_program/1,
             assert_rule/1,
             assert_nmr_check/1,
@@ -147,6 +148,12 @@ has_prefix(F, C) :-
     sub_atom(F, 1, _, _, '_'),
     sub_atom(F, 0, 1, _, C),
     reserved_prefix(C). % the letter is a reserved prefix
+
+%!  replace_prefix(+FunctorIn, +OldPrefix, +NewPrefix, -Functor)
+
+replace_prefix(F0, P0, P, F) :-
+    string_concat(P0, B, F0),
+    atom_concat(P, B, F).
 
 %!  assert_program(+Statements:list) is det
 %

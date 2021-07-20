@@ -69,15 +69,15 @@ scasp_builtin('findall_3').
 %
 %   @arg Predicates List of predicates in the program.
 
-comp_duals2([X | T]) :-
+comp_duals2([X|T]) :-
     X = '_false_0', % skip headless rules; handled by NMR check
     !,
     comp_duals2(T).
-comp_duals2([X | T]) :-
+comp_duals2([X|T]) :-
     scasp_builtin(X),  % skip dual of scasp builtins
     !,
     comp_duals2(T).
-comp_duals2([X | T]) :-
+comp_duals2([X|T]) :-
     findall(R, (defined_rule(X, H, B), c_rule(R, H, B)), Rs), % get rules for a single predicate
     comp_duals3(X, Rs),
     !,
@@ -119,13 +119,12 @@ comp_duals3(P, R) :- % predicate is defined by one or more rules.
 %   @arg DualBody The body of the outer dual rule.
 %   @arg Count Counter used to ensure that new heads are unique.
 
-comp_dual(Hn, [X | T], Db, C) :-
+comp_dual(Hn, [X|T], Db, C) :-
     c_rule(X, H, B),
     % get unique head with Hn2 including original args and Hn3 using variable args
     predicate(H, _, A1),
     predicate(Hn, F, A2),
-    atom_chars(F, ['n', '_' | Fc]),
-    atom_chars(F2, ['n', '_', '_' | Fc]), % add underscore to make it non-printing.
+    replace_prefix(F, n_, n__, F2),       % add underscore to make it non-printing.
     create_unique_functor(F2, C, F3),
     abstract_structures(A1, A3, 0, G),
     append(G, B, B2),
@@ -137,7 +136,7 @@ comp_dual(Hn, [X | T], Db, C) :-
     comp_dual2(Dh, B3, Bv), % create inner dual clauses
     C2 is C + 1,
     !,
-    comp_dual(Hn, T, [Dg | Db], C2).
+    comp_dual(Hn, T, [Dg|Db], C2).
 comp_dual(Hn, [], Db, _) :-
     reverse(Db, Db2), % restore proper goal order
     c_rule(Rd, Hn, Db2),
@@ -159,22 +158,19 @@ comp_dual(Hn, [], Db, _) :-
 %   @arg BodyVars The list of variables in the body but not the head.
 
 comp_dual2(Hn, Bg, []) :-
-    !, % no body variables
+    !,				% no body variables
     comp_dual3(Hn, Bg, []).
 comp_dual2(Hn, Bg, Bv) :-
-    Hn =.. [F | A1],
+    Hn =.. [F|A1],
     append(A1, Bv, A2),
-    length(A2, L),
-    number_chars(L, Lc),
-    split_functor(F, Fc, _), % remove arity
-    append(Fc, ['_' | Lc], Fc2), % add new arity
-    atom_chars(F2, Fc2), % Create functor for innermost dual
-    Hn2 =.. [F2 | A2], % add body variables to innermost head.
+    length(A2, Arity),
+    split_functor(F, Base, _), % remove arity
+    join_functor(F2, Base, Arity),
+    Hn2 =.. [F2|A2], % add body variables to innermost head.
     define_forall(Hn2, G, Bv), % get the call to the innermost dual
     comp_dual3(Hn2, Bg, []), % create innermost duals
     c_rule(Rd, Hn, [G]), % create dual
-    assert_rule(Rd),
-    !.
+    assert_rule(Rd).
 
 %!  comp_dual3(+DualHead:compound, +Body:list, +UsedGoals:list) is det
 %
@@ -189,7 +185,7 @@ comp_dual2(Hn, Bg, Bv) :-
 %   @arg UsedGoals The goals that have already been processed, in original
 %        order.
 
-comp_dual3(Hn, [X | T], U) :-
+comp_dual3(Hn, [X|T], U) :-
     X = builtin_1(_), % handle built-ins specially
     (   current_option(plain_dual, on)
     ->  U2 = [X]
@@ -197,7 +193,7 @@ comp_dual3(Hn, [X | T], U) :-
     ),
     !,
     comp_dual3(Hn, T, U2).
-comp_dual3(Hn, [X | T], U) :-
+comp_dual3(Hn, [X|T], U) :-
     dual_goal(X, X2),
     (   current_option(plain_dual, on)
     ->  Db = [X2]
@@ -299,7 +295,7 @@ outer_dual_head(H, D) :-
 %   @arg Goals Goals unifying non-variables with the variables replacing them.
 
 abstract_structures([], [], _, []).
-abstract_structures([X | T], [$Y | T2], C, [G | Gt]) :-
+abstract_structures([X|T], [$Y|T2], C, [G|Gt]) :-
     compound(X),
     \+ is_var(X),
     !,
@@ -307,7 +303,7 @@ abstract_structures([X | T], [$Y | T2], C, [G | Gt]) :-
     C1 is C + 1,
     G = ($Y = X),
     abstract_structures(T, T2, C1, Gt).
-abstract_structures([X | T], [X | T2], C, G) :-
+abstract_structures([X|T], [X|T2], C, G) :-
     abstract_structures(T, T2, C, G).
 
 
@@ -335,28 +331,28 @@ abstract_structures([X | T], [X | T2], C, G) :-
 
 prep_args([], _, Ai, Ao, _, _, []) :-
     reverse(Ai, Ao). % Restore proper ordering
-prep_args([X | T], [Y | T2], Ai, Ao, Vs, C, [G | Gt]) :-
+prep_args([X|T], [Y|T2], Ai, Ao, Vs, C, [G|Gt]) :-
     is_var(X),
     memberchk(X, Vs), % X has already been seen
     !,
     G = (Y=X),     % create unification goal
-    prep_args(T, T2, [Y | Ai], Ao, Vs, C, Gt).
-prep_args([X | T], [_ | T2], Ai, Ao, Vs, C, G) :-
+    prep_args(T, T2, [Y|Ai], Ao, Vs, C, Gt).
+prep_args([X|T], [_|T2], Ai, Ao, Vs, C, G) :-
     is_var(X),
     !,
-    prep_args(T, T2, [X | Ai], Ao, [X | Vs], C, G).
-prep_args([X | T], [Y | T2], Ai, Ao, Vs, C, Go) :-
-    X =.. [F | X2], % X is a compound term; process it.
+    prep_args(T, T2, [X|Ai], Ao, [X|Vs], C, G).
+prep_args([X|T], [Y|T2], Ai, Ao, Vs, C, Go) :-
+    X =.. [F|X2], % X is a compound term; process it.
     !,
     prep_args2(X2, X3, Vs, Vs2, C, C2, Gs),
-    Xo =.. [F | X3],
+    Xo =.. [F|X3],
     G = (Y=Xo), % create unification goal
     !,
-    prep_args(T, T2, [Y | Ai], Ao, Vs2, C2, Gt),
-    append([G | Gs], Gt, Go).
-prep_args([X | T], [Y | T2], Ai, Ao, Vs, C, [G | Gt]) :-
+    prep_args(T, T2, [Y|Ai], Ao, Vs2, C2, Gt),
+    append([G|Gs], Gt, Go).
+prep_args([X|T], [Y|T2], Ai, Ao, Vs, C, [G|Gt]) :-
     G = (Y=X), % create unification goal
-    prep_args(T, T2, [Y | Ai], Ao, Vs, C, Gt).
+    prep_args(T, T2, [Y|Ai], Ao, Vs, C, Gt).
 
 %!  prep_args2(+ArgsIn:list, -ArgsOut:list,
 %!             +VarsSeenIn:list, -VarsSeenOut:list,

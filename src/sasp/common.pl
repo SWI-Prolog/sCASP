@@ -33,7 +33,8 @@
             is_atom/3,
             is_compound/3,
             is_dual/1,
-            split_functor/3,
+            split_functor/3,            % +Functor, -Name, -Arity
+            join_functor/3,             % -Functor, +Name, +Arity
             create_unique_functor/3,
             fatal_error/2,
             write_error/1,
@@ -55,7 +56,6 @@ Common and utility predicates that may be called from multiple locations.
 @license BSD-3
 */
 
-:- use_module(library(lists)).
 :- use_module(options).
 :- use_module(variables).
 :- use_module(program, [has_prefix/2]).
@@ -165,27 +165,30 @@ is_compound(G, _, G) :-
 is_dual(X) :-
     has_prefix(X, n).
 
-%!  split_functor(+Functor:atom, -Name:list, -Arity:int) is det.
+%!  split_functor(+Functor:atom, -Name:atom, -Arity:int) is det.
 %
 %   Given a predicate functor, return the components. Since the arity is
 %   at the end, we have to be creative to remove it.
 %
-%   @arg Functor The predicate functor, of the form Name/Arity.
+%   @arg Functor The predicate functor, of the form Name_Arity.
 %   @arg Name The name with the arity stripped. A list of characters.
 %   @arg Arity The arity of the predicate, or -1 if no arity is
 %        attached.
 
-split_functor(P, N, A) :-
+split_functor(P, Name, Arity) :-
     sub_atom(P, Plen, _, Slen, '_'),
     sub_string(P, _, Slen, 0, NS),
     \+ sub_string(NS, _, _, _, "_"),
-    number_string(A, NS),
+    number_string(Arity, NS),
     !,
-    sub_string(P, 0, Plen, _, Name),
-    string_chars(Name, N).
-split_functor(P, N, -1) :- % no arity attached
-    atom_chars(P, N),
-    !.
+    sub_atom(P, 0, Plen, _, Name).
+split_functor(P, P, -1). % no arity attached
+
+%!  join_functor(-Functor, +Name, +Arity) is det.
+
+join_functor(Functor, Name, Arity) :-
+    atomic_list_concat([Name, '_', Arity], Functor).
+
 
 %!  create_unique_functor(+Head:ground, +Counter:int, -NewHead:ground) is det
 %
@@ -199,8 +202,7 @@ split_functor(P, N, -1) :- % no arity attached
 %   @arg  DualHead The functor for the dual of an individual clause.
 
 create_unique_functor(Hi, C, Ho) :-
-    split_functor(Hi, Fc, A), % Strip the arity
-    string_chars(F, Fc),
+    split_functor(Hi, F, A), % Strip the arity
     atomic_list_concat([F, '_', C, '_', A], Ho).
 
 %!  fatal_error(+Format:string, +Arguments:list) is det
