@@ -48,23 +48,15 @@ Detect OLON rules and construct nmr_check.
 
 %!  generate_nmr_check is det
 %
-%   Compute   the   nmr_check    for    a     program.    Wrapper    for
-%   generate_nmr_check2/0.
-
-:- det(generate_nmr_check/0).
-
-generate_nmr_check :-
-    write_verbose(0, 'Generating NMR check...\n'),
-    generate_nmr_check2.
-
-%!  generate_nmr_check2 is det
-%
 %   Get the rules in the program containing   odd  loops and compute the
 %   NMR check. After this step, headless   rules  are useless, so remove
 %   them and add a fact for the   negation of the dummy head (_false_0).
 %   Call generate_nmr_check/0 instead of this.
 
-generate_nmr_check2 :-
+:- det(generate_nmr_check/0).
+
+generate_nmr_check :-
+    write_verbose(0, 'Generating NMR check...\n'),
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs), % get all rules
     olon_rules(Rs, Rc, [e('_false_0')]),
     nmr_check(Rc, Nmrchk),
