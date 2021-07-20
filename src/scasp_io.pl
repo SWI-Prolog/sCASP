@@ -33,7 +33,6 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 */
 
 :- use_module(sasp/comp_duals).
-:- use_module(sasp/nmr_check).
 :- use_module(sasp/output).
 :- use_module(sasp/main).
 
@@ -1005,8 +1004,9 @@ set_user_option('--tracefails')         :- set(trace_failures, on), set(show_tre
 set_user_option('--version')            :- scasp_version.
 % Development
 set_user_option('-no')                  :- set(no_nmr, on).         %% skip the evaluation of nmr-checks (but compile them).
-set_user_option('--no_nmr')             :- assert(no_nmr(on)), assert(no_olon(on)).     %% skip the compilation of nmr-checks.
-set_user_option('--no_olon')            :- assert(no_olon(on)).  %% skip the compilation of olon-rules
+set_user_option('--no_nmr')             :- set(no_compile_nmr, on),
+					   set(no_compile_olon, on).
+set_user_option('--no_olon')            :- set(no_compile_olon, on).
 set_user_option('-w')                   :- set(warning, on).
 set_user_option('--warning')            :- set(warning, on).
 set_user_option('--variant')            :- set(no_fail_loop, on).
