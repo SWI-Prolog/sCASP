@@ -26,10 +26,8 @@
 */
 
 :- module(options,
-          [ user_option/1,
-            user_option/2,
+          [ user_option/2,
             set_default_options/0,
-            set_user_option/1,
             set_user_option/2,
             option_cleanup/0,
             set_stack_sizes/0
@@ -67,7 +65,6 @@ Predicates related to managing options that alter runtime behavior.
 %   @arg Value The value for the option.
 
 :- dynamic
-    user_option/1,
     user_option/2.
 
 %!  set_default_options
@@ -95,15 +92,6 @@ set_default_options2([X | T]) :-
     ),
     set_default_options2(T).
 
-%!  set_user_option(+Mode:atom) is det
-%
-%   Assert user_option(Mode).
-%
-%   @arg Mode The option specified by the user.
-
-set_user_option(Mode) :-
-    assertz(user_option(Mode)).
-
 %!  set_user_option(+Mode:atom, +Value:compound)
 %
 %   Assert an option with a given value.
@@ -113,17 +101,14 @@ set_user_option(Mode) :-
 
 set_user_option(M, X) :-
     retractall(user_option(M, _)),
-    assertz(user_option(M, X)),
-    !.
+    assertz(user_option(M, X)).
 
 %!  option_cleanup
 %
 %   Cleanup (retract) all user_option/1 and user_option/2 assertions.
 
 option_cleanup :-
-    retractall(user_option(_, _)),
-    retractall(user_option(_)),
-    !.
+    retractall(user_option(_, _)).
 
 %!  set_stack_sizes
 %
