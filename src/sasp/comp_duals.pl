@@ -267,11 +267,10 @@ dual_goal(X, not(X)) :-
 %   @arg GoalOut Output goal.
 %   @arg BodyVars Body variables present in GoalIn.
 
-define_forall(Gi, Go, [X | T]) :-
-    define_forall(Gi, G2, T), % get inner portion
-    Go = forall(X, G2). % build outer portion
 define_forall(G, G, []) :-
     !.
+define_forall(Gi, forall(X, G2), [X|T]) :-
+    define_forall(Gi, G2, T).
 
 %!  outer_dual_head(+Head:compound, -DualHead:ground) is det
 %
