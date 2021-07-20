@@ -192,7 +192,7 @@ comp_dual2(Hn, Bg, Bv) :-
 comp_dual3(Hn, [X | T], U) :-
     X = builtin_1(_), % handle built-ins specially
     (   current_option(plain_dual, on)
-    ->  append([], [X], U2)
+    ->  U2 = [X]
     ;   append(U, [X], U2)
     ),
     !,
@@ -200,7 +200,7 @@ comp_dual3(Hn, [X | T], U) :-
 comp_dual3(Hn, [X | T], U) :-
     dual_goal(X, X2),
     (   current_option(plain_dual, on)
-    ->  append([], [X2], Db)
+    ->  Db = [X2]
     ;   append(U, [X2], Db) % Keep all goals prior to the dual one.
     ),
     c_rule(Rd, Hn, Db), % Clause for negation of body goal
