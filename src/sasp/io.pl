@@ -27,11 +27,16 @@
 
 :- module(io,
           [ load_source_files/1,
-            read_query/2,
+            %read_query/2,
             pred/1,
             show/1,
             asp_table/1
           ]).
+
+:- use_module(read).
+
+end_of_file.
+
 
 /** <module> Handle opening and closing files and directing output
 
