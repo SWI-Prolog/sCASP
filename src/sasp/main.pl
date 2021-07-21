@@ -64,12 +64,16 @@ results.
 %   @arg Sources A list of paths of input files.
 
 sasp_load(Sources) :-
-    set_default_options,
+    setup_call_cleanup(
+        set_default_options,
+        sasp_load_guarded(Sources),
+        ( destroy_program,
+          option_cleanup)).
+
+sasp_load_guarded(Sources) :-
     load_source_files(Sources),
     comp_duals,
     generate_nmr_check,
     write_verbose(0, 'Preparation of input program complete.\n'),
     generate_pr_rules(Sources),
-    if_debug(0, write_program),
-    destroy_program,
-    option_cleanup.
+    if_debug(0, write_program).
