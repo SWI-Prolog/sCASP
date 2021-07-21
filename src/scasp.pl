@@ -170,7 +170,7 @@ main_solve(Q0) :-
     current_option(answers, Number),
 
     process_query(Q0, Q, Query, D0),
-    pairs_values(D0, Vars),
+    maplist(arg(2), D0, Vars),
 
     pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
     print_query(PQ),
