@@ -63,7 +63,7 @@ that may be used for warning and error output.
 :- use_module(common).
 :- use_module(options).
 :- use_module(program).
-:- use_module(io).
+:- use_module(input).
 :- use_module(variables).
 
 %!  format_term(+EntryIn:compound, -EntryOut:compound,

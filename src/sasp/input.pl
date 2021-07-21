@@ -1,21 +1,64 @@
-:- module(sasp_read,
-          [ load_source_files/1,
-%           read_query/2,
+/*  Part of sCASP
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+:- module(sasp_input,
+          [ load_source_files/1,        % +Files
             pred/1,
             show/1,
             asp_table/1,
-            sasp_read/2                 % +File,-Statements
+            sasp_read/2                 % +File, -Statements
           ]).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(prolog_code)).
+
 :- use_module(common).
 :- use_module(program).
 
-:- dynamic
+:- dynamic                              % TBD: Get rid of these
     asp_table/1,
     show/1,
     pred/1.
 
 /** <module> Read SASP source code
+
+This module defines reading sCASP input based on the Prolog parser.
 */
+
+% operator that may be used in sCASP   source. They are used through the
+% `module` option of read_term/3.
+% TBD: Do we need both sets of comparison operators?
 
 :- op(700, xfx, [.=., .\=.,.<>.,.<.,.=<.,.>.,.>=.]).
 :- op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]).
@@ -70,6 +113,12 @@ sasp_read_stream_raw(In, Statements, Options) :-
         sasp_read_stream(In, Statements, Options),
         call(Undo)).
 
+%!  prep_read(-Undo)
+%
+%   Setup the Prolog syntax for reading   sCASP. This currently sets the
+%   `allow_variable_name_as_functor` flag, such that  e.g. _female(jane)
+%   is valid syntax.
+
 prep_read(Undo) :-
     convlist(update_flag,
              [ allow_variable_name_as_functor-true
@@ -84,6 +133,10 @@ update_flag(Flag-Value, true) :-
 update_flag(Flag-Value, set_prolog_flag(Flag, Old)) :-
     current_prolog_flag(Flag, Old),
     set_prolog_flag(Flag, Value).
+
+%!  sasp_read_stream(+In, -Statements, +Options) is det.
+%
+%   Read the content of the stream In into a list of sCASP statements.
 
 sasp_read_stream(In, Statements, Options) :-
     context_module(M),
@@ -106,6 +159,20 @@ add_statements(New, Tail, Statements) :-
 add_statements(New, Tail, [New|Tail]).
 
 %!  sasp_statement(+Term, +VarNames, -SASP, +Pos, +Options) is det.
+%
+%   Convert a raw Prolog term into  its sCASP equivalent. Currently does
+%   these transformations:
+%
+%     - Clauses get the shape Head-ListOfBodyAtoms
+%     - -Name(Args) is translated into c_Name(Args)
+%     - Atoms that need a prefix are prefixed using `d_`
+%
+%   This also processes directives, terms of the shape #Directive.
+%
+%   @arg VarNames is  a  list  Name=Var   as  produced  by  read_term/3.
+%   Remaining variables are bound to ``_V<N>``.
+
+:- det(sasp_statement/5).
 
 sasp_statement(Term, VarNames, SASP, Pos, Options) :-
     maplist(bind_var,VarNames),
@@ -121,6 +188,10 @@ bind_anon([$Name|T], I) :-
     atom_concat('_V', I, Name),
     I2 is I+1,
     bind_anon(T, I2).
+
+%!  sasp_statement(+Term, -SASPTerm, +TermPos, +Options) is det.
+%
+%   Translate a single term.
 
 sasp_statement(Head :- Body,  SASP,
                term_position(_,_,_,_,[HP,BP]), Options) =>
@@ -144,6 +215,12 @@ sasp_statement(#Directive, SASP,
 sasp_statement(Head,  SASP, Pos, Options), callable(Head) =>
     sasp_predicate(Head, SASPHead, Pos, Options),
     SASP = (SASPHead-[]).
+
+%!  sasp_predicate(+Pred, -ASPPred, +Pos, +Options) is det.
+%!  sasp_predicate_m(+Options, +Pred, -ASPPred, +Pos) is det.
+%
+%   Handle an ASP atom. Renames  the   functor  when needed. Knows about
+%   -Pred (classical negation) and not(Pred).
 
 sasp_predicate_m(Options, Term, ASPTerm, Pos) :-
     sasp_predicate(Term, ASPTerm, Pos, Options).
@@ -225,7 +302,7 @@ illegal_pred(_;_).
 
 %!  directive(+Directive, -Statements, +Pos, +Options) is det.
 %
-%
+%   Process a directive.
 
 directive(include(File), Statements, _, Options) =>
     option(base(Base), Options),
@@ -272,8 +349,10 @@ sasp_syntax_error(Error, Pos, Options) :-
     option(base(Base), Options),
     print_message(error, sasp_error(Error, Pos, Base)).
 
-
 %!  comma_list(+BodyTerm, +Pos, -BodyList, -PosList) is det.
+%
+%   Translate a conjunction  into  a   list,  also  translating possible
+%   position information.
 
 comma_list(Body, Pos, BodyList, PosList) :-
     comma_list(Body, Pos, BodyList, [], PosList, []).

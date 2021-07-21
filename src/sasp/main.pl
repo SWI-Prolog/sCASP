@@ -42,7 +42,7 @@ results.
 
 :- use_module(common).
 :- use_module(comp_duals).
-:- use_module(io).
+:- use_module(input).
 :- use_module(nmr_check).
 :- use_module(options).
 :- use_module(program). % for destroy_program/0
