@@ -348,10 +348,10 @@ solve_query(Q) :-
 
 %!  solve(?Goals, ?StackIn, ?StackOut, ?Model)
 %
-%   Solve the  list of  sub-goals `Goal`  where StackIn  is the  list of
-%   goals  already visited  and returns  in StackOut  the list  of goals
-%   visited to prove the sub-goals and in Model  the model  with support
-%   the sub-goals
+%   Solve the list of sub-goals `Goal`  where   StackIn  is  the list of
+%   goals already visited and returns  in   StackOut  the  list of goals
+%   visited to prove the sub-goals and in  Model the model that supports
+%   the sub-goals.
 
 solve([], StackIn, [[]|StackIn], []).
 solve([Goal|Goals], StackIn, StackOut, Model) :-
