@@ -52,6 +52,9 @@ the resulting dynamic predicates.
 */
 
 :- use_module(library(lists)).
+:- use_module(library(apply)).
+:- use_module(library(debug)).
+
 :- use_module(common).
 :- use_module(options).
 :- use_module(variables).
@@ -257,78 +260,35 @@ sort_by_type([], [], [], C, C).
 %
 %   Get a list of the predicate symbols used   in  the rules or query of
 %   the program. This includes  predicates  that   are  called  but  not
-%   defined. The internal-use predicate  _false_0   should  be  included
-%   explictly, in case a hard-coded query overrode the default one.
+%   defined. The internal-use predicate ``_false_0``  should be included
+%   explictly, in case a hard-coded query   overrode the default one. We
+%   add ``_false_0`` as head of the query   for  that purpose. This both
+%   gets the query in the shape of   a  rule and ensures ``_false_0`` is
+%   included.
 %
 %   @arg Program A program struct.
 %   @arg Predicates A list of predicate symbols defined in the program.
 
 get_predicates(P, Ps) :-
     program(P, R, _, Q),
-    get_predicates2(R, ['_false_0'], Ps1), % ensure that _false_0 is present
     query(Q, Qs, _, _),
-    get_predicates3(Qs, Ps1, Ps),
-    !.
+    rules_predicates(['_false_0'-Qs|R], Ps).
 
-%!  get_predicates2(+Rules:list, +PredicatesIn:list, -PredicatesOut:list) is det
-%
-%   Get the predicates defined or called in a list of rules.
-%
-%   @arg Rules A list of rules.
-%   @arg PredicatesIn Input list of predicates.
-%   @arg PredicatesOut Output list of predicates.
+rules_predicates(Rules, Preds) :-
+    maplist(rule_predicates, Rules, Preds0),
+    append(Preds0, Preds1),
+    list_to_set(Preds1, Preds).
 
-get_predicates2([R|T], Psi, Pso) :-
+rule_predicates(R, Preds) :-
     c_rule(R, H, B),
-    predicate(H, F, _), % get the functor
-    member(F, Psi), % already seen
-    !,
-    get_predicates3(B, Psi, Ps2),
-    !,
-    get_predicates2(T, Ps2, Pso).
-get_predicates2([R|T], Psi, Pso) :-
-    c_rule(R, H, B),
-    predicate(H, F, _), % get the functor
-    !,
-    get_predicates3(B, [F|Psi], Ps2),
-    !,
-    get_predicates2(T, Ps2, Pso).
-get_predicates2([], Ps, Ps) :-
-    !.
+    atom_predicate(H, F),
+    convlist(atom_predicate, B, FB),
+    list_to_set([F|FB], Preds).
 
-%!  get_predicates3(+Goals:list, +PredicatesIn:list, -PredicatesOut:list) is det
-%
-%   Get the predicates called  in  a  list   of  goals.  Note  that this
-%   includes only predicates structs as   defined by common:predicate/3,
-%   not operators.
-%
-%   @arg Goals A list of goals.
-%   @arg PredicatesIn Input list of predicates.
-%   @arg PredicatesOut Output list of predicates.
-
-get_predicates3([G|T], Psi, Pso) :-
-    G = [_|_], % list; skip
-    !,
-    get_predicates3(T, Psi, Pso).
-get_predicates3([G|T], Psi, Pso) :-
-    predicate(G, F, _), % get the functor
-    member(F, Psi), % already seen
-    !,
-    get_predicates3(T, Psi, Pso).
-get_predicates3([G|T], Psi, Pso) :-
-    G = not(G2),
-    get_predicates3([G2], Psi, Ps1),
-    !,
-    get_predicates3(T, Ps1, Pso).
-get_predicates3([G|T], Psi, Pso) :-
-    predicate(G, F, _), % get the functor
-    !,
-    get_predicates3(T, [F|Psi], Pso).
-get_predicates3([_|T], Psi, Pso) :-
-    !, % skip non-predicates (expressions)
-    get_predicates3(T, Psi, Pso).
-get_predicates3([], Ps, Ps) :-
-    !.
+atom_predicate(not(X), P) :-
+    atom_predicate(X, P).
+atom_predicate(X, F) :-
+    predicate(X, F, _).
 
 %!  handle_classical_negations(+Predicates:list, +Seen:list) is det
 %
