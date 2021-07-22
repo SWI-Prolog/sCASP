@@ -55,7 +55,7 @@ Computation of dual rules (rules for the negation of a literal).
 :- det(comp_duals/0).
 
 comp_duals :-
-    write_verbose(0, 'Computing dual rules...\n'),
+    debug(scasp(compile), 'Computing dual rules...', []),
     defined_predicates(Preds),
     maplist(comp_dual, Preds).
 

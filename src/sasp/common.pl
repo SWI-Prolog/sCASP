@@ -34,8 +34,6 @@
             split_functor/3,            % +Functor, -Name, -Arity
             join_functor/3,             % -Functor, +Name, +Arity
             create_unique_functor/3,
-            write_verbose/2,
-            var_list/2,
             operator/3
           ]).
 
@@ -48,8 +46,6 @@ Common and utility predicates that may be called from multiple locations.
 @license BSD-3
 */
 
-:- use_module(options).
-:- use_module(variables).
 :- use_module(program, [has_prefix/2]).
 
 %!  predicate(?PredicateStruct:compound, ?Name:atom, ?Args:list) is det
@@ -156,65 +152,6 @@ join_functor(Functor, Name, Arity) :-
 create_unique_functor(Hi, C, Ho) :-
     split_functor(Hi, F, A), % Strip the arity
     atomic_list_concat([F, '_', C, '_', A], Ho).
-
-%!  write_verbose(+Depth:int, +Format:string) is det.
-%
-%   Write a message to user_error if  the verbose or veryverbose options
-%   are enabled (by passing -v or   -vv as command-line parameters). The
-%   first argument is  an  integer  representing   the  "depth"  of  the
-%   message. This is  used  to  indent   messages  for  readability  and
-%   determine which messages to print for  each mode. Top-level messages
-%   should use depth 0, with each  subsequent level increasing the depth
-%   by 1. Verbose mode will print only those messages with a depth of 0,
-%   while veryverbose mode will print all messages. Unlike write_error/1
-%   and write_error/2, no prefix or terminal newline are appended.
-%
-%   @arg Depth The indentation level of the message.
-%   @arg Format The item to print. This will probably be a quoted string, but
-%        can be anything accepted by write/1.
-
-write_verbose(0, Y) :-
-    user_option(verbose, 1),
-    write(user_error, Y),
-    !.
-write_verbose(X, Y) :-
-    user_option(veryverbose, 1),
-    write_indent(X),
-    write(user_error, Y),
-    !.
-write_verbose(_, _) :-
-    !.
-
-%!  write_indent(+Depth:int)
-%
-%   Write an indentation of size Depth to user_error.
-%
-%   @arg Depth The number of indentations to print. Note that a single
-%        indentation need not equate to a single space.
-
-write_indent(Depth) :-
-    tab(user_error, 2*Depth).
-
-%!  var_list(+N:int, -Vars:list) is det
-%
-%   Get a list of N variables, each   of  which is different. Basically,
-%   just append a counter to '_X'.  The   '_'  prefix ensures they don't
-%   overlap with any existing variables in a rule.
-%
-%   @arg  N The size of the list to return.
-%   @arg  Vars output list.
-
-:- det(var_list/2).
-
-var_list(0, []) :-
-    !.
-var_list(I, [H|T]) :-
-    I2 is I-1,
-    var_list(I2, T),
-    mk_var(I2, H).
-
-mk_var(I, $Name) :-
-    atom_concat('_X', I, Name).
 
 %!  operator(+Operator:ground, -Specifier:atom, -Priority:int) is det
 %

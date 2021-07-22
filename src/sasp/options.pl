@@ -28,7 +28,6 @@
 :- module(options,
           [ user_option/2,
             set_default_options/0,
-            set_user_option/2,
             option_cleanup/0,
             set_stack_sizes/0
           ]).

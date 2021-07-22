@@ -43,6 +43,7 @@ Detect OLON rules and construct nmr_check.
 :- use_module(common).
 :- use_module(comp_duals).
 :- use_module(program).
+:- use_module(variables).
 :- use_module('../scasp_options').
 
 %!  generate_nmr_check is det
@@ -55,7 +56,7 @@ Detect OLON rules and construct nmr_check.
 :- det(generate_nmr_check/0).
 
 generate_nmr_check :-
-    write_verbose(0, 'Generating NMR check...\n'),
+    debug(scasp(compile), 'Generating NMR check...', []),
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs), % get all rules
     olon_rules(Rs, Rc),
     nmr_check(Rc, Nmrchk),
@@ -76,7 +77,7 @@ generate_nmr_check :-
 nmr_check([], []) :-
     !.
 nmr_check(Rc, Nmrchk) :-
-    write_verbose(1, 'Creating sub-checks...\n'),
+    debug(scasp(compile), 'Creating sub-checks...', []),
     olon_chks(Rc, Nmrchk, 1).
 
 %!  olon_rules(+Rules:list, -OLONrules:list) is det
@@ -90,10 +91,10 @@ nmr_check(Rc, Nmrchk) :-
 :- det(olon_rules/2).
 
 olon_rules(R, Rc) :-
-    write_verbose(1, 'Detecting rules that contain odd loops over negation...\n'),
+    debug(scasp(compile), 'Detecting rules that contain odd loops over negation...', []),
     assign_unique_ids(R, R1),
     sort(R1, R2), % ensure that all rules with the same head are together
-    write_verbose(2, 'Building call graph...\n'),
+    debug(scasp(compile), 'Building call graph...', []),
     setup_call_cleanup(
         build_call_graph(R2, Ns), % build call graph, skipping duals.
         olon_rules_(R2, Ns, Rc),
@@ -130,7 +131,7 @@ olon_rules_(R2, Ns, Rc) :-
 %        loop.
 
 dfs(N, Pc, Po, Pr) :-
-    write_verbose(2, 'Detecting cycles in call graph...\n'),
+    debug(scasp(compile), 'Detecting cycles in call graph...', []),
     dfs2(N, [], [], Pc, [], Po, [], Pr).
 
 %!  dfs2(+Nodes:list, +Tested:list, +OlonIn:list,

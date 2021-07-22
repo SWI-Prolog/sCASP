@@ -54,6 +54,7 @@ the resulting dynamic predicates.
 :- use_module(library(lists)).
 :- use_module(common).
 :- use_module(options).
+:- use_module(variables).
 
 %!  defined_rule(+Name:atom, +FullHead:compound, -Body:list) is nondet
 %
@@ -195,7 +196,7 @@ non_printable(Name) :-
 :- det(assert_program/1).
 
 assert_program(Stmts) :-
-    write_verbose(0, 'Converting program to internal format...\n'),
+    debug(scasp(compile), 'Converting program to internal format...', []),
     format_program(Stmts, Program),
     get_predicates(Program, Predicates),
     assert_predicates(Predicates),
