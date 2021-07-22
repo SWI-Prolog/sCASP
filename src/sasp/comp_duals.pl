@@ -57,34 +57,25 @@ Computation of dual rules (rules for the negation of a literal).
 comp_duals :-
     write_verbose(0, 'Computing dual rules...\n'),
     defined_predicates(Preds),
-    comp_duals2(Preds).
+    maplist(comp_dual, Preds).
 
 scasp_builtin('call_1').
 scasp_builtin('findall_3').
 
-%!  comp_duals2(+Predicates:list) is det
+%!  comp_dual(+Predicate) is det
 %
-%   For each predicate in  Predicates,  get   matching  rules  and  call
-%   comp_duals3/2.
-%
-%   @arg Predicates List of predicates in the program.
+%   get matching rules and call comp_duals3/2.
 
-comp_duals2([X|T]) :-
-    X = '_false_0', % skip headless rules; handled by NMR check
-    !,
-    comp_duals2(T).
-comp_duals2([X|T]) :-
-    scasp_builtin(X),  % skip dual of scasp builtins
-    !,
-    comp_duals2(T).
-comp_duals2([X|T]) :-
+comp_dual('_false_0') :-	% Headless rules are handled by NMR check
+    !.
+comp_dual(X) :-
+    scasp_builtin(X),		% skip dual of scasp builtins
+    !.
+comp_dual(X) :-
     findall(R, (defined_rule(X, H, B), c_rule(R, H, B)), Rs), % get rules for a single predicate
-    comp_duals3(X, Rs),
-    !,
-    comp_duals2(T).
-comp_duals2([]).
+    comp_duals3(X, Rs).
 
-%!  comp_duals3(+Predicate:ground, +Rules:list) is det
+%!  comp_duals3(+Predicate:atom, +Rules:list) is det
 %
 %   Compute the dual for  a  single   positive  literal.  Make sure that
 %   Predicate is used for the dual head  instead of taking the head from
@@ -105,9 +96,11 @@ comp_duals3(P, []) :-
 comp_duals3(P, R) :- % predicate is defined by one or more rules.
     predicate(H, P, []), % create a dummy predicate for P.
     outer_dual_head(H, Hd),
-    comp_dual(Hd, R, [], 1).
+    comp_dual(Hd, R, Db, 1),
+    c_rule(Rd, Hd, Db),
+    assert_rule(Rd).
 
-%!  comp_dual(+DualHead:compound, +Rules:list, +DualBody:list, +Count:int) is det
+%!  comp_dual(+DualHead:compound, +Rules:list, -DualBody:list, +Count:int) is det
 %
 %   Compute the dual for a predicate with multiple rules. First, compute
 %   the dual of each individual rule, replacing   each  head with a new,
@@ -119,13 +112,14 @@ comp_duals3(P, R) :- % predicate is defined by one or more rules.
 %   @arg DualBody The body of the outer dual rule.
 %   @arg Count Counter used to ensure that new heads are unique.
 
-comp_dual(Hn, [X|T], Db, C) :-
+comp_dual(_, [], [], _) :-
+    !.
+comp_dual(Hn, [X|T], [Dg|Db], C) :-
     c_rule(X, H, B),
     % get unique head with Hn2 including original args and Hn3 using variable args
     predicate(H, _, A1),
     predicate(Hn, F, A2),
-    replace_prefix(F, n_, n__, F2),       % add underscore to make it non-printing.
-    create_unique_functor(F2, C, F3),
+    create_unique_functor(F, C, F3),
     abstract_structures(A1, A3, 0, G),
     append(G, B, B2),
     prep_args(A3, A2, [], A4, [], 0, G2), % get var list for inner dual clause heads and inner unifiability goals
@@ -136,12 +130,7 @@ comp_dual(Hn, [X|T], Db, C) :-
     comp_dual2(Dh, B3, Bv), % create inner dual clauses
     C2 is C + 1,
     !,
-    comp_dual(Hn, T, [Dg|Db], C2).
-comp_dual(Hn, [], Db, _) :-
-    reverse(Db, Db2), % restore proper goal order
-    c_rule(Rd, Hn, Db2),
-    assert_rule(Rd),
-    !.
+    comp_dual(Hn, T, Db, C2).
 
 %!  comp_dual2(+DualHead:compound, +Body:list, +BodyVars:list) is det
 %
@@ -185,13 +174,15 @@ comp_dual2(Hn, Bg, Bv) :-
 %   @arg UsedGoals The goals that have already been processed, in original
 %        order.
 
+comp_dual3(_, [], _) :-
+    !.
 comp_dual3(Hn, [X|T], U) :-
     X = builtin_1(_), % handle built-ins specially
+    !,
     (   current_option(plain_dual, on)
     ->  U2 = [X]
     ;   append(U, [X], U2)
     ),
-    !,
     comp_dual3(Hn, T, U2).
 comp_dual3(Hn, [X|T], U) :-
     dual_goal(X, X2),
@@ -202,10 +193,7 @@ comp_dual3(Hn, [X|T], U) :-
     c_rule(Rd, Hn, Db), % Clause for negation of body goal
     assert_rule(Rd),
     append(U, [X], U2),
-    !,
     comp_dual3(Hn, T, U2).
-comp_dual3(_, [], _) :-
-    !.
 
 %!  dual_goal(+GoalIn:compound, -GoalOut:compound) is det
 %
@@ -279,8 +267,7 @@ outer_dual_head(H, D) :-
     negate_functor(P, Pd),
     split_functor(Pd, _, A),		% get the arity
     var_list(A, Ad),			% get the arg list
-    predicate(D, Pd, Ad),
-    !.
+    predicate(D, Pd, Ad).
 
 %!  abstract_structures(+ArgsIn:list, -ArgsOut:list, +Counter:int,
 %!                      -Goals:list) is det

@@ -348,10 +348,10 @@ solve_query(Q) :-
 
 %!  solve(?Goals, ?StackIn, ?StackOut, ?Model)
 %
-%   Solve the  list of  sub-goals `Goal`  where StackIn  is the  list of
-%   goals  already visited  and returns  in StackOut  the list  of goals
-%   visited to prove the sub-goals and in Model  the model  with support
-%   the sub-goals
+%   Solve the list of sub-goals `Goal`  where   StackIn  is  the list of
+%   goals already visited and returns  in   StackOut  the  list of goals
+%   visited to prove the sub-goals and in  Model the model that supports
+%   the sub-goals.
 
 solve([], StackIn, [[]|StackIn], []).
 solve([Goal|Goals], StackIn, StackOut, Model) :-
@@ -860,22 +860,21 @@ constrained_neg_in_stack(Goal, [_|Ss]) :-
 proved_in_stack(Goal, S) :-
     proved_in_stack_(Goal, S, 0, -1),
     if_user_option(check_calls,
-                   format('\tGoal ~@ is already in the stack\n', [print_goal(Goal)])).
-proved_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :-
-    NewInter is Intervening - 1,
-    proved_in_stack_(Goal, Ss, NewInter, MaxInter).
-proved_in_stack_(Goal, [S|_], Intervening, MaxInter) :-
-    S \= [],
-    Goal == S, !,
-    Intervening =< MaxInter.
-proved_in_stack_(Goal, [chs(S)|_], Intervening, MaxInter) :-
-    Goal == S,
-    Intervening =< MaxInter.
-proved_in_stack_(Goal, [S|Ss], Intervening, MaxInter) :-
-    S \= [],
-    max(MaxInter, Intervening, NewMaxInter),
-    NewInter is Intervening + 1,
-    proved_in_stack_(Goal, Ss, NewInter, NewMaxInter).
+                   format('\tGoal ~@ is already in the stack\n',
+                          [print_goal(Goal)])).
+
+proved_in_stack_(Goal, [Top|Ss], Intervening, MaxInter) :-
+    (   Top == []
+    ->  NewInter is Intervening - 1,
+        proved_in_stack_(Goal, Ss, NewInter, MaxInter)
+    ;   Goal == Top
+    ->  Intervening =< MaxInter
+    ;   Top == chs(Goal)
+    ->  Intervening =< MaxInter
+    ;   NewMaxInter is max(MaxInter, Intervening),
+        NewInter is Intervening + 1,
+        proved_in_stack_(Goal, Ss, NewInter, NewMaxInter)
+    ).
 
 max(A, B, M) :-
     (   A >= B
@@ -962,9 +961,9 @@ table_predicate(Goal) :-
     pr_table_predicate(Name/Arity).
 
 shown_predicate(not(Goal)) :-
+    !,
     predicate(Goal).
 shown_predicate(Goal) :-
-    Goal \= not(_),
     predicate(Goal).
 
 

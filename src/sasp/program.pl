@@ -30,6 +30,7 @@
             defined_query/2,
             defined_predicates/1,
             defined_nmr_check/1,
+            defined_directive/1,
             reserved_prefix/1,
             has_prefix/2,
             replace_prefix/4,    % +FunctorIn,+OldPrefix,+NewPrefix,-Functor
@@ -90,19 +91,20 @@ the resulting dynamic predicates.
     defined_rule/3,		% Name, Head, Body
     defined_query/2,            % Body, Count
     defined_predicates/1,       % list(Name) (1 clause)
-    defined_nmr_check/1.
+    defined_nmr_check/1,
+    defined_directive/1.        % directive
 
-%!  program(?ProgramStruct:compound, ?Rules:list, ?OptimizationStatements:list,
+%!  program(?ProgramStruct:compound, ?Rules:list, ?Directives:list,
 %!          ?Query:compound) is det
 %
 %   Convert a program structure into its components, or vice-versa.
 %
 %   @arg ProgramStruct Program structure.
 %   @arg Rules List of rules.
-%   @arg OptimizationStatements List of optimization statements.
+%   @arg Directives List of directives.
 %   @arg Query Query structure.
 
-program(p(Rules, OptStmts, Query), Rules, OptStmts, Query).
+program(p(Rules, Directives, Query), Rules, Directives, Query).
 
 %!  query(?QueryStruct:compound, ?Query:list, ?NMR_Check:list,
 %!        ?SolutionCount:int) is det
@@ -211,20 +213,19 @@ assert_program(Stmts) :-
 %   @arg Statements List of rules and compute statements produced by DCG.
 %   @arg Program Program data struct.
 
-format_program(X, P) :-
-    X \= [],
-    !,
-    predicate(G, '_false_0', []),
-    user_option(ascount, N), % default number of answer sets to compute
-    query(Q2, [not(G)], _, N),
-    sort_by_type(X, R, Q2, Q),
-    program(P, R, _, Q).
 format_program([], P) :-
+    !,                       % no program
     predicate(G, '_false_0', []),
     query(Q, [not(G)], _, 1),
     program(P, [], _, Q).
+format_program(X, P) :-
+    predicate(G, '_false_0', []),
+    user_option(ascount, N), % default number of answer sets to compute
+    query(Q2, [not(G)], _, N),
+    sort_by_type(X, R, D, Q2, Q),
+    program(P, R, D, Q).
 
-%!  sort_by_type(+Statements:list, -Rules:list,
+%!  sort_by_type(+Statements:list, -Rules:list, -Directives:list,
 %!               +ComputeIn:compound, -ComputeOut:compound) is det
 %
 %   Take a list of statements,  return  a   list  of  rules and the last
@@ -236,16 +237,20 @@ format_program([], P) :-
 %   @arg ComputeIn compute statement.
 %   @arg ComputeOut compute statement. Only the final compute statement is kept.
 
-sort_by_type([X | T], [X | R], Ci, Co) :-
+sort_by_type([X|T], [X|R], D, Ci, Co) :-
     c_rule(X, _, _),
     !,
-    sort_by_type(T, R, Ci, Co).
-sort_by_type([X | T], R, _, Co) :-
+    sort_by_type(T, R, D, Ci, Co).
+sort_by_type([X|T], R, D, _, Co) :-
     X = c(N, Q),
     query(C, Q, _, N),
     !,
-    sort_by_type(T, R, C, Co).
-sort_by_type([], [], C, C).
+    sort_by_type(T, R, D, C, Co).
+sort_by_type([X|T], R, [X|D], C, Co) :-
+    X = :-(_Directive),
+    !,
+    sort_by_type(T, R, D, C, Co).
+sort_by_type([], [], [], C, C).
 
 %!  get_predicates(+Program:compound, -Predicates:list) is det
 %
@@ -272,7 +277,7 @@ get_predicates(P, Ps) :-
 %   @arg PredicatesIn Input list of predicates.
 %   @arg PredicatesOut Output list of predicates.
 
-get_predicates2([R | T], Psi, Pso) :-
+get_predicates2([R|T], Psi, Pso) :-
     c_rule(R, H, B),
     predicate(H, F, _), % get the functor
     member(F, Psi), % already seen
@@ -280,11 +285,11 @@ get_predicates2([R | T], Psi, Pso) :-
     get_predicates3(B, Psi, Ps2),
     !,
     get_predicates2(T, Ps2, Pso).
-get_predicates2([R | T], Psi, Pso) :-
+get_predicates2([R|T], Psi, Pso) :-
     c_rule(R, H, B),
     predicate(H, F, _), % get the functor
     !,
-    get_predicates3(B, [F | Psi], Ps2),
+    get_predicates3(B, [F|Psi], Ps2),
     !,
     get_predicates2(T, Ps2, Pso).
 get_predicates2([], Ps, Ps) :-
@@ -300,25 +305,25 @@ get_predicates2([], Ps, Ps) :-
 %   @arg PredicatesIn Input list of predicates.
 %   @arg PredicatesOut Output list of predicates.
 
-get_predicates3([G | T], Psi, Pso) :-
-    G = [_ | _], % list; skip
+get_predicates3([G|T], Psi, Pso) :-
+    G = [_|_], % list; skip
     !,
     get_predicates3(T, Psi, Pso).
-get_predicates3([G | T], Psi, Pso) :-
+get_predicates3([G|T], Psi, Pso) :-
     predicate(G, F, _), % get the functor
     member(F, Psi), % already seen
     !,
     get_predicates3(T, Psi, Pso).
-get_predicates3([G | T], Psi, Pso) :-
+get_predicates3([G|T], Psi, Pso) :-
     G = not(G2),
     get_predicates3([G2], Psi, Ps1),
     !,
     get_predicates3(T, Ps1, Pso).
-get_predicates3([G | T], Psi, Pso) :-
+get_predicates3([G|T], Psi, Pso) :-
     predicate(G, F, _), % get the functor
     !,
-    get_predicates3(T, [F | Psi], Pso).
-get_predicates3([_ | T], Psi, Pso) :-
+    get_predicates3(T, [F|Psi], Pso).
+get_predicates3([_|T], Psi, Pso) :-
     !, % skip non-predicates (expressions)
     get_predicates3(T, Psi, Pso).
 get_predicates3([], Ps, Ps) :-
@@ -346,12 +351,12 @@ handle_classical_negations([X|T], S) :-
     !,
     split_functor(X, _, N), % get arity
     var_list(N, A), % get args,
-    X2 =.. [X | A],
-    Xn2 =.. [Xn | A],
+    X2 =.. [X|A],
+    Xn2 =.. [Xn|A],
     predicate(H, '_false_0', []), % dummy head for headless rules
     c_rule(R, H, [X2, Xn2]),
     assert_rule(R), % assert rule
-    handle_classical_negations(T, [X | S]).
+    handle_classical_negations(T, [X|S]).
 % not a classical negation, or it's already been seen
 handle_classical_negations([_|T], S) :-
     handle_classical_negations(T, S).
@@ -363,20 +368,10 @@ handle_classical_negations([_|T], S) :-
 %   @arg Program A program struct.
 
 assert_program_struct(P) :-
-    program(P, R, _, Q),
-    assert_rules(R),
+    program(P, R, D, Q),
+    maplist(assert_rule, R),
+    maplist(assert_directive, D),
     assert_query(Q).
-
-%!  assert_rules(+Rules:list) is det
-%
-%   Assert each rule in a list.
-%
-%   @arg Rules A list of rules.
-
-assert_rules([]).
-assert_rules([H|T]) :-
-    assert_rule(H),
-    assert_rules(T).
 
 %!  assert_rule(+Rule:compound) is det
 %
@@ -388,6 +383,15 @@ assert_rule(R) :-
     c_rule(R, H2, B),
     predicate(H2, H, _), % get the head without args
     assertz(defined_rule(H, H2, B)).
+
+%!  assert_directive(+Directive) is det
+%
+%   Assert a directive
+%
+%   @arg Directive is a term table(Pred), show(Pred) or pred(Pred)
+
+assert_directive(D) :-
+    assertz(defined_directive(D)).
 
 %!  assert_query(+Query:compound) is det
 %
@@ -428,4 +432,5 @@ destroy_program :-
     retractall(defined_rule(_, _, _)),
     retractall(defined_query(_, _)),
     retractall(defined_predicates(_)),
-    retractall(defined_nmr_check(_)).
+    retractall(defined_nmr_check(_)),
+    retractall(defined_directive(_)).

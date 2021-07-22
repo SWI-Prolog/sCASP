@@ -57,7 +57,7 @@ Detect OLON rules and construct nmr_check.
 generate_nmr_check :-
     write_verbose(0, 'Generating NMR check...\n'),
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs), % get all rules
-    olon_rules(Rs, Rc, [e('_false_0')]),
+    olon_rules(Rs, Rc),
     nmr_check(Rc, Nmrchk),
     retractall(defined_rule('_false_0', _, _)), % remove headless rules
     negate_functor('_false_0', Nf),
@@ -79,26 +79,27 @@ nmr_check(Rc, Nmrchk) :-
     write_verbose(1, 'Creating sub-checks...\n'),
     olon_chks(Rc, Nmrchk, 1).
 
-%!  olon_rules(+Rules:list, -OLONrules:list, +ExcludeList:list) is det
+%!  olon_rules(+Rules:list, -OLONrules:list) is det
 %
 %   Determine which of the original rules  are   part  of odd loops, and
 %   return them in a list.
 %
 %   @arg RuleIn Input list of rules.
 %   @arg OLONrules Rules for which NMR sub-checks will need to be created.
-%   @arg ExcludeList List of elements of the form e(X), where X is a literal to
-%        exclude when building the call graph. These are literals created when
-%        factorizing headless rules, so they will always be part of the NMR
-%        check; we don't need to test them.
 
-:- det(olon_rules/3).
+:- det(olon_rules/2).
 
-olon_rules(R, Rc, E) :-
+olon_rules(R, Rc) :-
     write_verbose(1, 'Detecting rules that contain odd loops over negation...\n'),
     assign_unique_ids(R, R1),
     sort(R1, R2), % ensure that all rules with the same head are together
     write_verbose(2, 'Building call graph...\n'),
-    build_call_graph(R2, Ns, E, 1), % build call graph, skipping duals.
+    setup_call_cleanup(
+        build_call_graph(R2, Ns), % build call graph, skipping duals.
+        olon_rules_(R2, Ns, Rc),
+        destroy_call_graph).
+
+olon_rules_(R2, Ns, Rc) :-
     dfs(Ns, Pc, _, _),
     (   current_option(no_compile_olon, on)
     ->  Rc1 = []
@@ -108,8 +109,8 @@ olon_rules(R, Rc, E) :-
     (   current_option(no_compile_nmr, on)
     ->  Rc = []
     ;   get_headless_rules(R2, Rc1, Rc)
-    ),
-    destroy_call_graph.
+    ).
+
 
 %!  dfs(+Nodes:list, -OLONs:list, -OrdinaryPaths:list, -PositiveLoops:list) is det
 %
@@ -259,15 +260,14 @@ get_cycle(X, P, C, N) :-
 %   @arg NegsIn Input number of negations in Cycle.
 %   @arg NegsOut Output number of negations in Cycle.
 
-get_cycle2(X, [A|P], [A|C], Ni, No) :-
-    A = a(Y, _, N, _),
-    X \= Y,
-    !,
-    N2 is N + Ni,
-    get_cycle2(X, P, C, N2, No).
 get_cycle2(X, [A|_], [A], Ni, No) :-
     A = a(X, _, N, _),
+    !,
     No is Ni + N.
+get_cycle2(X, [A|P], [A|C], Ni, No) :-
+    A = a(_, _, N, _),
+    N2 is N + Ni,
+    get_cycle2(X, P, C, N2, No).
 
 %!  classify_cycle(+Negs:int, +Cycle:list, +OlonIn:list, -OlonOut:list,
 %!                 +OrdIn:list, -OrdOut:list,
@@ -371,7 +371,7 @@ extract_ids3([], I, I).
 
 divide_rules([X|T], Is, [X|To], To2) :- % rule in list
     rule(X, _, I, _),
-    member(I, Is),
+    memberchk(I, Is),
     !,
     divide_rules(T, Is, To, To2).
 divide_rules([X|T], Is, To, [X|To2]) :- % rule not in list
@@ -416,7 +416,7 @@ olon_chks([R|T], [not(G)|Nmr], C) :-
     predicate(X, '_false_0', _), % headless rule
     !,
     c_rule(R2, X, Y), % strip ID for comp_duals3/2
-    create_unique_functor('_chk_0', C, H), % Create functor for sub-check head
+    create_unique_functor('_olon_0', C, H), % Create functor for sub-check head
     comp_duals3(H, [R2]),
     predicate(G, H, []), % Create goal for NMR check
     C1 is C + 1,
@@ -431,7 +431,7 @@ olon_chks([R|T], [Go|Nmr], C) :-
     ),
     predicate(X, Hi, _),
     split_functor(Hi, _, A), % get arity of head
-    atom_concat('_chk_', A, Hb),
+    atom_concat('_olon_', A, Hb),
     create_unique_functor(Hb, C, H), % Create functor for sub-check head
     comp_duals3(H, [R2]),
     var_list(A, V), % Get place holder args for NMR check goal

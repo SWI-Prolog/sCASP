@@ -33,9 +33,6 @@
 
 :- module(sasp_input,
           [ load_source_files/1,        % +Files
-            pred/1,
-            show/1,
-            asp_table/1,
             sasp_read/2                 % +File, -Statements
           ]).
 :- use_module(library(apply)).
@@ -45,11 +42,6 @@
 
 :- use_module(common).
 :- use_module(program).
-
-:- dynamic                              % TBD: Get rid of these
-    asp_table/1,
-    show/1,
-    pred/1.
 
 /** <module> Read SASP source code
 
@@ -313,17 +305,13 @@ directive(include(File), Statements, _, Options) =>
                        ]),
     sasp_read(Path, Statements).
 directive(table(Pred), Statements, _, _) =>
-    assertz(asp_table(Pred)),
-    Statements = [].
+    Statements = (:- table(Pred)).
 directive(show(Pred), Statements, _, _) =>
-    assertz(show(Pred)),
-    Statements = [].
+    Statements = (:- show(Pred)).
 directive(pred(Pred), Statements, _, _) =>
-    assertz(pred(Pred)),
-    Statements = [].
+    Statements = (:- pred(Pred)).
 directive(pred(Pred)::Comment, Statements, _, _) =>
-    assertz(pred(Pred::Comment)),
-    Statements = [].
+    Statements = (:- pred(Pred::Comment)).
 directive(abducible(Pred), Rules, Pos, Options) =>
     sasp_predicate(Pred, ASPPred, Pos, Options),
     abducible_rules(ASPPred, Rules).

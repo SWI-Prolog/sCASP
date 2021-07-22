@@ -63,8 +63,9 @@ that may be used for warning and error output.
 :- use_module(common).
 :- use_module(options).
 :- use_module(program).
-:- use_module(input).
 :- use_module(variables).
+
+:- op(700, xfx, ::).
 
 %!  format_term(+EntryIn:compound, -EntryOut:compound,
 %!              -Constraints:list, +Vars:compound) is det
@@ -77,19 +78,18 @@ that may be used for warning and error output.
 %   @arg Vars Variable struct for filling in values.
 
 format_term(X, X, Con, V) :-
-    is_unbound(X, V, Con, _, _), % constrained var
+    is_unbound(X, V, Con, _, _),	% constrained var
     !.
 format_term(X, Xo, Con, V) :-
     is_var(X),
     !,
-    var_value(X, V, val(X2)), % bound var
+    var_value(X, V, val(X2)),		% bound var
     format_term(X2, Xo, Con, V).
 format_term(X, Xo, Con, V) :-
-    X =.. [_ | _], % non-var
+    callable(X),
     !,
     format_predicate(X, Xo, Con, [], _, V).
-format_term(X, X, [], _) :- % anything else, just pass along
-    !.
+format_term(X, X, [], _).		% anything else, just pass along
 
 %!  format_term_list(+ListIn:compound, -ListOut:compound,
 %!                   -Constraints:list, +Vars:compound) is det
@@ -101,7 +101,7 @@ format_term(X, X, [], _) :- % anything else, just pass along
 %   @arg Constraints The list of constraints. MAY CONTAIN DUPLICATES!
 %   @arg Vars Variable struct for filling in values.
 
-format_term_list([X | T], [X2 | T2], Con, V) :-
+format_term_list([X|T], [X2|T2], Con, V) :-
     format_term(X, X2, C, V),
     !,
     format_term_list(T, T2, Ct, V),
@@ -139,7 +139,7 @@ print_chs(_, _, _) :-
 %   @arg ListIn Input list.
 %   @arg List Output list.
 
-rb_visit_to_list([-(_, X) | T], Li, Lo) :-
+rb_visit_to_list([-(_, X)|T], Li, Lo) :-
     append(X, Li, L2),
     !,
     rb_visit_to_list(T, L2, Lo).
@@ -153,7 +153,7 @@ rb_visit_to_list([], L, L) :-
 %
 %   @arg CHS The formatted CHS.
 %
-print_chs2([X | T]) :-
+print_chs2([X|T]) :-
     format('{ '),
     X = -(X2, Con),
     (   X2 = not(X3)
@@ -178,7 +178,7 @@ print_chs2([]) :-
 %
 %   @arg CHS The CHS to print.
 
-print_chs3([X | T]) :-
+print_chs3([X|T]) :-
     X = -(X2, Con),
     (   X2 = not(X3)
     ->  format(', not ~w', [X3])
@@ -246,14 +246,14 @@ format_chs(_, [], _, _). % CHS is either empty or contains no printable literals
 %   @arg Vars The variable struct used to fill in values.
 %   @arg Flag An integer 0, 1 or 2 indicating the print mode.
 
-format_chs2([X | T], [Y | T2], Uvi, Uvo, V, F) :-
+format_chs2([X|T], [Y|T2], Uvi, Uvo, V, F) :-
     F \= 2,
     format_chs_entry(X, X2, Con, Uvi, Uv1, V),
     Y = -(X2, Con),
     get_next_printable(T, T3),
     !,
     format_chs2(T3, T2, Uv1, Uvo, V, F).
-format_chs2([X | T], [Y | T2], Uvi, Uvo, V, F) :-
+format_chs2([X|T], [Y|T2], Uvi, Uvo, V, F) :-
     F = 2,
     !,
     format_chs_entry(X, X2, Uvi, Uv1, Con, V),
@@ -277,7 +277,7 @@ format_chs2([], [], Uv, Uv, _, _).
 
 format_chs_entry(X, Xo, Con, Uvi, Uvo, V) :-
     chs_entry(X, X2, A, _, _),
-    X3 =.. [X2 | A],
+    X3 =.. [X2|A],
     format_predicate(X3, Xo, Con, Uvi, Uvo, V).
 
 %!  format_predicate(+EntryIn:compound, -EntryOut:compound,
@@ -315,16 +315,16 @@ format_predicate(X, Xo, Con, Uvi, Uvo, V) :-
 %   @arg Vars Variable struct for filling in values.
 
 format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
-    Xi = [_ | _], % list
+    Xi = [_|_], % list
     !,
     format_predicate3(Xi, Xo, Uvi, Uvo, V).
 format_predicate2(Xi, Xo, Uv, Uv, _) :-
     predicate(Xi, X2, []),
     atom(X2), % compound term, predicate or atom
-    atom_chars(X2, ['\'' | X3]), % quoted string; strip outermost quotes and arity
-    reverse(X3, ['0', '_' | X4]),
+    atom_chars(X2, ['\''|X3]), % quoted string; strip outermost quotes and arity
+    reverse(X3, ['0', '_'|X4]),
     reverse(X4, X5),
-    atom_chars(Xo, ['\'' | X5]).
+    atom_chars(Xo, ['\''|X5]).
 format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
     predicate(Xi, X2, A),
     atom(X2), % compound term, predicate or atom
@@ -333,15 +333,15 @@ format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
     strip_prefixes(X3, X4),
     format_predicate3(A, A2, Uvi, Uvo, V),
     (   X4 = not(Xn) % append args
-    ->  Xn2 =.. [Xn | A2],
+    ->  Xn2 =.. [Xn|A2],
         Xo = not(Xn2)
-    ;   Xo =.. [X4 | A2]
+    ;   Xo =.. [X4|A2]
     ).
 format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
-    Xi =.. [X2 | A], % compound term, but not a predicate or atom head
+    Xi =.. [X2|A], % compound term, but not a predicate or atom head
     !,
     format_predicate3(A, A2, Uvi, Uvo, V),
-    Xo =.. [X2 | A2].
+    Xo =.. [X2|A2].
 format_predicate2(X, X, Uv, Uv, _) :-
     !. % not a predicate or atom
 
@@ -356,12 +356,12 @@ format_predicate2(X, X, Uv, Uv, _) :-
 %   @arg UsedVarsOut Output used vars.
 %   @arg Vars Variable struct for filling in values.
 
-format_predicate3([X | T], [Y | T2], Uvi, Uvo, V) :-
+format_predicate3([X|T], [Y|T2], Uvi, Uvo, V) :-
     format_predicate4(X, Y, Uvi, Uv1, V),
     !,
     format_predicate3(T, T2, Uv1, Uvo, V).
 format_predicate3(X, Y, Uvi, Uvo, V) :-
-    X \= [_ | _],
+    X \= [_|_],
     X \= [], % can occur if we have a list with an unbound tail
     format_predicate4(X, Y, Uvi, Uvo, V),
     !.
@@ -390,12 +390,12 @@ format_predicate4(Xi, Xo, Uv, Uv, V) :-
     get_value_id(Xi, ID, V),
     member(-(ID, Xo), Uv), % Var with same value already selected.
     !.
-format_predicate4(X, X, Uv, [-(ID, X) | Uv], V) :-
+format_predicate4(X, X, Uv, [-(ID, X)|Uv], V) :-
     is_var(X, Name),
     atom_concat('?', X2, Name), % get ID without flag
     get_value_id($X2, ID, V),
     !.
-format_predicate4(X, X, Uv, [-(ID, X) | Uv], V) :-
+format_predicate4(X, X, Uv, [-(ID, X)|Uv], V) :-
     get_value_id(X, ID, V),
     !.
 format_predicate4(X, X, Uv, Uv, _) :- % variable without ID in V
@@ -442,11 +442,11 @@ get_next_printable([X|T], [X|T2]) :-
 %   sorted by literal. Each output will remain sorted by literal.
 
 divide_chs([], [], []).
-divide_chs([X | T], P, [X | N]) :-
+divide_chs([X|T], P, [X|N]) :-
     X = -(not(_), _), % negated literal
     !,
     divide_chs(T, P, N).
-divide_chs([X | T], [X | P], N) :-
+divide_chs([X|T], [X|P], N) :-
     divide_chs(T, P, N).
 
 %!  strip_prefixes(+FunctorIn:atom, -FunctorOut:atom) is det
@@ -532,47 +532,47 @@ fill_in_variable_values(Gi, Go, Ci, Co, V) :-
     is_unbound(Gi, V, [], _, 1), % unbound variable, no constraints, flagged
     !,
     atom_chars(Gi, Gc),
-    (   Gc = ['?' | Gt]
+    (   Gc = ['?'|Gt]
     ->  % don't duplicate flag
         Go = Gi,
         atom_chars(G, Gt),
         (   is_unbound(G, V, Con, _, 1),
             Con \= []
         ->  % flag added in last pass, get correct constraints
-            Co = [-(Go, Con) | Ci]
+            Co = [-(Go, Con)|Ci]
         ;   Co = Ci
         )
-    ;   atom_chars(Go, ['?' | Gc]), % add flag
+    ;   atom_chars(Go, ['?'|Gc]), % add flag
         Co = Ci
     ).
-fill_in_variable_values(G, G, C, [-(G, Con) | C], V) :-
+fill_in_variable_values(G, G, C, [-(G, Con)|C], V) :-
     is_unbound(G, V, Con, _, Vl), % unbound variable, constraints
     Vl =\= 1,
     !.
-fill_in_variable_values(Gi, Go, C, [-(Go, Con) | C], V) :-
+fill_in_variable_values(Gi, Go, C, [-(Go, Con)|C], V) :-
     is_unbound(Gi, V, Con, _, 1), % unbound variable, constraints, flagged
     !,
     atom_chars(Gi, Gc),
-    (   Gc = ['?' | _]
+    (   Gc = ['?'|_]
     ->  % don't duplicate flag
         Go = Gi
-    ;   atom_chars(Go, ['?' | Gc]) % add flag
+    ;   atom_chars(Go, ['?'|Gc]) % add flag
     ).
 fill_in_variable_values(Gi, Go, Ci, Co, V) :-
     var_value(Gi, V, val(G2)),
-    G2 =.. [F | A], % compound term, check args
+    G2 =.. [F|A], % compound term, check args
     !,
     fill_in_variable_values2(A, A2, Ci, Co, V),
-    Go =.. [F | A2]. % repack term
+    Go =.. [F|A2]. % repack term
 fill_in_variable_values(Gi, Go, C, C, V) :-
     var_value(Gi, V, val(Go)),
     atom(Go), % atom
     !.
 fill_in_variable_values(Gi, Go, Ci, Co, V) :-
-    Gi =.. [F | A], % compound term, check args
+    Gi =.. [F|A], % compound term, check args
     !,
     fill_in_variable_values2(A, A2, Ci, Co, V),
-    Go =.. [F | A2]. % repack term
+    Go =.. [F|A2]. % repack term
 fill_in_variable_values(G, G, C, C, _) :-
     \+is_var(G), % other non-var
     !.
@@ -589,7 +589,7 @@ fill_in_variable_values(G, G, C, C, _) :-
 %   @arg ConstraintsOut Output constraints.
 %   @arg VarsOut Output vars.
 
-fill_in_variable_values2([X | T], [X2 | T2], Ci, Co, V) :-
+fill_in_variable_values2([X|T], [X2|T2], Ci, Co, V) :-
     fill_in_variable_values(X, X2, Ci, C1, V),
     !,
     fill_in_variable_values2(T, T2, C1, Co, V).
@@ -621,7 +621,7 @@ print_vars([], _) :-
 %
 %   @arg VarGroups The groups of variables to print.
 
-print_vars2([-(X, V) | T]) :-
+print_vars2([-(X, V)|T]) :-
     nl,
     print_vars4(X, V),
     !,
@@ -635,7 +635,7 @@ print_vars2([]) :-
 %
 %   @arg VarGroups The groups of variables to print.
 
-print_vars3([-(X, V) | T]) :-
+print_vars3([-(X, V)|T]) :-
     write(',\n'), % Sets after the first get a comma before the newline.
     print_vars4(X, V),
     !,
@@ -651,10 +651,10 @@ print_vars3([]) :-
 %   @arg VarGroup The group of variables to print.
 %   @arg Value The value of the variables.
 
-print_vars4([X, Y | T], V) :- % at least two elements
+print_vars4([X, Y|T], V) :- % at least two elements
     format('~w = ~w', [X, Y]), % print first element here
     !,
-    print_vars5([Y | T], V). % print remaining elements
+    print_vars5([Y|T], V). % print remaining elements
 print_vars4([X], V) :- % single-element list; constrained variable
     var_con(V, C, _, _),
     !,
@@ -672,10 +672,10 @@ print_vars4([X], V) :- % single-element list; bound variable
 %   @arg VarGroup The group of variables to print.
 %   @arg Value The value of the variables.
 
-print_vars5([X, Y | T], V) :- % at least two elements
+print_vars5([X, Y|T], V) :- % at least two elements
     format(', ~w = ~w', [X, Y]),
     !,
-    print_vars5([Y | T], V).
+    print_vars5([Y|T], V).
 print_vars5([X], V) :- % last element; constrained variable
     var_con(V, C, _, _),
     C \= [],
@@ -699,7 +699,7 @@ print_vars5([X], V) :- % last element; bound variable
 %   @arg Vars Var struct to get values from.
 %   @arg PrintVarsOut Output list of -(Value, Var) pairs.
 
-get_var_vals([X | T], V, [-(Val, X) | T2]) :-
+get_var_vals([X|T], V, [-(Val, X)|T2]) :-
     is_var(X),
     var_value(X, V, Val),
     Val \= id(_), % ensure that we don't get IDs
@@ -719,7 +719,7 @@ get_var_vals([], _, []) :-
 
 group_by_val(Xi, Xo) :-
     sort(Xi, X2),
-    X2 = [-(V, Y) | X3],
+    X2 = [-(V, Y)|X3],
     !,
     group_by_val2(X3, V, [Y], Xo).
 group_by_val([], []) :-
@@ -738,11 +738,11 @@ group_by_val([], []) :-
 %   @arg CurrSet The current set of variables with LastVal as their value.
 %   @arg VarsOut Output list of lists.
 
-group_by_val2([X | T], V, Vs, Vo) :-
+group_by_val2([X|T], V, Vs, Vo) :-
     X = -(V, Y), % same value as previous entry
     !,
-    group_by_val2(T, V, [Y | Vs], Vo).
-group_by_val2([X | T], V, Vs, [-(Vs2, V) | Vo]) :-
+    group_by_val2(T, V, [Y|Vs], Vo).
+group_by_val2([X|T], V, Vs, [-(Vs2, V)|Vo]) :-
     X = -(V2, Y),
     V2 \= V, % different value.
     !,
@@ -760,13 +760,13 @@ group_by_val2([], V, Vs, [-(Vs2, V)]) :- % return final set
 %   @arg VarGroupsIn Input var groups.
 %   @arg VarGroupsOut Output var groups.
 
-remove_nonprinting([X | T], T2) :-
+remove_nonprinting([X|T], T2) :-
     X = -([_], V),
     var_con(V, [], _, Vl), % skip single-element lists where variable is completely unbound
     Vl =\= 1,
     !,
     remove_nonprinting(T, T2).
-remove_nonprinting([X | T], [X | T2]) :-
+remove_nonprinting([X|T], [X|T2]) :-
     !,
     remove_nonprinting(T, T2).
 remove_nonprinting([], []) :-
@@ -780,20 +780,20 @@ remove_nonprinting([], []) :-
 %   @arg VarGroupsOut Output var groups.
 %   @arg Vars Var struct to get values from.
 
-format_vars([X | T], [X2 | T2], V) :-
+format_vars([X|T], [X2|T2], V) :-
     X = -(Vs, val(Val)),
     format_term(Val, Val2, _, V),
     X2 = -(Vs, val(Val2)),
     !,
     format_vars(T, T2, V).
-format_vars([X | T], [X2 | T2], V) :-
+format_vars([X|T], [X2|T2], V) :-
     X = -(Vs, Val),
     var_con(Val, Con, F, L),
     format_term(Con, Con2, _, V),
     var_con(Val2, Con2, F, L),
     (   L =:= 1
     ->  atom_chars(Vs, Vc),
-        atom_chars(Vs2, ['?' | Vc]) % add flag
+        atom_chars(Vs2, ['?'|Vc]) % add flag
     ;   Vs2 = Vs
     ),
     X2 = -(Vs2, Val2),
@@ -812,9 +812,9 @@ format_vars([], [], _) :-
 
 print_var_constraints([]) :-
     !.
-print_var_constraints([X | T]) :-
+print_var_constraints([X|T]) :-
     X = -(V, Cs),
-    sort(Cs, [C | Cs2]), % order and remove duplicate constraints
+    sort(Cs, [C|Cs2]), % order and remove duplicate constraints
     format('~w \\= ~w', [V, C]), % write first entry here for proper comma placement
     print_var_constraints3(V, Cs2),
     print_var_constraints2(T),
@@ -828,7 +828,7 @@ print_var_constraints([X | T]) :-
 %
 %   @arg Constraints The list of variable/constraint pairs.
 
-print_var_constraints2([X | T]) :-
+print_var_constraints2([X|T]) :-
     X = -(V, Cs),
     print_var_constraints3(V, Cs),
     !,
@@ -844,7 +844,7 @@ print_var_constraints2([]) :-
 %   @arg Var The variable name.
 %   @arg Constraints The list of constraints.
 
-print_var_constraints3(V, [C | T]) :-
+print_var_constraints3(V, [C|T]) :-
     format(', ~w \\= ~w', [V, C]),
     !,
     print_var_constraints3(V, T).
@@ -879,7 +879,7 @@ print_justification(X) :-
 %        -(Goal, Constraints, SubList).
 %   @arg Level The indentation level. Number of spaces printed before each line.
 
-print_justification([X | T], L) :-
+print_justification([X|T], L) :-
     X = -(G, C, J),
     G \= chs__success,
     G \= expand__call(_),
@@ -949,7 +949,7 @@ print_abducibles(CHS, V) :-
 %   @arg Abducibles The CHS entries for succeeding abducibles (abducible(X)).
 %   @arg Vars A variable struct to get bindings for each variable.
 
-print_abducibles2([X | T], V) :-
+print_abducibles2([X|T], V) :-
     format('\n\nAbducibles: { '),
     format_predicate(X, X2, Con, [], Uvi, V),
     (   X2 = not(X3)
@@ -976,7 +976,7 @@ print_abducibles2([], _) :-
 %   @arg Vars A variable struct to get bindings for each variable.
 %   @arg UsedVarsIn Input used vars for format_predicate/6
 
-print_abducibles3([X | T], V, Uvi) :-
+print_abducibles3([X|T], V, Uvi) :-
     format_predicate(X, X2, Con, Uvi, Uvo, V),
     (   X2 = not(X3)
     ->  format(', not ~w', [X3])
@@ -1121,15 +1121,15 @@ print_var(B) :- !,
 :- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1.
 :- dynamic pr_table_predicate/1, pr_show_predicate/1, pr_pred_predicate/1.
 
-%!  generate_pr_rules
+%!  generate_pr_rules(+Sources)
+%
+%   Translate the sASP program from the   defined_* predicates into pr_*
+%   predicates for sCASP.
+
+:- det(generate_pr_rules/1).
 
 generate_pr_rules(_Sources) :-
-    retractall(pr_query(_)),
-    retractall(pr_rule(_,_)),
-    retractall(pr_user_predicate(_)),
-    retractall(pr_table_predicate(_)),
-    retractall(pr_show_predicate(_)),
-    retractall(pr_pred_predicate(_)),
+    clean_pr_program,
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
     new_var_struct(V),
     format_term_list(Rs,Rs2,_,V),
@@ -1143,29 +1143,31 @@ generate_pr_rules(_Sources) :-
     ->  true
     ;   true
     ),
-    (   findall(T, asp_table(T), Ts),
-        format_term_list(Ts, Ts2, _, V),
-        assert_pr_table(Ts2)
-    ->  true
-    ;   true
-    ),
-    retractall(asp_table(_)),
-    (   findall(S, show(S), Ss),
-        format_term_list(Ss, Ss2, _, V),
-        assert_pr_show(Ss2)
-    ->  true
-    ;   true
-    ),
-    retractall(show(_)),
-    (   findall(P, pred(P), Ps),
-        format_term_list(Ps, Ps2, _, V),
-        assert_pr_pred(Ps2)
-    ->  true
-    ;   true
-    ),
-    retractall(pred(_)),
+    handle_table_directives(V),
+    handle_show_directives(V),
+    handle_pred_directives(V),
     assert_pr_rules(Rs2),
     assert_pr_rules([-('global_constraints', NMR2)]).
+
+:- det((handle_table_directives/1,
+        handle_show_directives/1,
+        handle_pred_directives/1)).
+
+handle_table_directives(V) :-
+    findall(T, defined_directive(table(T)), Ts),
+    format_term_list(Ts, Ts2, _, V),
+    assert_pr_table(Ts2).
+
+handle_show_directives(V) :-
+    findall(S, defined_directive(show(S)), Ss),
+    format_term_list(Ss, Ss2, _, V),
+    assert_pr_show(Ss2).
+
+handle_pred_directives(V) :-
+    findall(P, defined_directive(pred(P)), Ps),
+    format_term_list(Ps, Ps2, _, V),
+    assert_pr_pred(Ps2).
+
 
 assert_pr_table([]).
 assert_pr_table([[T|Ts]|Tss]) :-
@@ -1190,7 +1192,8 @@ assert_pr_show([Name/Arity|Ts]) :-
     assert(pr_show_predicate(T)),
     assert_pr_show(Ts).
 
-:- op(700, xfx, ['::']).
+%!  process_pr_pred(+PredDecl).
+
 assert_pr_pred([]).
 assert_pr_pred([[T|Ts]|Tss]) :- !,
     assert_pr_pred([T|Ts]),
@@ -1246,6 +1249,14 @@ assert_pr_user_predicate([P|Ps]) :-
     assert_pr_user_predicate(Ps).
 
 
+clean_pr_program :-
+    retractall(pr_query(_)),
+    retractall(pr_rule(_,_)),
+    retractall(pr_user_predicate(_)),
+    retractall(pr_table_predicate(_)),
+    retractall(pr_show_predicate(_)),
+    retractall(pr_pred_predicate(_)).
+
 %!  revar(+Term, -VarTerm) is det.
 %!  revar(+Term, -VarTerm, -Bindings) is det.
 %
@@ -1297,7 +1308,7 @@ special_atom(A/B,rat(A,B)) :-
 special_atom(X,rat(A,B)) :-
     atom(X),
     atom_codes(X, Codes),
-    append(C_A, [0'/ | C_B], Codes),
+    append(C_A, [0'/|C_B], Codes),
     number_codes(A,C_A),
     number_codes(B,C_B),
     !.
