@@ -46,7 +46,6 @@ results.
 :- use_module(nmr_check).
 :- use_module(options).
 :- use_module(program). % for destroy_program/0
-:- use_module(debug).
 :- use_module(options).
 :- use_module(output).
 
@@ -81,5 +80,4 @@ sasp_load_guarded(Sources) :-
     comp_duals,
     generate_nmr_check,
     write_verbose(0, 'Preparation of input program complete.\n'),
-    generate_pr_rules(Sources),
-    if_debug(0, write_program).
+    generate_pr_rules(Sources).
