@@ -30,7 +30,7 @@
             is_var/2,
             body_vars/3
           ]).
-
+:- use_module(library(assoc)).
 
 /** <module> Variable storage and access
 
@@ -40,28 +40,6 @@ Predicates related to storing, accessing and modifying variables.
 @version 20170515
 @license BSD-3
 */
-
-:- use_module(library(lists)).
-:- use_module(options).
-
-%! var_struct(?VarStruct:compound, ?Variables:list, ?Values:list,
-%!            ?NameCnt:int, ?IDCnt:int) is det
-%
-% Convert a var struct to its components   or vice-versa. The purpose of
-% the var struct is to allow emulation   of  Prolog unification in cases
-% such as `X = Y, X = a`. That   is, unified variables should point to a
-% common memory location rather than each-other.   This  is emulating by
-% giving them the same value  ID  and   storing  the  actual values in a
-% separate list with the corresponding IDs.   This shouldn't be accessed
-% outside of this module.
-%
-% @arg VarStruct A variable struct pairing a variable list and a value list.
-% @arg Variables A list of pairs linking variables with a value ID.
-% @arg Values A list of pairs linking value IDs to values or constraint lists.
-% @arg NameCnt The counter used to create unique variable names.
-% @arg IDCnt The counter used to create unique variable value IDs.
-
-var_struct(-(Var, Val, Cnt, Cnt2), Var, Val, Cnt, Cnt2).
 
 %!  is_var(@Term) is semidet.
 %!  is_var(@Term, Name) is semidet.
@@ -83,51 +61,31 @@ is_var($X, X) :-
 %   head) for a clause.
 
 body_vars(H, B, Bv) :-
-    body_vars3(H, [], [], Hv), % get variables in head
-    body_vars2(B, Hv, [], Bv).
+    empty_assoc(Empty),
+    term_vars(H, _, [], Empty, Hv),
+    term_vars(B, Bv, [], Hv, _).
 
-%!  body_vars2(+Body:list, +HeadVars:list, +BodyVarsIn:list,
-%!             -BodyVarsOut:list) is det
-%
-%   For each goal in a list, get the   variables that are not present in
-%   the list of head variables. Note that this   can  be used to get all
-%   variables in a list of goals by  calling   it  with an empty list of
-%   head variables.
-%
-%   @arg Body The list of goals in the clause.
-%   @arg HeadVars The list of variables in the head.
-%   @arg BodyVarsIn Input body vars.
-%   @arg BodyVarsOut Output body vars.
-
-body_vars2([X | T], Hv, Bvi, Bvo) :-
-    body_vars3(X, Hv, Bvi, Bv1),
+term_vars(Var, Vars0, Vars, Seen0, Seen) :-
+    is_var(Var, Name),
     !,
-    body_vars2(T, Hv, Bv1, Bvo).
-body_vars2([], _, Bv, Bv) :-
-    !.
-
-%!  body_vars3(+Goal:compound, +HeadVars:list, +BodyVarsIn:list,
-%!             -BodyVarsOut:list) is det
-%
-%   For a single goal, get the  variables   that  are not present in the
-%   list of head variables. This predicate can  get all of the variables
-%   in a goal if HeadVars is empty. The list of variables will be in the
-%   order they are encountered.
-%
-%   @arg Goal The list of goals in the clause.
-%   @arg HeadVars The list of variables in the head.
-%   @arg BodyVarsIn Input body vars.
-%   @arg BodyVarsOut Output body vars.
-
-body_vars3(G, Hv, Bvi, Bvo) :-
-    is_var(G), % variable
-    \+ memberchk(G, Hv), % not a head variable
-    \+ memberchk(G, Bvi), % not already encountered
+    (   get_assoc(Name, Seen0, _)
+    ->  Vars = Vars0,
+        Seen = Seen0
+    ;   put_assoc(Name, Seen0, true, Seen),
+        Vars0 = [Var|Vars]
+    ).
+term_vars(Term, Vars0, Vars, Seen0, Seen) :-
+    compound(Term),
     !,
-    append(Bvi, [G], Bvo). % keep proper order.
-body_vars3(G, Hv, Bvi, Bvo) :-
-    G =.. [_ | A],
-    A \= [], % goal is a compound term
+    functor(Term, _Name, Arity),
+    term_vars(1, Arity, Term, Vars0, Vars, Seen0, Seen).
+term_vars(_, Vars, Vars, Seen, Seen).
+
+term_vars(I, Arity, Term, Vars0, Vars, Seen0, Seen) :-
+    I =< Arity,
     !,
-    body_vars2(A, Hv, Bvi, Bvo). % check args for variables
-body_vars3(_, _, Bv, Bv). % not a compound term or a new, non-head variable
+    arg(I, Term, Arg),
+    term_vars(Arg, Vars0, Vars1, Seen0, Seen1),
+    I2 is I+1,
+    term_vars(I2, Arity, Term, Vars1, Vars, Seen1, Seen).
+term_vars(_, _, _, Vars, Vars, Seen, Seen).
