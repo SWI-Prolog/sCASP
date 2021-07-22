@@ -26,9 +26,7 @@
 */
 
 :- module(output,
-          [ format_term/4,
-            format_term_list/4,
-            generate_pr_rules/1,
+          [ generate_pr_rules/1,
             pr_rule/2,
             pr_query/1,
             pr_user_predicate/1,
@@ -50,13 +48,9 @@ that may be used for warning and error output.
 */
 
 :- use_module(library(lists)).
-:- use_module(library(rbtrees)).
 :- use_module(common).
-:- use_module(options).
 :- use_module(program).
 :- use_module(variables).
-
-:- op(700, xfx, ::).
 
 %!  format_term(+EntryIn:compound, -EntryOut:compound,
 %!              -Constraints:list, +Vars:compound) is det
@@ -68,116 +62,75 @@ that may be used for warning and error output.
 %   @arg Constraints Any constraints on variables in the entry.
 %   @arg Vars Variable struct for filling in values.
 
-format_term(X, X, [], _) :-
+format_term(X, X) :-
     is_var(X),				% constrained var
     !.
-format_term(X, Xo, Con, V) :-
+format_term(X, Xo) :-
     callable(X),
     !,
-    format_predicate(X, Xo, Con, [], _, V).
-format_term(X, X, [], _).		% anything else, just pass along
+    format_predicate2(X, Xo).
+format_term(X, X).		% anything else, just pass along
 
-%!  format_term_list(+ListIn:compound, -ListOut:compound,
-%!                   -Constraints:list, +Vars:compound) is det
+%!  format_term_list(+ListIn:compound, -ListOut:compound) is det
 %
 %   Format each term in a list.
 %
 %   @arg ListIn The initial list.
 %   @arg ListOut The formatted list.
-%   @arg Constraints The list of constraints. MAY CONTAIN DUPLICATES!
-%   @arg Vars Variable struct for filling in values.
 
-format_term_list([X|T], [X2|T2], _Con, V) :-
-    format_term(X, X2, _, V),
-    !,
-    format_term_list(T, T2, _, V).
-format_term_list([], [], [], _).
+format_term_list([], []).
+format_term_list([X|T], [X2|T2]) :-
+    format_term(X, X2),
+    format_term_list(T, T2).
 
-%!  format_predicate(+EntryIn:compound, -EntryOut:compound,
-%!                   -Constraints:list, +UsedVarsIn:list,
-%!                   +UsedVarsOut:list, +Vars:compound) is det
-%
-%   Given a term, call format_predicate2/5, fill  in variable values and
-%   process constraints.
-%
-%   @arg EntryIn The initial entry.
-%   @arg EntryOut The formatted entry.
-%   @arg Constraints Any constraints on variables in the entry.
-%   @arg UsedVarsIn Input used vars. Format for each is =|-(value_id, var)|=.
-%   @arg UsedVarsOut Output used vars.
-%   @arg Vars Variable struct for filling in values.
-
-format_predicate(X, Xo, _Con, Uvi, Uvo, V) :-
-    format_predicate2(X, Xo, Uvi, Uvo, V).
-
-%!  format_predicate2(+EntryIn:compound, -EntryOut:compound,
-%!                    +UsedVarsIn:list, +UsedVarsOut:list,
-%!                    +Vars:compound) is det
+%!  format_predicate2(+EntryIn:compound, -EntryOut:compound) is det
 %
 %   Given a term, remove the  arity,   strip  any  prefixes, and process
 %   arguments.
 %
 %   @arg EntryIn The initial entry.
 %   @arg EntryOut The formatted entry.
-%   @arg UsedVarsIn Input used vars. Format for each is =|-(value_id, var)|=.
-%   @arg UsedVarsOut Output used vars.
-%   @arg Vars Variable struct for filling in values.
 
-format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
+format_predicate2(Xi, Xo) :-
     Xi = [_|_], % list
     !,
-    format_predicate3(Xi, Xo, Uvi, Uvo, V).
-format_predicate2(Xi, Xo, Uv, Uv, _) :-
-    predicate(Xi, X2, []),
-    atom(X2), % compound term, predicate or atom
-    atom_chars(X2, ['\''|X3]), % quoted string; strip outermost quotes and arity
-    reverse(X3, ['0', '_'|X4]),
-    reverse(X4, X5),
-    atom_chars(Xo, ['\''|X5]).
-format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
+    format_predicate3(Xi, Xo).
+format_predicate2(Xi, Xo) :-
     predicate(Xi, X2, A),
     atom(X2), % compound term, predicate or atom
     !,
     split_functor(X2, X3, _), % strip arity
     strip_prefixes(X3, X4),
-    format_predicate3(A, A2, Uvi, Uvo, V),
+    format_predicate3(A, A2),
     (   X4 = not(Xn) % append args
     ->  Xn2 =.. [Xn|A2],
         Xo = not(Xn2)
     ;   Xo =.. [X4|A2]
     ).
-format_predicate2(Xi, Xo, Uvi, Uvo, V) :-
+format_predicate2(Xi, Xo) :-
     Xi =.. [X2|A], % compound term, but not a predicate or atom head
     !,
-    format_predicate3(A, A2, Uvi, Uvo, V),
+    format_predicate3(A, A2),
     Xo =.. [X2|A2].
-format_predicate2(X, X, Uv, Uv, _) :-
-    !. % not a predicate or atom
+format_predicate2(X, X).
 
-%!  format_predicate3(+ArgsIn:list, -ArgsOut:list, +UsedVarsIn:list,
-%!                    +UsedVarsOut:list, +Vars:compound) is det
+%!  format_predicate3(+ArgsIn:list, -ArgsOut:list) is det
 %
 %   Process a list of predicate args or variable constraints.
 %
 %   @arg ArgsIn Input args.
 %   @arg ArgsOut Output args.
-%   @arg UsedVarsIn Input used vars. Format for each is =|-(value_id, var)|=.
-%   @arg UsedVarsOut Output used vars.
-%   @arg Vars Variable struct for filling in values.
 
-format_predicate3([X|T], [Y|T2], Uvi, Uvo, V) :-
-    format_predicate4(X, Y, Uvi, Uv1, V),
-    !,
-    format_predicate3(T, T2, Uv1, Uvo, V).
-format_predicate3(X, Y, Uvi, Uvo, V) :-
-    X \= [_|_],
-    X \= [], % can occur if we have a list with an unbound tail
-    format_predicate4(X, Y, Uvi, Uvo, V),
+format_predicate3([], []) :-
     !.
-format_predicate3([], [], Uv, Uv, _).
+format_predicate3([X|T], [Y|T2]) :-
+    !,
+    format_predicate4(X, Y),
+    format_predicate3(T, T2).
+format_predicate3(X, Y) :-
+    format_predicate4(X, Y).
 
-%!  format_predicate4(+ArgsIn:list, -ArgsOut:list, +UsedVarsIn:list,
-%!                    +UsedVarsOut:list, +Vars:compound) is det
+%!  format_predicate4(+ArgsIn:list, -ArgsOut:list) is det
 %
 %   Process  a  single  predicate  arg  or  variable  constraint.  Where
 %   possible, substitute previously used variables   for  variables with
@@ -185,15 +138,12 @@ format_predicate3([], [], Uv, Uv, _).
 %
 %   @arg ArgIn Input arg.
 %   @arg ArgOut Output arg.
-%   @arg UsedVarsIn Input used vars. Format for each is =|-(value_id, var)|=.
-%   @arg UsedVarsOut Output used vars.
-%   @arg Vars Variable struct for filling in values.
 
-format_predicate4(X, X, Uv, Uv, _) :- % variable without ID in V
+format_predicate4(X, X) :-
     is_var(X),
     !.
-format_predicate4(Xi, Xo, Uvi, Uvo, V) :-
-    format_predicate2(Xi, Xo, Uvi, Uvo, V).
+format_predicate4(Xi, Xo) :-
+    format_predicate2(Xi, Xo).
 
 %!  strip_prefixes(+FunctorIn:atom, -FunctorOut:atom) is det
 %
@@ -249,41 +199,40 @@ strip_prefixes(F, F).
 generate_pr_rules(_Sources) :-
     clean_pr_program,
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
-    new_var_struct(V),
-    format_term_list(Rs,Rs2,_,V),
+    format_term_list(Rs,Rs2),
     (   defined_nmr_check(NMR)
-    ->  format_term_list(NMR, NMR2, _, V)
+    ->  format_term_list(NMR, NMR2)
     ;   NMR2 = []
     ),
     (   defined_query(Q,_),
-        format_term_list(Q,Q2,_,V),
+        format_term_list(Q,Q2),
         assert_pr_query(Q2)
     ->  true
     ;   true
     ),
-    handle_table_directives(V),
-    handle_show_directives(V),
-    handle_pred_directives(V),
+    handle_table_directives,
+    handle_show_directives,
+    handle_pred_directives,
     assert_pr_rules(Rs2),
     assert_pr_rules([-('global_constraints', NMR2)]).
 
-:- det((handle_table_directives/1,
-        handle_show_directives/1,
-        handle_pred_directives/1)).
+:- det((handle_table_directives/0,
+        handle_show_directives/0,
+        handle_pred_directives/0)).
 
-handle_table_directives(V) :-
+handle_table_directives :-
     findall(T, defined_directive(table(T)), Ts),
-    format_term_list(Ts, Ts2, _, V),
+    format_term_list(Ts, Ts2),
     assert_pr_table(Ts2).
 
-handle_show_directives(V) :-
+handle_show_directives :-
     findall(S, defined_directive(show(S)), Ss),
-    format_term_list(Ss, Ss2, _, V),
+    format_term_list(Ss, Ss2),
     assert_pr_show(Ss2).
 
-handle_pred_directives(V) :-
+handle_pred_directives :-
     findall(P, defined_directive(pred(P)), Ps),
-    format_term_list(Ps, Ps2, _, V),
+    format_term_list(Ps, Ps2),
     assert_pr_pred(Ps2).
 
 

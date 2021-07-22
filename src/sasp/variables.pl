@@ -28,7 +28,6 @@
 :- module(variables,
           [ is_var/1,
             is_var/2,
-            new_var_struct/1,
             var_value/3,
             body_vars/3
           ]).
@@ -94,20 +93,6 @@ is_var($X) :-
 
 is_var($X, X) :-
     atom(X).
-
-%! new_var_struct(-VarStruct:compound) is det
-%
-%  Create an empty var struct.  The   search  spaces are empty Red-Black
-%  trees and the counters are initialized  to   0.  The  `X` rbtree maps
-%  variable names to a variable id. The second   maps  an id to a value,
-%  which can be a term id(ID2) (dereferencing).
-%
-%  @arg VarStruct A variable structure.
-
-new_var_struct(-(X, Y, 0, 0)) :-
-    rb_empty(X),
-    rb_empty(Y),
-    !.
 
 %!  var_value(+Variable:ground, +VarStruct:compound, -Value:compound) is det
 %
