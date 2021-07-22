@@ -28,7 +28,6 @@
 :- module(variables,
           [ is_var/1,
             is_var/2,
-            var_value/3,
             body_vars/3
           ]).
 
@@ -43,7 +42,6 @@ Predicates related to storing, accessing and modifying variables.
 */
 
 :- use_module(library(lists)).
-:- use_module(library(rbtrees)).
 :- use_module(options).
 
 %! var_struct(?VarStruct:compound, ?Variables:list, ?Values:list,
@@ -65,21 +63,6 @@ Predicates related to storing, accessing and modifying variables.
 
 var_struct(-(Var, Val, Cnt, Cnt2), Var, Val, Cnt, Cnt2).
 
-%! var_con(?Struct:compound, ?Constraints:list,
-%!         ?Unbindable:int, ?LoopVar:int) is det
-%
-% Convert a var_con struct to its components and vice-versa.
-%
-% @arg Struct The structure.
-% @arg Constraints The list of constraint values.
-% @arg Unbindable 0, 1 or 2 indicating if binding (1) or further constraining
-%      via disunification (2) the variable should trigger failure.
-% @arg LoopVar -1, 0 or 1 indicating if the variable succeeded non-ground in a
-%      positive loop. If -1, the variable is part of a forall and CANNOT be
-%      made a loop variable (any attempt to do so must fail).
-
-var_con(con(C, U, L), C, U, L).
-
 %!  is_var(@Term) is semidet.
 %!  is_var(@Term, Name) is semidet.
 %
@@ -93,50 +76,6 @@ is_var($X) :-
 
 is_var($X, X) :-
     atom(X).
-
-%!  var_value(+Variable:ground, +VarStruct:compound, -Value:compound) is det
-%
-%   Given a variable and a variable struct,  get the value for the given
-%   variable, if present. Otherwise, return   an  empty list, indicating
-%   that the variable is unbound. Value will   be  either a binding or a
-%   list of values the variable cannot   take  (constraints). Any forall
-%   variables (loopvar flag = -1) are  expected   to  be in the variable
-%   struct. Thus any non-loop variables not present  may be given a loop
-%   var flag of 0.
-%
-%   @arg Variable The variable.
-%   @arg VarStruct The variable struct.
-%   @arg Value The value of the variable.
-
-var_value(V, Vs, Val) :-		% variable present in list
-    is_var(V, Name),
-    var_struct(Vs, V1, V2, _, _),
-    rb_lookup(Name, ID, V1),		% get ID
-    !,
-    get_val_by_id(ID, V2, Val).
-var_value(V, _, Val) :-			% variable not in list; completely unbound
-    is_var(V, Name),			% fail if not a variable at all
-    sub_atom(Name, 0, 1, _, C),
-    (   C == ?                          % flagged (printing only)
-    ->  var_con(Val, [], 0, 1)
-    ;   var_con(Val, [], 0, 0)
-    ).
-
-%!  get_val_by_id(+ID:int, +ValStruct:compound, -Value:compound) is det
-%
-%   Given a variable value ID, get the  corresponding value. If it links
-%   to another ID, check that one recursively.
-%
-%   @arg ID The ID.
-%   @arg ValStruct The value struct from a variable struct.
-%   @arg Value The value associated with the ID.
-
-get_val_by_id(I, Vs, Vo) :-
-    rb_lookup(I, Val, Vs),		% bind Val
-    (   Val = id(I2)                    % check recursively
-    ->  get_val_by_id(I2, Vs, Vo)
-    ;   Vo = Val                        % value found
-    ).
 
 %!  body_vars(+Head:compound, +Body:list, -BodyVars:list) is det
 %

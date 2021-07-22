@@ -30,19 +30,12 @@
             c_rule/3,
             rule/4,
             negate_functor/2,
-            is_atom/3,
-            is_compound/3,
             is_dual/1,
             split_functor/3,            % +Functor, -Name, -Arity
             join_functor/3,             % -Functor, +Name, +Arity
             create_unique_functor/3,
-            write_error/1,
-            write_error/2,
             write_verbose/2,
-            write_verbose/3,
             var_list/2,
-            list_diff/3,
-            list_intersection/3,
             operator/3
           ]).
 
@@ -114,46 +107,6 @@ negate_functor(F, N) :-
 negate_functor(F, N) :-
     atom_concat(n_, F, N).
 
-%!  is_atom(+Goal:compound, +Vars:list, -Value:atom) is det
-%
-%   Given a goal, succeed if it is  an   atom  or a variable bound to an
-%   atom. Check vars first, since internal  representation of a variable
-%   is also an atom.
-%
-%   @arg  Goal The input goal.
-%   @arg  Vars The list of variable values and constraints.
-%   @arg  Value The atom.
-
-is_atom(G, V, A) :-
-    is_var(G),
-    !,
-    var_value(G, V, val(A)),
-    A =.. [A | []]. % atom
-is_atom(G, _, G) :-
-    \+is_var(G),
-    !,
-    G =.. [G | []].
-
-%!  is_compound(+Goal:compound, +Vars:list, -Value:compound) is det
-%
-%   Given a goal, succeed if it is a   compound term or a variable bound
-%   to a compound term.
-%
-%   @arg  Goal The input goal.
-%   @arg  Vars The list of variable values and constraints.
-%   @arg  Value The compound term.
-
-is_compound(G, V, A) :-
-    is_var(G),
-    !,
-    var_value(G, V, val(A)),
-    A =.. [_ | T],
-    T \= []. % not an atom
-is_compound(G, _, G) :-
-    !,
-    G =.. [_ | T],
-    T \= []. % not an atom
-
 %!  is_dual(+Functor:atom) is semidet.
 %
 %   Succeed if a functor contains the   prefix  '_not_', indicating that
@@ -204,35 +157,6 @@ create_unique_functor(Hi, C, Ho) :-
     split_functor(Hi, F, A), % Strip the arity
     atomic_list_concat([F, '_', C, '_', A], Ho).
 
-%!  write_error(+Format:string) is det
-%
-%   Write a formatted error message to   the user_error stream. Since no
-%   writef predicate allows writing to streams, first write to a string,
-%   then write the string to the stream. NOTE: Syntax and parsing errors
-%   are    handled    differently.     See    common_dcg:syntax_error/3,
-%   tokenizer:eof_error and tokenizer:lex_error/2.
-%
-%   @arg  Format Anything that could be passed to write/1: a quoted string, a
-%        term, etc.
-
-write_error(X) :-
-    split_string(X, "", "\n", [String]),
-    print_message(error, format('~w',String)).
-
-%!  write_error(+Format:string, +Arguments:list) is det
-%
-%   Similar to write_error/1, except that  arguments   are  filled in as
-%   with writef/2.
-%
-%   @arg  Format A quoted string that would be passed to writef/2. '~w' specifies
-%        that the next element in Arguments should be printed.
-%   @arg  Arguments A list of arguments that will be substituted, in order, for
-%        '~w' in Format.
-
-write_error(X, Y) :-
-    split_string(X, "", "\n", [Fmt]),
-    print_message(error, format(Fmt,Y)).
-
 %!  write_verbose(+Depth:int, +Format:string) is det.
 %
 %   Write a message to user_error if  the verbose or veryverbose options
@@ -260,28 +184,6 @@ write_verbose(X, Y) :-
     !.
 write_verbose(_, _) :-
     !.
-
-%!  write_verbose(+Depth:int, +Format:string, +Arguments:list) is det
-%
-%   Similar to write_verbose/2, except that arguments   are filled in as
-%   with writef/2.
-%
-%   @arg  Depth The indentation level of the message.
-%   @arg  Format A quoted string in which '~w' will be replaced by the next item
-%        in Arguments.
-%   @arg  Arguments A list of arguments that will be substituted, in order, for
-%        '~w' in Format.
-
-write_verbose(0, Y, Z) :-
-    user_option(verbose, 1),
-    !,
-    format(user_error, Y, Z).
-write_verbose(X, Y, Z) :-
-    user_option(veryverbose, 1),
-    !,
-    write_indent(X),
-    format(user_error, Y, Z).
-write_verbose(_, _, _).
 
 %!  write_indent(+Depth:int)
 %
@@ -313,42 +215,6 @@ var_list(I, [H|T]) :-
 
 mk_var(I, $Name) :-
     atom_concat('_X', I, Name).
-
-%!  list_diff(+ListA:list, +ListB:list, -ListC:list) is det
-%
-%   Get all of the members of ListA that are not members of ListB.
-%
-%   @arg  ListA The first input list.
-%   @arg  ListB The second input list.
-%   @arg  ListC The output list.
-
-list_diff([X | T], Y, Z) :-
-    memberchk(X, Y),
-    !,
-    list_diff(T, Y, Z).
-list_diff([X | T], Y, [X | Z]) :-
-    !,
-    list_diff(T, Y, Z).
-list_diff([], _, []) :-
-    !.
-
-%!  list_intersection(+ListA:list, +ListB:list, -ListC:list) is det
-%
-%   Get all of the members of ListA that are also members of ListB.
-%
-%   @arg ListA The first input list.
-%   @arg ListB The second input list.
-%   @arg ListC The output list.
-
-list_intersection([X | T], Y, [X | Z]) :-
-    memberchk(X, Y),
-    !,
-    list_intersection(T, Y, Z).
-list_intersection([_ | T], Y, Z) :-
-    !,
-    list_intersection(T, Y, Z).
-list_intersection([], _, []) :-
-    !.
 
 %!  operator(+Operator:ground, -Specifier:atom, -Priority:int) is det
 %
