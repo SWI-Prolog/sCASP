@@ -69,7 +69,7 @@ Given the input program, build a call graph and assert the components.
 %
 %   @arg Literal The literal to skip.
 
-:- dynamic
+:- thread_local
     a/4,		% a(head, goal, negation, id)
     ar/2.               % ar(arc_id, rule_ids)
 
