@@ -29,6 +29,7 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 
 :- use_module(sasp/output).
 :- use_module(sasp/main).
+:- use_module(sasp/variables).
 :- use_module(scasp_options).
 :- use_module(scasp_process).
 

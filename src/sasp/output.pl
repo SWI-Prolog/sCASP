@@ -32,8 +32,7 @@
             pr_user_predicate/1,
             pr_table_predicate/1,
             pr_show_predicate/1,
-            pr_pred_predicate/1,
-            revar/3                     % +Term -VarTerm, -VarNames
+            pr_pred_predicate/1
           ]).
 
 
@@ -269,7 +268,7 @@ assert_pr_pred([[T|Ts]|Tss]) :- !,
     assert_pr_pred(Tss).
 assert_pr_pred([T|Ts]) :-
     process_pr_pred(T,PT),
-    revar(PT,RT),
+    revar(PT,RT,_),
     assert(pr_pred_predicate(RT)),
     assert_pr_pred(Ts).
 
@@ -300,7 +299,7 @@ process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
 
 assert_pr_rules([]).
 assert_pr_rules([-(Head, Body)|Rs]) :-
-    revar(-(Head,Body),-(H,B)),
+    revar(-(Head,Body),-(H,B), _),
     assert(pr_rule(H,B)),
     assert_pr_user_predicate([H]),
     assert_pr_rules(Rs).
@@ -326,68 +325,3 @@ clean_pr_program :-
     retractall(pr_show_predicate(_)),
     retractall(pr_pred_predicate(_)).
 
-%!  revar(+Term, -VarTerm) is det.
-%!  revar(+Term, -VarTerm, -Bindings) is det.
-%
-%   If Term is  a  term  that   contains  atoms  using  variable  syntax
-%   ([A-Z].*), VarTerm is a copy of Term with all such atoms replaced by
-%   variables.   In addition this performs the following rewrites:
-%
-%     - A term N/D is translated into rat(N,D)
-%     - An atom N/D is translated into rat(N,D)
-%     - A quoted atom is translated into its unquoted equivalent
-%
-%   @arg Bindings is a list `Name=Var` that contains the variable names.
-
-revar(X,Y) :-
-    empty_assoc(Dic),
-    revar_(X,Y,Dic,_).
-
-revar(X,Y,VarNames) :-
-    empty_assoc(Dic0),
-    revar_(X,Y,Dic0,Dic),
-    assoc_to_list(Dic, Pairs),
-    maplist(varname, Pairs, VarNames).
-
-varname(Name-Var, Name=Var).
-
-revar_(X,Y,Dic,Dic) :-
-    var(X),
-    !,
-    Y=X.
-revar_(X,Y,Dic0,Dic) :-
-    is_var(X, Name),
-    !,
-    (   get_assoc(Name, Dic0, Y)
-    ->  Dic = Dic0
-    ;   put_assoc(Name, Dic0, Y, Dic)
-    ).
-revar_(X,Y,Dic,Dic) :-
-    special_atom(X,Y),
-    !.
-revar_(X,Y,Dic0,Dic) :-
-    X=..[F|As],
-    revars(As,Bs,Dic0,Dic),
-    Y=..[F|Bs].
-
-special_atom(A/B,rat(A,B)) :-
-    number(A),
-    number(B),
-    !.
-special_atom(X,rat(A,B)) :-
-    atom(X),
-    atom_codes(X, Codes),
-    append(C_A, [0'/|C_B], Codes),
-    number_codes(A,C_A),
-    number_codes(B,C_B),
-    !.
-special_atom(X,Y) :-
-    atom(X),
-    atom_chars(X,Codes),
-    append(['\''|C_Y],['\''],Codes),
-    atom_chars(Y,C_Y).
-
-revars([],[],Dic,Dic).
-revars([X|Xs],[Y|Ys],Dic0,Dic) :-
-    revar_(X,Y,Dic0,Dic1),
-    revars(Xs, Ys, Dic1, Dic).

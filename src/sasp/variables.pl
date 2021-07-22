@@ -29,7 +29,8 @@
           [ is_var/1,
             is_var/2,
             body_vars/3,
-            var_list/2                  % +N, -Vars
+            var_list/2,                 % +N, -Vars
+            revar/3                     % +Term,-VarTerm,-Bindings
           ]).
 :- use_module(library(assoc)).
 
@@ -113,3 +114,64 @@ var_list(I, [H|T]) :-
 
 mk_var(I, $Name) :-
     atom_concat('_X', I, Name).
+
+%!  revar(+Term, -VarTerm, -Bindings) is det.
+%
+%   If Term is  a  term  that   contains  atoms  using  variable  syntax
+%   ([A-Z].*), VarTerm is a copy of Term with all such atoms replaced by
+%   variables.   In addition this performs the following rewrites:
+%
+%     - A term N/D is translated into rat(N,D)
+%     - An atom N/D is translated into rat(N,D)
+%     - A quoted atom is translated into its unquoted equivalent
+%
+%   @arg Bindings is a list `Name=Var` that contains the variable names.
+
+revar(X,Y,VarNames) :-
+    empty_assoc(Dic0),
+    revar_(X,Y,Dic0,Dic),
+    assoc_to_list(Dic, Pairs),
+    maplist(varname, Pairs, VarNames).
+
+varname(Name-Var, Name=Var).
+
+revar_(X,Y,Dic,Dic) :-
+    var(X),
+    !,
+    Y=X.
+revar_(X,Y,Dic0,Dic) :-
+    is_var(X, Name),
+    !,
+    (   get_assoc(Name, Dic0, Y)
+    ->  Dic = Dic0
+    ;   put_assoc(Name, Dic0, Y, Dic)
+    ).
+revar_(X,Y,Dic,Dic) :-
+    special_atom(X,Y),
+    !.
+revar_(X,Y,Dic0,Dic) :-
+    X=..[F|As],
+    revars(As,Bs,Dic0,Dic),
+    Y=..[F|Bs].
+
+special_atom(A/B,rat(A,B)) :-
+    number(A),
+    number(B),
+    !.
+special_atom(X,rat(A,B)) :-
+    atom(X),
+    atom_codes(X, Codes),
+    append(C_A, [0'/|C_B], Codes),
+    number_codes(A,C_A),
+    number_codes(B,C_B),
+    !.
+special_atom(X,Y) :-
+    atom(X),
+    atom_chars(X,Codes),
+    append(['\''|C_Y],['\''],Codes),
+    atom_chars(Y,C_Y).
+
+revars([],[],Dic,Dic).
+revars([X|Xs],[Y|Ys],Dic0,Dic) :-
+    revar_(X,Y,Dic0,Dic1),
+    revars(Xs, Ys, Dic1, Dic).
