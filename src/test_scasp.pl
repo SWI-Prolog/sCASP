@@ -11,6 +11,7 @@
 
 :- use_module(scasp_ops).
 :- use_module(sasp/options).
+:- use_module(sasp/variables).
 :- use_module(diff).
 
 :- initialization(main, main).
@@ -135,14 +136,86 @@ run_test(File, Options) :-
         ->  save_test_data(PassFile, Result)
         ;   true
         )
+    ;   canonical_models(PassModels, CannonicalPassModels),
+        canonical_models(Models, CannonicalModels),
+        CannonicalPassModels =@= CannonicalModels
+    ->  format("different stacks, same models (different order) ~|~t~d ms~8+\n",
+               [Used]),
+        (   option(show_diff(true), Options)
+        ->  diff_terms(PassStacks, Stacks)
+        ;   option(pass(true), Options)
+        ->  save_test_data(PassFile, Result)
+        ;   true
+        )
     ;   format("FAILED ~|~t~d ms~8+\n", [Used]),
         (   option(pass(true), Options)
         ->  save_test_data(PassFile, Result)
         ;   option(show_diff(true), Options)
         ->  diff_terms(PassStacks, Stacks)
+        ;   option(show_diff(models), Options)
+        ->  canonical_models(PassModels, CannonicalPassModels),
+            canonical_models(Models, CannonicalModels),
+            diff_terms(CannonicalPassModels, CannonicalModels)
         ),
         fail
     ).
+
+canonical_models(Models, CannModels) :-
+    maplist(canonical_model, Models, Models1),
+    sort(Models1, CannModels).
+
+%!  canonical_model(+Model, -CannModel) is det.
+%
+%   Make the model canonical. The model is a nested list of positive and
+%   negative atoms as well  as  terms   proved(_).  The  model  may also
+%   contain duplicates. First we flatten the model, remove the proven(_)
+%   terms and the duplicates.
+%
+%   Next, the variable ordering  may  be   different.  We  solve this by
+%   sorting the model disregarding the variables  and re-assign the VarN
+%   variable names.
+%
+%   @bug   This is no 100% guarantee that the model is canonical. It
+%          is probably good enough though.
+
+canonical_model(Model, CannModel) :-
+    flatten(Model, FlatModel),
+    exclude(nonmodel_term, FlatModel, Model1),
+    sort(Model1, Model2),               % Remove duplicates
+    sort_model(Model2, CannModel).
+
+nonmodel_term(proved(_)).
+
+sort_model(ModelIn, Model) :-
+    map_list_to_pairs(term_var_anon, ModelIn, Pairs),
+    keysort(Pairs, Sorted),
+    pairs_values(Sorted, Model1),
+    revar(Model1, Model, VarNames),
+    maplist(rebind_non_anon, VarNames),
+    term_variables(Model, Vars),
+    rename(Vars, 0).
+
+term_var_anon(Model, Key) :-
+    mapsubterms(var_anon, Model, Key).
+
+var_anon(V, '_') :-
+    is_var(V, Name),
+    sub_atom(Name, 0, _, _, 'Var').
+
+rebind_non_anon(Name=_Var) :-
+    sub_atom(Name, 0, _, _, 'Var'),
+    !.
+rebind_non_anon(Name=Var) :-
+    Var = $Name.
+
+rename([], _).
+rename([H|T], I) :-
+    H = $Name,
+    atom_concat('Var', I, Name),
+    I2 is I+1,
+    rename(T, I2).
+
+%!  pass_data(+TestFile, -PassFile, -PassData) is det.
 
 pass_data(File, PassFile, PassData) :-
     file_name_extension(Base, _, File),
