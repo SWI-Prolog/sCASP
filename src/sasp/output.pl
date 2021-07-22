@@ -194,24 +194,6 @@ format_predicate3([], [], Uv, Uv, _).
 %   @arg UsedVarsOut Output used vars.
 %   @arg Vars Variable struct for filling in values.
 
-format_predicate4(Xi, Xo, Uv, Uv, V) :-
-    is_var(Xi, Name),
-    atom_concat('?', X2, Name), % get ID without flag
-    get_value_id($X2, ID, V),
-    member(-(ID, Xo), Uv), % Var with same value already selected.
-    !.
-format_predicate4(Xi, Xo, Uv, Uv, V) :-
-    get_value_id(Xi, ID, V),
-    member(-(ID, Xo), Uv), % Var with same value already selected.
-    !.
-format_predicate4(X, X, Uv, [-(ID, X)|Uv], V) :-
-    is_var(X, Name),
-    atom_concat('?', X2, Name), % get ID without flag
-    get_value_id($X2, ID, V),
-    !.
-format_predicate4(X, X, Uv, [-(ID, X)|Uv], V) :-
-    get_value_id(X, ID, V),
-    !.
 format_predicate4(X, X, Uv, Uv, _) :- % variable without ID in V
     is_var(X),
     !.

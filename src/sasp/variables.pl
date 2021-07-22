@@ -30,7 +30,6 @@
             is_var/1,
             is_var/2,
             is_unbound/5,
-            is_ground/2,
             new_var_struct/1,
             var_value/3,
             update_var_value/4,
@@ -40,8 +39,7 @@
             body_vars/3,
             body_vars2/4,
             get_unique_vars/6,
-            generate_unique_var/4,
-            print_var_struct/1
+            generate_unique_var/4
           ]).
 
 
@@ -126,30 +124,6 @@ is_unbound(G, V, C, F, L) :-
     var_value(G, V, Val),
     var_con(Val, C, F, L), % unbound or constrained
     !.
-
-%!  is_ground(+Goal:compound, +Vars:compound) is det
-%
-%   Succeed if goal  contains  no   unbound  or  constrained  variables.
-%   Recursively check args of compound terms.
-%
-%   @arg Goal The goal to be tested.
-%   @arg Vars The variable struct to get values from.
-
-is_ground(X, V) :-
-    is_unbound(X, V, _, _, _),
-    !,
-    fail.
-is_ground(X, V) :-
-    is_var(X),
-    !,
-    var_value(X, V, val(Val)),          % bound variable; check value.
-    is_ground(Val, V).
-is_ground(X, V) :-
-    compound(X),
-    !,
-    forall(arg(_, X, A),
-           is_ground(A, V)).
-is_ground(_, _).
 
 %! new_var_struct(-VarStruct:compound) is det
 %
@@ -588,17 +562,3 @@ generate_unique_var(Var, Vi, Vo, Name) :-
     Co is Ci + 1,
     var_struct(Vo, V1, V2, Co, I), % repack the struct
     !.
-
-%!  print_var_struct(+Vars:compound) is det
-%
-%   Print the two main components of   the variable struct for debugging
-%   purposes: the variable/id list and the id/value list.
-%
-%   @arg Vars Variable struct to print
-
-print_var_struct(V) :-
-    var_struct(V, Vid, Vval, _, _),
-    rb_visit(Vid, Vid2),
-    rb_visit(Vval, Vval2),
-    format('\n\nRAW VARIABLE ID TABLE:\n~w\n\n', [Vid2]),
-    format('RAW ID VALUE TABLE:\n~w', [Vval2]).
