@@ -26,13 +26,11 @@
 */
 
 :- module(variables,
-          [ var_con/4,
-            is_var/1,
+          [ is_var/1,
             is_var/2,
             is_unbound/5,
             new_var_struct/1,
             var_value/3,
-            get_value_id/3,
             body_vars/3
           ]).
 
@@ -175,47 +173,6 @@ get_val_by_id(I, Vs, Vo) :-
     (   Val = id(I2)                    % check recursively
     ->  get_val_by_id(I2, Vs, Vo)
     ;   Vo = Val                        % value found
-    ).
-
-%!  get_value_id(+Var:ground, -ID:int, +VarStruct:compound) is det
-%
-%   Given a variable, get the final ID   linked  to it in the VarStruct.
-%   That is, if its value links to   another  ID, recursively process it
-%   until an actual value is found.
-%
-%   @arg Var The variable.
-%   @arg ID The value ID.
-%   @arg VarStruct Var struct.
-
-get_value_id(V, ID, Vs) :-
-    is_var(V, Name),
-    var_struct(Vs, V1, V2, _, _),
-    rb_lookup(Name, I, V1), % binds ID
-    rb_lookup(I, Val, V2), % binds Val
-    !,
-    (   Val = id(ID2) % id found, check it
-    ->  get_value_id2(ID2, ID, Vs)
-    ;   ID = I % value found; we're done
-    ).
-
-%!  get_value_id2(+IDin:int, -IDout:int, +VarStruct:compound) is det
-%
-%   Given an ID, get the final ID linked   to  it in the VarStruct. That
-%   is, if its value links to another   ID, recursively process it until
-%   an actual value is found.
-%
-%   @arg IDin The initial ID.
-%   @arg IDout The final ID.
-%   @arg VarStruct Var struct.
-
-get_value_id2(Ii, Io, Vs) :-
-    var_struct(Vs, _, V2, _, _),
-    rb_lookup(Ii, Val, V2),
-    !,
-    (Val = id(I2) ->  % id found, check it
-            get_value_id2(I2, Io, Vs)
-    ;
-            Io = Ii % value found; use current ID
     ).
 
 %!  body_vars(+Head:compound, +Body:list, -BodyVars:list) is det
