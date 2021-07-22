@@ -10,7 +10,6 @@
 :- use_module(library(time), [call_with_time_limit/2]).
 
 :- use_module(scasp_ops).
-:- use_module(sasp/options).
 :- use_module(sasp/variables).
 :- use_module(diff).
 
@@ -51,7 +50,6 @@ main(['-q']) :-
     qtest_scasp.
 main(Argv) :-
     argv_options(Argv, Positional, Options),
-    set_stack_sizes,
     test_files(Positional, Files),
     (   option(cov(Cov), Options)
     ->  cov_dir(Cov, Dir),

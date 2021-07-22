@@ -56,7 +56,6 @@ the resulting dynamic predicates.
 :- use_module(library(debug)).
 
 :- use_module(common).
-:- use_module(options).
 :- use_module(variables).
 
 %!  defined_rule(+Name:atom, +FullHead:compound, -Body:list) is nondet
@@ -224,8 +223,8 @@ format_program([], P) :-
     program(P, [], _, Q).
 format_program(X, P) :-
     predicate(G, '_false_0', []),
-    user_option(ascount, N), % default number of answer sets to compute
-    query(Q2, [not(G)], _, N),
+    AScount = 1,
+    query(Q2, [not(G)], _, AScount),
     sort_by_type(X, R, D, Q2, Q),
     program(P, R, D, Q).
 

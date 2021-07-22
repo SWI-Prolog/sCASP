@@ -32,7 +32,6 @@
 :- use_module(scasp_io).
 :- use_module(scasp_ops).
 :- use_module(scasp_options).
-:- use_module(sasp/options).
 :- use_module(sasp/output).
 :- use_module(clp_call_stack).
 :- use_module(clp_disequality).
@@ -103,7 +102,6 @@ main(Args) :-
     retractall(current_option(_, _)),
     parse_args(Args, Options, Sources),
     set_options(Options),
-    set_stack_sizes,
     load(Sources),
     if_user_option(write_program, (write_program, halt)),
     (   current_option(interactive, on)

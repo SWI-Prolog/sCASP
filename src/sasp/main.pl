@@ -40,13 +40,10 @@ results.
 @license BSD-3
 */
 
-:- use_module(common).
-:- use_module(comp_duals).
 :- use_module(input).
+:- use_module(program).
+:- use_module(comp_duals).
 :- use_module(nmr_check).
-:- use_module(options).
-:- use_module(program). % for destroy_program/0
-:- use_module(options).
 :- use_module(output).
 
 %!  sasp_load(+Sources)
@@ -64,11 +61,9 @@ results.
 
 sasp_load(Spec) :-
     to_list(Spec, Sources),
-    setup_call_cleanup(
-        set_default_options,
+    call_cleanup(
         sasp_load_guarded(Sources),
-        ( destroy_program,
-          option_cleanup)).
+        destroy_program).
 
 to_list(List, List) :-
     is_list(List),
