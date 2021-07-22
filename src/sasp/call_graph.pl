@@ -26,7 +26,7 @@
 */
 
 :- module(call_graph,
-          [ build_call_graph/3,
+          [ build_call_graph/2,
             destroy_call_graph/0,
             a/4,
             ar/2
@@ -70,26 +70,21 @@ Given the input program, build a call graph and assert the components.
 %   @arg Literal The literal to skip.
 
 :- dynamic
-    a/4, % a(head, goal, negation, id)
-    ar/2, % ar(arc_id, rule_ids)
-    e/1.
+    a/4,		% a(head, goal, negation, id)
+    ar/2.               % ar(arc_id, rule_ids)
 
-%!  build_call_graph(+Rules:list, -Nodes:list, +Excludes:list)
+%!  build_call_graph(+Rules:list, -Nodes:list)
 %
 %   Build and assert the call  graph.  Return   a  list  of nodes. Don't
 %   includes rules with  heads  present  in   the  list  of  exclude.
 %
 %   @arg Rules Rules to use in building call graph.
 %   @arg Nodes Nodes in call graph.
-%   @arg Excludes Literals to exclude from call graph. Each member must be of
-%        the form e(X), where X is the literal to exclude.
 
-build_call_graph([], [], _) :-
+build_call_graph([], []) :-
     !.
-build_call_graph(R, Ns, E) :-
-    assert_all(E), % Assert rules to skip for faster access
+build_call_graph(R, Ns) :-
     get_arcs(R, [], As),
-    retractall(e(_)),
     sort(As, As2),
     merge_arcs(As2, As3, Rs),
     get_nodes(As3, Ns),
@@ -129,25 +124,24 @@ get_nodes([X|T], N, Ns) :-
 
 get_arcs([], G, G).
 get_arcs([R|T], Gi, Go) :-
+    (   rule(R, H, I, Y)
+    ->  true
+    ;   c_rule(R, H, Y)
+    ->  I = -1
+    ),
     rule(R, H, I, Y), % Rules have IDs.
     predicate(H, F, _), % get functor of head
-    \+ e(F),
-    \+ is_dual(F),
-    !,
-    get_arcs2(F, I, Y, Gi, G1),
-    get_arcs(T, G1, Go).
-get_arcs([R|T], Gi, Go) :-
-    \+ rule(R, _, _, _), % Rules do NOT have IDs. Otherwise, dual rules with IDs can trigger an error.
-    c_rule(R, H, Y), % rules have no IDs attached.
-    I is -1,
-    predicate(H, F, _), % get functor of head
-    \+ e(F),
-    \+ is_dual(F),
+    \+ ignore_edge(F),
     !,
     get_arcs2(F, I, Y, Gi, G1),
     get_arcs(T, G1, Go).
 get_arcs([_|T], Gi, Go) :-
     get_arcs(T, Gi, Go).
+
+ignore_edge('_false_0'). % ignore headless rules
+ignore_edge(F) :-        % and duals.
+    is_dual(F).
+
 
 %!  get_arcs2(+Head:ground, +ID:int, +Goals:list, +ArcsIn:list, -ArcsOut:list)
 %
