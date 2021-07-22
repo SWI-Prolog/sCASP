@@ -57,34 +57,25 @@ Computation of dual rules (rules for the negation of a literal).
 comp_duals :-
     write_verbose(0, 'Computing dual rules...\n'),
     defined_predicates(Preds),
-    comp_duals2(Preds).
+    maplist(comp_dual, Preds).
 
 scasp_builtin('call_1').
 scasp_builtin('findall_3').
 
-%!  comp_duals2(+Predicates:list) is det
+%!  comp_dual(+Predicate) is det
 %
-%   For each predicate in  Predicates,  get   matching  rules  and  call
-%   comp_duals3/2.
-%
-%   @arg Predicates List of predicates in the program.
+%   get matching rules and call comp_duals3/2.
 
-comp_duals2([X|T]) :-
-    X = '_false_0', % skip headless rules; handled by NMR check
-    !,
-    comp_duals2(T).
-comp_duals2([X|T]) :-
-    scasp_builtin(X),  % skip dual of scasp builtins
-    !,
-    comp_duals2(T).
-comp_duals2([X|T]) :-
+comp_dual('_false_0') :-	% Headless rules are handled by NMR check
+    !.
+comp_dual(X) :-
+    scasp_builtin(X),		% skip dual of scasp builtins
+    !.
+comp_dual(X) :-
     findall(R, (defined_rule(X, H, B), c_rule(R, H, B)), Rs), % get rules for a single predicate
-    comp_duals3(X, Rs),
-    !,
-    comp_duals2(T).
-comp_duals2([]).
+    comp_duals3(X, Rs).
 
-%!  comp_duals3(+Predicate:ground, +Rules:list) is det
+%!  comp_duals3(+Predicate:atom, +Rules:list) is det
 %
 %   Compute the dual for  a  single   positive  literal.  Make sure that
 %   Predicate is used for the dual head  instead of taking the head from
