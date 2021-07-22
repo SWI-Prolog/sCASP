@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(common,
+:- module(scasp_common,
           [ predicate/3,
             c_rule/3,
             rule/4,

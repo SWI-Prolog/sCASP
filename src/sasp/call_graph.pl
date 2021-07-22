@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(call_graph,
+:- module(scasp_call_graph,
           [ build_call_graph/2,
             destroy_call_graph/0,
             a/4,

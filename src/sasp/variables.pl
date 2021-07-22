@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(variables,
+:- module(scasp_variables,
           [ is_var/1,
             is_var/2,
             body_vars/3,
@@ -33,6 +33,8 @@
             revar/3                     % +Term,-VarTerm,-Bindings
           ]).
 :- use_module(library(assoc)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 
 /** <module> Variable storage and access
 

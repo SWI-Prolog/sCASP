@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(output,
+:- module(scasp_output,
           [ generate_pr_rules/1,
             pr_rule/2,
             pr_query/1,

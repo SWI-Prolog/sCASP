@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(program,
+:- module(scasp_program,
           [ defined_rule/3,
             defined_query/2,
             defined_predicates/1,

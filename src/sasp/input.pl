@@ -31,7 +31,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(sasp_input,
+:- module(scasp_input,
           [ load_source_files/1,        % +Files
             sasp_read/2                 % +File, -Statements
           ]).

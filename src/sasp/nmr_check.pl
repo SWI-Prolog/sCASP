@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(nmr_check,
+:- module(scasp_nmr_check,
           [ generate_nmr_check/0
           ]).
 

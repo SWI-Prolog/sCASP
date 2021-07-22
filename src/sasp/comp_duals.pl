@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(comp_duals,
+:- module(scasp_comp_duals,
           [ comp_duals/0,
             comp_duals3/2,
             define_forall/3
