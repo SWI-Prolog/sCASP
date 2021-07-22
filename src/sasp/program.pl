@@ -88,7 +88,7 @@ the resulting dynamic predicates.
 % parser.  sasp_load/1 realizes the entire compilation chain.
 % Body terms contains variables as e.g. `'X'`.
 
-:- dynamic
+:- thread_local
     defined_rule/3,		% Name, Head, Body
     defined_query/2,            % Body, Count
     defined_predicates/1,       % list(Name) (1 clause)
