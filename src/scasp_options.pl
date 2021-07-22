@@ -22,7 +22,7 @@
 %   print the current version of s(CASP)
 
 scasp_version :-
-    format('s(CASP) version ~p\n',['0.21.05.28']),
+    format('s(CASP) version ~p\n',['swi.0.21.07.22']),
     halt.
 
 set_options(Options) :-
