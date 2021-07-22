@@ -96,9 +96,11 @@ comp_duals3(P, []) :-
 comp_duals3(P, R) :- % predicate is defined by one or more rules.
     predicate(H, P, []), % create a dummy predicate for P.
     outer_dual_head(H, Hd),
-    comp_dual(Hd, R, [], 1).
+    comp_dual(Hd, R, Db, 1),
+    c_rule(Rd, Hd, Db),
+    assert_rule(Rd).
 
-%!  comp_dual(+DualHead:compound, +Rules:list, +DualBody:list, +Count:int) is det
+%!  comp_dual(+DualHead:compound, +Rules:list, -DualBody:list, +Count:int) is det
 %
 %   Compute the dual for a predicate with multiple rules. First, compute
 %   the dual of each individual rule, replacing   each  head with a new,
@@ -110,7 +112,9 @@ comp_duals3(P, R) :- % predicate is defined by one or more rules.
 %   @arg DualBody The body of the outer dual rule.
 %   @arg Count Counter used to ensure that new heads are unique.
 
-comp_dual(Hn, [X|T], Db, C) :-
+comp_dual(_, [], [], _) :-
+    !.
+comp_dual(Hn, [X|T], [Dg|Db], C) :-
     c_rule(X, H, B),
     % get unique head with Hn2 including original args and Hn3 using variable args
     predicate(H, _, A1),
@@ -127,12 +131,7 @@ comp_dual(Hn, [X|T], Db, C) :-
     comp_dual2(Dh, B3, Bv), % create inner dual clauses
     C2 is C + 1,
     !,
-    comp_dual(Hn, T, [Dg|Db], C2).
-comp_dual(Hn, [], Db, _) :-
-    reverse(Db, Db2), % restore proper goal order
-    c_rule(Rd, Hn, Db2),
-    assert_rule(Rd),
-    !.
+    comp_dual(Hn, T, Db, C2).
 
 %!  comp_dual2(+DualHead:compound, +Body:list, +BodyVars:list) is det
 %
