@@ -204,7 +204,7 @@ assert_program(Stmts) :-
     get_predicates(Program, Predicates),
     assert_predicates(Predicates),
     assert_program_struct(Program),
-    handle_classical_negations(Predicates, []).
+    maplist(handle_classical_negation, Predicates).
 
 %!  format_program(+Statements:list, -Program:compound) is det
 %
@@ -290,22 +290,18 @@ atom_predicate(not(X), P) :-
 atom_predicate(X, F) :-
     predicate(X, F, _).
 
-%!  handle_classical_negations(+Predicates:list, +Seen:list) is det
+%!  handle_classical_negation(+Predicate:atom) is det
 %
-%   From a list of predicates, get those   that begin with a '-'. Assign
-%   the required number of variables, then create a rule of the form
+%   If Predicate is classically negated (in the source starts with '-').
+%   Assign the required number of variables, then   create a rule of the
+%   form
 %
 %	:- -x, x.
 %
-%   @arg Predicates The list of predicates in the program.
-%   @arg Seen The classically negated predicates that have already
-%   been seen.
-%   @tbd If we can get variables from the original, we should.
+%   @arg Predicate is the name (atom) of a predicate
 
-handle_classical_negations([], _).
-handle_classical_negations([X|T], S) :-
+handle_classical_negation(X) :-
     has_prefix(X, 'c'), % classically negated literal
-    \+ memberchk(X, S), % unprocessed classical negation
     atom_concat(c_, Xn, X), % non-negated literal
     defined_predicates(P),
     memberchk(Xn, P), % only add constraint if non-negated literal is actually used.
@@ -316,11 +312,8 @@ handle_classical_negations([X|T], S) :-
     Xn2 =.. [Xn|A],
     predicate(H, '_false_0', []), % dummy head for headless rules
     c_rule(R, H, [X2, Xn2]),
-    assert_rule(R), % assert rule
-    handle_classical_negations(T, [X|S]).
-% not a classical negation, or it's already been seen
-handle_classical_negations([_|T], S) :-
-    handle_classical_negations(T, S).
+    assert_rule(R).
+handle_classical_negation(_).
 
 %!  assert_program_struct(+Program:compound) is det
 %
