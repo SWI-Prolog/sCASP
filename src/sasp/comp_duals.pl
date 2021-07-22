@@ -119,8 +119,7 @@ comp_dual(Hn, [X|T], [Dg|Db], C) :-
     % get unique head with Hn2 including original args and Hn3 using variable args
     predicate(H, _, A1),
     predicate(Hn, F, A2),
-    replace_prefix(F, n_, n__, F2),       % add underscore to make it non-printing.
-    create_unique_functor(F2, C, F3),
+    create_unique_functor(F, C, F3),
     abstract_structures(A1, A3, 0, G),
     append(G, B, B2),
     prep_args(A3, A2, [], A4, [], 0, G2), % get var list for inner dual clause heads and inner unifiability goals
