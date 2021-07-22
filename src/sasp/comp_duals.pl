@@ -175,13 +175,15 @@ comp_dual2(Hn, Bg, Bv) :-
 %   @arg UsedGoals The goals that have already been processed, in original
 %        order.
 
+comp_dual3(_, [], _) :-
+    !.
 comp_dual3(Hn, [X|T], U) :-
     X = builtin_1(_), % handle built-ins specially
+    !,
     (   current_option(plain_dual, on)
     ->  U2 = [X]
     ;   append(U, [X], U2)
     ),
-    !,
     comp_dual3(Hn, T, U2).
 comp_dual3(Hn, [X|T], U) :-
     dual_goal(X, X2),
@@ -192,10 +194,7 @@ comp_dual3(Hn, [X|T], U) :-
     c_rule(Rd, Hn, Db), % Clause for negation of body goal
     assert_rule(Rd),
     append(U, [X], U2),
-    !,
     comp_dual3(Hn, T, U2).
-comp_dual3(_, [], _) :-
-    !.
 
 %!  dual_goal(+GoalIn:compound, -GoalOut:compound) is det
 %
@@ -269,8 +268,7 @@ outer_dual_head(H, D) :-
     negate_functor(P, Pd),
     split_functor(Pd, _, A),		% get the arity
     var_list(A, Ad),			% get the arg list
-    predicate(D, Pd, Ad),
-    !.
+    predicate(D, Pd, Ad).
 
 %!  abstract_structures(+ArgsIn:list, -ArgsOut:list, +Counter:int,
 %!                      -Goals:list) is det
