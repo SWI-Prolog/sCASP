@@ -98,7 +98,7 @@ olon_rules(R, Rc, E) :-
     assign_unique_ids(R, R1),
     sort(R1, R2), % ensure that all rules with the same head are together
     write_verbose(2, 'Building call graph...\n'),
-    build_call_graph(R2, Ns, E, 1), % build call graph, skipping duals.
+    build_call_graph(R2, Ns, E), % build call graph, skipping duals.
     dfs(Ns, Pc, _, _),
     (   current_option(no_compile_olon, on)
     ->  Rc1 = []

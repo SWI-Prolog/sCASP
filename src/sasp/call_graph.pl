@@ -26,7 +26,7 @@
 */
 
 :- module(call_graph,
-          [ build_call_graph/4,
+          [ build_call_graph/3,
             destroy_call_graph/0,
             a/4,
             ar/2
@@ -74,31 +74,27 @@ Given the input program, build a call graph and assert the components.
     ar/2, % ar(arc_id, rule_ids)
     e/1.
 
-%!  build_call_graph(+Rules:list, -Nodes:list, +Excludes:list, +SkipDuals:int)
+%!  build_call_graph(+Rules:list, -Nodes:list, +Excludes:list)
 %
 %   Build and assert the call  graph.  Return   a  list  of nodes. Don't
-%   includes rules with  heads  present  in   the  list  of  exclude. If
-%   SkipDuals is 1, rules with negative heads   won't be included in the
-%   call graph.
+%   includes rules with  heads  present  in   the  list  of  exclude.
 %
 %   @arg Rules Rules to use in building call graph.
 %   @arg Nodes Nodes in call graph.
 %   @arg Excludes Literals to exclude from call graph. Each member must be of
 %        the form e(X), where X is the literal to exclude.
-%   @arg SkipDuals 1 or 0 indicating if rules with negated heads should be
-%        included in call graph.
-build_call_graph(R, Ns, E, SkipDuals) :-
-    R \= [],
-    !,
+
+build_call_graph([], [], _) :-
+    !.
+build_call_graph(R, Ns, E) :-
     assert_all(E), % Assert rules to skip for faster access
-    get_arcs(R, [], As, SkipDuals),
+    get_arcs(R, [], As),
     retractall(e(_)),
     sort(As, As2),
     merge_arcs(As2, As3, Rs),
     get_nodes(As3, Ns),
     assert_all(As3),
     assert_all(Rs).
-build_call_graph([], [], _, _).
 
 %!  get_nodes(+Arcs:list, -Nodes:list)
 %
@@ -122,44 +118,36 @@ get_nodes([X|T], N, Ns) :-
         get_nodes(T, Y, Ns2)
     ).
 
-%!  get_arcs(+Rules:list, +ArcsIn:list, -ArcsOut:list, +SkipDuals:int)
+%!  get_arcs(+Rules:list, +ArcsIn:list, -ArcsOut:list)
 %
-%   Get call graph edges w/ negation parity  from rules. If SkipDuals is
-%   1, don't get edges for rules with   negative  heads. If rule/4 fails
+%   Get call graph edges w/ negation parity  from rules. If rule/4 fails
 %   (rules have no ID), use rule/3 and an ID of -1.
 %
 %   @arg Rules The list of rules in the program.
 %   @arg ArcsIn List of arcs of the form a(Head, Goal, Neg, ID).
 %   @arg ArcsOut List of arcs of the form a(Head, Goal, Neg, ID).
-%   @arg SkipDuals 1 or 0 indicating whether or not to skip rules with negated
-%        heads.
 
-get_arcs([R|T], Gi, Go, SD) :-
+get_arcs([], G, G).
+get_arcs([R|T], Gi, Go) :-
     rule(R, H, I, Y), % Rules have IDs.
     predicate(H, F, _), % get functor of head
     \+ e(F),
-    (   SD =:= 0 % Don't skip duals
-    ;   \+ is_dual(F)
-    ),
+    \+ is_dual(F),
     !,
     get_arcs2(F, I, Y, Gi, G1),
-    get_arcs(T, G1, Go, SD).
-get_arcs([R|T], Gi, Go, SD) :-
-    \+rule(R, _, _, _), % Rules do NOT have IDs. Otherwise, dual rules with IDs can trigger an error.
+    get_arcs(T, G1, Go).
+get_arcs([R|T], Gi, Go) :-
+    \+ rule(R, _, _, _), % Rules do NOT have IDs. Otherwise, dual rules with IDs can trigger an error.
     c_rule(R, H, Y), % rules have no IDs attached.
     I is -1,
     predicate(H, F, _), % get functor of head
     \+ e(F),
-    (   SD =:= 0 % Don't skip duals
-    ;   \+ is_dual(F)
-    ),
+    \+ is_dual(F),
     !,
     get_arcs2(F, I, Y, Gi, G1),
-    get_arcs(T, G1, Go, SD).
-get_arcs([_|T], Gi, Go, SD) :-
-    get_arcs(T, Gi, Go, SD).
-get_arcs([], G, G, _) :-
-    !.
+    get_arcs(T, G1, Go).
+get_arcs([_|T], Gi, Go) :-
+    get_arcs(T, Gi, Go).
 
 %!  get_arcs2(+Head:ground, +ID:int, +Goals:list, +ArcsIn:list, -ArcsOut:list)
 %
