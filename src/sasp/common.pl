@@ -36,7 +36,6 @@
             split_functor/3,            % +Functor, -Name, -Arity
             join_functor/3,             % -Functor, +Name, +Arity
             create_unique_functor/3,
-            fatal_error/2,
             write_error/1,
             write_error/2,
             write_verbose/2,
@@ -204,20 +203,6 @@ join_functor(Functor, Name, Arity) :-
 create_unique_functor(Hi, C, Ho) :-
     split_functor(Hi, F, A), % Strip the arity
     atomic_list_concat([F, '_', C, '_', A], Ho).
-
-%!  fatal_error(+Format:string, +Arguments:list) is det
-%
-%   Call write_error/2 and then halt.
-%
-%   @arg  Format A quoted string that would be passed to writef/2. '~w' specifies
-%        that the next element in Arguments should be printed.
-%   @arg  Arguments A list of arguments that will be substituted, in order, for
-%        '~w' in Format.
-
-fatal_error(X, Y) :-
-    write(user_error, 'FATAL '), % add to start of error message
-    write_error(X, Y),
-    halt(1).
 
 %!  write_error(+Format:string) is det
 %

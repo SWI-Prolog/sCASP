@@ -52,6 +52,8 @@ that may be used for warning and error output.
 :- use_module(program).
 :- use_module(variables).
 
+:- op(700, xfx, ::).
+
 %!  format_term(+EntryIn:compound, -EntryOut:compound,
 %!              -Constraints:list, +Vars:compound) is det
 %
