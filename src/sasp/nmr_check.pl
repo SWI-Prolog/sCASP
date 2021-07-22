@@ -416,7 +416,7 @@ olon_chks([R|T], [not(G)|Nmr], C) :-
     predicate(X, '_false_0', _), % headless rule
     !,
     c_rule(R2, X, Y), % strip ID for comp_duals3/2
-    create_unique_functor('_chk_0', C, H), % Create functor for sub-check head
+    create_unique_functor('_olon_0', C, H), % Create functor for sub-check head
     comp_duals3(H, [R2]),
     predicate(G, H, []), % Create goal for NMR check
     C1 is C + 1,
@@ -431,7 +431,7 @@ olon_chks([R|T], [Go|Nmr], C) :-
     ),
     predicate(X, Hi, _),
     split_functor(Hi, _, A), % get arity of head
-    atom_concat('_chk_', A, Hb),
+    atom_concat('_olon_', A, Hb),
     create_unique_functor(Hb, C, H), % Create functor for sub-check head
     comp_duals3(H, [R2]),
     var_list(A, V), % Get place holder args for NMR check goal
