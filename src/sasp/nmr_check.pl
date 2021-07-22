@@ -260,15 +260,14 @@ get_cycle(X, P, C, N) :-
 %   @arg NegsIn Input number of negations in Cycle.
 %   @arg NegsOut Output number of negations in Cycle.
 
-get_cycle2(X, [A|P], [A|C], Ni, No) :-
-    A = a(Y, _, N, _),
-    X \= Y,
-    !,
-    N2 is N + Ni,
-    get_cycle2(X, P, C, N2, No).
 get_cycle2(X, [A|_], [A], Ni, No) :-
     A = a(X, _, N, _),
+    !,
     No is Ni + N.
+get_cycle2(X, [A|P], [A|C], Ni, No) :-
+    A = a(_, _, N, _),
+    N2 is N + Ni,
+    get_cycle2(X, P, C, N2, No).
 
 %!  classify_cycle(+Negs:int, +Cycle:list, +OlonIn:list, -OlonOut:list,
 %!                 +OrdIn:list, -OrdOut:list,
@@ -372,7 +371,7 @@ extract_ids3([], I, I).
 
 divide_rules([X|T], Is, [X|To], To2) :- % rule in list
     rule(X, _, I, _),
-    member(I, Is),
+    memberchk(I, Is),
     !,
     divide_rules(T, Is, To, To2).
 divide_rules([X|T], Is, To, [X|To2]) :- % rule not in list
