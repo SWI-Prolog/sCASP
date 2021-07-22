@@ -68,14 +68,9 @@ that may be used for warning and error output.
 %   @arg Constraints Any constraints on variables in the entry.
 %   @arg Vars Variable struct for filling in values.
 
-format_term(X, X, Con, V) :-
-    is_unbound(X, V, Con, _, _),	% constrained var
+format_term(X, X, [], _) :-
+    is_var(X),				% constrained var
     !.
-format_term(X, Xo, Con, V) :-
-    is_var(X),
-    !,
-    var_value(X, V, val(X2)),		% bound var
-    format_term(X2, Xo, Con, V).
 format_term(X, Xo, Con, V) :-
     callable(X),
     !,

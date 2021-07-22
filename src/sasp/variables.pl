@@ -28,7 +28,6 @@
 :- module(variables,
           [ is_var/1,
             is_var/2,
-            is_unbound/5,
             new_var_struct/1,
             var_value/3,
             body_vars/3
@@ -46,7 +45,6 @@ Predicates related to storing, accessing and modifying variables.
 
 :- use_module(library(lists)).
 :- use_module(library(rbtrees)).
-:- use_module(common).
 :- use_module(options).
 
 %! var_struct(?VarStruct:compound, ?Variables:list, ?Values:list,
@@ -96,26 +94,6 @@ is_var($X) :-
 
 is_var($X, X) :-
     atom(X).
-
-%! is_unbound(+Goal:compound, +Vars:compound, -Constraints:list,
-%!            -Flag:int, -LoopVar:int) is det
-%
-% Given a goal, succeed if it is an unbound (possibly constrained) variable.
-%
-% @arg Goal The input goal.
-% @arg Vars The list of variable values and constraints.
-% @arg Constraints The list of constraints. Empty if completely unbound.
-% @arg Flag 0, 1 or 2 indicating if binding (1) or further constraining via
-%      disunification (2) should trigger failure.
-% @arg LoopVar -1, 0 or 1 indicating if the variable succeeded non-ground in a
-%      positive loop. If -1, the variable is part of a forall and CANNOT be
-%      made a loop variable (any attempt to do so must be ignored).
-
-is_unbound(G, V, C, F, L) :-
-    is_var(G),
-    var_value(G, V, Val),
-    var_con(Val, C, F, L), % unbound or constrained
-    !.
 
 %! new_var_struct(-VarStruct:compound) is det
 %
