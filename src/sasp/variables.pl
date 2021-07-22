@@ -32,14 +32,8 @@
             is_unbound/5,
             new_var_struct/1,
             var_value/3,
-            update_var_value/4,
-            add_var_constraint/4,
             get_value_id/3,
-            variable_intersection/4,
-            body_vars/3,
-            body_vars2/4,
-            get_unique_vars/6,
-            generate_unique_var/4
+            body_vars/3
           ]).
 
 
@@ -183,95 +177,6 @@ get_val_by_id(I, Vs, Vo) :-
     ;   Vo = Val                        % value found
     ).
 
-%!  update_var_value(+Var:ground, +Value:compound,
-%!                   +VarStructIn:compound, -VarStructOut:compound) is det
-%
-%   Update the value of a variable. Value  must be of the form val(Val),
-%   con(Cons, Flag, Flag2) or id(ID).
-%
-%   @arg Var The variable.
-%   @arg Value The new value.
-%   @arg VarStructIn Input var struct.
-%   @arg VarStructOut Output var struct.
-
-update_var_value(V, Val, Vsi, Vso) :-
-    is_var(V, Name),
-    var_struct(Vsi, V1, V2, NextVar, NextID),
-    get_value_id(Name, ID, Vsi), % present in var struct; binds the ID to update
-    !,
-    rb_update(V2, ID, Val, V3), % update value
-    var_struct(Vso, V1, V3, NextVar, NextID), % repack the struct
-    !.
-update_var_value(V, Val, Vsi, Vso) :-
-    is_var(V, Name), % not present in var struct; add it
-    var_struct(Vsi, V1, V2, NV, ID),
-    rb_insert(V1, Name, ID, V3), % create variable entry
-    rb_insert(V2, ID, Val, V4), % create value entry
-    ID2 is ID + 1, % update NextID
-    var_struct(Vso, V3, V4, NV, ID2), % pack the struct
-    !.
-
-%!  add_var_constraint(+Var:ground, +Value:compound, +VarStructIn:compound,
-%!                     -VarStructOut:compound) is det
-%
-%   Add a new  constraint  to  an   unbound  or  previously  constrained
-%   variable. Only loop  variables  can   be  constrained  against other
-%   variables.
-%
-%   @arg Var The variable.
-%   @arg Constraint The new constraint.
-%   @arg VarStructIn Input var struct.
-%   @arg VarStructOut Output var struct.
-
-add_var_constraint(V, C, Vsi, Vso) :-
-    \+ is_var(C),
-    is_unbound(V, Vsi, Cs, F, L),
-    F =< 1, % we are allowed to add constraints
-    !,
-    add_var_constraint2(C, Cs, Cs2),
-    var_con(Val2, Cs2, F, L),
-    update_var_value(V, Val2, Vsi, Vso).
-add_var_constraint(V, C, Vsi, Vso) :-
-    is_var(C),
-    var_value(C, Vsi, val(Cv)),
-    is_unbound(V, Vsi, Cs, F, L), % get existing constraints
-    F =< 1, % we are allowed to add constraints
-    !,
-    add_var_constraint2(Cv, Cs, Cs2),
-    var_con(Val2, Cs2, F, L),
-    update_var_value(V, Val2, Vsi, Vso).
-add_var_constraint(V, C, Vsi, Vso) :-
-    is_var(C),
-    is_unbound(V, Vsi, Cs, _, 1), % V is a loop var; get existing constraints
-    is_unbound(C, Vsi, Cc, _, _), % C is an unbound or constrained var
-    list_diff(Cc, Cs, Cc2), % remove values V cannot take from Cc
-    !,
-    member(X, Cc2),
-    %add_var_constraint2(C, Cs, Cs2),
-    %var_con(Val2, Cs2, F, 1),
-    %writef('loop var ~w! Added var con for ~w to get ~w!\n', [V, C, Cs2]),
-    update_var_value(V, val(X), Vsi, Vso).
-
-%!  add_var_constraint2(+Val:compound, +ConsIn:list, -ConsOut:list) is det
-%
-%   Insert a constraint while keeping the list sorted.
-%
-%   @arg Val The value to insert.
-%   @arg ConsIn Input constraints.
-%   @arg ConsOut Output constraints.
-
-add_var_constraint2(V, [], [V]) :-
-    !.
-add_var_constraint2(V, [X | T], [X | T2]) :-
-    X @< V,
-    !,
-    add_var_constraint2(V, T, T2).
-add_var_constraint2(V, [X | T], [V, X | T]) :-
-    X @> V,
-    !.
-add_var_constraint2(X, [X | T], [X | T]) :- % Already present
-    !.
-
 %!  get_value_id(+Var:ground, -ID:int, +VarStruct:compound) is det
 %
 %   Given a variable, get the final ID   linked  to it in the VarStruct.
@@ -312,97 +217,6 @@ get_value_id2(Ii, Io, Vs) :-
     ;
             Io = Ii % value found; use current ID
     ).
-
-%!  get_value_ids(+Variables:list, -IDs:list, +VarStruct:compound) is det
-%
-%   For each variable in a list, get the value ID.
-%
-%   @arg Variable The input list.
-%   @arg IDs The list of IDs.
-%   @arg VarStruct The variable struct.
-
-get_value_ids([X | T], [I | T2], Vs) :-
-    get_value_id(X, I, Vs),
-    !,
-    get_value_ids(T, T2, Vs).
-get_value_ids([], [], _) :-
-    !.
-
-%!  variable_intersection(+Goal1:compound, +Goal2:compound,
-%!                        +VarStruct:compound, -IntersectionVars:list)
-%
-%   Given two goals, get the non-ground  variables present in each, then
-%   return those variables present in both lists.
-%
-%   @arg Goal1 The first goal.
-%   @arg Goal2 The second goal.
-%   @arg VarStruct The variable struct.
-%   @arg IntersectionVars The list of intersecting non-bound variables.
-
-variable_intersection(G1, G2, Vs, Gv) :-
-    body_vars2([G1], [], [], V1),
-    remove_bound(V1, Vs, V12),
-    body_vars2([G2], [], [], V2),
-    remove_bound(V2, Vs, V22),
-    get_value_ids(V12, I1, Vs),
-    get_value_ids(V22, I2, Vs),
-    list_intersection(I1, I2, Is),
-    ids_to_vars(Is, V12, Vs, Gv1),
-    sort(Gv1, Gv). % order and remove duplicates
-
-%!  remove_bound(+VarsIn:list, +VarStruct:compound, -VarsOut:list)
-%
-%   Given a list of variables, remove those  which are bound to a single
-%   value.
-%
-%   @arg VarsIn Input variables.
-%   @arg VarStruct The variable struct.
-%   @arg VarsOut Output variables.
-
-remove_bound([X | T], Vs, [X | T2]) :-
-    is_unbound(X, Vs, _, _, _),
-    !,
-    remove_bound(T, Vs, T2).
-remove_bound([_ | T], Vs, T2) :-
-    !,
-    remove_bound(T, Vs, T2).
-remove_bound([], _, []) :-
-    !.
-
-%!  ids_to_vars(+IDs:list, +GoalVars:list, +VarStruct:compound, -IDVars:list)
-%
-%   Convert a list of IDs to variables   from  GoalVars. Note that every
-%   member of IDs must have a match   in  GoalVars, but the reverse need
-%   not hold.
-%
-%   @arg IDs List of variable IDs.
-%   @arg GoalVars List of variables which includes matches for IDs.
-%   @arg VarStruct The variable struct.
-%   @arg IDVars List of variables corresponding to the IDs.
-
-ids_to_vars([], _, _, []).
-ids_to_vars([X | T], Gv, Vs, [X2 | T2]) :-
-    id_to_var(X, Gv, Vs, X2),
-    !,
-    ids_to_vars(T, Gv, Vs, T2).
-
-%!  id_to_var(+ID:int, +GoalVarsIn:list, +VarStruct:compound, -IDVar:list)
-%
-%   Convert a list of IDs to variables   from  GoalVars. Note that every
-%   member of IDs must have a match   in  GoalVars, but the reverse need
-%   not hold.
-%
-%   @arg IDs List of variable IDs.
-%   @arg GoalVarsIn Input list of variables which includes a match for ID.
-%   @arg VarStruct The variable struct.
-%   @arg IDVars Variable corresponding to the ID.
-
-id_to_var(X, [Y | _], Vs, Y) :-
-    get_value_id(Y, I, Vs),
-    X =:= I,
-    !.
-id_to_var(X, [_ | T], Vs, Iv) :-
-    id_to_var(X, T, Vs, Iv).
 
 %!  body_vars(+Head:compound, +Body:list, -BodyVars:list) is det
 %
@@ -458,23 +272,6 @@ body_vars3(G, Hv, Bvi, Bvo) :-
     !,
     body_vars2(A, Hv, Bvi, Bvo). % check args for variables
 body_vars3(_, _, Bv, Bv). % not a compound term or a new, non-head variable
-
-%!  get_unique_vars(+HeadIn:compound, -HeadOut:compound, +BodyIn:list,
-%!                  -BodyOut:list, +VarsIn:compound, -VarsOut:compound)
-%
-%   Given the head and body of a   clause  being expanded, replace every
-%   variable with a unique one using the counter in the var struct.
-%
-%   @arg HeadIn Input head.
-%   @arg HeadOut Output head.
-%   @arg BodyIn Input body.
-%   @arg BodyOut Output body.
-%   @arg VarsIn Input var struct.
-%   @arg VarsOut Output var struct.
-
-get_unique_vars(Hi, Ho, Bi, Bo, Vi, Vo) :-
-    get_unique_vars3(Hi, Ho, Vi, V1, [], Vt),
-    get_unique_vars2(Bi, Bo, V1, Vo, Vt, _). % update counter
 
 %!  get_unique_vars2(+GoalsIn:list, -GoalsOut:list, +VarStructIn:int,
 %!                   -VarStructOut:int, +VarsIn:compound, -VarsOut:compound)
