@@ -50,7 +50,7 @@ results.
 :- use_module(options).
 :- use_module(output).
 
-%!  sasp_load(+Sources:list)
+%!  sasp_load(+Sources)
 %
 %   Load the files from Sources.   Steps taken:
 %
@@ -63,12 +63,18 @@ results.
 %
 %   @arg Sources A list of paths of input files.
 
-sasp_load(Sources) :-
+sasp_load(Spec) :-
+    to_list(Spec, Sources),
     setup_call_cleanup(
         set_default_options,
         sasp_load_guarded(Sources),
         ( destroy_program,
           option_cleanup)).
+
+to_list(List, List) :-
+    is_list(List),
+    !.
+to_list(One, [One]).
 
 sasp_load_guarded(Sources) :-
     load_source_files(Sources),

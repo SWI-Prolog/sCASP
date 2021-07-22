@@ -43,11 +43,6 @@
 :- use_module(common).
 :- use_module(program).
 
-:- dynamic                              % TBD: Get rid of these
-    asp_table/1,
-    show/1,
-    pred/1.
-
 /** <module> Read SASP source code
 
 This module defines reading sCASP input based on the Prolog parser.
