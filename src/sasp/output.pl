@@ -29,7 +29,6 @@
           [ format_term/4,
             format_term_list/4,
             print_chs/3,
-            fill_in_variable_values/5,
             print_vars/2,
             print_var_constraints/1,
             indent/1,
@@ -101,11 +100,10 @@ format_term(X, X, [], _).		% anything else, just pass along
 %   @arg Constraints The list of constraints. MAY CONTAIN DUPLICATES!
 %   @arg Vars Variable struct for filling in values.
 
-format_term_list([X|T], [X2|T2], Con, V) :-
-    format_term(X, X2, C, V),
+format_term_list([X|T], [X2|T2], _Con, V) :-
+    format_term(X, X2, _, V),
     !,
-    format_term_list(T, T2, Ct, V),
-    append(C, Ct, Con).
+    format_term_list(T, T2, _, V).
 format_term_list([], [], [], _).
 
 %!  print_chs(+CHS:list, +Vars:compound, +Flag:int) is det
@@ -294,12 +292,8 @@ format_chs_entry(X, Xo, Con, Uvi, Uvo, V) :-
 %   @arg UsedVarsOut Output used vars.
 %   @arg Vars Variable struct for filling in values.
 
-format_predicate(X, Xo, Con, Uvi, Uvo, V) :-
-    fill_in_variable_values(X, X2, [], _, V), % fill in bound vars; ignore constraints for now.
-    format_predicate2(X2, X3, Uvi, Uv2, V),
-    fill_in_variable_values(X3, Xo, [], Con2, V), % get any constraints.
-    format_predicate3(Con2, Con3, Uv2, Uvo, V), % format any terms in constraints
-    sort(Con3, Con).
+format_predicate(X, Xo, _Con, Uvi, Uvo, V) :-
+    format_predicate2(X, Xo, Uvi, Uvo, V).
 
 %!  format_predicate2(+EntryIn:compound, -EntryOut:compound,
 %!                    +UsedVarsIn:list, +UsedVarsOut:list,
@@ -507,93 +501,6 @@ sort_chs(CHSin, CHSout) :-
 
 key_chs_order(not(Pred)-_, Key) => Key = Pred.
 key_chs_order(Pred-_, Key)      => Key = Pred.
-
-
-%!  fill_in_variable_values(+GoalIn:compound, -GoalOut:compound,
-%!                          +ConstraintsIn:list, -ConstraintsOut:list,
-%!                          +Vars:compound) is det
-%
-%   Given a goal, replace any bound variables   with  their values. If a
-%   goal or value is a compound term,  process each arg. For constrained
-%   variables, store the variable/constraints pair in Constraints. NOTE:
-%   Must never return constraint entries with empty constraint lists!
-%
-%   @arg GoalIn Input goal.
-%   @arg GoalOut Output goal.
-%   @arg ConstraintsIn Input constraints.
-%   @arg ConstraintsOut Output constraints.
-%   @arg VarsOut Output vars.
-
-fill_in_variable_values(G, G, C, C, V) :-
-    is_unbound(G, V, [], _, Vl), % unbound variable, no constraints
-    Vl =\= 1,
-    !.
-fill_in_variable_values(Gi, Go, Ci, Co, V) :-
-    is_unbound(Gi, V, [], _, 1), % unbound variable, no constraints, flagged
-    !,
-    atom_chars(Gi, Gc),
-    (   Gc = ['?'|Gt]
-    ->  % don't duplicate flag
-        Go = Gi,
-        atom_chars(G, Gt),
-        (   is_unbound(G, V, Con, _, 1),
-            Con \= []
-        ->  % flag added in last pass, get correct constraints
-            Co = [-(Go, Con)|Ci]
-        ;   Co = Ci
-        )
-    ;   atom_chars(Go, ['?'|Gc]), % add flag
-        Co = Ci
-    ).
-fill_in_variable_values(G, G, C, [-(G, Con)|C], V) :-
-    is_unbound(G, V, Con, _, Vl), % unbound variable, constraints
-    Vl =\= 1,
-    !.
-fill_in_variable_values(Gi, Go, C, [-(Go, Con)|C], V) :-
-    is_unbound(Gi, V, Con, _, 1), % unbound variable, constraints, flagged
-    !,
-    atom_chars(Gi, Gc),
-    (   Gc = ['?'|_]
-    ->  % don't duplicate flag
-        Go = Gi
-    ;   atom_chars(Go, ['?'|Gc]) % add flag
-    ).
-fill_in_variable_values(Gi, Go, Ci, Co, V) :-
-    var_value(Gi, V, val(G2)),
-    G2 =.. [F|A], % compound term, check args
-    !,
-    fill_in_variable_values2(A, A2, Ci, Co, V),
-    Go =.. [F|A2]. % repack term
-fill_in_variable_values(Gi, Go, C, C, V) :-
-    var_value(Gi, V, val(Go)),
-    atom(Go), % atom
-    !.
-fill_in_variable_values(Gi, Go, Ci, Co, V) :-
-    Gi =.. [F|A], % compound term, check args
-    !,
-    fill_in_variable_values2(A, A2, Ci, Co, V),
-    Go =.. [F|A2]. % repack term
-fill_in_variable_values(G, G, C, C, _) :-
-    \+is_var(G), % other non-var
-    !.
-
-%!  fill_in_variable_values2(+ArgsIn:list, -ArgsOut:list,
-%!                           +ConstraintsIn:list, -ConstraintsOut:list,
-%!                           +Vars:compound) is det
-%
-%   Given a list of args, call fill_in_variable_values/5 for each.
-%
-%   @arg ArgsIn Input args.
-%   @arg ArgsOut Output args.
-%   @arg ConstraintsIn Input constraints.
-%   @arg ConstraintsOut Output constraints.
-%   @arg VarsOut Output vars.
-
-fill_in_variable_values2([X|T], [X2|T2], Ci, Co, V) :-
-    fill_in_variable_values(X, X2, Ci, C1, V),
-    !,
-    fill_in_variable_values2(T, T2, C1, Co, V).
-fill_in_variable_values2([], [], C, C, _).
 
 %!  print_vars(+PrintVars:list, +Vars:compound) is det
 %
