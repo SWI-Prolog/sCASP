@@ -49,8 +49,7 @@
 %   Load a list of files.
 
 load(X) :-
-    load_program(X),
-    true.
+    load_program(X).
 
 %!  scasp_test(+Argv, -StackModelPairs) is det.
 %
