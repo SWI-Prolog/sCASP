@@ -57,7 +57,7 @@ This module defines reading sCASP input based on the Prolog parser.
 :- op(700, xfx, ::).
 :- op(900, fy,  not).
 :- op(800, fx,  #).
-:- op(300, fx,  [include, table, show, pred, compute, abducible]).
+:- op(750, fx,  [include, table, show, pred, compute, abducible]).
 
 		 /*******************************
 		 *            COMPAT		*
@@ -316,8 +316,8 @@ directive(show(Pred), Statements, _, _) =>
     Statements = (:- show(Pred)).
 directive(pred(Pred), Statements, _, _) =>
     Statements = (:- pred(Pred)).
-directive(pred(Pred)::Comment, Statements, _, _) =>
-    Statements = (:- pred(Pred::Comment)).
+%directive(pred(Pred)::Comment, Statements, _, _) =>
+%    Statements = (:- pred(Pred::Comment)).
 directive(abducible(Pred), Rules, Pos, Options) =>
     sasp_predicate(Pred, ASPPred, Pos, Options),
     abducible_rules(ASPPred, Rules).
