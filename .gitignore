@@ -2,3 +2,4 @@
 *.po
 scasp
 *~
+*.cov

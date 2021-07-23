@@ -2,10 +2,10 @@
 
 
 compile_scasp:
-	swipl -O -o scasp -c src/scasp.pl
+	swipl -O -o scasp -c prolog/scasp.pl
 
 check:
-	cd src && swipl test.pl
+	cd prolog && swipl test_scasp.pl
 
 clean: lpdoc_clean
 	@$(MAKE) lpdoc_clean
