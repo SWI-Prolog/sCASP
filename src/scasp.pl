@@ -1,6 +1,5 @@
 :- module(scasp,
           [ scasp_test/2,
-            scasp_exec/2,
             main/1,
             load/1,
             run_defined_query/0,
@@ -69,27 +68,6 @@ scasp_test(Args, Stacks-Models) :-
         ),
         Pairs),
     pairs_keys_values(Pairs, Stacks, Models).
-
-%!  scasp_exec(+Argv, -Result) is det.
-%
-%   Used to execute s(CASP) from top_level.pl module.
-
-scasp_exec(Args, [PQ, PAnswer, PVars, Bindings, Printable_Model]) :-
-    parse_args(Args, Options, Sources),
-    set_options(Options),
-    load(Sources),
-    defined_query(Q0),
-
-    process_query(Q0, Q, Query), term_variables(Q, Vars),
-    unifiable(Q0, Q, D0),
-
-    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
-
-    solve(Query, [], _StackOut, Model),
-
-    pretty_term(D1, _D2, par(Q, Vars, Model), par(PAnswer, Bindings, P_Model)),
-    select_printable_literals(P_Model, [], Selected),
-    reverse(Selected, Printable_Model).
 
 %!  main(+Argv)
 %
