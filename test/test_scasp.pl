@@ -3,14 +3,36 @@
             qtest_scasp/0,
             run_test/2                  % +File, +Options
           ]).
-:- use_module(scasp, [scasp_test/2]).
+:- set_prolog_flag(optimise, true).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+:- use_module(library(main)).
+:- use_module(library(option)).
+:- use_module(library(pairs)).
+:- use_module(library(terms)).
+:- use_module(library(test_cover)).
+:- use_module(library(time)).
+
+scasp_dir(SCASPDir) :-
+    source_file(scasp_dir(_), File),
+    file_directory_name(File, TestDir),
+    file_directory_name(TestDir, SCASPDir).
+
+:- multifile
+    user:file_search_path/2.
+
+user:file_search_path(scasp, SCASPDir) :-
+    scasp_dir(SCASPDir).
+user:file_search_path(library, scasp(prolog)).
+
+:- use_module(library(scasp), [scasp_test/2]).
 :- use_module(library(lists), [member/2]).
 :- use_module(library(main), [main/0, argv_options/3]).
 :- use_module(library(option), [option/3, option/2]).
 :- use_module(library(time), [call_with_time_limit/2]).
 
-:- use_module(scasp_ops).
-:- use_module(sasp/variables).
+:- use_module(library(scasp/ops)).
+:- use_module(library(scasp/variables)).
 :- use_module(diff).
 
 :- initialization(main, main).
@@ -19,15 +41,28 @@ test_scasp :-
     main([]).
 
 qtest_scasp :-
-    main([ '../test/pq.pl',
-           '../test/vars.pl',
-           '../test/classic_negation_incostistent.pl',
-           '../test/birds.pl',
-           '../test/family.pl',
-           '../test/hamcycle.pl',
-           '../test/hamcycle_two.pl',
-           '../test/hanoi.pl'
-         ]).
+    findall(File, quick_test_file(_, File), Files),
+    main(Files).
+
+quick_test_file(Test, File) :-
+    (   atom(Test)
+    ->  true
+    ;   quick_test(Test)
+    ),
+    absolute_file_name(scasp(test/programs/Test), File,
+                       [ access(read),
+                         extensions([pl])
+                       ]).
+
+quick_test(pq).
+quick_test(vars).
+quick_test(classic_negation_incostistent).
+quick_test(birds).
+quick_test(family).
+quick_test(hamcycle).
+quick_test(hamcycle_two).
+quick_test(hanoi).
+
 
 %!  main(+Argv)
 %
@@ -96,7 +131,8 @@ run_tests([H|T], Failed0, Failed, Options) :-
 %       test failed.
 
 run_test(File, Options) :-
-    format("~w~t~45|", [File]),
+    file_base_name(File, Base),
+    format("~w ~`.t ~45|", [Base]),
     flush_output,
     option(timeout(Time), Options, 60),
     statistics(runtime, _),
@@ -243,7 +279,11 @@ save_test_data(Into, Result) :-
 
 test_files([], Files) :-
     !,
-    test_files(['../test'], Files).
+    absolute_file_name(scasp(test/programs), Dir,
+                       [ file_type(directory),
+                         access(read)
+                       ]),
+    test_files([Dir], Files).
 test_files(Spec, Files) :-
     phrase(test_files(Spec), Files).
 

@@ -7,8 +7,8 @@
             clp_interval/1,             % ?Goal
             user_predicate/1            % ?Goal
           ]).
-:- use_module(scasp_ops).
-:- use_module(sasp/output).           % the pr_* predicates
+:- use_module(ops).
+:- use_module(output).                  % the pr_* predicates
 
 /** <module> Basic information about sCASP predicates
 */

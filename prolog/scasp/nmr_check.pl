@@ -44,7 +44,7 @@ Detect OLON rules and construct nmr_check.
 :- use_module(comp_duals).
 :- use_module(program).
 :- use_module(variables).
-:- use_module('../scasp_options').
+:- use_module(options).
 
 %!  generate_nmr_check is det
 %

@@ -17,11 +17,11 @@
           ]).
 :- set_prolog_flag(optimise, true).
 
-:- use_module(scasp_io).
-:- use_module(scasp_ops).
-:- use_module(scasp_options).
-:- use_module(solve).
-:- use_module(sasp/output).           % the pr_* predicates
+:- use_module(scasp/io).
+:- use_module(scasp/ops).
+:- use_module(scasp/options).
+:- use_module(scasp/solve).
+:- use_module(scasp/output).           % the pr_* predicates
 
 
 :- initialization(main, main).

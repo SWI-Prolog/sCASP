@@ -1,13 +1,13 @@
 :- module(casp_solve,
           [ solve/4                   % :Goals, +StackIn, -StackOut, -Model
           ]).
-:- use_module(clp_call_stack).
-:- use_module(scasp_options).
+:- use_module(clp/call_stack).
+:- use_module(options).
 :- use_module(predicates).
-:- use_module(clp_disequality).
-:- use_module(clp_clpq).
-:- use_module(sasp/output).           % the pr_* predicates
-:- use_module(scasp_io).
+:- use_module(clp/disequality).
+:- use_module(clp/clpq).
+:- use_module(output).                % the pr_* predicates
+:- use_module(io).
 
 /** <module> The sCASP solver
 */

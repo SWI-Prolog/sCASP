@@ -1,4 +1,4 @@
-:- module(clp_clpq,
+:- module(casp_clp_clpq,
           [ is_clpq_var/1,
             clpqr_dump_constraints/3,
             disequality_clpq/2,
@@ -22,7 +22,7 @@ variable.
 @author Joaquin Arias
 */
 
-:- use_module(clp_disequality).
+:- use_module(disequality).
 
 :- use_module(library(clpq)).
 :- use_module(library(clpr), []).                                % avoid undef

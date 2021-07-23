@@ -1,7 +1,7 @@
 :- module(scasp_load_compiled,
           [ read_compiled_source/1
           ]).
-:- use_module(sasp/output).
+:- use_module(output).
 
 /** <module> Load a precompiled program
 */

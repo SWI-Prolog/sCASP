@@ -44,7 +44,7 @@ Computation of dual rules (rules for the negation of a literal).
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).
-:- use_module('../scasp_options').
+:- use_module(options).
 
 %!  comp_duals is det
 %

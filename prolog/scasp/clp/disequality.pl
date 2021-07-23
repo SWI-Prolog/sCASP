@@ -8,8 +8,8 @@
             op(700, xfx, .=.),
             op(700, xfx, .\=.)
           ]).
-:- use_module(scasp_options).
-:- use_module(clp_clpq).
+:- use_module('../options').
+:- use_module(clpq).
 
 /** <module> Constraint solver for disequalities
 

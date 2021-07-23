@@ -27,16 +27,17 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 @author Joaquin Arias
 */
 
-:- use_module(sasp/output).
-:- use_module(sasp/compile).
-:- use_module(sasp/variables).
-:- use_module(scasp_options).
-:- use_module(scasp_process).
+:- use_module(output).
+:- use_module(compile).
+:- use_module(variables).
+:- use_module(options).
+:- use_module(process).
 
-:- use_module(scasp_load_compiled).
-:- use_module(clp_disequality).
-:- use_module(scasp_ops).
+:- use_module(load_compiled).
+:- use_module(clp/disequality).
+:- use_module(ops).
 :- use_module(english).
+:- use_module(clp/clpq).
 
 :- dynamic loaded_file/1.       % Files:list
 :- dynamic cont/0.
@@ -835,7 +836,6 @@ simple_operand(Operand,Var) :-
 simple_operand(A,A).
 
 
-:- use_module(clp_clpq).
 pretty_portray_attribute(A,PVar,PA) :-
     pretty_portray_attribute_(A,PVar,PA),!.
 pretty_portray_attribute(_,PVar,$(PVar)).
