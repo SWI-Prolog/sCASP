@@ -96,7 +96,11 @@ sasp_read(File, Statements, Options) :-
                        ]),
     setup_call_cleanup(
         open(Path, read, In),
-        sasp_read_stream_raw(In, Statements, [base(Path)|Options]),
+        sasp_read_stream_raw(In, Statements,
+                             [ base(Path),
+                               stream(In)
+                             | Options
+                             ]),
         close(In)).
 
 sasp_read_stream_raw(In, Statements, Options) :-
@@ -135,8 +139,10 @@ sasp_read_stream(In, Statements, Options) :-
     read_term(In, Term,
               [ module(M),
                 variable_names(VarNames),
-                subterm_positions(Pos)
+                subterm_positions(Pos),
+                term_position(Start)
               ]),
+    b_setval('$term_position', Start),
     (   Term == end_of_file
     ->  Statements = []
     ;   sasp_statement(Term, VarNames, New, Pos, Options),
@@ -334,8 +340,24 @@ abducible_rules(Head,
 %   @tbd: properly translate the error location
 
 sasp_syntax_error(Error, Pos, Options) :-
-    option(base(Base), Options),
-    print_message(error, sasp_error(Error, Pos, Base)).
+    error_position(Pos, EPos, Options),
+    print_message(error, sasp_error(Error, EPos)).
+
+error_position(Pos, pos(File, Line, Col), Options) :-
+    option(base(File), Options),
+    option(stream(In), Options),
+    prolog_load_context(term_position, Start),
+    arg(1, Pos, StartChar),
+    stream_property(In, position(Here)),
+    setup_call_cleanup(
+        set_stream_position(In, Start),
+        ( read_string(In, StartChar, _),
+          stream_property(In, position(AtError))
+        ),
+        set_stream_position(In, Here)),
+    stream_position_data(line_count, AtError, Line),
+    stream_position_data(line_position, AtError, Col).
+
 
 %!  comma_list(+BodyTerm, +Pos, -BodyList, -PosList) is det.
 %
@@ -356,3 +378,22 @@ comma_list((A,B), term_position(_,_,_,_,[AP, BP]), TL0, TL, PL0, PL) :-
     comma_list(B, BP, TL1, TL,  PL1, PL).
 comma_list(One, Pos, [One|TL], TL, [Pos|PL], PL).
 
+		 /*******************************
+		 *            MESSAGES		*
+		 *******************************/
+
+:- multifile
+    prolog:message//1.
+
+prolog:message(sasp_error(Error, EPos)) -->
+    position(EPos),
+    error(Error).
+
+position(pos(File, Line, Col)) -->
+    !,
+    [ '~w:~w:~w: '-[File, Line, Col] ].
+position(_) -->
+    [].
+
+error(invalid_directive(Directive)) -->
+    [ 'sCASP: invalid directive ~p'-[Directive] ].
