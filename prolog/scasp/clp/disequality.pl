@@ -167,28 +167,28 @@ loop_var_disequality_(A, [_|NegBs]) :-
 		 *******************************/
 
 neg_var(A, List) :-
-    (   get_attr(A, clp_disequality, neg(List))
+    (   get_attr(A, scasp_clp_disequality, neg(List))
     ->  true
     ;   var(A)
     ->  List = [],
-        put_attr(A, clp_disequality, neg(List))
+        put_attr(A, scasp_clp_disequality, neg(List))
     ).
 
 get_neg_var(A,List) :-
-    get_attr(A, clp_disequality, neg(List)).
+    get_attr(A, scasp_clp_disequality, neg(List)).
 
 get_neg_var_or_empty(A,List) :-
     var(A),
-    (   get_attr(A,clp_disequality,neg(List))
+    (   get_attr(A,scasp_clp_disequality,neg(List))
     ->  true
     ;   List = []
     ).
 
 clean(A) :-
-    del_attr(A, clp_disequality).
+    del_attr(A, scasp_clp_disequality).
 
 update(A,List) :-
-    put_attr(A,clp_disequality,neg(List)).
+    put_attr(A,scasp_clp_disequality,neg(List)).
 
 attr_unify_hook(neg(A),B) :-
     not_unify(B, A).
