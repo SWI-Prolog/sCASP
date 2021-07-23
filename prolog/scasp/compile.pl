@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(sasp_compile,
+:- module(scasp_compile,
           [ sasp_load/1     % +Sources:list
           ]).
 

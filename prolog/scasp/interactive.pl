@@ -25,11 +25,11 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(interactive, [
-                    help/0,
-                    get_user_query/1,
-                    get_user_response/0
-                   ]).
+:- module(scasp_interactive,
+          [ help/0,
+            get_user_query/1,
+            get_user_response/0
+          ]).
 
 /** <module> User interaction
 

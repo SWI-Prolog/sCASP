@@ -1,4 +1,4 @@
-:- module(clp_disequality,
+:- module(scasp_clp_disequality,
           [ get_neg_var/2,
             not_unify/2,
             (.=.)/2,

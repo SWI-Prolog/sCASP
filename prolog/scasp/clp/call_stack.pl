@@ -1,4 +1,4 @@
-:- module(clp_call_stack,
+:- module(scasp_clp_call_stack,
           [ (~>)/2,
             (<~)/2,
             dump_rules/3,
