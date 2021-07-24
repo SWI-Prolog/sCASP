@@ -25,7 +25,6 @@ user:file_search_path(scasp, SCASPDir) :-
     scasp_dir(SCASPDir).
 user:file_search_path(library, scasp(prolog)).
 
-:- use_module(library(scasp), [scasp_test/2]).
 :- use_module(library(lists), [member/2]).
 :- use_module(library(main), [main/0, argv_options/3]).
 :- use_module(library(option), [option/3, option/2]).
@@ -33,6 +32,10 @@ user:file_search_path(library, scasp(prolog)).
 
 :- use_module(library(scasp/ops)).
 :- use_module(library(scasp/variables)).
+:- use_module(library(scasp/solve)).
+:- use_module(library(scasp/io)).
+:- use_module(library(scasp/options)).
+:- use_module(library(scasp/output)).
 :- use_module(diff).
 
 :- initialization(main, main).
@@ -307,3 +310,30 @@ dir_test_file(Dir, File) :-
     atom_concat(Dir, '/*.pl', Pattern),
     expand_file_name(Pattern, Files),
     member(File, Files).
+
+
+%!  scasp_test(+Argv, -StackModelPairs) is det.
+%
+%   Called from test.pl
+
+scasp_test(Args, Stacks-Models) :-
+    parse_args(Args, Options, Sources),
+    set_options(Options),
+    load_program(Sources),
+    defined_query(Q),
+    process_query(Q, _, Query),
+    findall(
+        Stack-Model,
+        ( solve(Query, [], StackOut, ModelOut),
+          pretty_term([], _, StackOut, Stack),
+          pretty_term([], _, ModelOut, Model)
+        ),
+        Pairs),
+    pairs_keys_values(Pairs, Stacks, Models).
+
+defined_query(_) :-
+    pr_query([not(o_false)]), !,
+    print_message(error, scasp(no_query)),
+    halt(1).
+defined_query(Q) :-
+    pr_query(Q).

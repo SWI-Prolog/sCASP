@@ -1,5 +1,7 @@
 *.itf
 *.po
-scasp
 *~
 *.cov
+# Exclude main executable, but keep directory
+scasp
+!prolog/scasp/

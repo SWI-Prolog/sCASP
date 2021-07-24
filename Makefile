@@ -2,7 +2,7 @@
 
 
 compile_scasp:
-	swipl -O -o scasp -c prolog/scasp.pl
+	swipl -O -o scasp -c prolog/scasp/main.pl
 
 check:
 	swipl test/test_scasp.pl
