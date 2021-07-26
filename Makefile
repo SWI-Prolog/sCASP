@@ -7,6 +7,13 @@ compile_scasp:
 check:
 	swipl test/test_scasp.pl
 
+qcheck:
+	swipl test/test_scasp.pl -q
+
+check-all:
+	swipl test/test_scasp.pl test/programs test/programs/sasp
+
+
 clean: lpdoc_clean
 	@$(MAKE) lpdoc_clean
 	@-ciao clean-tree .
