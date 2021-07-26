@@ -1,5 +1,5 @@
 :- module(scasp,
-          [ load/1,
+          [ scasp_load/1,              % +FileOrFiles
             (?)/1,
             (??)/1,
             clear_flags/0,
@@ -18,19 +18,9 @@
 :- use_module(scasp/output).           % the pr_* predicates
 :- use_module(scasp/solve).
 :- use_module(scasp/io).
+:- use_module(scasp/compile).
 :- use_module(scasp/options).
 
-
-		 /*******************************
-		 *        MAIN PREDICATES	*
-		 *******************************/
-
-%!  load(+Files) is det.
-%
-%   Load a list of files.
-
-load(X) :-
-    load_program(X).
 
 		 /*******************************
 		 *     TOP LEVEL PREDICATES	*

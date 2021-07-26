@@ -32,6 +32,7 @@ user:file_search_path(library, scasp(prolog)).
 
 :- use_module(library(scasp/ops)).
 :- use_module(library(scasp/variables)).
+:- use_module(library(scasp/compile)).
 :- use_module(library(scasp/solve)).
 :- use_module(library(scasp/io)).
 :- use_module(library(scasp/options)).
@@ -319,7 +320,7 @@ dir_test_file(Dir, File) :-
 scasp_test(Args, Stacks-Models) :-
     parse_args(Args, Options, Sources),
     set_options(Options),
-    load_program(Sources),
+    scasp_load(Sources),
     defined_query(Q),
     process_query(Q, _, Query),
     findall(

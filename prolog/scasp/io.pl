@@ -1,6 +1,5 @@
 :- module(scasp_io,
-          [ load_program/1,
-            write_program/0,
+          [ write_program/0,
             print_goal/1,
             process_query/3,		% +QGround, -QVar, -TotalQ
             process_query/4,		% +QGround, -QVar, -TotalQ, -VarNames
@@ -28,46 +27,16 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 */
 
 :- use_module(output).
-:- use_module(compile).
 :- use_module(variables).
 :- use_module(options).
 :- use_module(process).
 
-:- use_module(load_compiled).
 :- use_module(clp/disequality).
 :- use_module(ops).
 :- use_module(english).
 :- use_module(clp/clpq).
 
-:- dynamic loaded_file/1.       % Files:list
 :- dynamic cont/0.
-
-%!  load_program(?Files)
-%
-%   Call s(asp) to generate and assert   the  translation of the program
-%   (with dual and nmr_check)
-
-load_program([]) :-
-    print_message(error, scasp(no_input_files)),
-    s_help,
-    halt(1).
-load_program(C) :-
-    current_option(compiled, on), !,
-    retractall(loaded_file(_)),
-    (   is_list(C)
-    ->  Files = C
-    ;   Files = [C]
-    ),
-    read_compiled_source(C),
-    assert(loaded_file(Files)).
-load_program(X) :-
-    retractall(loaded_file(_)),
-    (   is_list(X)
-    ->  Files = X
-    ;   Files = [X]
-    ),
-    scasp_load(Files),
-    assert(loaded_file(Files)).
 
 %!  write_program
 %
@@ -917,8 +886,7 @@ print_html(Query, Model, StackOut) :-
     write('\nBEGIN HTML JUSTIFICATION'),
     (   current_option(html_name, F)
     ->  ensure_extension(F, html, File)
-    ;   loaded_file([S|_Sources]),
-        create_file_name(S,File)
+    ;   File = 'scasp-justification.html'
     ),
     setup_call_cleanup(
         open_output_file(Stream,File,Current),
@@ -932,10 +900,6 @@ ensure_extension(Base, Ext, File) :-
     File = Base.
 ensure_extension(Base, Ext, File) :-
     file_name_extension(Base, Ext, File).
-
-create_file_name(Source,File) :-
-    file_name_extension(Base, _Ext, Source),
-    file_name_extension(Base, html, File).
 
 print_html_to_current_output(Query, Model, StackOut) :-
     load_html_head(Head),

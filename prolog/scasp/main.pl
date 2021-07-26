@@ -4,6 +4,7 @@
 :- set_prolog_flag(optimise, true).
 
 :- use_module(io).
+:- use_module(compile).
 :- use_module(ops).
 :- use_module(options).
 :- use_module(solve).
@@ -27,7 +28,7 @@ main(Args) :-
     retractall(current_option(_, _)),
     parse_args(Args, Options, Sources),
     set_options(Options),
-    load_program(Sources),
+    load_sources(Sources),
     if_user_option(write_program, (write_program, halt)),
     (   current_option(interactive, on)
     ->  '$toplevel':setup_readline,
@@ -36,6 +37,19 @@ main(Args) :-
         main_solve(Q)
     ).
 main(_).
+
+load_sources([]) :-
+    !,
+    print_message(error, scasp(no_input_files)),
+    s_help,
+    halt(1).
+load_sources(Sources) :-
+    scasp_load(Sources).
+
+%!  main_loop
+%
+%   Run an interactive toplevel loop.   Invoked  by `scasp --interactive
+%   ...`
 
 main_loop :-
     read_term_with_history(R,
