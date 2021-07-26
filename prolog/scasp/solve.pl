@@ -6,8 +6,10 @@
 :- use_module(predicates).
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
-:- use_module(output).                % the pr_* predicates
 :- use_module(io).
+
+:- meta_predicate
+    solve(:, +, -, -).
 
 /** <module> The sCASP solver
 */
@@ -19,31 +21,36 @@
 %   visited to prove the sub-goals and in  Model the model that supports
 %   the sub-goals.
 
-solve([], StackIn, [[]|StackIn], []).
-solve([Goal|Goals], StackIn, StackOut, Model) :-
+% TBD: Now hard-wired to `scasp_output`
+solve(_M:Goals, StackIn, StackOut, Model) :-
+    solve(Goals, scasp_output, StackIn, StackOut, Model).
+
+solve([], _, StackIn, [[]|StackIn], []).
+solve([Goal|Goals], M, StackIn, StackOut, Model) :-
     if_user_option(check_calls, print_check_calls_calling(Goal, StackIn)),
-    check_goal(Goal, StackIn, StackMid, Modelx), Modelx = [AddGoal|JGoal],
+    check_goal(Goal, M, StackIn, StackMid, Modelx), Modelx = [AddGoal|JGoal],
     if_user_option(check_calls, format('Success ~@\n', [print_goal(Goal)])),
-    solve(Goals, StackMid, StackOut, Modelxs), Modelxs = JGoals,
-    (   shown_predicate(Goal)
+    solve(Goals, M, StackMid, StackOut, Modelxs),
+    Modelxs = JGoals,
+    (   shown_predicate(M:Goal)
     ->  Model = [AddGoal, JGoal|JGoals]
     ;   Model = [JGoal|JGoals]
     ).
 
 
-%!  check_goal(?Goal, ?StackIn, ?StackOut, ?Model)
+%!  check_goal(+Goal, +Module, +StackIn, -StackOut, -Model)
 %
 %   Call  check_CHS/3 to  check the  sub-goal Goal  against the  list of
 %   goals already visited StackIn to  determine if  it is  a coinductive
 %   success, a coinductive failure, an already proved sub-goal, or if it
 %   has to be evaluated
 
-check_goal(Goal, StackIn, StackOut, Model) :-
-    check_CHS(Goal, StackIn, Check), %% Check condition for coinductive success
-    check_goal_(Check, Goal, StackIn, StackOut, Model).
+check_goal(Goal, M, StackIn, StackOut, Model) :-
+    check_CHS(Goal, M, StackIn, Check), %% Check condition for coinductive success
+    check_goal_(Check, Goal, M, StackIn, StackOut, Model).
 
 % coinduction success <- cycles containing even loops may succeed
-check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
+check_goal_(co_success, Goal, _M, StackIn, StackOut, Model) :-
     (   current_option(assume,on)
     ->  mark_prev_goal(Goal,StackIn, StackMark),
         StackOut = [[],chs(Goal)|StackMark]
@@ -53,18 +60,18 @@ check_goal_(co_success, Goal, StackIn, StackOut, Model) :-
     AddGoal = chs(Goal),
     Model = [AddGoal|JGoal].
 % already proved in the stack
-check_goal_(proved, Goal, StackIn, StackOut, Model) :-
+check_goal_(proved, Goal, _M, StackIn, StackOut, Model) :-
     StackOut = [[], proved(Goal)|StackIn],
     JGoal = [],
     AddGoal = proved(Goal),
     Model = [AddGoal|JGoal].
 % coinduction does neither success nor fails <- the execution continues inductively
-check_goal_(cont, Goal, StackIn, StackOut, Model) :-
-    solve_goal(Goal, StackIn, StackOut, Modelx), Modelx = [Goal|JGoal],
+check_goal_(cont, Goal, M, StackIn, StackOut, Model) :-
+    solve_goal(Goal, M, StackIn, StackOut, Modelx), Modelx = [Goal|JGoal],
     AddGoal = Goal,
     Model = [AddGoal|JGoal].
 % coinduction fails <- the negation of a call unifies with a call in the call stack
-check_goal_(co_failure, _Goal, _StackIn, _StackOut, _Model) :-
+check_goal_(co_failure, _Goal, _M, _StackIn, _StackOut, _Model) :-
     fail.
 
 mark_prev_goal(Goal,[I|In],[assume(Goal)|In]) :- Goal == I, !.
@@ -72,46 +79,46 @@ mark_prev_goal(Goal,[I|In],[I|Mk]) :- mark_prev_goal(Goal,In,Mk).
 mark_prev_goal(_Goal,[],[]).
 
 
-%!  solve_goal(?Goal, ?StackIn, ?StackOut, ?GoalModel)
+%!  solve_goal(+Goal, +Module, +StackIn, -StackOut, -GoalModel)
 %
 %   Solve a  simple sub-goal  Goal where  StackIn is  the list  of goals
 %   already visited and returns in StackOut the list of goals visited to
 %   prove  the  sub-goals  and  in  `Model` the  model with  support the
 %   sub-goals
 
-solve_goal(Goal, StackIn, StackOut, GoalModel) :-
+solve_goal(Goal, M, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
     !,
     (   current_option(prev_forall, on)
-    ->  solve_goal_forall(Goal, [Goal|StackIn], StackOut, Model)
-    ;   solve_c_forall(Goal, [Goal|StackIn], StackOut, Model)
+    ->  solve_goal_forall(Goal, M, [Goal|StackIn], StackOut, Model)
+    ;   solve_c_forall(Goal, M, [Goal|StackIn], StackOut, Model)
     ),
     GoalModel = [Goal|Model].
-solve_goal(Goal, StackIn, [[], Goal|StackIn], GoalModel) :-
+solve_goal(Goal, _M, StackIn, [[], Goal|StackIn], GoalModel) :-
     Goal = not(is(V, Expresion)),
     !,
     NV is Expresion,
     V .\=. NV,
     GoalModel = [Goal].
-solve_goal(Goal, _, _, _) :-
+solve_goal(Goal, _, _, _, _) :-
     Goal = not(true),
     !,
     fail.
-solve_goal(Goal, StackIn, StackOut, Model) :-
+solve_goal(Goal, M, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= builtin(_),
-    table_predicate(Goal),
+    table_predicate(M:Goal),
     if_user_option(check_calls, format('Solve the tabled goal ~p\n', [Goal])),
     AttStackIn <~ stack([Goal|StackIn]),
-    solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel),
+    solve_goal_table_predicate(Goal, M, AttStackIn, AttStackOut, AttModel),
     AttStackOut ~> stack(StackOut),
     AttModel ~> model(Model).
-solve_goal(Goal, StackIn, StackOut, Model) :-
+solve_goal(Goal, M, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= builtin(_),
-    \+ table_predicate(Goal),
-    user_predicate(Goal),
-    (   solve_goal_predicate(Goal, [Goal|StackIn], StackOut, Model)
+    \+ table_predicate(M:Goal),
+    user_predicate(M:Goal),
+    (   solve_goal_predicate(Goal, M, [Goal|StackIn], StackOut, Model)
     *-> true
-    ;   shown_predicate(Goal),
+    ;   shown_predicate(M:Goal),
         if_user_option(
             trace_failures,
             ( if_user_option(show_tree,
@@ -121,33 +128,33 @@ solve_goal(Goal, StackIn, StackOut, Model) :-
         ),
         fail
     ).
-solve_goal(call(Goal),StackIn,StackOut,[call(Goal)|Model]) :- !,
-    solve_goal(Goal,StackIn,StackOut,Model).
-solve_goal(not(call(Goal)),StackIn,StackOut,[not(call(Goal))|Model]) :- !,
-    solve_goal(not(Goal),StackIn,StackOut,Model).
-solve_goal(Goal, StackIn, StackOut, [Goal|Model]) :-
+solve_goal(call(Goal),M,StackIn,StackOut,[call(Goal)|Model]) :- !,
+    solve_goal(Goal,M,StackIn,StackOut,Model).
+solve_goal(not(call(Goal)),M,StackIn,StackOut,[not(call(Goal))|Model]) :- !,
+    solve_goal(not(Goal),M,StackIn,StackOut,Model).
+solve_goal(Goal, M, StackIn, StackOut, [Goal|Model]) :-
     Goal=findall(_, _, _), !,
-    exec_findall(Goal, StackIn, StackOut, Model).
-solve_goal(not(Goal), StackIn, StackIn, [not(Goal)]) :-
+    exec_findall(Goal, M, StackIn, StackOut, Model).
+solve_goal(not(Goal), M, StackIn, StackIn, [not(Goal)]) :-
     Goal=findall(_, _, _), !,
-    exec_neg_findall(Goal, StackIn).
-solve_goal(Goal, StackIn, [[], Goal|StackOut], Model) :-
-    Goal \= [], Goal \= [_|_], \+ user_predicate(Goal),
-    \+ table_predicate(Goal),
+    exec_neg_findall(Goal, M, StackIn).
+solve_goal(Goal, M, StackIn, [[], Goal|StackOut], Model) :-
+    Goal \= [], Goal \= [_|_], \+ user_predicate(M:Goal),
+    \+ table_predicate(M:Goal),
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
 
-%!  solve_goal_forall(+Forall, ?StackIn, ?StackOut, ?GoalModel)
+%!  solve_goal_forall(+Forall, +Module, +StackIn, -StackOut, -GoalModel)
 %
 %   Solve a sub-goal of the form `forall(Var,Goal)`  and success  if Var
 %   success in all its domain for the goal Goal. It calls solve/4
 %
 %   @arg Forall is a term forall(?Var, ?Goal)
 
-solve_goal_forall(forall(Var, Goal), StackIn, [[]|StackOut], Model) :-
+solve_goal_forall(forall(Var, Goal), M, StackIn, [[]|StackOut], Model) :-
     my_copy_term(Var, Goal, NewVar, NewGoal),
     my_copy_term(Var, Goal, NewVar2, NewGoal2),
-    solve([NewGoal], StackIn, [[]|StackMid], ModelMid),
+    solve([NewGoal], M, StackIn, [[]|StackMid], ModelMid),
     if_user_option(check_calls,
                    format('\tSuccess solve ~@\n\t\t for the ~@\n',
                           [print_goal(NewGoal), print_goal(forall(Var, Goal))])),
@@ -255,28 +262,29 @@ exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
     exec_with_neg_list(Var, Goal, Vs, NewStackMid, StackOut, Models),
     append(ModelMid, Models, Model).
 
-%!  solve_goal_table_predicate(?Goal, ?AttStackIn, ?AttStackOut, ?AttModel)
+%!  solve_goal_table_predicate(+Goal, +Module,
+%!                             +AttStackIn, -AttStackOut, -AttModel)
 %
 %   Used to evaluate predicates under tabling. This predicates should be
 %   defined in the program using the directive _#table pred/n._
 
-solve_goal_table_predicate(Goal, AttStackIn, AttStackOut, AttModel) :-
-    pr_rule(Goal, Body),
+solve_goal_table_predicate(Goal, M, AttStackIn, AttStackOut, AttModel) :-
+    M:pr_rule(Goal, Body),
     AttStackIn ~> stack(StackIn),
-    solve(Body, StackIn, StackOut, Model),
+    solve(Body, M, StackIn, StackOut, Model),
     AttStackOut <~ stack(StackOut),
     AttModel <~ model([Goal|Model]).
 
-%!  solve_goal_predicate(?Goal, ?StackIn, ?StackOut, ?GoalModel)
+%!  solve_goal_predicate(+Goal, +Module, +StackIn, -StackOut, -GoalModel)
 %
 %   Used to evaluate a user predicate
 
-solve_goal_predicate(Goal, StackIn, StackOut, GoalModel) :-
-    pr_rule(Goal, Body),
-    solve(Body, StackIn, StackOut, BodyModel),
+solve_goal_predicate(Goal, M, StackIn, StackOut, GoalModel) :-
+    M:pr_rule(Goal, Body),
+    solve(Body, M, StackIn, StackOut, BodyModel),
     GoalModel = [Goal|BodyModel].
 
-%!  solve_goal_builtin(?Goal, ?StackIn, ?StackOut, ?AttModel)
+%!  solve_goal_builtin(+Goal, +StackIn, -StackOut, -AttModel)
 %
 %   Used to evaluate builtin predicates predicate
 
@@ -339,12 +347,12 @@ capture_rational(A, A) :- ground(A).
 
 
 % TODO: Peding StackOut to carry the literal involved in the findall (if needed)
-exec_findall(findall(Var, Call, List), StackIn, StackOut, Model) :-
+exec_findall(findall(Var, Call, List), M, StackIn, StackOut, Model) :-
 
     if_user_option(check_calls, format('execution of findall(~p, ~p, _) \n', [Var, Call])),
 
     findall(t(Var, S, M), (
-            solve([Call], StackIn, S0, M),
+            solve([Call], M, StackIn, S0, M),
             append(S, StackIn, S0)
         ), VSMList),
 
@@ -363,55 +371,55 @@ process_vsmlist_([t(V, [[]|S], M)|Rs], [V|Vs], S1, M1) :-
     append(M, M0, M1).
 
 % TODO: What to do with the negation of findall/3 (if required)
-exec_neg_findall(Goal, _) :-
+exec_neg_findall(Goal, _, _) :-
     if_user_option(check_calls, format('PENDING: execution of not ~p \n', [Goal])),
     fail.
 
 
-%!  check_CHS(+Goal, +StackIn, -Result) is semidet.
+%!  check_CHS(+Goal, +Module, +StackIn, -Result) is semidet.
 %
 %   Checks the StackIn and returns  in  Result   if  the  goal Goal is a
 %   coinductive success, a coinductive  failure   or  an  already proved
 %   goal. Otherwise it is constraint against  its negation atoms already
 %   visited.
 
-check_CHS(Goal, I, Result) :-
-    (   user_predicate(Goal)
-    ->  check_CHS_(Goal, I, Result)
+check_CHS(Goal, M, I, Result) :-
+    (   user_predicate(M:Goal)
+    ->  check_CHS_(Goal, M, I, Result)
     ;   Result = cont
     ).
 
 % inmediate success if the goal has already been proved.
-check_CHS_(Goal, I, proved) :-
+check_CHS_(Goal, _, I, proved) :-
     ground(Goal),
     \+ \+ proved_in_stack(Goal, I), !.
 % coinduction success <- cycles containing even loops may succeed
-check_CHS_(Goal, I, co_success) :-
+check_CHS_(Goal, _, I, co_success) :-
     type_loop(Goal, I, even), !.
 % coinduction fails <- the goal is entailed by its negation in the
 % call stack
-check_CHS_(Goal, I, co_failure) :-
+check_CHS_(Goal, _, I, co_failure) :-
     \+ \+ neg_in_stack(Goal, I), !,
     if_user_option(check_calls, format('Negation of the goal in the stack, failling (Goal = ~w)\n', [Goal])).
 % coinduction fails <- cycles containing positive loops can be solve
 % using tabling
-check_CHS_(Goal, I, co_failure) :-
-    \+ table_predicate(Goal),
+check_CHS_(Goal, M, I, co_failure) :-
+    \+ table_predicate(M:Goal),
     if_user_option(no_fail_loop, fail),
     \+ \+ (
         type_loop(Goal, I, fail_pos(S)),
         if_user_option(check_calls, format('Positive loop, failling (Goal == ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w == ~w)\n', [Goal, S]))
     ), !.
-check_CHS_(Goal, I, _Cont) :-
-    \+ table_predicate(Goal),
+check_CHS_(Goal, M, I, _Cont) :-
+    \+ table_predicate(M:Goal),
     \+ \+ (
         type_loop(Goal, I, pos(S)),
         if_user_option(check_calls, format('Positive loop, continuing (Goal = ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nNote: positive loop continuing (Goal ~w = ~w)\n', [Goal, S]))
     ), fail.
 % coinduction does not succeed or fail <- the execution continues inductively
-check_CHS_(Goal, I, cont) :-
+check_CHS_(Goal, _, I, cont) :-
     (   ground(Goal)
     ->  (   constrained_neg_in_stack(Goal, I)
         *-> true
@@ -599,7 +607,7 @@ type_loop_fail_pos(Goal, S) :-
     if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~@\n\tPrevious call:\t~@\n", [print_goal(Goal), print_goal(S)])).
 
 
-%!  solve_c_forall(+Forall, +StackIn, -StackOut, -GoalModel)
+%!  solve_c_forall(+Forall, +Module, +StackIn, -StackOut, -GoalModel)
 %
 %   Solve a sub-goal of the form c_forall(Vars,Goal) and succeeds if the
 %   goal `Goal` succeeds covering the domain of all the vars in the list
@@ -609,7 +617,7 @@ type_loop_fail_pos(Goal, S) :-
 %   @tbd Improve the efficiency by removing redundant justifications w.o.
 %   losing solutions.
 
-solve_c_forall(Forall, StackIn, [[]|StackOut], Model) :-
+solve_c_forall(Forall, M, StackIn, [[]|StackOut], Model) :-
     collect_vars(Forall, c_forall(Vars0, Goal0)),    % c_forall([F,G], not q_1(F,G))
 
     if_user_option(check_calls,format('\nc_forall(~p,\t~p)\n\n',[Vars0, Goal0])),
@@ -618,17 +626,17 @@ solve_c_forall(Forall, StackIn, [[]|StackOut], Model) :-
     my_diff_term(Goal1, Vars1, OtherVars),
     Initial_Const = [],                              % Constraint store = top
     (   current_option(all_forall,on)
-    ->  solve_var_forall_(Goal1,
+    ->  solve_var_forall_(Goal1, M,
                           entry(Vars1, Initial_Const),
                           dual(Vars1, [Initial_Const]),
                           OtherVars, StackIn, StackOut, Model)
-    ;   solve_other_forall(Goal1,
+    ;   solve_other_forall(Goal1, M,
                            entry(Vars1, Initial_Const),
                            dual(Vars1, [Initial_Const]),
                            OtherVars, StackIn, StackOut, Model)
     ).
 
-solve_other_forall(Goal,
+solve_other_forall(Goal, M,
                    entry(Vars, Initial_Const),
                    dual(Vars, [Initial_Const]),
                    OtherVars, StackIn, StackOutExit, ModelExit) :-
@@ -662,7 +670,7 @@ solve_other_forall(Goal,
 
     apply_const_store(Constraints1),!,
 
-    solve_var_forall_(Goal1,
+    solve_var_forall_(Goal1, M,
                       entry(Vars1, Initial_Const),
                       dual(Vars1, [Initial_Const]), OtherVars1,
                       StackIn1, StackOut, Model),
@@ -679,15 +687,16 @@ solve_other_forall(Goal,
         make_duals(AnsConstraints2, Duals),
         member(Dual, Duals),
         apply_const_store(Dual),
-        solve_other_forall(Goal2,
+        solve_other_forall(Goal2, M,
                            entry(Vars2, Initial_Const),
                            dual(Vars2, [Initial_Const]),
                            OtherVars2, StackIn2, StackOutExit, ModelExit), !,
         OtherVars = OtherVars2
     ).
 
-solve_var_forall_(_Goal, _, dual(_, []), _OtherVars, StackIn, StackIn, []) :- !.
-solve_var_forall_(Goal,
+solve_var_forall_(_Goal, _, _, dual(_, []),
+                  _OtherVars, StackIn, StackIn, []) :- !.
+solve_var_forall_(Goal, M,
                   entry(C_Vars, Prev_Store),
                   dual(C_Vars, [C_St|C_Stores]),
                   OtherVars, StackIn, StackOut, Model) :-
@@ -705,11 +714,11 @@ solve_var_forall_(Goal,
     apply_const_store(Prev_Store),
     (   if_user_option(check_calls,format('apply_const_store ~@\n',[print_goal(C_St)])),
         apply_const_store(C_St) % apply a Dual
-    ->  solve([Goal], StackIn, [[]|StackOut1], Model1),
+    ->  solve([Goal], M, StackIn, [[]|StackOut1], Model1),
         find_duals(C_Vars-C_Vars1, OtherVars, Duals),       %% New Duals
         if_user_option(check_calls,format('Duals = \t ~p\n',[Duals])),
         append_set(Prev_Store1, C_St1, Current_Store1),
-        solve_var_forall_(Goal1,
+        solve_var_forall_(Goal1, M,
                           entry(C_Vars1, Current_Store1),
                           dual(C_Vars1, Duals),
                           OtherVars, StackOut1, StackOut2, Model2),
@@ -720,7 +729,7 @@ solve_var_forall_(Goal,
         StackOut2 = StackIn,
         Model3 = []
     ),
-    solve_var_forall_(Goal2,
+    solve_var_forall_(Goal2, M,
                       entry(C_Vars2, Prev_Store2),
                       dual(C_Vars2, C_Stores2),
                       OtherVars, StackOut2, StackOut, Model4),

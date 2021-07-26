@@ -8,36 +8,35 @@
             user_predicate/1            % ?Goal
           ]).
 :- use_module(ops).
-:- use_module(output).                  % the pr_* predicates
 
 /** <module> Basic information about sCASP predicates
 */
 
-%!  user_predicate(?Goal)
+%!  user_predicate(:Goal)
 %
 %   Success if Goal is a user predicate
 
-user_predicate(builtin(_)) => fail.
-user_predicate(not(_ is _)) => fail.
-user_predicate(not(true)) => fail.
-user_predicate(not(fail)) => fail.
-user_predicate(not(_)) => true.
-user_predicate(Goal) =>
+user_predicate(_:builtin(_)) => fail.
+user_predicate(_:not(_ is _)) => fail.
+user_predicate(_:not(true)) => fail.
+user_predicate(_:not(fail)) => fail.
+user_predicate(_:not(_)) => true.
+user_predicate(M:Goal) =>
     functor(Goal, Name, Arity),
-    pr_user_predicate(Name/Arity), !.
+    M:pr_user_predicate(Name/Arity), !.
 
-%!  table_predicate(?Goal)
+%!  table_predicate(:Goal)
 %
 %   Success if Goal is defined as a tabled predicate with  the directive
 %   `:- table pred/n.`
 
-table_predicate(Goal) :-
+table_predicate(M:Goal) =>
     functor(Goal, Name, Arity),
-    pr_table_predicate(Name/Arity).
+    M:pr_table_predicate(Name/Arity).
 
-shown_predicate(not(Goal)) :-
+shown_predicate(M:not(Goal)) :-
     !,
-    user_predicate(Goal).
+    user_predicate(M:Goal).
 shown_predicate(Goal) :-
     user_predicate(Goal).
 
