@@ -582,14 +582,13 @@ user_predicate(assume(A)) :- !,
     user_predicate(A).
 user_predicate(A) :- !,
     \+ aux_predicate(A),
-    A =.. [Name|Args],
-    length(Args,La),
-    pr_user_predicate(Name/La).
+    functor(A, Name, Arity),
+    pr_user_predicate(Name/Arity).
 
 aux_predicate(-(o_,_)) :- !.
 aux_predicate(A) :-
-    A =.. [Name|_],
-    atom_chars(Name,['o','_'|_]).
+    functor(A, Name, _Arity),
+    sub_atom(Name, 0, _, _, o_).
 
 neg_aux_predicate(not(Pred)) :- aux_predicate(Pred).
 
