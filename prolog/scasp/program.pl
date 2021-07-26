@@ -87,7 +87,7 @@ the resulting dynamic predicates.
 %   @arg Subchecks The list of subcheck goals.
 
 % These predicates are filled by assert_program/1 from the output of the
-% parser.  sasp_load/1 realizes the entire compilation chain.
+% parser.  scasp_load/1 realizes the entire compilation chain.
 % Body terms contains variables as e.g. `'X'`.
 
 :- thread_local

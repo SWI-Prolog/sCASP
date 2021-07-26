@@ -26,7 +26,7 @@
 */
 
 :- module(scasp_compile,
-          [ sasp_load/1     % +Sources:list
+          [ scasp_load/1     % +Sources
           ]).
 
 /** <module> s(ASP) Ungrounded Stable Models Solver
@@ -46,7 +46,7 @@ results.
 :- use_module(nmr_check).
 :- use_module(output).
 
-%!  sasp_load(+Sources)
+%!  scasp_load(+Sources)
 %
 %   Load the files from Sources.   Steps taken:
 %
@@ -59,10 +59,10 @@ results.
 %
 %   @arg Sources A list of paths of input files.
 
-sasp_load(Spec) :-
+scasp_load(Spec) :-
     to_list(Spec, Sources),
     call_cleanup(
-        sasp_load_guarded(Sources),
+        scasp_load_guarded(Sources),
         destroy_program).
 
 to_list(List, List) :-
@@ -70,7 +70,7 @@ to_list(List, List) :-
     !.
 to_list(One, [One]).
 
-sasp_load_guarded(Sources) :-
+scasp_load_guarded(Sources) :-
     load_source_files(Sources),
     comp_duals,
     generate_nmr_check,

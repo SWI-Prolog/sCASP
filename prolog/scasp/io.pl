@@ -66,7 +66,7 @@ load_program(X) :-
     ->  Files = X
     ;   Files = [X]
     ),
-    sasp_load(Files),
+    scasp_load(Files),
     assert(loaded_file(Files)).
 
 %!  write_program
