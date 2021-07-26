@@ -26,7 +26,8 @@
 */
 
 :- module(scasp_compile,
-          [ scasp_load/1     % +Sources
+          [ scasp_load/1,        % +Sources
+            scasp_compile/2      % +Terms,+Options
           ]).
 
 /** <module> s(ASP) Ungrounded Stable Models Solver
@@ -76,3 +77,19 @@ scasp_load_guarded(Sources) :-
     generate_nmr_check,
     debug(scasp(compile), 'SASP step of input program complete.', []),
     generate_pr_rules(Sources).
+
+%!  scasp_compile(+Terms, +Options) is det.
+%
+%   Create an sCASP program from Terms.
+
+scasp_compile(Terms, Options) :-
+    call_cleanup(
+        scasp_compile_guarded(Terms, Options),
+        destroy_program).
+
+scasp_compile_guarded(Terms, Options) :-
+    scasp_load_terms(Terms, Options),
+    comp_duals,
+    generate_nmr_check,
+    debug(scasp(compile), 'SASP step of input program complete.', []),
+    generate_pr_rules(_Sources). % ignored anyway

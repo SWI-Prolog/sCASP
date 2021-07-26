@@ -33,7 +33,8 @@
 
 :- module(scasp_input,
           [ load_source_files/1,        % +Files
-            sasp_read/2                 % +File, -Statements
+            sasp_read/2,                % +File, -Statements
+            scasp_load_terms/2          % +Terms,+Options
           ]).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
@@ -75,6 +76,21 @@ load_source_files(Fs) :-
     maplist(sasp_read, Fs, StmtsList),
     append(StmtsList, Statements),
     assert_program(Statements).
+
+%!  scasp_load_terms(+Terms, +Options)
+%
+%   Perform the load_source_files/1 preparation  step   from  a  list of
+%   Prolog terms.
+
+scasp_load_terms(Terms, Options) :-
+    term_statements(Terms, Statements, Options),
+    assert_program(Statements).
+
+term_statements([], [], _).
+term_statements([H|T], Statements, Options) :-
+    sasp_statement(H, [], New, _Pos, Options),
+    add_statements(New, Tail, Statements),
+    term_statements(T, Tail, Options).
 
 
 		 /*******************************
