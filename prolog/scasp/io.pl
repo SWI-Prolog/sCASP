@@ -116,11 +116,10 @@ print_query([true,A|As]) :- !,
     print_query([A|As]).
 print_query(Query) :-
     format('% QUERY:',[]),
-    (   current_option(human,on) ->
-        format('I would like to know if', []),
+    (   current_option(human,on)
+    ->  format('I would like to know if', []),
         print_human_body(Query)
-    ;
-        list_to_conj(Query,ConjPQ),
+    ;   list_to_conj(Query,ConjPQ),
         format('?- ~p.\n',[ConjPQ])
     ).
 
@@ -203,17 +202,15 @@ printable_model_([First|Rest]) :-
         printable_model_(Rest)
     ).
 
-printable_literal(X) :-
-    X \= abducible(_),
-    \+ aux_predicate(X),
-    \+ neg_aux_predicate(X),
-    X \= 'o_nmr_check',
-    X \= chs(_),
-    (   pr_show_predicate(_)
-    ->  pr_show_predicate(X)
-    ;   X \= proved(_)
-    ).
-
+printable_literal(abducible(_)) => fail.
+printable_literal(o_nmr_check) => fail.
+printable_literal(chs(_)) => fail.
+printable_literal(X), aux_predicate(X) => fail.
+printable_literal(not(X)), aux_predicate(X) => fail.
+printable_literal(proved(_)) => fail.
+printable_literal(X), pr_show_predicate(_) =>
+    pr_show_predicate(X).
+printable_literal(_) => true.
 
 %!  print_check_calls_calling(?Goal, ?StackIn)
 %
@@ -589,8 +586,6 @@ aux_predicate(-(o_,_)) :- !.
 aux_predicate(A) :-
     functor(A, Name, _Arity),
     sub_atom(Name, 0, _, _, o_).
-
-neg_aux_predicate(not(Pred)) :- aux_predicate(Pred).
 
 truncate_(X,Y) :-
     current_option(decimals,D),
