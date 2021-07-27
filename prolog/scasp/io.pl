@@ -1,18 +1,18 @@
 :- module(scasp_io,
           [ scasp_portray_program/1,    % :Options
             scasp_portray_query/2,      % :Query, +Options
+            scasp_portray_model/2,      % :Model. +Options
             print_goal/1,
             process_query/3,		% +QGround, -QVar, -TotalQ
             process_query/4,		% +QGround, -QVar, -TotalQ, -VarNames
             ask_for_more_models/0,
             allways_ask_for_more_models/0,
             print_justification_tree/1, % justification tree
-            print_model/1,              % +Model
-            select_printable_literals/3,
             print_unifier/2,            % +Bindings
             pretty_term/4,
             print_check_calls_calling/2,
-            print_html/3
+            print_html/3,
+            printable_model/2           % :Model,-Printable
           ]).
 :- op(900, fy, user:not).
 
@@ -28,7 +28,8 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 
 :- meta_predicate
     scasp_portray_program(:),
-    scasp_portray_query(:, +).
+    scasp_portray_query(:, +),
+    scasp_portray_model(:, +).
 
 :- use_module(output).
 :- use_module(variables).
@@ -138,19 +139,23 @@ print_justification_tree(StackOut) :-
     %%    process_stack(StackOut, _),        %% see file scasp_process.pl
     print_s(StackOut), !.
 
-%!  print_model(?Model)
+%!  scasp_portray_model(:Model, +Options)
 %
-%   Print the partial model of the program using Model.
+%   Print the partial model of the program using Model.  Options defined
+%   are:
+%
+%     - html(Bool)
+%       Emit as HTML (default `false`).
 
-print_model(Model) :-
+scasp_portray_model(M:Model, Options) :-
     format('\nMODEL:\n',[]),
-    print_model_(Model).
+    portray_model(Model, M, [module(M)|Options]).
 
-print_model_(Model):-
-    select_printable_literals(Model,[],Selected),
-    reverse(Selected, Printable),
+portray_model(Model, M, Options):-
+    printable_model(M:Model, PrintModel),
+    reverse(PrintModel, Printable),
     format('{ ', []),
-    printable_model_(Printable),
+    portray_model_elements(Printable, Options),
     format(' }\n', []).
 
 %!  print_unifier(?Vars, ?PVars)
@@ -180,38 +185,41 @@ print_unifier_([Binding|Bs],[PV|PVars]) :-
     print_unifier_(Bs,PVars).
 
 
-select_printable_literals([],Ac,Ac) :- !.
-select_printable_literals([X|Xs],Ac0,Ac1) :- !,
-    select_printable_literals(X,Ac0,Acm),
-    select_printable_literals(Xs,Acm,Ac1).
-select_printable_literals(X,Ac0,[X|Ac0]) :-
-    printable_literal(X),
-    \+ member(X,Ac0), !.   %% Remove repeated literals.
-select_printable_literals(_,Ac0,Ac0).
+%!  printable_model(:Model, -Printable) is det.
+%
+%   simplify the model, preparing for printing
+%
+%   @tbd: Should we sort or use list_to_set/2?
 
+printable_model(M:Model, Printable) :-
+    flatten(Model, Model1),
+    list_to_set(Model1, Model2),
+    include(printable_literal(M), Model2, Printable).
 
-printable_model_([]).
-printable_model_([First|Rest]) :-
+printable_literal(_, abducible(_)) :- !, fail.
+printable_literal(_, o_nmr_check) :- !, fail.
+printable_literal(_, chs(_)) :- !, fail.
+printable_literal(_, X) :- aux_predicate(X), !, fail.
+printable_literal(_, not(X)) :- aux_predicate(X), !, fail.
+printable_literal(_, proved(_)) :- !, fail.
+printable_literal(M, X) :-
+    (   M:pr_show_predicate(_)
+    ->  M:pr_show_predicate(X)
+    ;   true
+    ).
+
+portray_model_elements([], _Options).
+portray_model_elements([First|Rest], Options) :-
     print(First),
     (   Rest == []
     ->  true
-    ;   (   printingHTML
+    ;   (   option(html(true), Options)
         ->  format(',  ', []),
             tab_html(5)
         ;   format(',  ', [])
         ),
-        printable_model_(Rest)
+        portray_model_elements(Rest, Options)
     ).
-
-printable_literal(abducible(_)) => fail.
-printable_literal(o_nmr_check) => fail.
-printable_literal(chs(_)) => fail.
-printable_literal(X), aux_predicate(X) => fail.
-printable_literal(not(X)), aux_predicate(X) => fail.
-printable_literal(proved(_)) => fail.
-printable_literal(X), pr_show_predicate(_) =>
-    pr_show_predicate(X).
-printable_literal(_) => true.
 
 %!  print_check_calls_calling(?Goal, ?StackIn)
 %
@@ -876,7 +884,7 @@ pretty_clp_(>=,>=).
          print_html_to_current_output/3,
          print_html_human_query/1,
          print_html_query/1,
-         print_model_/1,
+         scasp_portray_model/2,
          print_html_stack/1
        )).
 
@@ -907,7 +915,7 @@ print_html_to_current_output(Query, Model, StackOut) :-
         nl
     ;   print_html_query(Query),nl,
         format('<h3>Model:</h3>\n', []),
-        print_model_(Model)
+        scasp_portray_model(scasp_output:Model, [html(true)]) % TBD fix module
     ),
     br,br,nl,
     format('<h3> Justification: \c

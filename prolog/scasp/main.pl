@@ -47,21 +47,6 @@ load_sources([]) :-
 load_sources(Sources) :-
     scasp_load(Sources).
 
-write_program :-
-    current_option(human, on),
-    !,
-    scasp_portray_program([human(true)]).
-write_program :-
-    scasp_portray_program([]).
-
-print_query(PQ) :-
-    current_option(human, on),
-    !,
-    scasp_portray_query(PQ, [human(true)]).
-print_query(PQ) :-
-    scasp_portray_query(PQ, []).
-
-
 %!  main_loop
 %
 %   Run an interactive toplevel loop.   Invoked  by `scasp --interactive
@@ -168,8 +153,8 @@ main_solve(Q0) :-
 take_min(Query, MinModel, Model, StackOut, T) :-
     statistics(runtime, _),
     solve(Query, [], StackOut, Model),
-    statistics(runtime, [_|[T]]),
-    select_printable_literals(Model, [], PrintableModel),
+    statistics(runtime, [_,T]),
+    printable_model(scasp_output:Model, PrintableModel),
     sort(PrintableModel, MinModel).
 
 collect_min_models(Q0) :-
@@ -209,3 +194,23 @@ defined_query(_) :-
     halt(1).
 defined_query(Q) :-
     pr_query(Q).
+
+print_model(Model) :-
+    print_options(Options),
+    scasp_portray_model(Model, Options).
+
+write_program :-
+    print_options(Options),
+    scasp_portray_program(Options).
+
+print_query(PQ) :-
+    print_options(Options),
+    scasp_portray_query(PQ, Options).
+
+print_options(Options) :-
+    findall(Opt, print_option(Opt), Options).
+
+print_option(html(true)) :-
+    current_option(html, on).
+print_option(human(true)) :-
+    current_option(human, on).
