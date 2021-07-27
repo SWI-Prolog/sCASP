@@ -6,7 +6,7 @@
     prolog:error_message//1.
 
 prolog:message(scasp(Term)) -->
-    casp_message(Term).
+    scasp_message(Term).
 prolog:message(sasp(Term)) -->
     sasp_message(Term).
 
@@ -17,8 +17,10 @@ prolog:error_message(sasp(Term)) -->
 		 *            CASP		*
 		 *******************************/
 
-casp_message(no_input_files) -->
+scasp_message(no_input_files) -->
     [ 'No input file specified!' ].
+scasp_message(undefined_operator(Op)) -->
+    [ 'clp operator ~p not defined'-[Op] ].
 
 
 		 /*******************************

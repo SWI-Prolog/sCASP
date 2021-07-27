@@ -1,15 +1,15 @@
 :- module(scasp_io,
-          [ write_program/0,
+          [ scasp_portray_program/1,    % :Options
+            scasp_portray_query/2,      % :Query, +Options
             print_goal/1,
             process_query/3,		% +QGround, -QVar, -TotalQ
             process_query/4,		% +QGround, -QVar, -TotalQ, -VarNames
             ask_for_more_models/0,
             allways_ask_for_more_models/0,
-            print_query/1,      % query
             print_justification_tree/1, % justification tree
-            print_model/1,      % model
+            print_model/1,              % +Model
             select_printable_literals/3,
-            print_unifier/2,    % bindings
+            print_unifier/2,            % +Bindings
             pretty_term/4,
             print_check_calls_calling/2,
             print_html/3
@@ -26,6 +26,10 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 @author Joaquin Arias
 */
 
+:- meta_predicate
+    scasp_portray_program(:),
+    scasp_portray_query(:, +).
+
 :- use_module(output).
 :- use_module(variables).
 :- use_module(options).
@@ -37,14 +41,6 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 :- use_module(clp/clpq).
 
 :- dynamic cont/0.
-
-%!  write_program
-%
-%   Call  c(asp)  to print  the source  code of  the translation  of the
-%   programs already loaded by load_program/1
-
-write_program :-
-    print_human_program.
 
 %!  process_query(+Q, -Query, -TotalQuery) is det.
 %!  process_query(+Q, -Query, -TotalQuery, -VarNames) is det.
@@ -106,21 +102,26 @@ allways_ask_for_more_models :-
     ).
 
 
-%!  print_query(?Query)
+%!  scasp_portray_query(:Query, +Options) is det.
 %
 %   Print the Query
 
-print_query([not(o_false)]) :- !,
+scasp_portray_query(M:Query, Options) :-
+    portray_query(Query, [module(M)|Options]).
+
+portray_query([not(o_false)], _Options) :-
+    !,
     format('% QUERY: Query not defined\n', []).
-print_query([true,A|As]) :- !,
-    print_query([A|As]).
-print_query(Query) :-
+portray_query([true,A|As], Options) :-
+    !,
+    portray_query([A|As], Options).
+portray_query(Query, Options) :-
     format('% QUERY:',[]),
-    (   current_option(human,on)
+    (   option(human(true), Options)
     ->  format('I would like to know if', []),
-        print_human_body(Query)
+        print_human_body(Query, Options)
     ;   list_to_conj(Query,ConjPQ),
-        format('?- ~p.\n',[ConjPQ])
+        format('?- ~p.~n',[ConjPQ])
     ).
 
 list_to_conj([], true) :-
@@ -310,23 +311,20 @@ print_s(Stack) :-
 print_s_([],_,_) :-
     print_human('.'), nl.
 print_s_([[]|As],I,I0) :- !,
-    (  sp_tab(I) ->
-        retract(sp_tab(I)),
+    (   sp_tab(I)
+    ->  retract(sp_tab(I)),
         I1 = I
-    ;
-        I1 is I - 4
+    ;   I1 is I - 4
     ),
     print_s_(As,I1,I0).
 print_s_([A|As],I,I0) :- !,
-    (  I0 > I ->
-        retractall(pr_repeat(I0,_))
-    ;
-        true
+    (   I0 > I
+    ->  retractall(pr_repeat(I0,_))
+    ;   true
     ),
-    ( [A|As] == [o_nmr_check,[],[],[]] ->
-        print_zero_nmr(A,I,I1)
-    ;
-        print_human_term(A,I,I1)
+    (   [A|As] == [o_nmr_check,[],[],[]]
+    ->  print_zero_nmr(A,I,I1)
+    ;   print_human_term(A,I,I1)
     ),
     print_s_(As,I1,I).
 
@@ -336,15 +334,13 @@ print_s_([A|As],I,I0) :- !,
 %
 
 print_zero_nmr(_,I,I1) :-
-    (   current_option(short,on) ->
-        asserta(sp_tab(I)),
+    (   current_option(short,on)
+    ->  asserta(sp_tab(I)),
         I1 = I
-    ;
-        nl,tab(I),
-        (   current_option(human,on) ->
-            format('There are no nmr to be checked',[])
-        ;
-            write(global_constraint)
+    ;   nl, tab(I),
+        (   current_option(human,on)
+        ->  format('There are no nmr to be checked',[])
+        ;   write(global_constraint)
         ),
         I1 is I + 4
     ).
@@ -353,29 +349,29 @@ print_zero_nmr(_,I,I1) :-
 %
 %
 
-print_human_term(A,I,I1) :-
-    pr_human_term((A::Human),Type), !,
-    (   current_option(mid,on), Type \= (pred), Type \= mid ->
-        asserta(sp_tab(I)),
+print_human_term(A, I, I1) :-
+    pr_human_term((A::Human),Type),
+    !,
+    (   current_option(mid,on),
+        Type \= (pred),
+        Type \= mid
+    ->  asserta(sp_tab(I)),
         I1 = I
-    ;
-        (   current_option(short,on), Type \= (pred) ->
-            asserta(sp_tab(I)),
+    ;   (   current_option(short,on), Type \= (pred)
+        ->  asserta(sp_tab(I)),
             I1 = I
-        ;
-            (   retract(pr_print(Sp)) ->
-                (   Sp > I ->
-                    print_human('.')
-                ;
-                    Sp < I,
-                    print_human(' :-')
-                ;
-                    print_human(',')
+        ;   (   retract(pr_print(Sp))
+            ->  (   Sp > I
+                ->  print_human('.')
+                ;   Sp < I
+                ->  print_human(' :-')
+                ;   print_human(',')
                 )
-            ;
-                true
+            ;   true
             ),
-            nl,tab(I),call(Human),
+            nl,
+            tab(I),
+            call(Human),
             I1 is I + 4,
             asserta(pr_print(I))
         )
@@ -416,20 +412,21 @@ pr_pred_term(A, pred) :-
     pr_pred_predicate(A), !.
 pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type) :- !,
     pr_human_term(A::Human, T),
-    (current_option(assume,on)*->Type = default;Type = T).
+    (   current_option(assume,on)
+    ->  Type = default
+    ;   Type = T
+    ).
 pr_pred_term(assume(A)::(format('we assume that ',[]), Human), Type) :- !,
     pr_human_term(A::Human, Type).
 pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
     pr_human_term(A::Human, T),
-    (   sp_tab(I) ->
-        (  pr_repeat(I,A) ->
-            Type = default
-        ;
-            assert(pr_repeat(I,A)),
+    (   sp_tab(I)
+    ->  (   pr_repeat(I,A)
+        ->  Type = default
+        ;   assert(pr_repeat(I,A)),
             Type = T
         )
-    ;
-        Type = T
+    ;   Type = T
     ).
 pr_pred_term(GlobalConstraint :: Human, pred) :-
     GlobalConstraint = o_nmr_check, !,
@@ -440,25 +437,23 @@ pr_pred_term(A, mid) :-
     pr_pred_classical_neg(A, _), !.
 pr_pred_term(A, Type) :-
     pr_pred_negated(A, T), !,
-    (   current_option(neg,on) ->
-        ( T = (pred) ->
-            Type = (pred)
-        ;
-            Type = mid
+    (   current_option(neg,on)
+    ->  (   T = (pred)
+        ->  Type = (pred)
+        ;   Type = mid
         )
-    ;
-        Type = default
+    ;   Type = default
     ).
 pr_pred_term(A, Type) :-
-    pr_pred_default(A), !,
+    pr_pred_default(A),
+    !,
     A = (Term::_),
-    (   Term \= not(_), user_predicate(Term) ->
-        Type = mid
-    ;
-        Type = default
+    (   Term \= not(_),
+        user_predicate(Term)
+    ->  Type = mid
+    ;   Type = default
     ).
-pr_pred_term( Error :: print(Error) , default ).
-
+pr_pred_term(Error :: print(Error), default).
 
 print_human(Connector) :-
     (   current_option(human,on)
@@ -672,7 +667,7 @@ human_portray_store((A '| ' B)) :-
 human_portray((A '| ' B):NX) :- !,
     format('a ~p ~p ',[NX,A]),
     human_portray_(B).
-human_portray('$'(X):NX) :- !,
+human_portray($(X):NX) :- !,
     format('~p, a ~p,',[X,NX]).
 human_portray(X:NX) :-
     format('the ~p ~p',[NX,X]).
@@ -740,8 +735,6 @@ human_portray_arg('$'(A)) :- !, print(A).
 human_portray_arg(A) :- print(A).
 
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Print pretty term
 %% (Also variables with attributes)
@@ -757,10 +750,22 @@ lookup_mydict(D0, D1, A, PVar) :-
         D1 = [PVar=A|D0]
     ).
 
+%!  pretty_term(+A, -PA) is det.
 %!  pretty_term(+D0, -D1, +A, -PA) is det.
+%
+%   Translates from the internal format to a printable format for terms:
+%
+%     - Variables are translated to a term $Name, according to D0.  New
+%       variables are named Var0, Var1, ...
+%     - Variables with constraints are translated into
+%       '| '($Var, {Constraints}).
+%     - Rational numbers are translated to D/N
 %
 %   @arg  D0  is  a  _variable  dictionary  represented  as  a  list  of
 %   `Name=Var` terms.
+
+pretty_term(A, PA) :-
+    pretty_term([], _, A, PA).
 
 pretty_term(D0,D1,A,PA) :-
     var(A), !,
@@ -771,22 +776,21 @@ pretty_term(D0,D2,[A|As],[PA|PAs]) :- !,
     pretty_term(D0,D1,A,PA),
     pretty_term(D1,D2,As,PAs).
 pretty_term(D0,D0,rat(A,B),C) :-
-    (   current_option(real, on) ->
-        C = rat(A,B)
-    ;
-        C = A/B
+    (   current_option(real, on)
+    ->  C = rat(A,B)
+    ;   C = A/B
     ), !.
 pretty_term(D0,D1,Functor,PF) :-
-    Functor =..[Name|Args], !,
+    Functor =.. [Name|Args],
+    !,
     pretty_term(D0,D1,Args,PArgs),
-    (   pretty_clp(Name,PName) ->
-        simple_operands(PArgs,SArgs),
+    (   pretty_clp(Name,PName)
+    ->  simple_operands(PArgs,SArgs),
         PF =.. [PName|SArgs]
-    ;   pretty_clp(_,Name) ->
-        simple_operands(PArgs,SArgs),
+    ;   pretty_clp(_,Name)
+    ->  simple_operands(PArgs,SArgs),
         PF =.. [Name|SArgs]
-    ;
-        PF =.. [Name|PArgs]
+    ;   PF =.. [Name|PArgs]
     ).
 pretty_term(D0,D0,A,'?'(A)).
 
@@ -835,7 +839,7 @@ pretty_constraints_(A,C) :-
     pretty_rat(Y,PY),
     (   pretty_clp(Op,P_Op)
     ->  C =.. [P_Op,PX,PY]
-    ;   format("WARNING: clp operator ~w not defined\n",[Op]),
+    ;   print_message(warning, scasp(undefined_operator(Op))),
         C =.. [Op,PX,PY]
     ).
 pretty_constraints_(A,A).
@@ -1103,39 +1107,43 @@ close_output_file(Stream,Current) :-
 br :- format('<br>').
 
 
-%!  print_human_program
+%!  scasp_portray_program(:Options)
 %
-%   Output pretty print of the program + dual rules + nmr-checks
+%   Output pretty print of  the  program   +  dual  rules  + nmr-checks.
+%   Options:
+%
+%     - human(Boolean)
+%       If `true`, write in _human_ format.
 
-print_human_program :-
-    pr_query(Query),
-    pretty_term([],_,Query,PrettyQuery),
-    findall(rule(Head,Body), pr_rule(Head,Body),Rules),
-    pretty_term_rules(Rules,PrettyRules),
+scasp_portray_program(M:Options) :-
+    scasp_portray_program(M, Options).
+
+scasp_portray_program(M, Options) :-
+    MOptions = [module(M)|Options],
+    M:pr_query(Query),
+    pretty_term(Query,PrettyQuery),
+    findall(rule(Head,Body), M:pr_rule(Head,Body),Rules),
+    maplist(pretty_term,Rules,PrettyRules),
     filter(PrettyRules, UserRules, DualRules, NMRChecks),
-    print_human_program_('% QUERY',PrettyQuery),
+    print_human_program('% QUERY',PrettyQuery, MOptions),
     nl,
-    print_human_program_('% USER PREDICATES',UserRules),
+    print_human_program('% USER PREDICATES',UserRules, MOptions),
     (   current_option(short, on)
     ->  true
     ;   current_option(mid, on)
     ->  dual_reverse(DualRules,[_|R_DualRules]),
         nl,nl,
-        print_human_program_('% DUAL RULES',R_DualRules)
+        print_human_program('% DUAL RULES',R_DualRules, MOptions)
     ;   dual_reverse(DualRules,[_|R_DualRules]),
         nl,nl,
-        print_human_program_('% DUAL RULES',R_DualRules),
+        print_human_program('% DUAL RULES',R_DualRules, MOptions),
         nmr_reverse(NMRChecks,R_NMRChecks),
         nl,nl,
-        print_human_program_('% INTEGRITY CONSTRAINTS',R_NMRChecks)
+        print_human_program('% INTEGRITY CONSTRAINTS',R_NMRChecks, MOptions)
     ),
     nl.
 
-pretty_term_rules([],[]).
-pretty_term_rules([R|Rs],[P|Ps]) :-
-    pretty_term([],_,R,P),
-    pretty_term_rules(Rs,Ps).
-
+%!  filter(+Rules, -UserRules, -DualRules, -NMRChecks) is det.
 
 filter([],[],[],[]).
 filter([R|Rs], Us, Ds, [R|Ns]) :-
@@ -1162,49 +1170,55 @@ chk_pred(Pred) :-
     ),
     !.
 
-print_human_program_(Title,Rules) :-
-    format('~w:', [Title]),
-    nl,
+%!  print_human_program(+Title, +Rules, +Options)
+
+print_human_program(Title, Rules, Options) :-
+    format('~w:\n', [Title]),
     (   Title == '% QUERY'
-    ->  print_human_query(Rules)
-    ;   print_human_rules(Rules)
+    ->  print_human_query(Rules, Options)
+    ;   print_human_rules(Rules, Options)
     ).
 
 
-print_human_query([not(o_false)]) :- !,
+print_human_query([not(o_false)], _Options) :- !,
     format('% Query not defined\n').
-print_human_query([true,A|As]) :- !,
-    print_human_query([A|As]).
-print_human_query(Query) :-
-    (   current_option(human,on)
-    ->  nl,
-        format('I would like to know if'),
-        print_human_body(Query)
+print_human_query([true,A|As], Options) :- !,
+    print_human_query([A|As], Options).
+print_human_query(Query, Options) :-
+    (   option(human(true), Options)
+    ->  format('~NI would like to know if'),
+        print_human_body(Query, Options)
     ;   list_to_conj(Query,ConjPQ),
         format('?- ~p.\n',[ConjPQ])
     ).
 
 
-print_human_rules([R]) :-
-    print_human_rules_(R).
-print_human_rules([R0,R1|Rs]) :-
-    print_human_rules_(R0),
+print_human_rules([R], Options) :-
+    print_human_rules_(R, Options).
+print_human_rules([R0,R1|Rs], Options) :-
+    print_human_rules_(R0, Options),
     (   rule_eq(R0,R1)
     ->  true
     ;   nl
     ),
-    print_human_rules([R1|Rs]).
-print_human_rules_(R) :-
+    print_human_rules([R1|Rs], Options).
+
+print_human_rules_(R, Options) :-
     R = rule(Head,Body),
-    print_human_head(Head),
+    print_human_head(Head, Options),
     (   Body == []
     ->  format('.\n')
-    ;   (   current_option(human,on)
+    ;   (   option(human(true), Options)
         ->  format(', if')
         ;   format(' :-')
         ),
-        print_human_body(Body)
+        print_human_body(Body, Options)
     ).
+
+%!  rule_eq(+Rule1, +Rule2) is semidet.
+%
+%   True when Rule1 and Rule2 belong to  the same predicate. Used to add
+%   a blank line between two rule sets.
 
 rule_eq(rule(H,_),rule(H,_)) :- !.
 rule_eq(rule(not(H),_),rule(not(H1),_)) :- !, rule_eq_(H,H1).
@@ -1212,24 +1226,24 @@ rule_eq(rule(-H,_),rule(-H1,_)) :- !, rule_eq_(H,H1).
 rule_eq(rule(H,_),rule(H1,_)) :- !, rule_eq_(H,H1).
 
 rule_eq_(H, H1) :-
-    same_functor(H, H1).                % JW: Why not arguments?
+    same_functor(H, H1).
 
-print_human_head(Head) :-
+print_human_head(Head, _Options) :-
     pr_human_term(Head::Format,_),
     call(Format).
 
-print_human_body([Last]) :- !,
-    print_human_body_(Last),
+print_human_body([Last], Options) :- !,
+    print_human_body_(Last, Options),
     format('.\n').
-print_human_body([L|Ls]) :-
-    print_human_body_(L),
-    (   current_option(human,on)
+print_human_body([L|Ls], Options) :-
+    print_human_body_(L, Options),
+    (   option(human(true), Options)
     ->  format(' and')
     ;   format(',')
     ),
-    print_human_body(Ls).
+    print_human_body(Ls, Options).
 
-print_human_body_(L) :-
+print_human_body_(L, _) :-
     pr_human_term(L::Format,_),
     nl, tab(5),
     call(Format).

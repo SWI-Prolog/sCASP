@@ -29,14 +29,15 @@ main(Args) :-
     parse_args(Args, Options, Sources),
     set_options(Options),
     load_sources(Sources),
-    if_user_option(write_program, (write_program, halt)),
-    (   current_option(interactive, on)
+    (   current_option(write_program, on)
+    ->  write_program,
+        halt
+    ;   current_option(interactive, on)
     ->  '$toplevel':setup_readline,
         main_loop
-    ;   defined_query(Q),
-        main_solve(Q)
+    ;   defined_query(Q)
+    ->  ignore(main_solve(Q))
     ).
-main(_).
 
 load_sources([]) :-
     !,
@@ -45,6 +46,21 @@ load_sources([]) :-
     halt(1).
 load_sources(Sources) :-
     scasp_load(Sources).
+
+write_program :-
+    current_option(human, on),
+    !,
+    scasp_portray_program([human(true)]).
+write_program :-
+    scasp_portray_program([]).
+
+print_query(PQ) :-
+    current_option(human, on),
+    !,
+    scasp_portray_query(PQ, [human(true)]).
+print_query(PQ) :-
+    scasp_portray_query(PQ, []).
+
 
 %!  main_loop
 %
