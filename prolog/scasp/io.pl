@@ -34,7 +34,7 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 :- use_module(output).
 :- use_module(variables).
 :- use_module(options).
-:- use_module(process).
+:- use_module(stack).
 
 :- use_module(clp/disequality).
 :- use_module(ops).
@@ -136,7 +136,7 @@ list_to_conj(List, Conj) :-
 
 print_justification_tree(StackOut) :-
     format('\nJUSTIFICATION_TREE:',[]),
-    %%    process_stack(StackOut, _),        %% see file scasp_process.pl
+    %%    process_stack(StackOut, _),        %% see file stack.pl
     print_s(StackOut), !.
 
 %!  scasp_portray_model(:Model, +Options)

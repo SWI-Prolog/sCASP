@@ -1,4 +1,4 @@
-:- module(scasp_process,
+:- module(stack,
           [ process_stack/2,
             test/1  %% To be removed
           ]).
@@ -46,15 +46,18 @@
 %
 %  Process the stack
 
-process_stack(StackOut, [EnumStack, Children, Siblings]) :-
+process_stack(StackOut, [EnumStack, Children, FilterChildren, Siblings]) :-
     enumerate([query|StackOut],EnumStack,1,1),
     %% chose one of the following
-    collect_children(EnumStack, Children, 1),
+    collect_children(EnumStack, Children, 1),   %% default
+    filter_tree(Children, FilterChildren),
     collect_parents(EnumStack, Siblings),
     %% nl,print(StackOut),nl,
     %% nl,print(EnumStack),nl,
     %% nl,print(Children),nl,
+    %% nl,print(FilterChildren),nl,
     %% nl,print(Siblings),nl,
+    plain_output(FilterChildren, 0),
     true.
 
 
@@ -93,6 +96,71 @@ collect_siblings([_|Stack], Siblings, PId) :-
     collect_siblings(Stack, Siblings, PId).
 
 
+%! filter_tree(:Children, :FilterChildren)
+filter_tree([], []).
+filter_tree([(Term, Childs) | Cs], [(Term, FChilds) | Fs]) :-
+    selected(Term), !,
+    filter_tree(Childs, FChilds),
+    filter_tree(Cs, Fs).
+filter_tree([(_, Childs) | Cs], FilterChildren) :-
+    append(Childs, Cs, AllCs),
+    filter_tree(AllCs, FilterChildren).
+
+
+selected(query).
+selected(flies(_)).
+selected(bird(_)).
+%selected(\=(_,_)).
+selected(not(penguin(_))).
+selected(not(ab(_))).
+selected(not(wounded_bird(_))).
+selected(not( o_ab_1(_))).
+
+%! plain_output(:FilterChildren, :Index)
+
+plain_output([A,B|Rs], I) :- !,
+    plain_output_(A, I),
+    format(",",[]),
+    plain_output([B|Rs], I).
+plain_output([A], 0) :- !,
+    plain_output_(A, 0),
+    format(".\n",[]).
+plain_output([A], I) :- !,
+    plain_output_(A, I).
+
+plain_output_((Term, []), I) :- !,
+    nl, tab(I), term_output(Term).
+plain_output_((Term, Child), I) :- !,
+    nl, tab(I), term_output(Term), format(" :-",[]),
+    I1 is I + 3,
+    plain_output(Child, I1).
+
+term_output(Term) :-
+    Term =.. [Name], !,
+    format("~p",[Name]).
+term_output(Term) :-
+    Term =.. [Name|Args], !,
+    format("~p(",[Name]),
+    args_output(Args),
+    format(")",[]).
+
+args_output([A, B|Rs]) :- !,
+    args_output_(A),
+    format(", ",[]),
+    args_output([B|Rs]).
+args_output([B]) :- !,
+    args_output_(B).
+
+args_output_(A) :- ground(A), !, format("~p",[A]).
+args_output_(A) :- var(A), !, format("~p",[A]).
+args_output_(A) :- !, format("~p",[A]).
+
+
+    
+
+
+    
+    
 
 
 %%% TO BE REMOVED %%%
