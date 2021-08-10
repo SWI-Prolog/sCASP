@@ -412,8 +412,8 @@ pr_human_term((Term :: TermHuman), Type, M) :-
     ),
     (   current_option(human,on)
     ->  TermHuman = Human
-    ;   Term = o_nmr_check,
-        TermHuman = write(global_constraint)
+    ;   Term = o_nmr_check
+    ->  TermHuman = write(global_constraint)
     ;   TermHuman = print(Term)
     ).
 
