@@ -12,6 +12,11 @@ prolog:message(sasp(Term)) -->
 
 prolog:error_message(sasp(Term)) -->
     sasp_error(Term).
+prolog:error_message(existence_error(scasp_query, scasp_main)) -->
+    [ 'sCASP: the program does not contain a query'-[] ].
+prolog:error_message(existence_error(scasp_query, M)) -->
+    [ 'sCASP: no query in module ~p'-[M] ].
+
 
 		 /*******************************
 		 *            CASP		*

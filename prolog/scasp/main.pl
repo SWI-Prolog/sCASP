@@ -9,9 +9,6 @@
 :- use_module(options).
 :- use_module(solve).
 
-:- meta_predicate
-    defined_query(:).
-
 /** <module> sCASP as a stand-alone program
 
 This module allows running scasp as a stand-alone program that loads one
@@ -37,7 +34,7 @@ main(Args) :-
     ;   current_option(interactive, on)
     ->  '$toplevel':setup_readline,
         main_loop
-    ;   defined_query(Q)
+    ;   scasp_query(Q)
     ->  ignore(main_solve(Q))
     ).
 
@@ -189,13 +186,6 @@ collect_min_models(Q0) :-
 
     nl, nl.
 
-
-defined_query(M:_) :-
-    M:pr_query([not(o_false)]), !,
-    print_message(error, scasp(no_query)),
-    halt(1).
-defined_query(M:Q) :-
-    M:pr_query(Q).
 
 print_model(Model) :-
     print_options(Options),

@@ -321,7 +321,7 @@ scasp_test(Args, Stacks-Models) :-
     parse_args(Args, Options, Sources),
     set_options(Options),
     scasp_load(Sources),
-    defined_query(Q),
+    scasp_query(Q),
     process_query(Q, _, Query),
     findall(
         Stack-Model,
@@ -331,10 +331,3 @@ scasp_test(Args, Stacks-Models) :-
         ),
         Pairs),
     pairs_keys_values(Pairs, Stacks, Models).
-
-defined_query(_) :-
-    pr_query([not(o_false)]), !,
-    print_message(error, scasp(no_query)),
-    halt(1).
-defined_query(Q) :-
-    pr_query(Q).

@@ -27,7 +27,8 @@
 
 :- module(scasp_compile,
           [ scasp_load/1,        % :Sources
-            scasp_compile/2      % :Terms, +Options
+            scasp_compile/2,     % :Terms, +Options
+            scasp_query/1        % :Query
           ]).
 
 /** <module> s(ASP) Ungrounded Stable Models Solver
@@ -49,7 +50,8 @@ results.
 
 :- meta_predicate
     scasp_load(:),
-    scasp_compile(:, +).
+    scasp_compile(:, +),
+    scasp_query(:).
 
 %!  scasp_load(:Sources)
 %
@@ -97,3 +99,16 @@ scasp_compile_guarded(M:Terms, Options) :-
     generate_nmr_check,
     debug(scasp(compile), 'SASP step of input program complete.', []),
     generate_pr_rules(M:_Sources). % ignored anyway
+
+%!  scasp_query(:Query) is det.
+%
+%   True when Query is the  (last)  sCASP   query  that  is  part of the
+%   program.
+%
+%   @error existence_error(scasp_query, Module)
+
+scasp_query(M:_Query) :-
+    M:pr_query([not(o_false)]), !,
+    existence_error(scasp_query, M).
+scasp_query(M:Query) :-
+    M:pr_query(Query).
