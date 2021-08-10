@@ -21,9 +21,8 @@
 %   visited to prove the sub-goals and in  Model the model that supports
 %   the sub-goals.
 
-% TBD: Now hard-wired to `scasp_output`
-solve(_M:Goals, StackIn, StackOut, Model) :-
-    solve(Goals, scasp_output, StackIn, StackOut, Model).
+solve(M:Goals, StackIn, StackOut, Model) :-
+    solve(Goals, M, StackIn, StackOut, Model).
 
 solve([], _, StackIn, [[]|StackIn], []).
 solve([Goal|Goals], M, StackIn, StackOut, Model) :-

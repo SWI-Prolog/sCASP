@@ -26,13 +26,7 @@
 */
 
 :- module(scasp_output,
-          [ generate_pr_rules/1,
-            pr_rule/2,
-            pr_query/1,
-            pr_user_predicate/1,
-            pr_table_predicate/1,
-            pr_show_predicate/1,
-            pr_pred_predicate/1
+          [ generate_pr_rules/1         % +Sources
           ]).
 
 
@@ -52,6 +46,9 @@ that may be used for warning and error output.
 :- use_module(variables).
 
 :- op(700, xfx, ::).
+
+:- meta_predicate
+    generate_pr_rules(:).
 
 %!  format_term(+EntryIn:compound, -EntryOut:compound,
 %!              -Constraints:list, +Vars:compound) is det
@@ -187,18 +184,23 @@ strip_prefixes(Fi, Fo) :-		% '_' prefixes change to 'o_'
     atom_concat('o_', Fc, Fo).
 strip_prefixes(F, F).
 
-:- dynamic pr_rule/2, pr_query/1, pr_user_predicate/1.
-:- dynamic pr_table_predicate/1, pr_show_predicate/1, pr_pred_predicate/1.
-
-%!  generate_pr_rules(+Sources)
+%!  generate_pr_rules(:Sources)
 %
-%   Translate the sASP program from the   defined_* predicates into pr_*
-%   predicates for sCASP.
+%   Translate the sCASP program from the  defined_* predicates into pr_*
+%   predicates  for  sCASP.  It  creates    clauses  for  the  following
+%   predicates in the target module:
+%
+%     - pr_rule/2
+%     - pr_query/1
+%     - pr_user_predicate/1
+%     - pr_table_predicate/1
+%     - pr_show_predicate/1
+%     - pr_pred_predicate/1.
 
 :- det(generate_pr_rules/1).
 
-generate_pr_rules(_Sources) :-
-    clean_pr_program,
+generate_pr_rules(M:_Sources) :-
+    clean_pr_program(M),
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
     format_term_list(Rs,Rs2),
     (   defined_nmr_check(NMR)
@@ -207,70 +209,70 @@ generate_pr_rules(_Sources) :-
     ),
     (   defined_query(Q,_),
         format_term_list(Q,Q2),
-        assert_pr_query(Q2)
+        assert_pr_query(M:Q2)
     ->  true
     ;   true
     ),
-    handle_table_directives,
-    handle_show_directives,
-    handle_pred_directives,
-    assert_pr_rules(Rs2),
-    assert_pr_rules([-('global_constraints', NMR2)]).
+    handle_table_directives(M),
+    handle_show_directives(M),
+    handle_pred_directives(M),
+    assert_pr_rules(Rs2, M),
+    assert_pr_rules(['global_constraints'-NMR2], M).
 
-:- det((handle_table_directives/0,
-        handle_show_directives/0,
-        handle_pred_directives/0)).
+:- det((handle_table_directives/1,
+        handle_show_directives/1,
+        handle_pred_directives/1)).
 
-handle_table_directives :-
+handle_table_directives(M) :-
     findall(T, defined_directive(table(T)), Ts),
     format_term_list(Ts, Ts2),
-    assert_pr_table(Ts2).
+    assert_pr_table(Ts2, M).
 
-handle_show_directives :-
+handle_show_directives(M) :-
     findall(S, defined_directive(show(S)), Ss),
     format_term_list(Ss, Ss2),
-    assert_pr_show(Ss2).
+    assert_pr_show(Ss2, M).
 
-handle_pred_directives :-
+handle_pred_directives(M) :-
     findall(P, defined_directive(pred(P)), Ps),
     format_term_list(Ps, Ps2),
-    assert_pr_pred(Ps2).
+    assert_pr_pred(Ps2, M).
 
 
-assert_pr_table([]).
-assert_pr_table([[T|Ts]|Tss]) :-
-    assert_pr_table([T|Ts]),
-    assert_pr_table(Tss).
-assert_pr_table([T|Ts]) :-
-    assert(pr_table_predicate(T)),
-    assert_pr_table(Ts).
+assert_pr_table([], _).
+assert_pr_table([[T|Ts]|Tss], M) :-
+    assert_pr_table([T|Ts], M),
+    assert_pr_table(Tss, M).
+assert_pr_table([T|Ts], M) :-
+    assert(M:pr_table_predicate(T)),
+    assert_pr_table(Ts, M).
 
-assert_pr_show([]).
-assert_pr_show([[T|Ts]|Tss]) :-
-    assert_pr_show([T|Ts]),
-    assert_pr_show(Tss).
-assert_pr_show([not(Name)/Arity|Ts]) :- !,
+assert_pr_show([], _).
+assert_pr_show([[T|Ts]|Tss], M) :-
+    assert_pr_show([T|Ts], M),
+    assert_pr_show(Tss, M).
+assert_pr_show([not(Name)/Arity|Ts], M) :- !,
     length(Args,Arity),
     T =.. [Name|Args],
-    assert(pr_show_predicate(not(T))),
-    assert_pr_show(Ts).
-assert_pr_show([Name/Arity|Ts]) :-
+    assert(M:pr_show_predicate(not(T))),
+    assert_pr_show(Ts, M).
+assert_pr_show([Name/Arity|Ts], M) :-
     length(Args,Arity),
     T =.. [Name|Args],
-    assert(pr_show_predicate(T)),
-    assert_pr_show(Ts).
+    assert(M:pr_show_predicate(T)),
+    assert_pr_show(Ts, M).
 
 %!  process_pr_pred(+PredDecl).
 
-assert_pr_pred([]).
-assert_pr_pred([[T|Ts]|Tss]) :- !,
-    assert_pr_pred([T|Ts]),
-    assert_pr_pred(Tss).
-assert_pr_pred([T|Ts]) :-
+assert_pr_pred([], _).
+assert_pr_pred([[T|Ts]|Tss], M) :- !,
+    assert_pr_pred([T|Ts], M),
+    assert_pr_pred(Tss, M).
+assert_pr_pred([T|Ts], M) :-
     process_pr_pred(T,PT),
     revar(PT,RT,_),
-    assert(pr_pred_predicate(RT)),
-    assert_pr_pred(Ts).
+    assert(M:pr_pred_predicate(RT)),
+    assert_pr_pred(Ts, M).
 
 process_pr_pred(A::B,A::format(PB,List)) :-
     atom_chars(B,Chars),
@@ -297,31 +299,36 @@ process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
     process_pr_pred_name(R0,Rs,[NV0|NAc0],NAc1).
 
 
-assert_pr_rules([]).
-assert_pr_rules([-(Head, Body)|Rs]) :-
-    revar(-(Head,Body),-(H,B), _),
-    assert(pr_rule(H,B)),
-    assert_pr_user_predicate([H]),
-    assert_pr_rules(Rs).
+assert_pr_rules([], _).
+assert_pr_rules([-(Head, Body)|Rs], M) :-
+    revar(Head-Body,H-B, _),
+    assert(M:pr_rule(H,B)),
+    assert_pr_user_predicate([H], M),
+    assert_pr_rules(Rs, M).
 
-assert_pr_query(Q) :-
-    assert(pr_query(Q)).
+assert_pr_query(M:Q) :-
+    assert(M:pr_query(Q)).
 
-assert_pr_user_predicate([]).
-assert_pr_user_predicate([P|Ps]) :-
+assert_pr_user_predicate([], _).
+assert_pr_user_predicate([P|Ps], M) :-
     functor(P, Name, La),
-    (   pr_user_predicate(Name/La)
+    (   M:pr_user_predicate(Name/La)
     ->  true
-    ;   assert(pr_user_predicate(Name/La))
+    ;   assert(M:pr_user_predicate(Name/La))
     ),
-    assert_pr_user_predicate(Ps).
+    assert_pr_user_predicate(Ps, M).
 
 
-clean_pr_program :-
-    retractall(pr_query(_)),
-    retractall(pr_rule(_,_)),
-    retractall(pr_user_predicate(_)),
-    retractall(pr_table_predicate(_)),
-    retractall(pr_show_predicate(_)),
-    retractall(pr_pred_predicate(_)).
+%!  clean_pr_program(+Module) is det.
+%
+%   Prepare Module to receive a  compiled   sCASP  program. This wipes a
+%   possibly existing sCASP program. It also   relies on the side effect
+%   of retractall/1 to create a non-existing predicate as _dynamic_.
 
+clean_pr_program(M) :-
+    retractall(M:pr_query(_)),
+    retractall(M:pr_rule(_,_)),
+    retractall(M:pr_user_predicate(_)),
+    retractall(M:pr_table_predicate(_)),
+    retractall(M:pr_show_predicate(_)),
+    retractall(M:pr_pred_predicate(_)).

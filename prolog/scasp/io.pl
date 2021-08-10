@@ -2,16 +2,16 @@
           [ scasp_portray_program/1,    % :Options
             scasp_portray_query/2,      % :Query, +Options
             scasp_portray_model/2,      % :Model. +Options
+            scasp_portray_justification/1, % :Stack
             print_goal/1,
             process_query/3,		% +QGround, -QVar, -TotalQ
             process_query/4,		% +QGround, -QVar, -TotalQ, -VarNames
             ask_for_more_models/0,
             allways_ask_for_more_models/0,
-            print_justification_tree/1, % justification tree
             print_unifier/2,            % +Bindings
             pretty_term/4,
             print_check_calls_calling/2,
-            print_html/3,
+            print_html/3,               % :Query, +Model, +Stack
             printable_model/2           % :Model,-Printable
           ]).
 :- op(900, fy, user:not).
@@ -29,7 +29,9 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 :- meta_predicate
     scasp_portray_program(:),
     scasp_portray_query(:, +),
-    scasp_portray_model(:, +).
+    scasp_portray_model(:, +),
+    scasp_portray_justification(:),
+    print_html(:, +, +).
 
 :- use_module(output).
 :- use_module(variables).
@@ -41,7 +43,7 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 :- use_module(english).
 :- use_module(clp/clpq).
 
-:- dynamic cont/0.
+:- thread_local cont/0.
 
 %!  process_query(+Q, -Query, -TotalQuery) is det.
 %!  process_query(+Q, -Query, -TotalQuery, -VarNames) is det.
@@ -130,14 +132,16 @@ list_to_conj([], true) :-
 list_to_conj(List, Conj) :-
     comma_list(Conj, List).
 
-%!  print_justification_tree(?StackOut)
+%!  scasp_portray_justification(:StackOut)
 %
 %   Print the justification tree using StackOut, the final call stack
 
-print_justification_tree(StackOut) :-
+:- det(scasp_portray_justification/1).
+
+scasp_portray_justification(M:StackOut) :-
     format('\nJUSTIFICATION_TREE:',[]),
     %%    process_stack(StackOut, _),        %% see file stack.pl
-    print_s(StackOut), !.
+    print_s(StackOut, M).
 
 %!  scasp_portray_model(:Model, +Options)
 %
@@ -305,36 +309,37 @@ ciao_attvar(_, []) :- !.
 ciao_attvar({NV~Constraints}, NV-Constraints) :- !.
 ciao_attvar({'\u2209'(Var, List)}, neg(Var, List)).
 
-%!  print_s(A)
+%!  print_s(+Stack, +Module)
 %
 %   output tree by the terminal
 
-:- dynamic((sp_tab/1, pr_repeat/2, pr_print/1)).
-print_s(Stack) :-
+:- thread_local((sp_tab/1, pr_repeat/2, pr_print/1)).
+
+print_s(Stack, M) :-
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
     retractall(pr_print(_)),
-    print_s_(Stack,0,0).
+    print_s_(Stack,0,0,M).
 
-print_s_([],_,_) :-
+print_s_([],_,_,_) :-
     print_human('.'), nl.
-print_s_([[]|As],I,I0) :- !,
+print_s_([[]|As],I,I0,M) :- !,
     (   sp_tab(I)
     ->  retract(sp_tab(I)),
         I1 = I
     ;   I1 is I - 4
     ),
-    print_s_(As,I1,I0).
-print_s_([A|As],I,I0) :- !,
+    print_s_(As,I1,I0,M).
+print_s_([A|As],I,I0,M) :- !,
     (   I0 > I
     ->  retractall(pr_repeat(I0,_))
     ;   true
     ),
     (   [A|As] == [o_nmr_check,[],[],[]]
     ->  print_zero_nmr(A,I,I1)
-    ;   print_human_term(A,I,I1)
+    ;   print_human_term(A,I,I1,M)
     ),
-    print_s_(As,I1,I).
+    print_s_(As,I1,I,M).
 
 
 %!  print_zero_nmr(A, B, C)
@@ -353,12 +358,12 @@ print_zero_nmr(_,I,I1) :-
         I1 is I + 4
     ).
 
-%!  print_human_term(A, B, C)
+%!  print_human_term(A, B, C, +Module)
 %
 %
 
-print_human_term(A, I, I1) :-
-    pr_human_term((A::Human),Type),
+print_human_term(A, I, I1, M) :-
+    pr_human_term((A::Human), Type, M),
     !,
     (   current_option(mid,on),
         Type \= (pred),
@@ -385,49 +390,45 @@ print_human_term(A, I, I1) :-
         )
     ).
 
+:- det((pr_human_term/3,
+        pr_pred_term/3)).
 
-
-pr_human_term((Term :: TermHuman), Type) :-
-    pr_pred_term(Term :: Human, T), !,  %% To obtain the Type
-    (   T = (pred) ->
-        Type = (pred)
-    ;
-        pr_show_predicate(Term), !,   %% Output predicates selected by #show
-        Type = (pred)
-    ;
-        Term = chs(Chs),
-        pr_show_predicate(Chs), !,
-        (current_option(assume,on)*->Type = T;Type = pred)
-    ;
-        Term = assume(Chs),
-        pr_show_predicate(Chs), !,
-        Type = (pred)
-    ;
-        Type = T
+pr_human_term((Term :: TermHuman), Type, M) :-
+    pr_pred_term(Term :: Human, T, M), !,  %% To obtain the Type
+    (   T = (pred)
+    ->  Type = (pred)
+    ;   M:pr_show_predicate(Term)    %% Output predicates selected by #show
+    ->  Type = (pred)
+    ;   Term = chs(Chs),
+        M:pr_show_predicate(Chs)
+    ->  (   current_option(assume, on)
+        ->  Type = T
+        ;   Type = pred
+        )
+    ;   Term = assume(Chs),
+        M:pr_show_predicate(Chs)
+    ->  Type = (pred)
+    ;   Type = T
     ),
-    (   current_option(human,on) ->
-        TermHuman = Human
-    ;
-        Term = o_nmr_check,
+    (   current_option(human,on)
+    ->  TermHuman = Human
+    ;   Term = o_nmr_check,
         TermHuman = write(global_constraint)
-    ;
-        TermHuman = print(Term)
+    ;   TermHuman = print(Term)
     ).
 
-
-
-pr_pred_term(A, pred) :-
-    pr_pred_predicate(A), !.
-pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type) :- !,
-    pr_human_term(A::Human, T),
+pr_pred_term(A, pred, M) :-
+    M:pr_pred_predicate(A), !.
+pr_pred_term(chs(A)::(format('it is assumed that ',[]), Human), Type, M) :- !,
+    pr_human_term(A::Human, T, M),
     (   current_option(assume,on)
     ->  Type = default
     ;   Type = T
     ).
-pr_pred_term(assume(A)::(format('we assume that ',[]), Human), Type) :- !,
-    pr_human_term(A::Human, Type).
-pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
-    pr_human_term(A::Human, T),
+pr_pred_term(assume(A)::(format('we assume that ',[]), Human), Type, M) :- !,
+    pr_human_term(A::Human, Type, M).
+pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type, M) :- !,
+    pr_human_term(A::Human, T, M),
     (   sp_tab(I)
     ->  (   pr_repeat(I,A)
         ->  Type = default
@@ -436,15 +437,15 @@ pr_pred_term(proved(A)::(Human,format(', justified above',[])), Type) :- !,
         )
     ;   Type = T
     ).
-pr_pred_term(GlobalConstraint :: Human, pred) :-
+pr_pred_term(GlobalConstraint :: Human, pred, _) :-
     GlobalConstraint = o_nmr_check, !,
     Human = format('The global constraints hold',[]).
-pr_pred_term(A, pred) :-
+pr_pred_term(A, pred, _) :-
     pr_pred_global_constraint(A, pred), !.
-pr_pred_term(A, mid) :-
-    pr_pred_classical_neg(A, _), !.
-pr_pred_term(A, Type) :-
-    pr_pred_negated(A, T), !,
+pr_pred_term(A, mid, M) :-
+    pr_pred_classical_neg(A, _, M), !.
+pr_pred_term(A, Type, M) :-
+    pr_pred_negated(A, T, M), !,
     (   current_option(neg,on)
     ->  (   T = (pred)
         ->  Type = (pred)
@@ -452,16 +453,16 @@ pr_pred_term(A, Type) :-
         )
     ;   Type = default
     ).
-pr_pred_term(A, Type) :-
-    pr_pred_default(A),
+pr_pred_term(A, Type, M) :-
+    pr_pred_default(A, M),
     !,
     A = (Term::_),
     (   Term \= not(_),
-        user_predicate(Term)
+        user_predicate(Term, M)
     ->  Type = mid
     ;   Type = default
     ).
-pr_pred_term(Error :: print(Error), default).
+pr_pred_term(Error :: print(Error), default, _).
 
 print_human(Connector) :-
     (   current_option(human,on)
@@ -475,12 +476,12 @@ human(',',', and').
 human(' :-',', because').
 
 
-pr_pred_classical_neg(ClassicalNeg :: Human , Type) :-
+pr_pred_classical_neg(ClassicalNeg :: Human, Type, M) :-
     ClassicalNeg =.. [NegName|Arg],
     atom_concat('-',Name,NegName), !,
     Predicate =.. [Name|Arg],
-    pr_human_term( Predicate :: PrH , Type ),
-    Human = ( format('it is not the case that ',[]), PrH ).
+    pr_human_term( Predicate :: PrH, Type, M),
+    Human = ( format('it is not the case that ',[]), PrH).
 
 pr_pred_global_constraint(not(Global_Constraint) :: Human,pred) :-
     Global_Constraint =.. [Aux|Args],
@@ -493,15 +494,16 @@ pr_pred_global_constraint(not(Global_Constraint) :: Human,pred) :-
     pr_var_default(Args,H1),
     Human = (H0, H1).
 
-pr_pred_negated(not(Predicate) :: Human, Type ) :-
+pr_pred_negated(not(Predicate) :: Human, Type, M) :-
     \+ aux_predicate(Predicate),
-    pr_human_term( Predicate :: PrH , Type ), !,
+    !,
+    pr_human_term( Predicate :: PrH , Type, M),
     Human = ( format('there is no evidence that ',[]), PrH ).
 
 
-pr_pred_default( (A=A)        :: format('~p is ~p',[A,A])) :- !.
-pr_pred_default(true          :: format('\r',[])) :- !.
-pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
+pr_pred_default((A=A)         :: format('~p is ~p',[A,A]), _) :- !.
+pr_pred_default(true          :: format('\r',[]), _) :- !.
+pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B]), _) :-
     Operation =.. [Op,A,B],
     human_op(Op,HOp),
     (   A = $Var
@@ -509,7 +511,7 @@ pr_pred_default(Operation     :: format('~p is ~p ~p',[HA,HOp,B])) :-
     ;   HA = A
     ), !.
 %% Note o_chk_N are handled by pr_pred_negated as global constraints
-pr_pred_default(not(Auxiliar) :: Human) :-
+pr_pred_default(not(Auxiliar) :: Human, _) :-
     Auxiliar =.. [Chk|Args],
     %% For o__chk_N1_N2
     atom_concat(o__chk_,Code,Chk), !,
@@ -520,7 +522,7 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     ->  Human = format('\'G.Const. ~p\' holds',[N])
     ;   Human = format('\'G.Const. ~p\' holds (for ~p)',[N,@(Args)])
     ).
-pr_pred_default(not(Auxiliar) :: Human) :-
+pr_pred_default(not(Auxiliar) :: Human, _) :-
     Auxiliar =.. [Aux|Args],
     %% For o_PRED_N
     split_string(Aux, "_", "", ["o",_|M]),
@@ -530,10 +532,10 @@ pr_pred_default(not(Auxiliar) :: Human) :-
     ->  Human = format('\'rule ~p\' holds',[N])
     ;   Human = format('\'rule ~p\' holds (for ~p)',[N,@(Args)])
     ).
-pr_pred_default(Forall  :: Human) :-
+pr_pred_default(Forall :: Human, M) :-
     Forall = forall(_,_), !,
-    pr_pred_default_forall(Forall, Human).
-pr_pred_default(Other              :: (H0, H1)) :-
+    pr_pred_default_forall(Forall, Human, M).
+pr_pred_default(Other :: (H0, H1), _) :-
     Other =.. [Name|Args],
     (   Args == []
     ->  H0 = format('\'~p\' holds',[Name])
@@ -562,28 +564,29 @@ take_constraints([_|As], Vs) :-
 
 
 %% forall
-pr_pred_default_forall(Forall, ( H0, H1 ) ) :-
-    pr_pred_default_forall_(Forall, Vars, InForall),
+pr_pred_default_forall(Forall, (H0, H1), M) :-
+    pr_pred_default_forall_(Forall, Vars, InForall, M),
     H0 = format('forall ~p, ',[@(Vars)]),
-    pr_human_term(InForall :: H1, _ ).
-pr_pred_default_forall_(forall(V,Rest), [V|Vs], InForall) :- !,
-    pr_pred_default_forall_(Rest, Vs, InForall).
-pr_pred_default_forall_(InForall, [], InForall).
+    pr_human_term(InForall :: H1, _, M).
+
+pr_pred_default_forall_(forall(V,Rest), [V|Vs], InForall, M) :- !,
+    pr_pred_default_forall_(Rest, Vs, InForall, M).
+pr_pred_default_forall_(InForall, [], InForall, _).
 
 
 %% To detect user/neg/aux predicates
-user_predicate(is(_,_)) :- !.
-user_predicate(findall(_,_,_)) :- !.
-user_predicate(proved(A)) :- !,
-    user_predicate(A).
-user_predicate(chs(A)) :- !,
-    user_predicate(A).
-user_predicate(assume(A)) :- !,
-    user_predicate(A).
-user_predicate(A) :- !,
+user_predicate(is(_,_), _) :- !.
+user_predicate(findall(_,_,_), _) :- !.
+user_predicate(proved(A), M) :- !,
+    user_predicate(A, M).
+user_predicate(chs(A), M) :- !,
+    user_predicate(A, M).
+user_predicate(assume(A), M) :- !,
+    user_predicate(A, M).
+user_predicate(A, M) :- !,
     \+ aux_predicate(A),
     functor(A, Name, Arity),
-    pr_user_predicate(Name/Arity).
+    M:pr_user_predicate(Name/Arity).
 
 aux_predicate(-(o_,_)) :- !.
 aux_predicate(A) :-
@@ -875,20 +878,20 @@ pretty_clp_(>=,>=).
 :- use_module('html/jquery_tree').
 :- use_module('html/html_tail').
 
-%!  print_html(?Query, ?Model, ?StackOut) is det.
+%!  print_html(:Query, +Model, +StackOut) is det.
 %
 %   Generate a html file with the  model and  the justification  tree of
 %   the `Sources` for the Query using Model and StackOut resp.
 
 :- det(( print_html/3,
-         print_html_to_current_output/3,
-         print_html_human_query/1,
+         print_html_to_current_output/4,
+         print_html_human_query/2,
          print_html_query/1,
          scasp_portray_model/2,
-         print_html_stack/1
+         print_html_stack/2
        )).
 
-print_html(Query, Model, StackOut) :-
+print_html(M:Query, Model, StackOut) :-
     write('\nBEGIN HTML JUSTIFICATION'),
     (   current_option(html_name, F)
     ->  ensure_extension(F, html, File)
@@ -896,7 +899,7 @@ print_html(Query, Model, StackOut) :-
     ),
     setup_call_cleanup(
         open_output_file(Stream,File,Current),
-        print_html_to_current_output(Query, Model, StackOut),
+        print_html_to_current_output(Query, Model, StackOut, M),
         close_output_file(Stream,Current)),
     write(' and END\n').
 
@@ -907,15 +910,15 @@ ensure_extension(Base, Ext, File) :-
 ensure_extension(Base, Ext, File) :-
     file_name_extension(Base, Ext, File).
 
-print_html_to_current_output(Query, Model, StackOut) :-
+print_html_to_current_output(Query, Model, StackOut, M) :-
     load_html_head(Head),
     format('~w', [Head]),
     (   current_option(human,on)	% Skip output of the model in human mode
-    ->  print_html_human_query(Query),
+    ->  print_html_human_query(Query, M),
         nl
     ;   print_html_query(Query),nl,
         format('<h3>Model:</h3>\n', []),
-        scasp_portray_model(scasp_output:Model, [html(true)]) % TBD fix module
+        scasp_portray_model(M:Model, [html(true)])
     ),
     br,br,nl,
     format('<h3> Justification: \c
@@ -924,7 +927,7 @@ print_html_to_current_output(Query, Model, StackOut) :-
             <button onclick="depth(-1)">-1</button>\c
             <button onclick="collapse()">Collapse All</button>\c
             </h3>\n\n'),
-    print_html_stack(StackOut),
+    print_html_stack(StackOut, M),
     load_jquery_tree(Jquery_tree),
     format('~w~n~n', [Jquery_tree]),
     load_html_tail(Tail),
@@ -946,19 +949,19 @@ print_html_query([PQ,_,Bindings,PVars]) :-
     ),
     br,nl.
 
-print_html_human_query([[true|PQ],[true|PAnswer],Bindings,PVars]) :- !,
-    print_html_human_query([PQ,PAnswer,Bindings,PVars]).
-print_html_human_query([PQ,PAnswer,Bindings,PVars]) :-
+print_html_human_query([[true|PQ],[true|PAnswer],Bindings,PVars], M) :- !,
+    print_html_human_query([PQ,PAnswer,Bindings,PVars], M).
+print_html_human_query([PQ,PAnswer,Bindings,PVars], M) :-
     format('<h3>Query:</h3>'),
     tab_html(5),
     format('I would like to know if'),br,nl,
-    print_html_human_body(PQ),
+    print_html_human_body(PQ, M),
     br,nl,
     format('<h3>Answer:</h3>'),nl,
     tab_html(5),
     format('Yes, I found that'),br,
     print_html_unifier(Bindings,PVars),
-    print_html_human_body(PAnswer),
+    print_html_human_body(PAnswer, M),
     br,nl.
 
 print_html_unifier([],[]).
@@ -981,39 +984,39 @@ print_html_unifier([Binding|Bs],[PV|PVars]) :-
     print_html_unifier(Bs,PVars).
 
 %% let's reuse sp_tab and pr_repeat from print_s/1.
-print_html_stack(StackOut) :-
+print_html_stack(StackOut, M) :-
     retractall(sp_tab(_)),
     retractall(pr_repeat(_,_)),
     retractall(pr_print(_)),
     format('\n <ul class="tree">\n\n'),
-    print_html_stack_(StackOut,5,5),
+    print_html_stack_(StackOut,5,5,M),
     format('\n </ul>\n\n').
 
-print_html_stack_([],_,_) :-
+print_html_stack_([],_,_,_) :-
     print_human('.'),
     retract(pr_print(Sp)),
     !,
     nl,tab(Sp), format('</li> '),
     close_ul(Sp,5).
-print_html_stack_([[]|As],I,I0) :- !,
+print_html_stack_([[]|As],I,I0,M) :- !,
     (   retract(sp_tab(I))
     ->  I1 = I
     ;   I1 is I - 4
     ),
-    print_html_stack_(As,I1,I0).
-print_html_stack_([A|As],I,I0) :- !,
+    print_html_stack_(As,I1,I0,M).
+print_html_stack_([A|As],I,I0,M) :- !,
     (   I0 > I
     ->  retractall(pr_repeat(I0,_))
     ;   true
     ),
     (   [A|As] == [o_nmr_check,[],[],[]]
     ->  print_html_zero_nmr(A,I,I1)
-    ;   print_html_term(A,I,I1)
+    ;   print_html_term(A,I,I1,M)
     ),
-    print_html_stack_(As,I1,I).
+    print_html_stack_(As,I1,I,M).
 
-print_html_term(A,I,I1) :-
-    pr_human_term((A::Human),Type), !,
+print_html_term(A,I,I1,M) :-
+    pr_human_term((A::Human),Type, M), !,
     (   current_option(mid,on),
         Type \= (pred),
         Type \= mid
@@ -1079,17 +1082,17 @@ tab_html(N) :-
     tab_html(N1).
 tab_html(0).
 
-print_html_human_body([Last]) :- !,
-    pr_human_term(Last::Format,_),
+print_html_human_body([Last], M) :- !,
+    pr_human_term(Last::Format,_,M),
     tab_html(15),
     call(Format),br,nl,
     nl.
-print_html_human_body([L|Ls]) :-
-    pr_human_term(L::Format,_),
+print_html_human_body([L|Ls],M) :-
+    pr_human_term(L::Format,_,M),
     tab_html(15),
     call(Format),
     format(', and'),br,nl,
-    print_html_human_body(Ls).
+    print_html_human_body(Ls, M).
 
 print_html_body([]) :-
     format('.').
@@ -1236,8 +1239,9 @@ rule_eq(rule(H,_),rule(H1,_)) :- !, rule_eq_(H,H1).
 rule_eq_(H, H1) :-
     same_functor(H, H1).
 
-print_human_head(Head, _Options) :-
-    pr_human_term(Head::Format,_),
+print_human_head(Head, Options) :-
+    option(module(M), Options),
+    pr_human_term(Head::Format,_,M),
     call(Format).
 
 print_human_body([Last], Options) :- !,
@@ -1251,8 +1255,9 @@ print_human_body([L|Ls], Options) :-
     ),
     print_human_body(Ls, Options).
 
-print_human_body_(L, _) :-
-    pr_human_term(L::Format,_),
+print_human_body_(L, Options) :-
+    option(module(M), Options),
+    pr_human_term(L::Format,_,M),
     nl, tab(5),
     call(Format).
 

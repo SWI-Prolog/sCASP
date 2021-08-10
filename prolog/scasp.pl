@@ -1,7 +1,7 @@
 :- module(scasp,
-          [ scasp_load/1,              % +FileOrFiles
-            (?)/1,
-            (??)/1,
+          [ scasp_load/1,              % :FileOrFiles
+            (?)/1,                     % :Query
+            (??)/1,                    % :Query
             clear_flags/0,
             check_calls/0,
             pos_loops/0,
@@ -15,11 +15,16 @@
           ]).
 :- set_prolog_flag(optimise, true).
 
-:- use_module(scasp/output).           % the pr_* predicates
 :- use_module(scasp/solve).
 :- use_module(scasp/io).
-:- use_module(scasp/compile).
+:- use_module(scasp/compile, [scasp_load/1]). % re-exported
 :- use_module(scasp/options).
+
+:- meta_predicate
+    ?(:),
+    ??(:).
+:- module_transparent
+    run_defined_query/0.
 
 
 		 /*******************************
@@ -57,7 +62,7 @@ clear_flags :-
     set(print, off),
     set(print_tree, off).
 
-%!  ??(?Query)
+%!  ??(:Query)
 %
 %   Shorcut predicate to ask queries in the top-level returning also the
 %   justification tree. It calls solve_query/1
@@ -66,7 +71,7 @@ clear_flags :-
     set(print, on),
     solve_query(Q).
 
-%!  ?(?Query)
+%!  ?(:Query)
 %
 %   Shorcut  predicate  to  ask  queries  in  the  top-level.  It  calls
 %   solve_query/1
@@ -80,22 +85,25 @@ clear_flags :-
 %   Used from the interactive mode to run the defined query.
 
 run_defined_query :-
-    defined_query(A),
-    solve_query(A),
-    print(A),
+    context_module(M),
+    defined_query(M:Q),
+    solve_query(M:Q),
+    print(Q),
     allways_ask_for_more_models, nl, nl.
 
-defined_query(_) :-
-    pr_query([not(o_false)]), !,
+defined_query(M:_) :-
+    M:pr_query([not(o_false)]), !,
     format('\nQuery not defined\n', []),
     fail.
-defined_query(Q) :-
-    pr_query(Q).
+defined_query(M:Q) :-
+    M:pr_query(Q).
 
 
-%!  solve_query(+Q)
+%!  solve_query(:Q)
 %
 %   Solve a query from the Prolog toplevel.
+%
+%   @tbd: Must be integrated into the Prolog toplevel.
 
 solve_query(Q) :-
     process_query(Q, _, Query),
@@ -107,8 +115,9 @@ solve_query(Q) :-
     format('\nAnswer ~w\t(in ~w ms):', [Counter, T]), nl,
 
     reverse(StackOut, Reverse_StackOut),
-    if_user_option(print_tree, print_justification_tree(Reverse_StackOut)),
-    print_model(Model), nl, nl,
+    if_user_option(print_tree,
+                   scasp_portray_justification(Reverse_StackOut)),
+    scasp_portray_model(Model, []), nl, nl,
 
     ask_for_more_models.
 

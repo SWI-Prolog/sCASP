@@ -26,8 +26,8 @@
 */
 
 :- module(scasp_compile,
-          [ scasp_load/1,        % +Sources
-            scasp_compile/2      % +Terms,+Options
+          [ scasp_load/1,        % :Sources
+            scasp_compile/2      % :Terms, +Options
           ]).
 
 /** <module> s(ASP) Ungrounded Stable Models Solver
@@ -47,7 +47,11 @@ results.
 :- use_module(nmr_check).
 :- use_module(output).
 
-%!  scasp_load(+Sources)
+:- meta_predicate
+    scasp_load(:),
+    scasp_compile(:, +).
+
+%!  scasp_load(:Sources)
 %
 %   Load the files from Sources.   Steps taken:
 %
@@ -60,10 +64,10 @@ results.
 %
 %   @arg Sources A list of paths of input files.
 
-scasp_load(Spec) :-
+scasp_load(M:Spec) :-
     to_list(Spec, Sources),
     call_cleanup(
-        scasp_load_guarded(Sources),
+        scasp_load_guarded(M:Sources),
         destroy_program).
 
 to_list(List, List) :-
@@ -71,25 +75,25 @@ to_list(List, List) :-
     !.
 to_list(One, [One]).
 
-scasp_load_guarded(Sources) :-
+scasp_load_guarded(M:Sources) :-
     load_source_files(Sources),
     comp_duals,
     generate_nmr_check,
     debug(scasp(compile), 'SASP step of input program complete.', []),
-    generate_pr_rules(Sources).
+    generate_pr_rules(M:Sources).
 
-%!  scasp_compile(+Terms, +Options) is det.
+%!  scasp_compile(:Terms, +Options) is det.
 %
 %   Create an sCASP program from Terms.
 
-scasp_compile(Terms, Options) :-
+scasp_compile(M:Terms, Options) :-
     call_cleanup(
-        scasp_compile_guarded(Terms, Options),
+        scasp_compile_guarded(M:Terms, Options),
         destroy_program).
 
-scasp_compile_guarded(Terms, Options) :-
+scasp_compile_guarded(M:Terms, Options) :-
     scasp_load_terms(Terms, Options),
     comp_duals,
     generate_nmr_check,
     debug(scasp(compile), 'SASP step of input program complete.', []),
-    generate_pr_rules(_Sources). % ignored anyway
+    generate_pr_rules(M:_Sources). % ignored anyway

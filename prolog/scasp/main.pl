@@ -8,7 +8,9 @@
 :- use_module(ops).
 :- use_module(options).
 :- use_module(solve).
-:- use_module(output).
+
+:- meta_predicate
+    defined_query(:).
 
 /** <module> sCASP as a stand-alone program
 
@@ -131,7 +133,7 @@ main_solve(Q0) :-
         )),
 
     if_user_option(html, print_html([PQ, PAnswer, Bindings, PVars], P_Model, P_StackOut)),
-    if_user_option(print_tree, print_justification_tree(P_StackOut)),
+    if_user_option(print_tree, scasp_portray_justification(P_StackOut)),
     print_model(P_Model), nl,
 
     print_unifier(Bindings, PVars),
@@ -154,7 +156,7 @@ take_min(Query, MinModel, Model, StackOut, T) :-
     statistics(runtime, _),
     solve(Query, [], StackOut, Model),
     statistics(runtime, [_,T]),
-    printable_model(scasp_output:Model, PrintableModel),
+    printable_model(Model, PrintableModel),
     sort(PrintableModel, MinModel).
 
 collect_min_models(Q0) :-
@@ -180,7 +182,7 @@ collect_min_models(Q0) :-
         )),
 
     if_user_option(html, print_html([PQ, PAnswer, Bindings, PVars], P_Model, P_StackOut)),
-    if_user_option(print_tree, print_justification_tree(P_StackOut)),
+    if_user_option(print_tree, scasp_portray_justification(P_StackOut)),
     print_model(P_Model), nl,
 
     print_unifier(Bindings, PVars),
@@ -188,12 +190,12 @@ collect_min_models(Q0) :-
     nl, nl.
 
 
-defined_query(_) :-
-    pr_query([not(o_false)]), !,
+defined_query(M:_) :-
+    M:pr_query([not(o_false)]), !,
     print_message(error, scasp(no_query)),
     halt(1).
-defined_query(Q) :-
-    pr_query(Q).
+defined_query(M:Q) :-
+    M:pr_query(Q).
 
 print_model(Model) :-
     print_options(Options),
