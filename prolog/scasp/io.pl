@@ -324,9 +324,8 @@ print_s(Stack, M) :-
 print_s_([],_,_,_) :-
     print_human('.'), nl.
 print_s_([[]|As],I,I0,M) :- !,
-    (   sp_tab(I)
-    ->  retract(sp_tab(I)),
-        I1 = I
+    (   retract(sp_tab(I))
+    ->  I1 = I
     ;   I1 is I - 4
     ),
     print_s_(As,I1,I0,M).
