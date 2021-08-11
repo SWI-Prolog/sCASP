@@ -207,28 +207,32 @@ bind_anon([$Name|T], I) :-
 %
 %   Translate a single term.
 
-sasp_statement(Head :- Body,  SASP,
-               term_position(_,_,_,_,[HP,BP]), Options) =>
+sasp_statement(Head :- Body, SASP, Pos, Options) =>
+    tpos(Pos, HP, BP),
     sasp_predicate(Head, SASPHead, HP, Options),
     comma_list(Body, BP, BodyList, BodyPos),
     maplist(sasp_predicate_m(Options), BodyList, SASPBody, BodyPos),
     SASP = (SASPHead-SASPBody).
-sasp_statement(?-(Query), SASP,
-               term_position(_,_,_,_,[QP]), Options) =>
+sasp_statement(?-(Query), SASP, Pos, Options) =>
+    tpos(Pos, QP),
     comma_list(Query, QP, BodyList, BodyPos),
     maplist(sasp_predicate_m(Options), BodyList, SASPBody, BodyPos),
     SASP = c(1, SASPBody).
-sasp_statement(:-(Constraint), SASP,
-               term_position(_,_,_,_,[QP]), Options) =>
+sasp_statement(:-(Constraint), SASP, Pos, Options) =>
+    tpos(Pos, QP),
     comma_list(Constraint, QP, BodyList, BodyPos),
     maplist(sasp_predicate_m(Options), BodyList, SASPBody, BodyPos),
     SASP = '_false_0'-SASPBody.
-sasp_statement(#Directive, SASP,
-               term_position(_,_,_,_,[DP]), Options) =>
+sasp_statement(#Directive, SASP, Pos, Options) =>
+    tpos(Pos, DP),
     directive(Directive, SASP, DP, Options).
 sasp_statement(Head,  SASP, Pos, Options), callable(Head) =>
     sasp_predicate(Head, SASPHead, Pos, Options),
     SASP = (SASPHead-[]).
+
+tpos(term_position(_,_,_,_,[HP,BP]), HP, BP).
+tpos(term_position(_,_,_,_,[P]), P).
+
 
 %!  sasp_predicate(+Pred, -ASPPred, +Pos, +Options) is det.
 %!  sasp_predicate_m(+Options, +Pred, -ASPPred, +Pos) is det.
