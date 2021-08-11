@@ -5,7 +5,8 @@
             clp_builtin/1,              % ?Goal
             clp_builtin_translate/2,    % ?Goal,?Goal_T
             clp_interval/1,             % ?Goal
-            user_predicate/1            % ?Goal
+            user_predicate/1,           % ?Goal
+            scasp_compiled/1            % ?Head
           ]).
 :- use_module(ops).
 
@@ -84,4 +85,17 @@ clp_builtin_translate(A #=< B, A .=<. B).
 
 clp_interval(inf(_Expr, _Inf)).
 clp_interval(sup(_Expr, _Inf)).
+
+
+%!  scasp_compiled(?Head)
+%
+%   True when Head is part of the transformed representation.
+
+scasp_compiled(pr_rule(_Head, _Body)).
+scasp_compiled(pr_query(_Query)).
+scasp_compiled(pr_user_predicate(_Pred)).
+scasp_compiled(pr_table_predicate(_Pred)).
+scasp_compiled(pr_show_predicate(_Pred)).
+scasp_compiled(pr_pred_predicate(_Pred)).
+
 
