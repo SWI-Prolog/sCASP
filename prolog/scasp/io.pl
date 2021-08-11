@@ -1204,6 +1204,7 @@ print_human_query(Query, Options) :-
 
 
 print_human_rules([R], Options) :-
+    !,
     print_human_rules_(R, Options).
 print_human_rules([R0,R1|Rs], Options) :-
     print_human_rules_(R0, Options),
@@ -1313,15 +1314,18 @@ forall_eq([A,B|As],[A|Eq],Rest) :-
 forall_eq([B|As],[B],As).
 
 
-%!  nmr_reverse(A, B)
+%!  nmr_reverse(+NMRChecks, -RevNNMRChecks)
 %
 %   Auxiliary predicate to sort the NMR checks
 
-nmr_reverse(L,L) :- current_option(raw,on), !.
+:- det(nmr_reverse/2).
 
+nmr_reverse(L,L) :-
+    current_option(raw,on),
+    !.
 nmr_reverse(L,[A|Rs]) :-
     nmr_check(A),
-    append(Chks,[A],L),
+    once(append(Chks,[A],L)),
     nmr_reverse_(Chks,[],Rs).
 
 nmr_reverse_([],[],[]).
@@ -1335,12 +1339,12 @@ nmr_reverse_([A|Rs],Ac0,Ac1) :-
     append([A|Ac0],AcRs,Ac1).
 
 nmr_check(rule(o_nmr_check,_)).
+
 nmr_chk(rule(not(A),_)) :-
-    functor(A, Name, _),                % JW: chk_pred/1?
-    \+ atom_concat(o_chk,_,Name).
+    chk_pred(A).
 
 nmr_eq([A,B|As],[A|Eq],Rest) :-
-    \+ \+ A = B, !,
+    \+ A \= B, !,
     nmr_eq([B|As],Eq,Rest).
 nmr_eq([A|As],[A],As).
 
