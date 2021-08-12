@@ -1,15 +1,74 @@
-:- module(embed,
-          [ scasp/1,
+/*  Part of sCASP
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+:- module(scasp_embed,
+          [ begin_scasp/1,
             end_scasp/0
           ]).
 :- use_module(ops).
 :- use_module(compile).
 :- use_module(predicates).
 
+/** <module>  Embed sCASP programs in Prolog sources
+
+This module allows embedding sCASP programs inside a Prolog module.
+Currently the syntax is:
+
+```
+:- begin_scasp(UnitName).
+
+<sCASP program>
+
+:- end_scasp.
+```
+
+The idea is to create wrappers  for   the  sCASP  user predicates in the
+target module that evaluate an sCASP  query   as  a normal Prolog query,
+providing access to the  model  and   justification.  The  bindings come
+available as normal Prolog bindings.
+
+This is an  alternative  interface  to   defining  the  user  accessible
+predicates using e.g., `:- scasp p/1,   q/2.`, which will then establish
+the reachable predicates and perform  the   sCASP  conversion on them. I
+think both have their value and the above one is simpler to start with.
+
+@tbd: incomplete
+*/
+
 :- thread_local
     loading_scasp/4.
 
-scasp(Unit) :-
+begin_scasp(Unit) :-
     scasp_module(Unit, Module),
     prolog_load_context(module, Context),
     source_location(File, Line),
