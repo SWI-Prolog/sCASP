@@ -34,7 +34,9 @@
 :- module(scasp_embed,
           [ begin_scasp/1,              % +Unit
             end_scasp/0,
-            scasp_listing/2             % +Unit, +Options
+            scasp_listing/2,            % +Unit, +Options
+            scasp_model/1,              % -Model
+            scasp_stack/1               % -Stack
           ]).
 :- use_module(ops).
 :- use_module(io).
@@ -42,6 +44,7 @@
 :- use_module(compile).
 :- use_module(predicates).
 :- use_module(solve).
+:- use_module(model).
 
 /** <module>  Embed sCASP programs in Prolog sources
 
@@ -179,7 +182,40 @@ link_clause(Module, Head, (Head :- scasp_embed:scasp_call(Module:Head))).
 
 scasp_call(Query) :-
     process_query(Query, _, Query1),
-    solve(Query1, [], _StackOut, _Model).
+    scasp_stack(StackIn),
+    solve(Query1, StackIn, StackOut, Model),
+    save_model(Model),
+    save_stack(StackOut).
+
+save_model(Model) :-
+    (   nb_current(scasp_model, Model0)
+    ->  append(Model, Model0, FullModel),
+        b_setval(scasp_model, FullModel)
+    ;   b_setval(scasp_model, Model)
+    ).
+
+%!  scasp_model(-Model) is semidet.
+%
+%   True when Model  represents  the  current   set  of  true  and false
+%   literals.
+
+scasp_model(Model) :-
+    nb_current(scasp_model, RawModel),
+    canonical_model(RawModel, Model).
+
+save_stack(Stack) :-
+    b_setval(scasp_stack, Stack).
+
+%!  scasp_stack(-Stack) is det.
+%
+%   True when Stack represents the justification   of  the current sCASP
+%   answer.
+
+scasp_stack(Stack) :-
+    (   nb_current(scasp_stack, Stack0)
+    ->  Stack = Stack0
+    ;   Stack = []
+    ).
 
 %!  scasp_listing(+Unit, +Options)
 %
