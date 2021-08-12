@@ -300,7 +300,7 @@ process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
 
 
 assert_pr_rules([], _).
-assert_pr_rules([-(Head, Body)|Rs], M) :-
+assert_pr_rules([Head-Body|Rs], M) :-
     revar(Head-Body,H-B, _),
     assert(M:pr_rule(H,B)),
     assert_pr_user_predicate([H], M),
