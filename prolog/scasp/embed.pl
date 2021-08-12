@@ -38,6 +38,7 @@
           ]).
 :- use_module(ops).
 :- use_module(io).
+:- use_module(input).
 :- use_module(compile).
 :- use_module(predicates).
 :- use_module(solve).
@@ -80,6 +81,7 @@ begin_scasp(Unit) :-
     scasp_push_operators,
     '$style_check'(OldStyle, OldStyle),
     style_check(-singleton),
+    discontiguous(Module:(#)/1),
     asserta(loading_scasp(Unit, Module, File, OldModule, OldStyle)).
 
 scasp_module(Unit, Module) :-
@@ -119,7 +121,6 @@ user:term_expansion((?- Query), Clause) :-
 user:term_expansion((:- end_scasp), Clauses) :-
     end_scasp(Clauses).
 
-
 %!  scasp_compile_unit(+Unit) is det.
 %
 %   Compile an sCASP module.
@@ -138,8 +139,10 @@ scasp_clause(Unit, Clause) :-
     @(clause(Head, Body), Module),
     mkclause(Head, Body, Clause).
 
-mkclause(scasp_query(Q,_N), true, Clause) =>
-    Clause = (?- Q).
+mkclause(scasp_query(Query,_N), true, Clause) =>
+    Clause = (?- Query).
+mkclause(#(Directive), true, Clause) => % TBD: #include and #abducible
+    Clause = (:- Directive).
 mkclause(Head, true, Clause) =>
     Clause = Head.
 mkclause(Head, Body, Clause) =>
@@ -163,7 +166,7 @@ link_predicate(Module:Head) :-
 
 % TBD: merge with user_predicate/1.
 not_really_a_user_predicate((not)/1).
-not_really_a_user_predicate(o_nmr_check/1).
+not_really_a_user_predicate(o_nmr_check/0).
 not_really_a_user_predicate(global_constraints/0).
 
 link_clause(Module, Head, (Head :- scasp_embed:scasp_call(Module:Head))).
