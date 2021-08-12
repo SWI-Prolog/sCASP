@@ -14,7 +14,6 @@
             print_html/3,               % :Query, +Model, +Stack
             printable_model/2           % :Model,-Printable
           ]).
-:- op(900, fy, user:not).
 
 /** <module> Module for input / output predicates
 
@@ -31,7 +30,9 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
     scasp_portray_query(:, +),
     scasp_portray_model(:, +),
     scasp_portray_justification(:),
-    print_html(:, +, +).
+    print_html(:, +, +),
+    process_query(:, -, -),
+    process_query(:, -, -, -).
 
 :- use_module(output).
 :- use_module(variables).
@@ -45,8 +46,8 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 
 :- thread_local cont/0.
 
-%!  process_query(+Q, -Query, -TotalQuery) is det.
-%!  process_query(+Q, -Query, -TotalQuery, -VarNames) is det.
+%!  process_query(:Q, -Query, -TotalQuery) is det.
+%!  process_query(:Q, -Query, -TotalQuery, -VarNames) is det.
 %
 %   Initialize  internal  flags  to allows  the generation  of multiples
 %   models in the interaction and top-level mode (even when the query is
@@ -62,7 +63,7 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
 process_query(Q, Query, TotalQuery) :-
     process_query(Q, Query, TotalQuery, _).
 
-process_query(Q, Query, TotalQuery, VarNames) :-
+process_query(M:Q, M:Query, M:TotalQuery, VarNames) :-
     revar(Q, A, VarNames),
     (   is_list(A)
     ->  Query = A
