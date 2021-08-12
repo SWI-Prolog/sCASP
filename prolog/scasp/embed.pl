@@ -32,12 +32,15 @@
 */
 
 :- module(scasp_embed,
-          [ begin_scasp/1,
-            end_scasp/0
+          [ begin_scasp/1,              % +Unit
+            end_scasp/0,
+            scasp_listing/2             % +Unit, +Options
           ]).
 :- use_module(ops).
+:- use_module(io).
 :- use_module(compile).
 :- use_module(predicates).
+:- use_module(solve).
 
 /** <module>  Embed sCASP programs in Prolog sources
 
@@ -66,32 +69,38 @@ think both have their value and the above one is simpler to start with.
 */
 
 :- thread_local
-    loading_scasp/4.
+    loading_scasp/5.
 
 begin_scasp(Unit) :-
     scasp_module(Unit, Module),
     prolog_load_context(module, Context),
     source_location(File, Line),
-    '$set_source_module'(Old, Module),
+    '$set_source_module'(OldModule, Module),
     '$declare_module'(Module, scasp, Context, File, Line, false),
     scasp_push_operators,
+    '$style_check'(OldStyle, OldStyle),
     style_check(-singleton),
-    asserta(loading_scasp(Unit, Module, File, Old)).
+    asserta(loading_scasp(Unit, Module, File, OldModule, OldStyle)).
 
 scasp_module(Unit, Module) :-
     atom_concat('_scasp_', Unit, Module).
 
 end_scasp :-
-    (   retract(loading_scasp(_Unit, _Module, _File, Old))
-    ->  '$set_source_module'(_, Old),
+    throw(error(context_error(nodirective, end_scasp), _)).
+
+end_scasp(Clauses) :-
+    (   retract(loading_scasp(Unit, _Module, _File, OldModule, OldStyle))
+    ->  '$set_source_module'(_, OldModule),
         scasp_pop_operators,
-        style_check(+singleton)       % TBD: restore old setting
+        '$style_check'(_, OldStyle),
+        scasp_compile_unit(Unit),
+        link_clauses(OldModule, Unit, Clauses)
     ;   throw(error(context_error(scasp_close(-)), _))
     ).
 
 loading_scasp(Unit) :-
     source_location(File, _Line),
-    loading_scasp(Unit,_,File,_).
+    loading_scasp(Unit,_,File,_,_).
 
 user:term_expansion(end_of_file, _) :-
     loading_scasp(Unit),
@@ -107,6 +116,9 @@ user:term_expansion((?- Query), Clause) :-
     loading_scasp(_),
     !,
     Clause = scasp_query(Query, 1).
+user:term_expansion((:- end_scasp), Clauses) :-
+    end_scasp(Clauses).
+
 
 %!  scasp_compile_unit(+Unit) is det.
 %
@@ -132,3 +144,44 @@ mkclause(Head, true, Clause) =>
     Clause = Head.
 mkclause(Head, Body, Clause) =>
     Clause = (Head :- Body).
+
+%!  link_clauses(+ContextModule, +Unit, -Clauses) is det.
+%
+%   Create  link  clauses  that  make  the  user  predicates  from  Unit
+%   available as Prolog predicates from Module.
+
+link_clauses(_ContextModule, Unit, Clauses) :-
+    scasp_module(Unit, Module),
+    findall(Head, link_predicate(Module:Head), Heads),
+    maplist(link_clause(Module), Heads, Clauses).
+
+
+link_predicate(Module:Head) :-
+    Module:pr_user_predicate(PI),
+    \+ not_really_a_user_predicate(PI),
+    pi_head(PI, Head).
+
+% TBD: merge with user_predicate/1.
+not_really_a_user_predicate((not)/1).
+not_really_a_user_predicate(o_nmr_check/1).
+not_really_a_user_predicate(global_constraints/0).
+
+link_clause(Module, Head, (Head :- scasp_embed:scasp_call(Module:Head))).
+
+%!  scasp_call(:Query)
+%
+%   Solve an sCASP goal from the interactive toplevel
+
+:- public scasp_call/1.
+
+scasp_call(Query) :-
+    process_query(Query, _, Query1),
+    solve(Query1, [], _StackOut, _Model).
+
+%!  scasp_listing(+Unit, +Options)
+%
+%   List the transformed program for Unit
+
+scasp_listing(Unit, Options) :-
+    scasp_module(Unit, Module),
+    scasp_portray_program(Module:Options).
