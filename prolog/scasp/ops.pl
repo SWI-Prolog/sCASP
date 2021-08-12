@@ -32,3 +32,8 @@ scasp_op(700, xfx, ['| ']).
 scasp_op(700, xfx, [~>, <~]).
 scasp_op(900, fy,  [not]).
 scasp_op(700, xfx, ['\u2209']).
+
+% from input.pl
+scasp_op(400, fx,  #).
+scasp_op(300, xfx, ::).
+scasp_op(350, fx,  [include, table, show, pred, compute, abducible]).
