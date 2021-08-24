@@ -8,6 +8,7 @@
             op(700, xfx, ['\u2209']),
 
             scasp_push_operators/0,
+            scasp_push_operators/1,             % +Module
             scasp_pop_operators/0
           ]).
 :- use_module(library(apply)).
@@ -15,8 +16,12 @@
 
 scasp_push_operators :-
     prolog_load_context(module, Context),
+    scasp_push_operators(Context).
+
+scasp_push_operators(Context) :-
     findall(op(Pri, Ass, Op), scasp_op(Pri, Ass, Op), Ops),
     push_operators(Context:Ops).
+
 scasp_pop_operators :-
     pop_operators.
 

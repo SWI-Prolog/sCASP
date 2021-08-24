@@ -36,7 +36,9 @@
             end_scasp/0,
             scasp_listing/2,            % +Unit, +Options
             scasp_model/1,              % -Model
-            scasp_stack/1               % -Stack
+            scasp_stack/1,              % -Stack
+
+            op(700, xfx, .\=.)
           ]).
 :- use_module(ops).
 :- use_module(io).
@@ -237,5 +239,15 @@ scasp_residuals -->
     },
     !,
     [ scasp_set_model(Model) ].
-scasp_set_model -->
+scasp_residuals -->
     [].
+
+user:portray(scasp_set_model(Model)) :-
+    format('sCASP Model: ~p', [Model]).
+
+:- multifile
+    prolog:alternate_syntax/4.
+
+prolog:alternate_syntax(scasp, Module, Setup, Restore) :-
+    Setup = scasp_ops:scasp_push_operators(Module),
+    Restore = scasp_ops:scasp_pop_operators.
