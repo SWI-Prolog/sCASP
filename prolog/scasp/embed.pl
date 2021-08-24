@@ -46,6 +46,8 @@
 :- use_module(solve).
 :- use_module(model).
 
+:- create_prolog_flag(scasp_show_model, true, [keep(true)]).
+
 /** <module>  Embed sCASP programs in Prolog sources
 
 This module allows embedding sCASP programs inside a Prolog module.
@@ -224,3 +226,16 @@ scasp_stack(Stack) :-
 scasp_listing(Unit, Options) :-
     scasp_module(Unit, Module),
     scasp_portray_program(Module:Options).
+
+:- residual_goals(scasp_residuals).
+
+%!  scasp_residuals// is det.
+
+scasp_residuals -->
+    { current_prolog_flag(scasp_show_model, true),
+      scasp_model(Model)
+    },
+    !,
+    [ scasp_set_model(Model) ].
+scasp_set_model -->
+    [].
