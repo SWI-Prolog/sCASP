@@ -47,8 +47,10 @@
 :- use_module(predicates).
 :- use_module(solve).
 :- use_module(model).
+:- use_module(stack).
 
 :- create_prolog_flag(scasp_show_model, true, [keep(true)]).
+:- create_prolog_flag(scasp_show_justification, true, [keep(true)]).
 
 /** <module>  Embed sCASP programs in Prolog sources
 
@@ -189,7 +191,14 @@ scasp_call(Query) :-
     scasp_stack(StackIn),
     solve(Query1, StackIn, StackOut, Model),
     save_model(Model),
-    save_stack(StackOut).
+    Query1 = M:_,                       % TBD: Properly handle the module
+    save_stack(M:StackOut).
+
+%!  save_model(+Model) is det.
+%
+%   Save the model.
+%
+%   @tbd We must qualify the model.
 
 save_model(Model) :-
     (   nb_current(scasp_model, Model0)
@@ -234,16 +243,47 @@ scasp_listing(Unit, Options) :-
 %!  scasp_residuals// is det.
 
 scasp_residuals -->
-    { current_prolog_flag(scasp_show_model, true),
-      scasp_model(Model)
-    },
-    !,
-    [ scasp_set_model(Model) ].
-scasp_residuals -->
+    { scasp_residual_types(Types) },
+    scasp_residuals(Types).
+
+scasp_residuals([]) -->
     [].
+scasp_residuals([model|T]) -->
+    (   {scasp_model(Model)}
+    ->  [ scasp_set_model(Model) ]
+    ;   []
+    ),
+    scasp_residuals(T).
+scasp_residuals([justification|T]) -->
+    (   {scasp_stack(Stack), Stack \== []}
+    ->  [ scasp_set_stack(Stack) ]
+    ;   []
+    ),
+    scasp_residuals(T).
+
+scasp_residual_types(Types) :-
+    findall(Type, scasp_residual_type(Type), Types).
+
+scasp_residual_type(model) :-
+    current_prolog_flag(scasp_show_model, true).
+scasp_residual_type(justification) :-
+    current_prolog_flag(scasp_show_justification, true).
 
 user:portray(scasp_set_model(Model)) :-
-    format('sCASP Model: ~p', [Model]).
+    format('sCASP model: ~p', [Model]).
+:- if(false).
+user:portray(scasp_set_stack(M:Stack)) :-
+%   format('sCASP justification', []),
+%   process_stack(Stack, _).
+    reverse(Stack, Reverse_StackOut),
+    pretty_term([], _D3, Reverse_StackOut, P_StackOut),
+    scasp_portray_justification(M:P_StackOut).
+:- else.
+user:portray(scasp_set_stack(M:Stack)) :-
+    format('sCASP justification', []),
+    reverse(Stack, RevStack),
+    process_stack(M:RevStack, _).
+:- endif.
 
 :- multifile
     prolog:alternate_syntax/4.
