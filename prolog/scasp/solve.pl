@@ -475,7 +475,7 @@ ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found)
                           [print_goal(Goal), print_goal(chs(not(NegGoal)))])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
-    max(MaxInter, Intervening, NewMaxInter),
+    MaxInter is max(Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
@@ -486,7 +486,7 @@ ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found)
                           [print_goal(not(Goal)), print_goal(chs(NegGoal))])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
-    max(MaxInter, Intervening, NewMaxInter),
+    MaxInter is max(Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
@@ -497,11 +497,11 @@ ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
                           [print_goal(not(Goal)), print_goal(NegGoal)])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
-    max(MaxInter, Intervening, NewMaxInter),
+    MaxInter is max(Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
 ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
-    max(MaxInter, Intervening, NewMaxInter),
+    MaxInter is max(Intervening, NewMaxInter),
     NewInter is Intervening + 1,
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
 
@@ -547,12 +547,6 @@ proved_in_stack_(Goal, [Top|Ss], Intervening, MaxInter) :-
     ;   NewMaxInter is max(MaxInter, Intervening),
         NewInter is Intervening + 1,
         proved_in_stack_(Goal, Ss, NewInter, NewMaxInter)
-    ).
-
-max(A, B, M) :-
-    (   A >= B
-    ->  M = A
-    ;   M = B
     ).
 
 % check if it is a even loop -> coinductive success
