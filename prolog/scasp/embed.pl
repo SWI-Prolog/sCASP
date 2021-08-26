@@ -128,6 +128,7 @@ user:term_expansion((?- Query), Clause) :-
     !,
     Clause = scasp_query(Query, 1).
 user:term_expansion((:- end_scasp), Clauses) :-
+    \+ current_prolog_flag(xref, true),
     end_scasp(Clauses).
 
 %!  scasp_compile_unit(+Unit) is det.
@@ -271,7 +272,7 @@ scasp_residual_type(justification) :-
 
 user:portray(scasp_set_model(Model)) :-
     format('sCASP model: ~p', [Model]).
-:- if(false).
+:- if(true).
 user:portray(scasp_set_stack(M:Stack)) :-
 %   format('sCASP justification', []),
 %   process_stack(Stack, _).
@@ -286,8 +287,14 @@ user:portray(scasp_set_stack(M:Stack)) :-
 :- endif.
 
 :- multifile
-    prolog:alternate_syntax/4.
+    prolog:alternate_syntax/4,
+    prolog:xref_update_syntax/2.
 
 prolog:alternate_syntax(scasp, Module, Setup, Restore) :-
     Setup = scasp_ops:scasp_push_operators(Module),
     Restore = scasp_ops:scasp_pop_operators.
+
+prolog:xref_update_syntax(begin_scasp(_Unit), Module) :-
+    scasp_ops:scasp_push_operators(Module).
+prolog:xref_update_syntax(end_scasp, _Module) :-
+    scasp_ops:scasp_pop_operators.
