@@ -107,8 +107,10 @@ filter_tree([(_, Childs) | Cs], M, FilterChildren) :-
     filter_tree(AllCs, M, FilterChildren).
 
 
-selected(query, _).
-selected(Goal, M) :-
+selected(query, _) => true.
+selected(not(Goal), M) =>
+    selected(Goal, M).
+selected(Goal, M) =>
     user_predicate(M:Goal).
 
 %!  print_justification_tree(+Tree) is det.
