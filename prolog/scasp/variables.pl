@@ -156,17 +156,11 @@ revar_(X,Y,Dic0,Dic) :-
     revars(As,Bs,Dic0,Dic),
     Y=..[F|Bs].
 
-special_atom(A/B,rat(A,B)) :-
-    number(A),
-    number(B),
-    !.
-special_atom(X,rat(A,B)) :-
-    atom(X),
-    atom_codes(X, Codes),
-    append(C_A, [0'/|C_B], Codes),
-    number_codes(A,C_A),
-    number_codes(B,C_B),
-    !.
+special_atom(A/B,Rat) :-
+    integer(A),
+    integer(B),
+    !,
+    Rat is rdiv(A,B).
 special_atom(X,Y) :-
     atom(X),
     atom_chars(X,Codes),
