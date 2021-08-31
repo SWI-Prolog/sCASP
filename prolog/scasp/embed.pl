@@ -282,10 +282,10 @@ user:portray(scasp_set_stack(M:Stack)) :-
     pretty_term([], _D3, Reverse_StackOut, P_StackOut),
     scasp_portray_justification(M:P_StackOut).
 :- else.
-user:portray(scasp_set_stack(M:Stack)) :-
+user:portray(scasp_set_stack(Stack)) :-
     format('sCASP justification', []),
-    reverse(Stack, RevStack),
-    process_stack(M:RevStack, _).
+    justification_tree(Stack, Tree, []),
+    print_justification_tree(Tree).
 :- endif.
 
 :- multifile
