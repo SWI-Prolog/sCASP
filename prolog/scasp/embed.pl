@@ -48,9 +48,11 @@
 :- use_module(solve).
 :- use_module(model).
 :- use_module(stack).
+:- use_module(options).
 
 :- create_prolog_flag(scasp_show_model, true, [keep(true)]).
 :- create_prolog_flag(scasp_show_justification, true, [keep(true)]).
+:- initialization set_options(['--tree']).
 
 /** <module>  Embed sCASP programs in Prolog sources
 

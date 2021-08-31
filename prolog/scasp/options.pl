@@ -25,6 +25,11 @@ scasp_version :-
     format('s(CASP) version ~p\n',['swi.0.21.08.03']),
     halt.
 
+%!  set_options(+Options) is det.
+%
+%   Set the user options. Options is  a   list  of atoms that denote the
+%   commandline arguments that start with `-`.
+
 set_options(Options) :-
     set_default_options,
     set_user_options(Options),
@@ -32,6 +37,7 @@ set_options(Options) :-
     check_compatibilities.
 
 set_default_options :-
+    retractall(current_option(_, _)),
     set(answers,-1),
     set(verbose,0).
 

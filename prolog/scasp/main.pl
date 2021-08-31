@@ -23,8 +23,6 @@ or more scasp source files, answer the (last) query and exit.
 %   options and the input files.
 
 main(Args) :-
-    set(print, on),
-    retractall(current_option(_, _)),
     parse_args(Args, Options, Sources),
     set_options(Options),
     load_sources(Sources),
