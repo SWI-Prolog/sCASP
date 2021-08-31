@@ -154,7 +154,7 @@ scasp_clause(Unit, Clause) :-
 mkclause(scasp_query(Query,_N), true, Clause) =>
     Clause = (?- Query).
 mkclause(#(Directive), true, Clause) => % TBD: #include and #abducible
-    Clause = (:- Directive).
+    Clause = #(Directive).
 mkclause(Head, true, Clause) =>
     Clause = Head.
 mkclause(Head, Body, Clause) =>
