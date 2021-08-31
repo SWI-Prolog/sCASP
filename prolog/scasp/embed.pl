@@ -274,7 +274,7 @@ scasp_residual_type(justification) :-
 
 user:portray(scasp_set_model(Model)) :-
     format('sCASP model: ~p', [Model]).
-:- if(true).
+:- if(false).
 user:portray(scasp_set_stack(M:Stack)) :-
 %   format('sCASP justification', []),
 %   process_stack(Stack, _).

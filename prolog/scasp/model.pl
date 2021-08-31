@@ -34,6 +34,11 @@
 :- module(scasp_model,
           [ canonical_model/2           % +RawModel,-Canonical
           ]).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+:- use_module(library(pairs)).
+
+:- use_module(common).
 
 /** <module> sCASP model handling
 
@@ -53,17 +58,6 @@ canonical_model(Model, CanModel) :-
 nonmodel_term(proved(_)).
 nonmodel_term(chs(_)).
 nonmodel_term(o_nmr_check).
-
-raise_negation(not(TermIn), not(Term)) :-
-    !,
-    raise_negation(TermIn, Term).
-raise_negation(TermIn, -Term) :-
-    functor(TermIn, Name, _),
-    atom_concat(-, Plain, Name),
-    !,
-    TermIn =.. [Name|Args],
-    Term   =.. [Plain|Args].
-raise_negation(Term, Term).
 
 %!  sort_model(+ModelIn, -Sorted) is det.
 %

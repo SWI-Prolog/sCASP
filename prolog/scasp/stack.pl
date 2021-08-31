@@ -3,6 +3,7 @@
             print_justification_tree/1          % +JustTree
           ]).
 :- use_module(predicates).
+:- use_module(common).
 :- op(900, fy, [not]). %% To be removed
 :- meta_predicate
     justification_tree(:, -, +).
@@ -61,23 +62,32 @@ justification_tree(M:Stack, JustificationTree, Options) :-
     ;   collect_parents(EnumStack, JustificationTree)
     ).
 
-%! enumerate(:StackOut, :EnumStack, :Parent, :Order)
+%!  enumerate(+StackOut, -EnumStack, +Parent, +Order)
+%
+%   Give each node in the stack a rank,   which is a I-J-K-... term that
+%   represents its position in  the   top-down/left-right  layout of the
+%   tree.
+%
+%   @arg EnumStack is a list `Term=Place`
 
 enumerate([],[],_,_) :- !.
 enumerate([[]],[],_,_) :- !.
 enumerate([[]|Stack], Enum, P-PO, _) :- !,
     NO is PO + 1,
     enumerate(Stack, Enum, P, NO).
-enumerate([Term|Stack], [(Term, P-O) | Enum], P, O) :-
+enumerate([Term|Stack], [Term=P-O|Enum], P, O) :-
     enumerate(Stack, Enum, P-O, 1).
 
 
-%! collect_children(:EnumStack, :Children, :ParentId)
+%!  collect_children(+EnumStack, -Tree, +ParentId) is det.
+%
+%   Process the enumerated tree into a proper tree.  The tree takes
+%   the shape `Node - Children`
 
 collect_children([], [], _) :- !.
-collect_children([(Term, PId-O)|Stack], [(Term, Childs) | Cs], PId) :- !,
+collect_children([Term=PId-O|Stack], [Term-Children | Cs], PId) :- !,
     collect_children(Stack, Cs, PId),
-    collect_children(Stack, Childs, PId-O).
+    collect_children(Stack, Children, PId-O).
 collect_children([_|Stack], Cs, PId) :-
     collect_children(Stack, Cs, PId).
 
@@ -85,7 +95,7 @@ collect_children([_|Stack], Cs, PId) :-
 %! collect_parents(:EnumStack, :Childs, :ParentId)
 
 collect_parents([], []) :- !.
-collect_parents([(Term, PId)|Stack], [(Term, Siblings) | Cs]) :-
+collect_parents([Term=PId|Stack], [(Term, Siblings) | Cs]) :-
     collect_parents(Stack, Cs),
     collect_siblings(Stack, Siblings, PId).
 
@@ -97,12 +107,14 @@ collect_siblings([_|Stack], Siblings, PId) :-
 
 
 %! filter_tree(+Children, +Module, -FilteredChildren)
+
 filter_tree([],_,[]).
-filter_tree([(Term, Childs) | Cs], M, [(Term, FChilds) | Fs]) :-
-    selected(Term, M), !,
+filter_tree([Term0-Childs|Cs], M, [Term-FChilds|Fs]) :-
+    selected(Term0, M), !,
+    raise_negation(Term0, Term),
     filter_tree(Childs, M, FChilds),
     filter_tree(Cs, M, Fs).
-filter_tree([(_, Childs) | Cs], M, FilterChildren) :-
+filter_tree([_-Childs|Cs], M, FilterChildren) :-
     append(Childs, Cs, AllCs),
     filter_tree(AllCs, M, FilterChildren).
 
@@ -132,29 +144,9 @@ plain_output([A], 0) :- !,
 plain_output([A], I) :- !,
     plain_output_(A, I).
 
-plain_output_((Term, []), I) :- !,
-    nl, tab(I), term_output(Term).
-plain_output_((Term, Child), I) :- !,
-    nl, tab(I), term_output(Term), format(" :-",[]),
+plain_output_(Term-[], I) :- !,
+    nl, tab(I), print(Term).
+plain_output_(Term-Child, I) :- !,
+    nl, tab(I), print(Term), format(" :-",[]),
     I1 is I + 3,
     plain_output(Child, I1).
-
-term_output(Term) :-
-    Term =.. [Name], !,
-    format("~p",[Name]).
-term_output(Term) :-
-    Term =.. [Name|Args], !,
-    format("~p(",[Name]),
-    args_output(Args),
-    format(")",[]).
-
-args_output([A, B|Rs]) :- !,
-    args_output_(A),
-    format(", ",[]),
-    args_output([B|Rs]).
-args_output([B]) :- !,
-    args_output_(B).
-
-args_output_(A) :- ground(A), !, format("~p",[A]).
-args_output_(A) :- var(A), !, format("~p",[A]).
-args_output_(A) :- !, format("~p",[A]).

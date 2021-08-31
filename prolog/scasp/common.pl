@@ -34,7 +34,8 @@
             split_functor/3,            % +Functor, -Name, -Arity
             join_functor/3,             % -Functor, +Name, +Arity
             create_unique_functor/3,
-            operator/3
+            operator/3,
+            raise_negation/2            % +Goal,-UserGoal
           ]).
 
 /** <module> Common predicates used in multiple files
@@ -152,6 +153,21 @@ join_functor(Functor, Name, Arity) :-
 create_unique_functor(Hi, C, Ho) :-
     split_functor(Hi, F, A), % Strip the arity
     atomic_list_concat([F, '_', C, '_', A], Ho).
+
+%!  raise_negation(+Goal, -UserGoal) is det.
+
+raise_negation(not(TermIn), UserTerm) =>
+    UserTerm = not(Term),
+    raise_negation(TermIn, Term).
+raise_negation(TermIn, UserTerm),
+    functor(TermIn, Name, _),
+    atom_concat(-, Plain, Name)
+    =>
+    TermIn =.. [Name|Args],
+    Term   =.. [Plain|Args],
+    UserTerm = -Term.
+raise_negation(Term, UserTerm) =>
+    UserTerm = Term.
 
 %!  operator(+Operator:ground, -Specifier:atom, -Priority:int) is det
 %
