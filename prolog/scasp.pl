@@ -68,7 +68,7 @@ clear_flags :-
 %   justification tree. It calls solve_query/1
 
 ?? Q :-
-    set(print, on),
+    set(print_tree, on),
     solve_query(Q).
 
 %!  ?(:Query)
@@ -77,7 +77,7 @@ clear_flags :-
 %   solve_query/1
 
 ? Q :-
-    set(print, off),
+    set(print_tree, off),
     solve_query(Q).
 
 %!  run_defined_query
@@ -107,6 +107,7 @@ defined_query(M:Q) :-
 
 solve_query(Q) :-
     process_query(Q, _, Query),
+    Query = M:_,
 
     statistics(runtime, _),
     call_nth(solve(Query, [], StackOut, Model), Counter),
@@ -116,8 +117,8 @@ solve_query(Q) :-
 
     reverse(StackOut, Reverse_StackOut),
     if_user_option(print_tree,
-                   scasp_portray_justification(Reverse_StackOut)),
-    scasp_portray_model(Model, []), nl, nl,
+                   scasp_portray_justification(M:Reverse_StackOut)),
+    scasp_portray_model(M:Model, []), nl, nl,
 
     ask_for_more_models.
 
