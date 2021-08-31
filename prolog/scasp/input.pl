@@ -56,9 +56,10 @@ This module defines reading sCASP input based on the Prolog parser.
 :- op(700, xfx, [.=., .\=.,.<>.,.<.,.=<.,.>.,.>=.]).
 :- op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]).
 :- op(900, fy,  not).
-:- op(400, fx,  #).
+:- op(1200, fx,  #).
 :- op(300, xfx, ::).
-:- op(350, fx,  [include, table, show, pred, compute, abducible]).
+:- op(350, fx,  [include, pred, compute, abducible]).
+:- op(1150, fx, [table, show]).
 
 		 /*******************************
 		 *            COMPAT		*

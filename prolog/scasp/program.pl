@@ -268,6 +268,8 @@ sort_by_type([], [], [], C, C).
 %   @arg Program A program struct.
 %   @arg Predicates A list of predicate symbols defined in the program.
 
+:- det(rule_predicates/2).
+
 get_predicates(P, Ps) :-
     program(P, R, _, Q),
     query(Q, Qs, _, _),
