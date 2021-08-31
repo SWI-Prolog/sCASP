@@ -34,10 +34,9 @@ s(ASP)  by  _Marple_ ported  to CIAO  by _Joaquin  Arias_ in  the folder
     process_query(:, -, -),
     process_query(:, -, -, -).
 
-:- use_module(output).
 :- use_module(variables).
 :- use_module(options).
-:- use_module(stack).
+:- use_module(common).
 
 :- use_module(clp/disequality).
 :- use_module(ops).
@@ -485,10 +484,10 @@ pr_pred_classical_neg(ClassicalNeg :: Human, Type, M) :-
 
 pr_pred_global_constraint(not(Global_Constraint) :: Human,pred) :-
     Global_Constraint =.. [Aux|Args],
-    atom_chars(Aux,['o','_'|Rs]),
-    append(Pred,['_'|Num],Rs),
-    catch(number_chars(N,Num), error(syntax_error(_),_), fail),
-    atom_chars(Pr,Pred),
+    atom_concat(o_, Func, Aux),
+    split_functor(Func, Pr, N),
+    N \== -1,
+    !,
     Pr == chk, !,
     H0 = format('the global constraint number ~p holds',[N]),
     pr_var_default(Args,H1),
@@ -1094,14 +1093,17 @@ print_html_human_body([L|Ls],M) :-
     format(', and'),br,nl,
     print_html_human_body(Ls, M).
 
-print_html_body([]) :-
+print_html_body(M:Body) :-
+    print_html_body(Body, M).
+
+print_html_body([], _) :-
     format('.').
-print_html_body([X|Xs]):-
+print_html_body([X|Xs], M):-
     print(X),
     (   Xs == []
     ->  format('.')
     ;   format(','),tab_html(2),nl,
-        print_html_body(Xs)
+        print_html_body(Xs, M)
     ).
 
 :- dynamic(printingHTML/0).
