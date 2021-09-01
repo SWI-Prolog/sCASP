@@ -1344,7 +1344,9 @@ nmr_reverse_([A|Rs],Ac0,Ac1) :-
 nmr_check(rule(o_nmr_check,_)).
 
 nmr_chk(rule(not(A),_)) :-
-    chk_pred(A).
+    functor(A, Name, _),
+    \+ atom_concat(o_chk,_,Name).
+%   Using chk_pred(A) causes this to fail.
 
 nmr_eq([A,B|As],[A|Eq],Rest) :-
     \+ A \= B, !,
