@@ -129,6 +129,8 @@ user:term_expansion((?- Query), Clause) :-
     loading_scasp(_),
     !,
     Clause = scasp_query(Query, 1).
+user:term_expansion(#(discontiguous(Preds)), (:- discontiguous(Preds))) :-
+    loading_scasp(_).
 user:term_expansion((:- end_scasp), Clauses) :-
     \+ current_prolog_flag(xref, true),
     end_scasp(Clauses).
