@@ -231,7 +231,16 @@ sasp_statement(Head,  SASP, Pos, Options), callable(Head) =>
     sasp_predicate(Head, SASPHead, Pos, Options),
     SASP = (SASPHead-[]).
 
+tpos(parentheses_term_position(_,_,Pos), HP, BP) :-
+    nonvar(Pos),
+    !,
+    tpos(Pos, HP, BP).
 tpos(term_position(_,_,_,_,[HP,BP]), HP, BP).
+
+tpos(parentheses_term_position(_,_,Pos), P) :-
+    nonvar(Pos),
+    !,
+    tpos(Pos, P).
 tpos(term_position(_,_,_,_,[P]), P).
 
 
@@ -335,10 +344,11 @@ directive(table(Pred), Statements, _, _) =>
     Statements = (:- table(Pred)).
 directive(show(Pred), Statements, _, _) =>
     Statements = (:- show(Pred)).
-directive(pred(Pred), Statements, _, _) =>
-    Statements = (:- pred(Pred)).
-%directive(pred(Pred)::Comment, Statements, _, _) =>
-%    Statements = (:- pred(Pred::Comment)).
+directive(pred(Pred::Template), Statements, Pos, Options) =>
+    tpos(Pos, Pos1),
+    tpos(Pos1, PPos, _),
+    sasp_predicate(Pred, SASPPred, PPos, Options),
+    Statements = (:- pred(SASPPred::Template)).
 directive(abducible(Pred), Rules, Pos, Options) =>
     sasp_predicate(Pred, ASPPred, Pos, Options),
     abducible_rules(ASPPred, Rules).
