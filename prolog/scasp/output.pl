@@ -41,6 +41,7 @@ that may be used for warning and error output.
 */
 
 :- use_module(library(lists)).
+:- use_module(library(dcg/basics)).
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).
@@ -280,31 +281,49 @@ assert_pr_pred(T, M) =>
     revar(PT,RT,_),
     assert(M:pr_pred_predicate(RT)).
 
+%!  process_pr_pred(+Spec, -Pred) is det.
+%
+%   Process a ``#pred Atom :: Template.`` directive.
+%
+%   @arg Spec is a term Head::Template,  where   Head  is  an sCASP atom
+%   where the variables are represented  as   $(Name)  and Template is a
+%   string that embeds "@(Var)", "@(Var:Type)", "{{Var}}" or
+%   "{{Var:Type}}"
+%   @arg Pred is a term `Head::format(Fmt, Args)`, where `Fmt` contains
+%   ~p and the arguments are of the shape `@($(Var):Type)`, which is
+%   printed as ``"<Var>, a <Type>"``
+
 :- det(process_pr_pred/2).
 
-process_pr_pred(A::B,A::format(PB,List)) :-
-    atom_chars(B,Chars),
-    process_pr_pred_(Chars,PChars,List),
-    atom_chars(PB,PChars).
-process_pr_pred_([],[],[]).
-process_pr_pred_([@,'('|Cs],[~,p|Ps],[@(V:NV)|Vs]) :- !,
-    process_pr_pred_var(Cs,Rs,[],Var,NVar),
-    atom_chars(V,Var),
-    atom_chars(NV,NVar),
-    process_pr_pred_(Rs,Ps,Vs).
-process_pr_pred_([C|Cs],[C|Rs],Var) :-
-    process_pr_pred_(Cs,Rs,Var).
-process_pr_pred_var([':'|R0],Rs,VAc0,VAc1,NAc) :- !,
-    reverse(VAc0,VAc1),
-    process_pr_pred_name(R0,Rs,['\''],NAc).
-process_pr_pred_var([')'|Rs],Rs,Ac0,Ac1,['\'','\'']) :- !,
-    reverse(Ac0,Ac1).
-process_pr_pred_var([V0|R0],Rs,Ac0,Ac1,NVar) :-
-    process_pr_pred_var(R0,Rs,[V0|Ac0],Ac1,NVar).
-process_pr_pred_name([')'|Rs],Rs,NAc0,NAc1) :- !,
-    reverse(['\''|NAc0],NAc1).
-process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
-    process_pr_pred_name(R0,Rs,[NV0|NAc0],NAc1).
+process_pr_pred(A::B,A::format(Fmt,Args)) :-
+    atom_codes(B, Chars),
+    phrase(pr_pred(FmtChars, Args), Chars),
+    atom_codes(Fmt, FmtChars).
+
+pr_pred([0'~,0'p|Fmt], [@($(Var):Type)|Args]) -->
+    temp_var_start(Style), prolog_var_name(Var),
+    (   ":"
+    ->  (   string(TypeChars), temp_var_end(Style)
+        ->  {atom_codes(Type, TypeChars)}
+        )
+    ;   temp_var_end(Style)
+    ->  {Type = ''}
+    ),
+    !,
+    pr_pred(Fmt, Args).
+pr_pred([H|T], Args) -->
+    [H],
+    !,
+    pr_pred(T, Args).
+pr_pred([], []) -->
+    [].
+
+temp_var_start(classic) --> "@(".
+temp_var_start(modern)  --> "{{".
+
+temp_var_end(classic) --> ")".
+temp_var_end(modern)  --> "}}".
+
 
 
 %!  assert_pr_rules(+Rules:list, +Module) is det.
