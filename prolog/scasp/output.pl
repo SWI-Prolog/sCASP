@@ -238,41 +238,49 @@ handle_pred_directives(M) :-
     format_term_list(Ps, Ps2),
     assert_pr_pred(Ps2, M).
 
+%!  assert_pr_table(+Tabled) is det.
 
-assert_pr_table([], _).
-assert_pr_table([[T|Ts]|Tss], M) :-
-    assert_pr_table([T|Ts], M),
-    assert_pr_table(Tss, M).
-assert_pr_table([T|Ts], M) :-
-    assert(M:pr_table_predicate(T)),
-    assert_pr_table(Ts, M).
+assert_pr_table([], _) => true.
+assert_pr_table([H|T], M) =>
+    assert_pr_table(H, M),
+    assert_pr_table(T, M).
+assert_pr_table((H,T), M) =>
+    assert_pr_table(H, M),
+    assert_pr_table(T, M).
+assert_pr_table(Name/Arity, M) =>
+    assert(M:pr_table_predicate(Name/Arity)).
 
-assert_pr_show([], _).
-assert_pr_show([[T|Ts]|Tss], M) :-
-    assert_pr_show([T|Ts], M),
-    assert_pr_show(Tss, M).
-assert_pr_show([not(Name)/Arity|Ts], M) :- !,
-    length(Args,Arity),
-    T =.. [Name|Args],
-    assert(M:pr_show_predicate(not(T))),
-    assert_pr_show(Ts, M).
-assert_pr_show([Name/Arity|Ts], M) :-
-    length(Args,Arity),
-    T =.. [Name|Args],
-    assert(M:pr_show_predicate(T)),
-    assert_pr_show(Ts, M).
+%!  assert_pr_show(+Atoms) is det.
 
-%!  process_pr_pred(+PredDecl).
+assert_pr_show([], _) => true.
+assert_pr_show([H|T], M) =>
+    assert_pr_show(H, M),
+    assert_pr_show(T, M).
+assert_pr_show((H,T), M) =>
+    assert_pr_show(H, M),
+    assert_pr_show(T, M).
+assert_pr_show(not(Name/Arity), M) =>
+    functor(T, Name, Arity),
+    assert(M:pr_show_predicate(not(T))).
+assert_pr_show(Name/Arity, M) =>
+    functor(T, Name, Arity),
+    assert(M:pr_show_predicate(T)).
 
-assert_pr_pred([], _).
-assert_pr_pred([[T|Ts]|Tss], M) :- !,
-    assert_pr_pred([T|Ts], M),
-    assert_pr_pred(Tss, M).
-assert_pr_pred([T|Ts], M) :-
+%!  process_pr_pred(+PredDecl) is det.
+
+assert_pr_pred([], _) => true.
+assert_pr_pred([H|T], M) =>
+    assert_pr_pred(H, M),
+    assert_pr_pred(T, M).
+assert_pr_pred((H,T), M) =>
+    assert_pr_pred(H, M),
+    assert_pr_pred(T, M).
+assert_pr_pred(T, M) =>
     process_pr_pred(T,PT),
     revar(PT,RT,_),
-    assert(M:pr_pred_predicate(RT)),
-    assert_pr_pred(Ts, M).
+    assert(M:pr_pred_predicate(RT)).
+
+:- det(process_pr_pred/2).
 
 process_pr_pred(A::B,A::format(PB,List)) :-
     atom_chars(B,Chars),
@@ -298,6 +306,8 @@ process_pr_pred_name([')'|Rs],Rs,NAc0,NAc1) :- !,
 process_pr_pred_name([NV0|R0],Rs,NAc0,NAc1) :-
     process_pr_pred_name(R0,Rs,[NV0|NAc0],NAc1).
 
+
+%!  assert_pr_rules(+Rules:list, +Module) is det.
 
 assert_pr_rules([], _).
 assert_pr_rules([Head-Body|Rs], M) :-

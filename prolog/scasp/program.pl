@@ -236,9 +236,12 @@ format_program(X, P) :-
 %   as a query.
 %
 %   @arg Statements List of rules and compute statements produced by DCG.
-%   @arg Rules extracted from Statements.
-%   @arg ComputeIn compute statement.
-%   @arg ComputeOut compute statement. Only the final compute statement is kept.
+%   @arg Rules extracted from Statements. Each rule is a term Head-Body.
+%   @arg Directives is a list of plain directive terms (without # or :-)
+%   @arg ComputeIn compute statement. @arg ComputeOut compute statement.
+%   Only the final compute statement is kept.
+
+:- det(sort_by_type/5).
 
 sort_by_type([X|T], [X|R], D, Ci, Co) :-
     c_rule(X, _, _),
@@ -249,8 +252,7 @@ sort_by_type([X|T], R, D, _, Co) :-
     query(C, Q, _, N),
     !,
     sort_by_type(T, R, D, C, Co).
-sort_by_type([X|T], R, [X|D], C, Co) :-
-    X = :-(_Directive),
+sort_by_type([:-(Directive)|T], R, [Directive|D], C, Co) :-
     !,
     sort_by_type(T, R, D, C, Co).
 sort_by_type([], [], [], C, C).
