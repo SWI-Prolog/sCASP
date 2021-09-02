@@ -137,12 +137,28 @@ user:term_expansion((:- end_scasp), Clauses) :-
 %
 %   Compile an sCASP module.
 
+:- thread_local
+    done_unit/1.                  % allow for mutually recursive #include
+
 scasp_compile_unit(Unit) :-
+    call_cleanup(scasp_compile_unit_(Unit),
+                 retractall(done_unit(_))).
+
+scasp_compile_unit_(Unit) :-
     scasp_module(Unit, Module),
     findall(Clause, scasp_clause(Unit, Clause), Clauses),
     scasp_compile(Module:Clauses, []).
 
+%!  scasp_clause(+Unit, -Clause) is nondet.
+%
+%   True when Clause is an sCASP clause or directive defined in Unit.
+
+scasp_clause(Unit, _Clause) :-
+    done_unit(Unit),
+    !,
+    fail.
 scasp_clause(Unit, Clause) :-
+    assertz(done_unit(Unit)),
     scasp_module(Unit, Module),
     QHead = Module:Head,
     predicate_property(QHead, interpreted),
@@ -153,7 +169,9 @@ scasp_clause(Unit, Clause) :-
 
 mkclause(scasp_query(Query,_N), true, Clause) =>
     Clause = (?- Query).
-mkclause(#(Directive), true, Clause) => % TBD: #include and #abducible
+mkclause(#(include(Unit)), true, Clause) =>
+    scasp_clause(Unit, Clause).
+mkclause(#(Directive), true, Clause) => % TBD: #abducible
     Clause = #(Directive).
 mkclause(Head, true, Clause) =>
     Clause = Head.
