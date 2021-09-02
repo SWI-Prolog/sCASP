@@ -678,7 +678,7 @@ human_portray((A '| ' B):NX) :- !,
     format('a ~p ~p ',[NX,A]),
     human_portray_(B).
 human_portray($(X):NX) :- !,
-    format('~p, a ~p,',[X,NX]).
+    format('~w, a ~p,',[X,NX]).
 human_portray(X:NX) :-
     format('the ~p ~p',[NX,X]).
 
