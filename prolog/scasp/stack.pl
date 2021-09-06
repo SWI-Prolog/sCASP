@@ -120,6 +120,8 @@ filter_tree([_-Childs|Cs], M, FilterChildren) :-
 
 
 selected(query, _) => true.
+selected(proved(_), _) => true.
+selected(chs(_), _) => true.
 selected(not(Goal), M) =>
     selected(Goal, M).
 selected(Goal, M) =>
