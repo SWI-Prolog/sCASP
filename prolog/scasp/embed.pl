@@ -50,6 +50,11 @@
 :- use_module(stack).
 :- use_module(options).
 
+:- use_module(library(apply)).
+:- use_module(library(error)).
+:- use_module(library(lists)).
+:- use_module(library(prolog_code)).
+
 :- create_prolog_flag(scasp_show_model, true, [keep(true)]).
 :- create_prolog_flag(scasp_show_justification, true, [keep(true)]).
 :- initialization set_options(['--tree']).
@@ -148,6 +153,10 @@ scasp_compile_unit(Unit) :-
 
 scasp_compile_unit_(Unit) :-
     scasp_module(Unit, Module),
+    (   current_module(Module)
+    ->  true
+    ;   existence_error(scasp_unit, Unit)
+    ),
     findall(Clause, scasp_clause(Unit, Clause), Clauses),
     scasp_compile(Module:Clauses, []).
 
