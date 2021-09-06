@@ -110,8 +110,8 @@ collect_siblings([_|Stack], Siblings, PId) :-
 
 filter_tree([],_,[]).
 filter_tree([Term0-Childs|Cs], M, [Term-FChilds|Fs]) :-
-    selected(Term0, M), !,
     raise_negation(Term0, Term),
+    selected(Term, M), !,
     filter_tree(Childs, M, FChilds),
     filter_tree(Cs, M, Fs).
 filter_tree([_-Childs|Cs], M, FilterChildren) :-
@@ -122,10 +122,21 @@ filter_tree([_-Childs|Cs], M, FilterChildren) :-
 selected(query, _) => true.
 selected(proved(_), _) => true.
 selected(chs(_), _) => true.
+selected(assume(_), _) => true.
 selected(not(Goal), M) =>
     selected(Goal, M).
+selected(-(Goal), M) =>
+    selected(Goal, M).
 selected(Goal, M) =>
-    user_predicate(M:Goal).
+    (   user_predicate(M:Goal)
+    ->  true
+    ;   is_global_constraint(Goal)
+    ).
+
+is_global_constraint(Atom) :-
+    atom(Atom),
+    atom_concat(o_chk_, NA, Atom),
+    atom_number(NA, _).
 
 %!  print_justification_tree(+Tree) is det.
 %
