@@ -59,6 +59,7 @@ quick_test_file(Test, File) :-
                        ]).
 
 quick_test(pq).
+quick_test(forall_arity).
 quick_test(vars).
 quick_test(classic_negation_incostistent).
 quick_test(birds).
