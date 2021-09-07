@@ -378,6 +378,11 @@ user:portray(scasp_set_stack(Stack)) :-
     justification_tree(Stack, Tree, []),
     print_justification_tree(Tree).
 
+
+		 /*******************************
+		 *       HIGHLIGHT SUPPORT	*
+		 *******************************/
+
 :- multifile
     prolog:alternate_syntax/4,
     prolog:xref_update_syntax/2.
@@ -388,5 +393,43 @@ prolog:alternate_syntax(scasp, Module, Setup, Restore) :-
 
 prolog:xref_update_syntax(begin_scasp(_Unit), Module) :-
     scasp_ops:scasp_push_operators(Module).
+prolog:xref_update_syntax(begin_scasp(_Unit, _Exports), Module) :-
+    scasp_ops:scasp_push_operators(Module).
 prolog:xref_update_syntax(end_scasp, _Module) :-
     scasp_ops:scasp_pop_operators.
+
+:- multifile
+    prolog_colour:term_colours/2.
+
+prolog_colour:term_colours(#(Directive),
+                           expanded - [DirColours]) :-
+    debug(scasp(highlight), 'Got ~p', [Directive]),
+    dir_colours(Directive, DirColours).
+
+dir_colours(pred(_Head::_Template),
+            expanded -
+            [ expanded -
+              [ body,
+                comment(_)
+              ]
+            ]).
+dir_colours(show(Preds),
+            expanded - [Colours]) :-
+    decl_show_colours(Preds, Colours).
+dir_colours(include(_Unit),
+            expanded -
+            [ classify
+            ]).
+dir_colours(discontiguous(_Preds),
+            expanded -
+            [ declarations(discontiguous)
+            ]).
+
+decl_show_colours((A,B), Colours) =>
+    Colours = classify-[CA,CB],
+    decl_show_colours(A, CA),
+    decl_show_colours(B, CB).
+decl_show_colours(not(_A), Colours) =>
+    Colours = built_in-[declarations(show)].
+decl_show_colours(_A, Colours) =>
+    Colours = declarations(show).
