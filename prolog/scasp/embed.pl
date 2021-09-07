@@ -33,6 +33,7 @@
 
 :- module(scasp_embed,
           [ begin_scasp/1,              % +Unit
+            begin_scasp/2,              % +Unit, +Exports
             end_scasp/0,
             scasp_listing/2,            % +Unit, +Options
             scasp_model/1,              % -Model
@@ -86,9 +87,12 @@ think both have their value and the above one is simpler to start with.
 */
 
 :- thread_local
-    loading_scasp/5.
+    loading_scasp/3.                    % Unit, File, Dict
 
 begin_scasp(Unit) :-
+    begin_scasp(Unit, all).
+
+begin_scasp(Unit, Exports) :-
     scasp_module(Unit, Module),
     prolog_load_context(module, Context),
     source_location(File, Line),
@@ -98,7 +102,12 @@ begin_scasp(Unit) :-
     '$style_check'(OldStyle, OldStyle),
     style_check(-singleton),
     discontiguous(Module:(#)/1),
-    asserta(loading_scasp(Unit, Module, File, OldModule, OldStyle)).
+    asserta(loading_scasp(Unit, File,
+                          _{ module:Module,
+                             old_module:OldModule,
+                             old_style:OldStyle,
+                             exports:Exports
+                           })).
 
 scasp_module(Unit, Module) :-
     atom_concat('_scasp_', Unit, Module).
@@ -107,18 +116,22 @@ end_scasp :-
     throw(error(context_error(nodirective, end_scasp), _)).
 
 end_scasp(Clauses) :-
-    (   retract(loading_scasp(Unit, _Module, _File, OldModule, OldStyle))
-    ->  '$set_source_module'(_, OldModule),
+    (   retract(loading_scasp(Unit, _File, Dict))
+    ->  _{ old_module:OldModule,
+           old_style:OldStyle,
+           exports:Exports
+         } :< Dict,
+        '$set_source_module'(_, OldModule),
         scasp_pop_operators,
         '$style_check'(_, OldStyle),
         scasp_compile_unit(Unit),
-        link_clauses(OldModule, Unit, Clauses)
+        link_clauses(OldModule, Unit, Clauses, Exports)
     ;   throw(error(context_error(scasp_close(-)), _))
     ).
 
 loading_scasp(Unit) :-
     source_location(File, _Line),
-    loading_scasp(Unit,_,File,_,_).
+    loading_scasp(Unit,File,_).
 
 user:term_expansion(end_of_file, _) :-
     loading_scasp(Unit),
@@ -189,16 +202,16 @@ mkclause(Head, true, Clause) =>
 mkclause(Head, Body, Clause) =>
     Clause = (Head :- Body).
 
-%!  link_clauses(+ContextModule, +Unit, -Clauses) is det.
+%!  link_clauses(+ContextModule, +Unit, -Clauses, +Exports) is det.
 %
 %   Create  link  clauses  that  make  the  user  predicates  from  Unit
 %   available as Prolog predicates from Module.
 
-link_clauses(_ContextModule, Unit, Clauses) :-
+link_clauses(_ContextModule, Unit, Clauses, Exports) :-
     scasp_module(Unit, Module),
     findall(Head, link_predicate(Module:Head), Heads),
-    maplist(link_clause(Module), Heads, Clauses).
-
+    check_exports(Exports, Heads),
+    convlist(link_clause(Module, Exports), Heads, Clauses).
 
 link_predicate(Module:Head) :-
     Module:pr_user_predicate(PI),
@@ -210,7 +223,26 @@ not_really_a_user_predicate((not)/1).
 not_really_a_user_predicate(o_nmr_check/0).
 not_really_a_user_predicate(global_constraints/0).
 
-link_clause(Module, Head, (Head :- scasp_embed:scasp_call(Module:Head))).
+check_exports(all, _) :- !.
+check_exports(Exports, Heads) :-
+    must_be(list, Exports),
+    maplist(check_export(Heads), Exports).
+
+check_export(Heads, Export) :-
+    pi_head(Export, EHead),             % raises an exception on malformed PI.
+    (   memberchk(EHead, Heads)
+    ->  true
+    ;   existence_error(predicate, Export)
+    ).
+
+link_clause(Module, Exports, Head,
+            (Head :- scasp_embed:scasp_call(Module:Head))) :-
+    (   Exports == all
+    ->  true
+    ;   pi_head(PI, Head),
+        memberchk(PI, Exports)
+    ).
+
 
 %!  scasp_call(:Query)
 %
