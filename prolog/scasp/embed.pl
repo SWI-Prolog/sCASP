@@ -38,6 +38,7 @@
             scasp_listing/2,            % +Unit, +Options
             scasp_model/1,              % -Model
             scasp_stack/1,              % -Stack
+            scasp_justification/2,      % -Tree
 
             op(700, xfx, .\=.)
           ]).
@@ -66,7 +67,7 @@ This module allows embedding sCASP programs inside a Prolog module.
 Currently the syntax is:
 
 ```
-:- begin_scasp(UnitName).
+:- begin_scasp(UnitName[, Exports]).
 
 <sCASP program>
 
@@ -88,6 +89,26 @@ think both have their value and the above one is simpler to start with.
 
 :- thread_local
     loading_scasp/3.                    % Unit, File, Dict
+
+%!  begin_scasp(+Unit).
+%!  begin_scasp(+Unit, +Exports).
+%
+%   Start an embedded sCASP program.  Exports   is  a  list if predicate
+%   indicators as use_module/2 that defines   the  sCASP predicates that
+%   are made visible from the  enclosing   module  as Prolog predicates.
+%   These predicates modify the Prolog syntax by:
+%
+%     - Defining appropriate operators
+%     - Disable singleton checking
+%
+%   Otherwise the read clauses  are   asserted  verbatim. Directives are
+%   terms #(Directive). Prolog directives (:- Directive) are interpreted
+%   as sCASP __global constraints__. The   matching end_scasp/0 compiles
+%   the sCASP program and creates wrappers  in the enclosing module that
+%   call the sCASP solver.
+%
+%   The  sCASP  code   must   be    closed   using   end_scasp/0.   Both
+%   begin_scasp/1,2 and end_scasp/0 must be used as directives.
 
 begin_scasp(Unit) :-
     begin_scasp(Unit, all).
@@ -111,6 +132,10 @@ begin_scasp(Unit, Exports) :-
 
 scasp_module(Unit, Module) :-
     atom_concat('_scasp_', Unit, Module).
+
+%!  end_scasp
+%
+%   Close begin_scasp/1,2. See begin_scasp/1,2 for details.
 
 end_scasp :-
     throw(error(context_error(nodirective, end_scasp), _)).
@@ -294,6 +319,16 @@ scasp_stack(Stack) :-
     ;   Stack = []
     ).
 
+%!  scasp_justification(-Tree, +Options) is semidet.
+%
+%   Justification for the current sCASP answer.
+
+scasp_justification(Tree, Options) :-
+    scasp_stack(Stack),
+    Stack \== [],
+    justification_tree(Stack, Tree, Options).
+
+
 %!  scasp_listing(+Unit, +Options)
 %
 %   List the transformed program for Unit
@@ -305,6 +340,9 @@ scasp_listing(Unit, Options) :-
 :- residual_goals(scasp_residuals).
 
 %!  scasp_residuals// is det.
+%
+%   Hook into the SWI-Prolog toplevel  to   add  additional goals to the
+%   answer conjunction. Optionally provides the model and justification.
 
 scasp_residuals -->
     { scasp_residual_types(Types) },
@@ -335,19 +373,10 @@ scasp_residual_type(justification) :-
 
 user:portray(scasp_set_model(Model)) :-
     format('sCASP model: ~p', [Model]).
-:- if(false).
-user:portray(scasp_set_stack(M:Stack)) :-
-%   format('sCASP justification', []),
-%   process_stack(Stack, _).
-    reverse(Stack, Reverse_StackOut),
-    pretty_term([], _D3, Reverse_StackOut, P_StackOut),
-    scasp_portray_justification(M:P_StackOut).
-:- else.
 user:portray(scasp_set_stack(Stack)) :-
     format('sCASP justification', []),
     justification_tree(Stack, Tree, []),
     print_justification_tree(Tree).
-:- endif.
 
 :- multifile
     prolog:alternate_syntax/4,
