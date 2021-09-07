@@ -255,16 +255,16 @@ define_forall(G, G, []) :-
 define_forall(Gi, forall(X, G2), [X|T]) :-
     define_forall(Gi, G2, T).
 
-%!  outer_dual_head(+Head:compound, -DualHead:ground) is det
+%!  outer_dual_head(+Head:atom, -DualHead:compound) is det
 %
 %   Create the dual version of a  rule   head  by negating the predicate
 %   name and replacing the args with a variable list of the same arity.
 %
-%   @arg Head The initial, positive head, a predicate struct.
+%   @arg Head The initial, positive head, a predicate name.
 %   @arg DualHead The dual head, a predicate struct.
 
 outer_dual_head(H, D) :-
-    predicate(H, P, _),
+    predicate(H, P, _Args),
     negate_functor(P, Pd),
     split_functor(Pd, _, A),		% get the arity
     var_list(A, Ad),			% get the arg list
