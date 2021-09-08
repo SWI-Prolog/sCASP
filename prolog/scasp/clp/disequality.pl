@@ -6,7 +6,8 @@
             loop_term/2,
 
             op(700, xfx, .=.),
-            op(700, xfx, .\=.)
+            op(700, xfx, .\=.),
+            op(700, xfx, '\u2209')      % Not an element of
           ]).
 :- use_module('../options').
 :- use_module(clpq).
@@ -196,7 +197,13 @@ attr_unify_hook(neg(A),B) :-
 attribute_goals(X) -->
     { get_neg_var(X, G)
     },
-    [.\=.(X, G)].
+    (   {current_option(unicode, true)}
+    ->  [ '\u2209'(X, G) ]
+    ;   [.\=.(X, G)]
+    ).
 
 attr_portray_hook(neg(List), Var) :-
-    format("~p .\\=. ~p",[Var,List]).
+    (   current_option(unicode, true)
+    ->  format("~p \u2209 ~p",[Var,List])
+    ;   format("~p .\\=. ~p",[Var,List])
+    ).

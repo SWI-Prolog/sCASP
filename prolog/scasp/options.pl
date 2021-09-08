@@ -39,7 +39,8 @@ set_options(Options) :-
 set_default_options :-
     retractall(current_option(_, _)),
     set(answers,-1),
-    set(verbose,0).
+    set(verbose,0),
+    set(unicode,true).
 
 set_default_tree_options :-
     (   current_option(print_tree,on)
@@ -114,6 +115,9 @@ set_user_option('--short')              :- set(mid,on), set(short,on).
 
 set_user_option('--neg')                :- set(neg,on).
 set_user_option('--pos')                :- set(pos,on).
+
+set_user_option('-u')                   :- set(unicode, true).
+set_user_option('--unicode')            :- set(unicode, true).
 
 set_user_option('--html')               :- set(process_stack, on), set(html, on).
 set_user_option(Option)                 :- atom_concat('--html=',File,Option),

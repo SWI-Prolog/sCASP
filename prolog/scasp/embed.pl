@@ -38,9 +38,11 @@
             scasp_listing/2,            % +Unit, +Options
             scasp_model/1,              % -Model
             scasp_stack/1,              % -Stack
-            scasp_justification/2,      % -Tree
+            scasp_justification/2,      % -Tree, +Options
 
-            op(700, xfx, .\=.)
+            op(700, xfx, .\=.),
+            op(700, xfx, '\u2209'),
+            op(900, fy, not)
           ]).
 :- use_module(ops).
 :- use_module(io).
@@ -59,7 +61,7 @@
 
 :- create_prolog_flag(scasp_show_model, true, [keep(true)]).
 :- create_prolog_flag(scasp_show_justification, true, [keep(true)]).
-:- initialization set_options(['--tree']).
+:- initialization set_options(['--tree', '--unicode']).
 
 /** <module>  Embed sCASP programs in Prolog sources
 
@@ -377,6 +379,8 @@ user:portray(scasp_set_stack(Stack)) :-
     format('sCASP justification', []),
     justification_tree(Stack, Tree, []),
     print_justification_tree(Tree).
+user:portray('\u2209'(V,S)) :-
+    format('~p \u2209 ~p', [V, S]).
 
 
 		 /*******************************

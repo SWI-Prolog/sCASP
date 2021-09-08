@@ -51,7 +51,7 @@
 %   Options include:
 %
 %     - format(+Format)
-%       One of `tree` or `list`.
+%       One of `tree` (default) or `list`.
 
 justification_tree(M:Stack, JustificationTree, Options) :-
     reverse(Stack, RevStack),
@@ -139,27 +139,54 @@ is_global_constraint(Atom) :-
     atom_number(NA, _).
 
 %!  print_justification_tree(+Tree) is det.
+%!  print_justification_tree(+Tree, +Options) is det.
 %
 %   Print the justification tree as returned by process_stack/3
 
 print_justification_tree(Tree) :-
-    plain_output(Tree, 1).
+    print_justification_tree(Tree, []).
 
-%! plain_output(:FilterChildren, :Index)
+print_justification_tree(Tree, Options) :-
+    plain_output(Tree, [depth(1)|Options]).
 
-plain_output([A,B|Rs], I) :- !,
-    plain_output_(A, I),
-    format(",",[]),
-    plain_output([B|Rs], I).
+%!  plain_output(+FilterChildren, +Options)
+
+plain_output([A,B|Rs], Options) :- !,
+    plain_output_(A, Options),
+    connector(and, Conn, Options),
+    format("~w",[Conn]),
+    plain_output([B|Rs], Options).
 plain_output([A], 0) :- !,
     plain_output_(A, 0),
     format(".\n",[]).
-plain_output([A], I) :- !,
-    plain_output_(A, I).
+plain_output([A], Options) :- !,
+    plain_output_(A, Options).
 
-plain_output_(Term-[], I) :- !,
-    nl, tab(I), print(Term).
-plain_output_(Term-Child, I) :- !,
-    nl, tab(I), print(Term), format(" :-",[]),
-    I1 is I + 3,
-    plain_output(Child, I1).
+plain_output_(Term-[], Options) :- !,
+    option(depth(D), Options),
+    Indent is D*3,
+    nl, tab(Indent),
+    term(Term, Options).
+plain_output_(Term-Child, Options) :- !,
+    select_option(depth(D), Options, Options1),
+    Indent is D*3,
+    connector(implies, Conn, Options),
+    nl, tab(Indent), term(Term, Options), format(" ~w",[Conn]),
+    D1 is D+1,
+    plain_output(Child, [depth(D1)|Options1]).
+
+term(not(Term), Options) :-
+    !,
+    format("not ", []),
+    term(Term, Options).
+term(Term, _Options) :-
+    print(Term).
+
+connector(Semantics, Conn, Options) :-
+    option(format(Format), Options, unicode),
+    connector_string(Semantics, Format, Conn).
+
+connector_string(implies, ascii, ':-').
+connector_string(and,     ascii, ',').
+connector_string(implies, unicode, '\u2190').
+connector_string(and,     unicode, ' \u2227').
