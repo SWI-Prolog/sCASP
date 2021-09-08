@@ -4,46 +4,8 @@
           ]).
 :- use_module(predicates).
 :- use_module(common).
-:- op(900, fy, [not]). %% To be removed
 :- meta_predicate
     justification_tree(:, -, +).
-
-%% process
-%% [flies(tweety),bird(tweety),[],not ab(tweety),not o_ab_1(tweety),not penguin(tweety),not o_penguin_1(tweety),tweety\=sam,[],[],[],[],not o_ab_2(tweety),not wounded_bird(tweety),not o_wounded_bird_1(tweety),tweety\=john,[],[],[],[],[],[],o_nmr_check,[],[]]
-%%
-%% 1) by using collect_children to obtain:
-%% [(query,
-%%   [(flies(tweety),
-%%          [(bird(tweety),[]),
-%%           (not ab(tweety),
-%%                [(not o_ab_1(tweety),
-%%                      [(not penguin(tweety),
-%%                            [(not o_penguin_1(tweety),
-%%                                  [(tweety\=sam,[])])])]),
-%%                 (not o_ab_2(tweety),
-%%                      [(not wounded_bird(tweety),
-%%                            [(not o_wounded_bird_1(tweety),
-%%                                  [(tweety\=john,[])])])])])]),
-%%    (o_nmr_check,[])])]
-%%
-%% 2) by using collect_parents to obtain:
-%% [  (query,[flies(tweety),o_nmr_check]),
-%%    (flies(tweety),[bird(tweety),not ab(tweety)]),
-%%    (bird(tweety),[]),
-%%    (not ab(tweety),[not o_ab_1(tweety),not o_ab_2(tweety)]),
-%%    (not o_ab_1(tweety),[not penguin(tweety)]),
-%%    (not penguin(tweety),[not o_penguin_1(tweety)]),
-%%    (not o_penguin_1(tweety),[tweety\=sam]),
-%%    (tweety\=sam,[]),
-%%    (not o_ab_2(tweety),[not wounded_bird(tweety)]),
-%%    (not wounded_bird(tweety),[not o_wounded_bird_1(tweety)]),
-%%    (not o_wounded_bird_1(tweety),[tweety\=john]),
-%%    (tweety\=john,[]),
-%%    (o_nmr_check,[])
-%% ]
-%%
-%% 3) and others (enumerated list) ....
-
 
 %!  justification_tree(+Stack, -JustificationTree, +Options)
 %
