@@ -3,6 +3,7 @@
             not_unify/2,
             (.=.)/2,
             (.\=.)/2,
+            '\u2209'/2,                 % ?X, +G
             loop_term/2,
 
             op(700, xfx, .=.),
@@ -190,6 +191,26 @@ clean(A) :-
 
 update(A,List) :-
     put_attr(A,scasp_clp_disequality,neg(List)).
+
+%!  '\u2209'(?X, +G)
+%
+%   Constraint that expresses that X is  not   a  member  of the list of
+%   ground elements in G.
+
+'\u2209'(X, G) :-
+    ground(X),
+    \+ memberchk(X, G).
+'\u2209'(X, G) :-
+    get_neg_var(X, List),
+    sort(G, GS),
+    ord_union(List, GS, NewList),
+    update(X, NewList).
+'\u2209'(X, G) :-
+    var(X),
+    !,
+    sort(G, GS),
+    update(X, GS).
+
 
 attr_unify_hook(neg(A),B) :-
     not_unify(B, A).
