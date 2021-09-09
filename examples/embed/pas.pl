@@ -13,6 +13,16 @@
 %   ?- chose(ace_inhibitors).
 
 :- use_module('../../prolog/scasp/embed').
+:- use_module('../../prolog/scasp/human').
+
+test :-
+    set_prolog_flag(scasp_show_justification, false),
+    set_prolog_flag(scasp_show_model, false),
+    chose(ace_inhibitors),
+    scasp_justification(Tree, []),
+    human_justification_tree(Tree).
+
+
 
 :- begin_scasp(rules_pred, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
