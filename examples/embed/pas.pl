@@ -21,19 +21,29 @@ test :-
     chose(ace_inhibitors),
     !,
     scasp_justification(Tree, []),
-    human_justification_tree(Tree).
+    human_justification_tree(Tree),
+    save_tree(Tree).
 
+save_tree(M:Tree) :-
+    message_to_string(scasp_justification(Tree,
+                                          [ depth(1),
+                                            module(M)
+                                          ]),
+                      String),
+    setup_call_cleanup(open(us, write, Out),
+                       write(Out, String),
+                       close(Out)).
 
 
 :- begin_scasp(rules_pred, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% The Physician Advisory interface
+% The Physician Advisory interface
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #pred chose(T) :: '@(T:treatment) has been chosen'.
 #pred recommendation(T) :: 'it is a recommendation to use @(T)'.
 #pred discarded(T) :: '@(T) is discarded'.
-%% #pred available(T) :: 'available holds for @(T)'.
+% #pred available(T) :: 'available holds for @(T)'.
 #pred exclude(T) :: '@(T:treatment) is excluded'.
 
 #show chose/1, recommendation/1, discarded/1.
@@ -44,16 +54,16 @@ test :-
 
 :- begin_scasp(rules, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%                                        %%
-%%     The Physician advisory system      %%
-%%                                        %%
+%                                        %%
+%     The Physician advisory system      %%
+%                                        %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Include the Advisor interface
+% Include the Advisor interface
 #include(rules_pred).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% The doctor need to select certain treatments
+% The doctor need to select certain treatments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 chose(X) :- recommendation(X),  not exclude(X), not discarded(X).
@@ -62,34 +72,34 @@ discarded(X) :- not available(X).
 available(X) :- not discarded(X).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% There are some rules to chose/recommentd treatments
+% There are some rules to chose/recommentd treatments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% 1. Aggressive Reasoning: The aggressive reasoning pattern can be
-%% stated as "take an action (e.g., recommend treatment) inot f there
-%% is a reason; no evidence of contraindication means there is no
-%% danger in taking that action".
+% 1. Aggressive Reasoning: The aggressive reasoning pattern can be
+% stated as "take an action (e.g., recommend treatment) inot f there
+% is a reason; no evidence of contraindication means there is no
+% danger in taking that action".
 
 recommendation(T) :-
     reason(T),
     not contraindication(T).
 
-%% 2. Conservative Reasoning: This reasoning pattern is stated as "A
-%% reason for a recommendation is not enough; evidence that the
-%% recommendation is not harmful must be available".
+% 2. Conservative Reasoning: This reasoning pattern is stated as "A
+% reason for a recommendation is not enough; evidence that the
+% recommendation is not harmful must be available".
 
 recommendation(T) :-
     reason(T),
     -contraindication(T).
 
-%% 3. Anti-recommendation: The anti-recommendation pattern is stated
-%% as "a choice can be prohibited if evidence of contraindication can
-%% be found"
+% 3. Anti-recommendation: The anti-recommendation pattern is stated
+% as "a choice can be prohibited if evidence of contraindication can
+% be found"
 
-%% contraindication/1.
+% contraindication/1.
 
-%% 4. Preference: The preference pattern is stated as "use the
-%% second-line choice when the first-line choice is not available".
+% 4. Preference: The preference pattern is stated as "use the
+% second-line choice when the first-line choice is not available".
 
 recommendation(T2) :-
     second_line(T1,T2),
@@ -97,25 +107,25 @@ recommendation(T2) :-
     contraindication(T1),
     not contraindication(T2).
 
-%% 5. Concomitant Choice: The concomitant choice pattern is stated as
-%% "if a choice is made, some other choices are automatically in
-%% effect unless they are prohibited."
+% 5. Concomitant Choice: The concomitant choice pattern is stated as
+% "if a choice is made, some other choices are automatically in
+% effect unless they are prohibited."
 
 exclude(T0) :-
     concomitant(T0,T),
     recommendation(T),
     not chose(T).
 
-%% 6. Indispensable Choice: The indispensable choice pattern is stated
-%% as "if a choice is made, some other choices must also be made; if
-%% those choices can't be made, then the first choice is revoked".
+% 6. Indispensable Choice: The indispensable choice pattern is stated
+% as "if a choice is made, some other choices must also be made; if
+% those choices can't be made, then the first choice is revoked".
 
 exclude(T0) :-
     indispensable(T0,T),
     not chose(T).
 
-%% 7. Incompatible Choice: The incompatibility pattern is stated as
-%% "some choices cannot be in effect at the same time"
+% 7. Incompatible Choice: The incompatibility pattern is stated as
+% "some choices cannot be in effect at the same time"
 
 exclude(T2) :-
     incompatibility(T1,T2),
@@ -125,30 +135,44 @@ exclude(T1) :-
     not discarded(T2).
 :- end_scasp.
 
+:- begin_scasp(guide_pred, []).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Guide Interface
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% #pred reason(T) :: 'there is a reason for @(T)'.
+#pred contraindication(T) :: 'there is a danger in taking @(T)'.
+#pred -contraindication(T) :: '@(T:treatment) is not harmful'.
+#pred second_line(T0,T) :: '@(T:treatment) is the second choice of @(T0)'.
+#pred concomitant(T0,T) :: '@(T:treatment) is concomitant if @(T0) is chosen'.
+#pred indispensable(T0,T) :: '@(T:treatment) is indisplensable if @(T0) is chosen'.
+#pred incompatibility(T0,T) :: '@(T:treatment) is incompatible with @(T0)'.
+:- end_scasp.
+
 
 :- begin_scasp(guide, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% CHF Guide
+% CHF Guide
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Include the Physician Advisor System
+% Include the Physician Advisor System
 #include(rules).
-%% Include the Guide interface
+% Include the Guide interface
 #include(guide_pred).
 #discontiguous(evidence/1).
 #discontiguous(measurement/2).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Treatments Information
+% Treatments Information
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 1. Reason: What are the reason for a treatment
+% 1. Reason: What are the reason for a treatment
 
 %Digoxin
-%% "Digoxin can be beneficial in patients with HFrEF, unless
-%% contraindicated, to decrease hospitalizations for HF."
+% "Digoxin can be beneficial in patients with HFrEF, unless
+% contraindicated, to decrease hospitalizations for HF."
 
 reason(digoxin) :-
     evidence(accf_stage_c),
@@ -224,7 +248,7 @@ reason(cardiac_rehabilitation) :-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 2. contraindication: When is a danger in taking a treatment
+% 2. contraindication: When is a danger in taking a treatment
 
 %Diagoxin
 contraindication(digoxin) :-
@@ -237,9 +261,9 @@ contraindication(ace_inhibitors):-
     evidence(pregnancy).
 
 %Anticoagulation
-%% "Anticoagulation is not recommended in patients with chronic HFrEF
-%% without AF, a prior thromboembolic event, or a cardioembolic
-%% source."
+% "Anticoagulation is not recommended in patients with chronic HFrEF
+% without AF, a prior thromboembolic event, or a cardioembolic
+% source."
 contraindication(anticoagulation) :-
     diagnosis(hf_with_reduced_ef),
     not evidence(cardioembolic_source),
@@ -250,35 +274,35 @@ contraindication(exercise_training) :-
     evidence(can_not_improve_functional_status).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 4. second_line: What is the second choise if a treatment is not
-%% available
+% 4. second_line: What is the second choise if a treatment is not
+% available
 
 %Arbs
-%% "ARBs are recommended in patients with HFrEF with current or prior
-%% symptoms who are ACE inhibitor intolerant, unless contraindicated,
-%% to reduce morbidity and mortality."
+% "ARBs are recommended in patients with HFrEF with current or prior
+% symptoms who are ACE inhibitor intolerant, unless contraindicated,
+% to reduce morbidity and mortality."
 
 second_line(ace_inhibitors, arbs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 5. concomitat: What treatment is automatically chosen if is not
-%% prohibited
+% 5. concomitat: What treatment is automatically chosen if is not
+% prohibited
 
 %Concomitat
-%% "Diuretics should generally be combined with an ACE inhibitor, beta
-%% blocker, and aldosterone antagonist.  Few patients with HF will be
-%% able to maintain target weight without the use of diuretics."
+% "Diuretics should generally be combined with an ACE inhibitor, beta
+% blocker, and aldosterone antagonist.  Few patients with HF will be
+% able to maintain target weight without the use of diuretics."
 
 concomitant(ace_inhibitors, diuretics).
 concomitant(beta_blockers, diuretics).
 concomitant(aldosterone_antagonist, diuretics).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 6. indispensables: What treatment must be chosen
+% 6. indispensables: What treatment must be chosen
 
 %Indispensables
-%% "In patients with a current or recent history of fluid retention,
-%% beta blockers should not be prescribed without diuretics"
+% "In patients with a current or recent history of fluid retention,
+% beta blockers should not be prescribed without diuretics"
 indispensable(beta_blockers, diuretics) :-
     history(fluid_retention).
 
@@ -287,18 +311,18 @@ indispensable(hydralazine, beta_blockers).
 indispensable(hydralazine, ace_inhibitors).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 7. incompatibility: Which treatment can not be chosen together
+% 7. incompatibility: Which treatment can not be chosen together
 
 %Incompatibilities
-%% "Routine combined use of an ACE inhibitor, ARB, and aldosterone
-%% antagonist is potentially harmful for patients with HFrEF."
+% "Routine combined use of an ACE inhibitor, ARB, and aldosterone
+% antagonist is potentially harmful for patients with HFrEF."
 
 incompatibility(ace_inhibitors,arbs).
 incompatibility(aldosterone_antagonist,arbs).
 incompatibility(ace_inhibitors,aldosterone_antagonist).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% AUXILIAR PREDICATES INSIDE GUIDE
+% AUXILIAR PREDICATES INSIDE GUIDE
 
 % A1 evidence inference from patient information
 evidence(cardioembolic_stroke_risk_factor):-
@@ -339,29 +363,29 @@ evidence(lvef_equal_or_less_than_35_precent) :-
 
 :- begin_scasp(patient_pred, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Patient Interface
+% Patient Interface
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Evidence
+% Evidence
 #pred evidence(accf_stage_c) :: 'the patient is in ACCF stage C'.
 #pred evidence(pregnancy) :: 'the patient is pregnant or planning to get pregnant'.
 #pred evidence(E) :: 'the patient is/has @(E)'.
 
-%% Diagnosis
+% Diagnosis
 #pred diagnosis(hf_with_reduced_ef) ::
        'the patient is diagnosed with heart failure with reduced ejection fraction'.
 #pred diagnosis(D) :: 'the patient is diagnosed with @(D)'.
 
-%% History
+% History
 #pred history(H) :: 'the patient has a history of @(H)'.
 
-%% Measurement
+% Measurement
 #pred measurement(M,V) :: 'there is a measurement of @(M) of @(V)'.
 :- end_scasp.
 
 
 :- begin_scasp(patient).
-%% Include the Patient interface
+% Include the Patient interface
 #include(patient_pred).
 #discontiguous evidence/1.
 #discontiguous measurement/2.
@@ -411,44 +435,44 @@ history(beta_blockers).
                [ chose/1
                ]).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Queries
+% Queries
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Including CHF guides
+% Including CHF guides
 #include(guide).
 
-%% Introducing Patient-01 profile
+% Introducing Patient-01 profile
 #include(patient).
 
-%% %---------- Anticoagulation: There are 4 reasons to recommend it
+% %---------- Anticoagulation: There are 4 reasons to recommend it
 % ?- recommendation(anticoagulation).
 % ?- chose(anticoagulation).
 
-%% %---------- There is one reason to recommend beta_blockers
+% %---------- There is one reason to recommend beta_blockers
 % ?- recommendation(beta_blockers).
-%% %---------- Beta_blockers concomitants the choice of diuretics
+% %---------- Beta_blockers concomitants the choice of diuretics
 % ?- chose(beta_blockers).
 
-%% %---------- Aldosterone_antagonist vs. Ace_inhibitors: They are incompatible
-%% %           While we can observe the reasons to be recommended
+% %---------- Aldosterone_antagonist vs. Ace_inhibitors: They are incompatible
+% %           While we can observe the reasons to be recommended
 % ?- recommendation(aldosterone_antagonist), recommendation(ace_inhibitors).
-%% %---------- We can not choose both of them at the same time
+% %---------- We can not choose both of them at the same time
 % ?- chose(aldosterone_antagonist), chose(ace_inhibitors).      % NO MODELS
-%% %---------- E.g., Ace_inhibitors can be chosen:
-%% %  if Aldosterone_antagonist is discarded
-%% %  if arbs is also discarded
-%% % and if diuretics is chosen (it is concomitant)
+% %---------- E.g., Ace_inhibitors can be chosen:
+% %  if Aldosterone_antagonist is discarded
+% %  if arbs is also discarded
+% % and if diuretics is chosen (it is concomitant)
  ?- chose(ace_inhibitors).
 
 
-%% %---------- Second-line choices: arbs is the second choice for ace_inhibitors:
-%% %           Scenario A: ace_inhibitors can be chosen -> arbs is not recommended
+% %---------- Second-line choices: arbs is the second choice for ace_inhibitors:
+% %           Scenario A: ace_inhibitors can be chosen -> arbs is not recommended
 % ?- chose(arbs).   % NO MODELS
 
-%% %           Scenario B: ace_inhibitors has contraindication -> arbs is recommended
+% %           Scenario B: ace_inhibitors has contraindication -> arbs is recommended
 % contraindication(ace_inhibitors).  % UNCOMMENT THIS FACT
 % ?- chose(arbs).
 
-%% %---------- Multiple indispensables treatments: hydralazine/isosorbide_dinitrate...
+% %---------- Multiple indispensables treatments: hydralazine/isosorbide_dinitrate...
 % ?- chose(hydralazine).
 :- end_scasp.
