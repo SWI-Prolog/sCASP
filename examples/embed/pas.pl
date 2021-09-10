@@ -19,6 +19,7 @@ test :-
     set_prolog_flag(scasp_show_justification, false),
     set_prolog_flag(scasp_show_model, false),
     chose(ace_inhibitors),
+    !,
     scasp_justification(Tree, []),
     human_justification_tree(Tree).
 
