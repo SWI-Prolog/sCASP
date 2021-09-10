@@ -6,8 +6,13 @@
 human_justification_tree(Tree) :-
     human_justification_tree(Tree, []).
 
-human_justification_tree(Tree, Options) :-
-    print_message(information, scasp_justification(Tree, [depth(1)|Options])).
+human_justification_tree(M:Tree, Options) :-
+    print_message(information,
+                  scasp_justification(Tree,
+                                      [ depth(1),
+                                        module(M)
+                                      | Options
+                                      ])).
 
 %!  human_output(+FilterChildren, +Options)
 
@@ -41,6 +46,12 @@ term(-Term, Options) -->
     !,
     connector(-, Options),
     term(Term, Options).
+term(Term, Options) -->
+    { option(module(M), Options),
+      M:pr_pred_predicate(::(Term,format(Fmt, Args))),
+      !
+    },
+    [ Fmt-Args ].
 term(Term, _Options) -->
     [ '~p'-[Term] ].
 

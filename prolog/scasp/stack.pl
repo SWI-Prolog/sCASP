@@ -1,13 +1,16 @@
 :- module(stack,
           [ justification_tree/3,		% :Stack, -JustTree, +Options
-            print_justification_tree/1          % +JustTree
+            print_justification_tree/1,         % :JustTree
+            print_justification_tree/2          % :JustTree, +Options
           ]).
 :- use_module(predicates).
 :- use_module(common).
 :- meta_predicate
-    justification_tree(:, -, +).
+    justification_tree(:, -, +),
+    print_justification_tree(:),
+    print_justification_tree(:, +).
 
-%!  justification_tree(+Stack, -JustificationTree, +Options)
+%!  justification_tree(:Stack, -JustificationTree, +Options)
 %
 %   Process Stack as produced by solve/4 into a justification tree.
 %   Options include:
@@ -15,7 +18,7 @@
 %     - format(+Format)
 %       One of `tree` (default) or `list`.
 
-justification_tree(M:Stack, JustificationTree, Options) :-
+justification_tree(M:Stack, M:JustificationTree, Options) :-
     reverse(Stack, RevStack),
     enumerate([query|RevStack],EnumStack,1,1),
     (   option(format(tree), Options, tree)
@@ -100,16 +103,16 @@ is_global_constraint(Atom) :-
     atom_concat(o_chk_, NA, Atom),
     atom_number(NA, _).
 
-%!  print_justification_tree(+Tree) is det.
-%!  print_justification_tree(+Tree, +Options) is det.
+%!  print_justification_tree(:Tree) is det.
+%!  print_justification_tree(:Tree, +Options) is det.
 %
 %   Print the justification tree as returned by process_stack/3
 
 print_justification_tree(Tree) :-
     print_justification_tree(Tree, []).
 
-print_justification_tree(Tree, Options) :-
-    plain_output(Tree, [depth(1)|Options]).
+print_justification_tree(M:Tree, Options) :-
+    plain_output(Tree, [depth(1),module(M)|Options]).
 
 %!  plain_output(+FilterChildren, +Options)
 
