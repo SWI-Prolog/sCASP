@@ -9,12 +9,43 @@ human_justification_tree(Tree) :-
     human_justification_tree(Tree, []).
 
 human_justification_tree(M:Tree, Options) :-
-    print_message(information,
-                  scasp_justification(Tree,
-                                      [ depth(0),
-                                        module(M)
-                                      | Options
-                                      ])).
+    \+ \+ ( analyse_variables(Tree),
+            print_message(information,
+                          scasp_justification(Tree,
+                                              [ depth(0),
+                                                module(M)
+                                              | Options
+                                              ]))
+          ).
+
+analyse_variables(Tree) :-
+    term_singletons(Tree, Singletons),
+    term_variables(Tree, AllVars),
+    maplist(mark_singleton, Singletons),
+    foldl(name_variable, AllVars, 0, _).
+
+mark_singleton(Var) :-
+    put_attr(Var, scasp_just_human, singleton).
+
+name_variable(Var, N0, N) :-
+    (   is_singleton(Var)
+    ->  N = N0
+    ;   L is N0 mod 26 + 0'A,
+        N is N0 // 26,
+        (   N == 0
+        ->  char_code(Name, L)
+        ;   format(atom(Name), '~c~d', [L, N])
+        ),
+        put_attr(Var, scasp_just_human, name(Name))
+    ).
+
+attr_unify_hook(_Attr, _Value).
+
+is_singleton(Var) :-
+    get_attr(Var, scasp_just_human, singleton).
+va_name(Var, Name) :-
+    get_attr(Var, scasp_just_human, name(Name)).
+
 
 %!  human_output(+FilterChildren, +Options)
 
@@ -90,20 +121,20 @@ emit_term(@(NegVar:''), Options) -->
     { get_neg_var(NegVar, List)
     },
     !,
-    (   {List == [One]}
+    (   {List = [One]}
     ->  [ 'not '-[] ],
         emit_term(One, Options)
     ;   [ 'not in '-[] ],
         emit_args(List, [last_connector(', or ')|Options])
     ).
 emit_term(@(NegVar:Type), Options) -->
-    { get_neg_var(NegVar, List)
+    { get_neg_var(NegVar, List),
+      is_singleton(NegVar)
     },
     !,
-    (   {List == [One]}
-    ->  [ 'a ~w (not '-[Type] ],
-        emit_term(One, Options),
-        [ ')'-[] ]
+    (   {List = [One]}
+    ->  [ 'a ~w other than '-[Type] ],
+        emit_term(One, Options)
     ;   [ 'a ~w not in '-[Type] ],
         emit_args(List, [last_connector(', or ')|Options])
     ).
