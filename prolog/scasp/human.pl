@@ -2,6 +2,7 @@
           [ human_justification_tree/1,
             human_justification_tree/2
           ]).
+:- use_module(common).
 :- use_module(clp/disequality).
 
 human_justification_tree(Tree) :-
@@ -38,6 +39,11 @@ human_output_(Term-Children, Options) -->
     { incr_indent(Options, Options1) },
     human_output(Children, Options1).
 
+emit_atom(not(GlobalConstraint), _Options) -->
+    { is_global_constraint(GlobalConstraint, N)
+    },
+    !,
+    [ 'the global constraint number ~p holds'-[N] ].
 emit_atom(not(Term), Options) -->
     !,
     connector(not, Options),
@@ -46,13 +52,24 @@ emit_atom(-Term, Options) -->
     !,
     connector(-, Options),
     emit_atom(Term, Options).
-emit_atom(Term, Options) -->
-    { option(module(M), Options),
+emit_atom(proved(Term), Options) -->
+    !,
+    emit_atom(Term, Options),
+    [ ', justified above'-[] ].
+emit_atom(chs(Term), Options) -->
+    !,
+    [ 'it is assumed that '-[] ],
+    emit_atom(Term, Options).
+emit_atom(Term, Options) -->            % #pred Term::Template
+    { option(module(M), Options),       % Used existing translation
       M:pr_pred_predicate(::(Term,format(Fmt, Args))),
       !,
       parse_fmt(Fmt, Args, Actions)
     },
     emit_fmt_actions(Actions, Options).
+emit_atom(o_nmr_check, _Options) -->
+    !,
+    [ 'The global constraints hold'-[] ].
 emit_atom(Term, _Options) -->
     { atom(Term) },
     !,
