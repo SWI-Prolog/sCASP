@@ -483,12 +483,9 @@ pr_pred_classical_neg(ClassicalNeg :: Human, Type, M) :-
     Human = ( format('it is not the case that ',[]), PrH).
 
 pr_pred_global_constraint(not(Global_Constraint) :: Human,pred) :-
-    Global_Constraint =.. [Aux|Args],
-    atom_concat(o_, Func, Aux),
-    split_functor(Func, Pr, N),
-    N \== -1,
+    is_global_constraint(Global_Constraint, N),
+    Global_Constraint =.. [_|Args],
     !,
-    Pr == chk, !,
     H0 = format('the global constraint number ~p holds',[N]),
     pr_var_default(Args,H1),
     Human = (H0, H1).

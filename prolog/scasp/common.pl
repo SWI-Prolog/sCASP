@@ -31,6 +31,7 @@
             rule/4,
             negate_functor/2,
             is_dual/1,
+            is_global_constraint/2,     % +Name, -Nth
             split_functor/3,            % +Functor, -Name, -Arity
             join_functor/3,             % -Functor, +Name, +Arity
             create_unique_functor/3,
@@ -113,6 +114,17 @@ negate_functor(F, N) :-
 
 is_dual(X) :-
     has_prefix(X, n).
+
+%!  is_global_constraint(+Term:callable, -Nth:integer) is semidet.
+%
+%   True when this is a predicate implementing the Nth global constraint
+
+is_global_constraint(Term, Nth) :-
+    functor(Term, Name, _),
+    atom_concat(o_, Func, Name),
+    split_functor(Func, Pr, Nth),
+    Nth \== -1,
+    Pr == chk.
 
 %!  split_functor(+Functor:atom, -Name:atom, -Arity:int) is det.
 %
