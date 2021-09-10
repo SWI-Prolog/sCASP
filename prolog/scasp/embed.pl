@@ -176,9 +176,16 @@ user:term_expansion((?- Query), Clause) :-
     Clause = scasp_query(Query, 1).
 user:term_expansion(#(discontiguous(Preds)), (:- discontiguous(Preds))) :-
     loading_scasp(_).
+user:term_expansion(#(pred(Preds)), #(pred(Preds))) :-
+    loading_scasp(_),
+    prolog_load_context(variable_names, Vars),
+    maplist(bind_var, Vars).
 user:term_expansion((:- end_scasp), Clauses) :-
     \+ current_prolog_flag(xref, true),
     end_scasp(Clauses).
+
+bind_var(Name = $(Name)).
+
 
 %!  scasp_compile_unit(+Unit) is det.
 %
@@ -321,7 +328,7 @@ scasp_stack(Stack) :-
     ;   Stack = []
     ).
 
-%!  scasp_justification(-Tree, +Options) is semidet.
+%!  scasp_justification(:Tree, +Options) is semidet.
 %
 %   Justification for the current sCASP answer.
 
