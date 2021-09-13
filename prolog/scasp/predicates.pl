@@ -9,6 +9,10 @@
             scasp_compiled/1            % ?Head
           ]).
 :- use_module(ops).
+:- meta_predicate
+    user_predicate(:),
+    shown_predicate(:),
+    table_predicate(:).
 
 /** <module> Basic information about sCASP predicates
 */

@@ -10,6 +10,7 @@
 :- use_module(ops).
 :- use_module(options).
 :- use_module(solve).
+:- use_module(predicates).
 
 /** <module> sCASP as a stand-alone program
 
@@ -35,7 +36,10 @@ main(Args) :-
     ->  '$toplevel':setup_readline,
         main_loop
     ;   scasp_query(Q)
-    ->  ignore(main_solve(Q))
+    ->  (   maplist(check_existence, Q)
+        ->  ignore(main_solve(Q))
+        ;   halt(1)
+        )
     ).
 
 load_sources([]) :-
@@ -63,12 +67,12 @@ main_loop :-
         end_of_input(R)
     ->  format('~N'),
         halt
-    ;   conj_to_list(R, RQ),
-        capture_classical_neg(RQ, Q),
-        (   main_solve(Q)
+    ;   maplist(check_existence, Q)
+    ->  (   main_solve(Q)
         ->  nl, main_loop
         ;   main_loop
         )
+    ;   main_loop
     ).
 
 bind_var(Name = Var) :-
@@ -93,6 +97,20 @@ capture_classical_neg([-S|Ss], [N|NSs]) :- !,
     capture_classical_neg(Ss, NSs).
 capture_classical_neg([S|Ss], [S|NSs]) :-
     capture_classical_neg(Ss, NSs).
+
+check_existence(G) :-
+    shown_predicate(G),
+    !.
+check_existence(G) :-
+    scasp_pi(G, PI),
+    print_message(error, error(existence_error(scasp_predicate, PI), _)),
+    fail.
+
+scasp_pi(not(G), PI) :-
+    !,
+    scasp_pi(G, PI).
+scasp_pi(G, PI) :-
+    pi_head(PI, G).
 
 %!  main_solve(+Query)
 %
