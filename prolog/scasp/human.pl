@@ -60,6 +60,14 @@ human_output([A], Options) -->
     ;   []
     ).
 
+human_output_(query-[Query,o_nmr_check-[]], Options) -->
+    !,
+    human_output_(Query, Options).
+human_output_(query-Children, Options) -->
+    !,
+    human_output(Children, Options).
+human_output_(o_nmr_check-[], _Options) -->
+    !.
 human_output_(Term-[], Options) -->
     indent(Options),
     emit_atom(Term, Options).
