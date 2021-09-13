@@ -1,5 +1,7 @@
 :- module(scasp_main,
-          [ main/1                          % +Argv
+          [ main/1,                         % +Argv
+
+            op(900, fy, not)
           ]).
 :- set_prolog_flag(optimise, true).
 
