@@ -43,7 +43,7 @@ attr_unify_hook(_Attr, _Value).
 
 is_singleton(Var) :-
     get_attr(Var, scasp_just_human, singleton).
-va_name(Var, Name) :-
+var_name(Var, Name) :-
     get_attr(Var, scasp_just_human, name(Name)).
 
 
