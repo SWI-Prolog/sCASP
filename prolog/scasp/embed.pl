@@ -155,7 +155,11 @@ end_scasp(Clauses) :-
         '$set_source_module'(_, OldModule),
         scasp_pop_operators,
         '$style_check'(_, OldStyle),
-        scasp_compile_unit(Unit),
+        (   Exports == []
+        ->  Options = [undefined(silent)]
+        ;   Options = []
+        ),
+        scasp_compile_unit(Unit, Options),
         link_clauses(OldModule, Unit, Clauses, Exports)
     ;   throw(error(context_error(scasp_close(-)), _))
     ).
@@ -191,25 +195,25 @@ user:term_expansion((:- end_scasp), Clauses) :-
 bind_var(Name = $(Name)).
 
 
-%!  scasp_compile_unit(+Unit) is det.
+%!  scasp_compile_unit(+Unit, +Options) is det.
 %
 %   Compile an sCASP module.
 
 :- thread_local
     done_unit/1.                  % allow for mutually recursive #include
 
-scasp_compile_unit(Unit) :-
-    call_cleanup(scasp_compile_unit_(Unit),
+scasp_compile_unit(Unit, Options) :-
+    call_cleanup(scasp_compile_unit_(Unit, Options),
                  retractall(done_unit(_))).
 
-scasp_compile_unit_(Unit) :-
+scasp_compile_unit_(Unit, Options) :-
     scasp_module(Unit, Module),
     (   current_module(Module)
     ->  true
     ;   existence_error(scasp_unit, Unit)
     ),
     findall(Clause, scasp_clause(Unit, Clause), Clauses),
-    scasp_compile(Module:Clauses, []).
+    scasp_compile(Module:Clauses, Options).
 
 %!  scasp_clause(+Unit, -Clause) is nondet.
 %

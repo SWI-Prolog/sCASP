@@ -26,7 +26,7 @@
 */
 
 :- module(scasp_output,
-          [ generate_pr_rules/1         % +Sources
+          [ generate_pr_rules/2         % +Sources, +Options
           ]).
 
 
@@ -40,8 +40,10 @@ that may be used for warning and error output.
 @license BSD-3
 */
 
-:- use_module(library(lists)).
 :- use_module(library(dcg/basics)).
+:- use_module(library(apply)).
+:- use_module(library(option)).
+
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).
@@ -49,7 +51,7 @@ that may be used for warning and error output.
 :- op(700, xfx, ::).
 
 :- meta_predicate
-    generate_pr_rules(:).
+    generate_pr_rules(:, +).
 
 %!  format_term(+EntryIn:compound, -EntryOut:compound,
 %!              -Constraints:list, +Vars:compound) is det
@@ -185,7 +187,7 @@ strip_prefixes(Fi, Fo) :-		% '_' prefixes change to 'o_'
     atom_concat('o_', Fc, Fo).
 strip_prefixes(F, F).
 
-%!  generate_pr_rules(:Sources)
+%!  generate_pr_rules(:Sources, +Options)
 %
 %   Translate the sCASP program from the  defined_* predicates into pr_*
 %   predicates  for  sCASP.  It  creates    clauses  for  the  following
@@ -200,8 +202,9 @@ strip_prefixes(F, F).
 
 :- det(generate_pr_rules/1).
 
-generate_pr_rules(M:_Sources) :-
+generate_pr_rules(M:_Sources, Options) :-
     clean_pr_program(M),
+    check_existence(Options),
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
     format_term_list(Rs,Rs2),
     (   defined_nmr_check(NMR)
@@ -347,6 +350,37 @@ assert_pr_user_predicate([P|Ps], M) :-
     ),
     assert_pr_user_predicate(Ps, M).
 
+
+%!  check_existence(+Options)
+%
+%   Check that all referenced predicates are defined.
+
+check_existence(Options) :-
+    option(undefined(Mode), Options, warning),
+    (   Mode == silent
+    ->  true
+    ;   defined_predicates(Preds),
+        exclude(defined, Preds, Undef0),
+        maplist(scasp_pred_pi, Undef0, Undef),
+        (   Undef == []
+        ->  true
+        ;   Mode == warning
+        ->  maplist(report_undef, Undef)
+        ;   throw(error(scasp_undefined(Undef), _))
+        )
+    ).
+
+defined('_false_0').
+defined(Name) :-
+    defined_rule(Name, _, _).
+
+scasp_pred_pi(DecoratedName, Name/Arity) :-
+    split_functor(DecoratedName, PrefixedName, Arity),
+    strip_prefixes(PrefixedName, Name).
+
+report_undef(PI) :-
+    print_message(warning,
+                  error(existence_error(scasp_predicate, PI), _)).
 
 %!  clean_pr_program(+Module) is det.
 %

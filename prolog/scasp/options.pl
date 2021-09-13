@@ -141,12 +141,18 @@ set_user_option('--no_olon')            :- set(no_compile_olon, on).
 set_user_option('-w')                   :- set(warning, on).
 set_user_option('--warning')            :- set(warning, on).
 set_user_option('--variant')            :- set(no_fail_loop, on).
+set_user_option(Option)                 :- undef_option(Option, Undef),
+					   set(undefined, Undef).
 %% Only with tabling
 set_user_option('-m')                   :- set(minimal_model,on).
 set_user_option('--minimal')            :- set(minimal_model,on).
 set_user_option('--all_c_forall')       :- set(all_forall,on).
 set_user_option('--prev_forall')        :- set(prev_forall,on).
 set_user_option('--raw')                :- set(raw,on).
+
+undef_option(Option, Val) :-
+    atom_concat('--undef=', Val, Option),
+    must_be(oneof([silent,warning,error]), Val).
 
 
 %!  if_user_option(:Name, :Call)
@@ -213,6 +219,7 @@ help_all :-
     format('  --no_olon             Do not compile olon rules (for debugging purposes).\n'),
     format('  --no_nmr              Do not compile NMR checks (for debugging purposes).\n'),
     format('  -w, --warning         Enable warning messages (failures in variant loops / disequality).\n'),
+    format('  --undef=Mode          Check for undefined predicates (silent,warning,error)\n'),
     format('  --variant             Do not fail in the presence of variant loops.\n'),
     format('\n'),
     format('  -m, --minimal         Collect only the minimal models (TABLING required).\n'),

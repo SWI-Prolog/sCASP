@@ -48,7 +48,27 @@ load_sources([]) :-
     s_help,
     halt(1).
 load_sources(Sources) :-
-    scasp_load(Sources).
+    findall(Opt, load_option(Opt), Options),
+    catch_with_backtrace(
+        scasp_load(Sources, Options),
+        Error,
+        load_error(Error)).
+
+load_option(undefined(Mode)) :-
+    current_option(undefined, Mode).
+
+load_error(error(scasp_undefined(PIs), _)) :-
+    !,
+    maplist(report_undef, PIs),
+    halt(1).
+load_error(PrologError) :-
+    print_message(error, PrologError),
+    halt(1).
+
+report_undef(PI) :-
+    print_message(error,
+                  error(existence_error(scasp_predicate, PI), _)).
+
 
 %!  main_loop
 %

@@ -26,7 +26,7 @@
 */
 
 :- module(scasp_compile,
-          [ scasp_load/1,        % :Sources
+          [ scasp_load/2,        % :Sources, +Options
             scasp_compile/2,     % :Terms, +Options
             scasp_query/1        % :Query
           ]).
@@ -49,11 +49,11 @@ results.
 :- use_module(output).
 
 :- meta_predicate
-    scasp_load(:),
+    scasp_load(:, +),
     scasp_compile(:, +),
     scasp_query(:).
 
-%!  scasp_load(:Sources)
+%!  scasp_load(:Sources, +Options)
 %
 %   Load the files from Sources.   Steps taken:
 %
@@ -66,10 +66,10 @@ results.
 %
 %   @arg Sources A list of paths of input files.
 
-scasp_load(M:Spec) :-
+scasp_load(M:Spec, Options) :-
     to_list(Spec, Sources),
     call_cleanup(
-        scasp_load_guarded(M:Sources),
+        scasp_load_guarded(M:Sources, Options),
         destroy_program).
 
 to_list(List, List) :-
@@ -77,12 +77,12 @@ to_list(List, List) :-
     !.
 to_list(One, [One]).
 
-scasp_load_guarded(M:Sources) :-
+scasp_load_guarded(M:Sources, Options) :-
     load_source_files(Sources),
     comp_duals,
     generate_nmr_check,
     debug(scasp(compile), 'SASP step of input program complete.', []),
-    generate_pr_rules(M:Sources).
+    generate_pr_rules(M:Sources, Options).
 
 %!  scasp_compile(:Terms, +Options) is det.
 %
@@ -98,7 +98,7 @@ scasp_compile_guarded(M:Terms, Options) :-
     comp_duals,
     generate_nmr_check,
     debug(scasp(compile), 'SASP step of input program complete.', []),
-    generate_pr_rules(M:_Sources). % ignored anyway
+    generate_pr_rules(M:_Sources, Options). % ignored anyway
 
 %!  scasp_query(:Query) is det.
 %
