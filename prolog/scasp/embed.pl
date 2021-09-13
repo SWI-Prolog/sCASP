@@ -39,6 +39,7 @@
             scasp_model/1,              % -Model
             scasp_stack/1,              % -Stack
             scasp_justification/2,      % -Tree, +Options
+            (not)/1,                    % :Query
 
             op(700, xfx, .\=.),
             op(700, xfx, '\u2209'),
@@ -58,6 +59,9 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(prolog_code)).
+
+:- meta_predicate
+    not(0).
 
 :- create_prolog_flag(scasp_show_model, true, [keep(true)]).
 :- create_prolog_flag(scasp_show_justification, true, [keep(true)]).
@@ -291,6 +295,18 @@ scasp_call(Query) :-
     save_model(Model),
     Query1 = M:_,                       % TBD: Properly handle the module
     save_stack(M:StackOut).
+
+%!  not(:Query)
+%
+%   sCASP NaF negation. Note that  this   conflicts  with the deprecated
+%   standard Prolog not/1 predicate which is   a  synonym for \+/1. Make
+%   sure to load sCASP into a module   where you want sCASP negation and
+%   use \+/1 for Prolog negation in this model.
+
+not(M:Query) :-
+    clause(M:Query, scasp_embed:scasp_call(Module:Query)),
+    scasp_call(Module:not(Query)).
+
 
 %!  save_model(+Model) is det.
 %
