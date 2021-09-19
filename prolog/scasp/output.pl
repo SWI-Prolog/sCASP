@@ -200,7 +200,7 @@ strip_prefixes(F, F).
 %     - pr_show_predicate/1
 %     - pr_pred_predicate/1.
 
-:- det(generate_pr_rules/1).
+:- det(generate_pr_rules/2).
 
 generate_pr_rules(M:_Sources, Options) :-
     clean_pr_program(M),
