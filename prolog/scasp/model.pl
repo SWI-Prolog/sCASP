@@ -32,13 +32,15 @@
 */
 
 :- module(scasp_model,
-          [ canonical_model/2           % +RawModel,-Canonical
+          [ canonical_model/2,          % +RawModel, -Canonical
+            unqualify_model/3           % +ModelIn, +Module, -ModelOut
           ]).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
 
 :- use_module(common).
+:- use_module(modules).
 
 /** <module> sCASP model handling
 
@@ -103,4 +105,26 @@ simplify_model([H|T0], M) =>
     simplify_model(T0, M0).
 simplify_model([], M) =>
     M = [].
+
+%!  unqualify_model(+ModelIn, +Module, -ModelOut) is det.
+%
+%   Restore the model relation to modules.
+
+unqualify_model(Model0, Module, Model) :-
+    maplist(unqualify_model_term(Module), Model0, Model).
+
+unqualify_model_term(M, -Term0, Term) =>
+    Term = -Term1,
+    unqualify_model_term(M, Term0, Term1).
+unqualify_model_term(M, not(Term0), Term) =>
+    Term = not(Term1),
+    unqualify_model_term(M, Term0, Term1).
+unqualify_model_term(M, Term0, Term) =>
+    (   encoded_module_term(Q:Term1, Term0)
+    ->  (   Q == M
+        ->  Term = Term1
+        ;   Term = Q:Term1
+        )
+    ;   Term0 = Term
+    ).
 

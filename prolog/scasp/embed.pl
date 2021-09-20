@@ -36,7 +36,7 @@
             begin_scasp/2,              % +Unit, +Exports
             end_scasp/0,
             scasp_listing/2,            % +Unit, +Options
-            scasp_model/1,              % -Model
+            scasp_model/1,              % :Model
             scasp_stack/1,              % -Stack
             scasp_justification/2,      % -Tree, +Options
             (not)/1,                    % :Query
@@ -62,6 +62,7 @@
 :- use_module(library(prolog_code)).
 
 :- meta_predicate
+    scasp_model(:),
     not(0),
     -(:).
 
@@ -345,14 +346,15 @@ save_model(Model) :-
     ;   b_setval(scasp_model, Model)
     ).
 
-%!  scasp_model(-Model) is semidet.
+%!  scasp_model(:Model) is semidet.
 %
 %   True when Model  represents  the  current   set  of  true  and false
 %   literals.
 
-scasp_model(Model) :-
+scasp_model(M:Model) :-
     nb_current(scasp_model, RawModel),
-    canonical_model(RawModel, Model).
+    canonical_model(RawModel, Model1),
+    unqualify_model(Model1, M, Model).
 
 save_stack(Stack) :-
     b_setval(scasp_stack, Stack).
@@ -394,23 +396,25 @@ scasp_listing(Unit, Options) :-
 %   answer conjunction. Optionally provides the model and justification.
 
 scasp_residuals -->
-    { scasp_residual_types(Types) },
-    scasp_residuals(Types).
+    { '$current_typein_module'(TypeIn),
+      scasp_residual_types(Types)
+    },
+    scasp_residuals(Types, TypeIn).
 
-scasp_residuals([]) -->
+scasp_residuals([], _) -->
     [].
-scasp_residuals([model|T]) -->
-    (   {scasp_model(Model)}
+scasp_residuals([model|T], M) -->
+    (   {scasp_model(M:Model)}
     ->  [ scasp_set_model(Model) ]
     ;   []
     ),
-    scasp_residuals(T).
-scasp_residuals([justification|T]) -->
+    scasp_residuals(T, M).
+scasp_residuals([justification|T], M) -->
     (   {scasp_stack(Stack), Stack \== []}
     ->  [ scasp_set_stack(Stack) ]
     ;   []
     ),
-    scasp_residuals(T).
+    scasp_residuals(T, M).
 
 scasp_residual_types(Types) :-
     findall(Type, scasp_residual_type(Type), Types).

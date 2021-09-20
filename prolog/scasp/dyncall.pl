@@ -6,6 +6,7 @@
 :- use_module(compile).
 :- use_module(embed).
 :- use_module(common).
+:- use_module(modules).
 
 :- meta_predicate
     scasp(0),
@@ -68,9 +69,7 @@ qualify((A:-B), M, Q) =>
     qualify(A, M, QA),
     qualify(B, M, QB).
 qualify(G, M, Q), callable(G) =>
-    G =.. [Name|Args],
-    atomic_list_concat([M,:,Name], QName),
-    Q =.. [QName|Args].
+    encoded_module_term(M:G, Q).
 
 query_callees(M:Query, Callees) :-
     findall(Call, body_calls(Query,M,Call), Calls0),
