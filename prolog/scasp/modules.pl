@@ -17,15 +17,24 @@ module into the names is both simpler and faster.
 
 %!  encoded_module_name(?QTerm, ?QName) is det.
 %
-%   Encode a module qualification into a name.
+%   Encode a module qualification into a name. Also deals with names
+%   that embed classical negation (-Name).
 
+encoded_module_name(M:NName, QName),
+    atom(M), atom(NName), atom_concat(-,Name, NName) =>
+    atomic_list_concat([-,M,:,Name], QName).
 encoded_module_name(M:Name, QName), atom(M), atom(Name) =>
     atomic_list_concat([M,:,Name], QName).
 encoded_module_name(MName, QName), atom(QName) =>
     (   sub_atom(QName, B, _, A, :)
     ->  MName = M:Name,
-        sub_atom(QName, 0, B, _, M),
-        sub_atom(QName, _, A, 0, Name)
+        sub_atom(QName, _, A, 0, Name0),
+        sub_atom(QName, 0, B, _, M0),
+        (   atom_concat(-, M, M0)
+        ->  atom_concat(-, Name0, Name)
+        ;   M = M0,
+            Name = Name0
+        )
     ;   MName = QName
     ).
 

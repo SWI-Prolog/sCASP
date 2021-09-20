@@ -160,7 +160,8 @@ body_calls(G, _, _) =>
     type_error(callable, G).
 
 pm(P, P).
-pm(M:P, M:(-P)).
+pm(M:P, M:MP) :-
+    intern_negation(-P, MP).
 
 implementation(M0:Head, M:Head) :-
     predicate_property(M0:Head, imported_from(M1)),
@@ -184,3 +185,18 @@ predicate_generation(Head, Gen) :-
     Gen = Gen0.
 predicate_generation(_, 0).
 
+
+		 /*******************************
+		 *            EXPAND		*
+		 *******************************/
+
+user:term_expansion(-Fact, MFact) :-
+    callable(Fact),
+    intern_negation(-Fact, MFact).
+user:term_expansion((-Head :- Body), (MHead :- Body)) :-
+    callable(Head),
+    intern_negation(-Head, MHead).
+
+user:goal_expansion(-Goal, MGoal) :-
+    callable(Goal),
+    intern_negation(-Goal, MGoal).
