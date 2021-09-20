@@ -85,7 +85,7 @@ callee_closure([], _, Preds, Preds).
 callee_closure([H|T], Expanded, Preds0, Preds) :-
     pi_head(PI, H),
     (   get_assoc(PI, Expanded, _)
-    ->  callee_closure(T, Expanded, Preds0, Preds0)
+    ->  callee_closure(T, Expanded, Preds0, Preds)
     ;   put_assoc(PI, Expanded, true, Expanded1),
         predicate_callees(H, Called),
         exclude(expanded(Expanded1), Called, New),
