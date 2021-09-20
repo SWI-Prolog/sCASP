@@ -5,6 +5,7 @@
           ]).
 :- use_module(compile).
 :- use_module(embed).
+:- use_module(common).
 
 :- meta_predicate
     scasp(0),
@@ -14,8 +15,6 @@
 
 This predicate assembles the clauses  that   are  reachable from a given
 goal.
-
-
 */
 
 scasp(Query) :-
@@ -23,11 +22,19 @@ scasp(Query) :-
     qualify(Query, _:QQuery),
     in_temporary_module(
         Module,
-        scasp_compile(Module:Clauses, []),
+        prepare(Clauses, Module, []),
         scasp_embed:scasp_call(Module:QQuery)).
 
+prepare(Clauses, Module, Options) :-
+    scasp_compile(Module:Clauses, Options),
+    (   debugging(scasp(rules))
+    ->  listing(Module:pr_rule/2)
+    ;   true
+    ).
+
 qualify(M:Q0, M:Q) :-
-    qualify(Q0, M, Q).
+    qualify(Q0, M, Q1),
+    intern_nagation(Q1, Q).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
 
