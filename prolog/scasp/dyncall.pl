@@ -137,6 +137,8 @@ body_calls(G, M, CalleePM), callable(G) =>
     (   predicate_property(Callee, interpreted),
         \+ predicate_property(Callee, meta_predicate(_))
     ->  pm(Callee, CalleePM)
+    ;   \+ predicate_property(Callee, _)
+    ->  pm(Callee, CalleePM)
     ;   pi_head(CalleePI, Callee),
         permission_error(scasp, procedure, CalleePI)
     ).
