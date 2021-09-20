@@ -220,7 +220,7 @@ format_program([], P) :-
     !,                       % no program
     predicate(G, '_false_0', []),
     query(Q, [not(G)], _, 1),
-    program(P, [], _, Q).
+    program(P, [], [], Q).
 format_program(X, P) :-
     predicate(G, '_false_0', []),
     AScount = 1,
