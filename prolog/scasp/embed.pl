@@ -40,6 +40,7 @@
             scasp_stack/1,              % -Stack
             scasp_justification/2,      % -Tree, +Options
             (not)/1,                    % :Query
+            (-)/1,                      % :Query
 
             op(700, xfx, .\=.),
             op(700, xfx, '\u2209'),
@@ -61,7 +62,8 @@
 :- use_module(library(prolog_code)).
 
 :- meta_predicate
-    not(0).
+    not(0),
+    -(:).
 
 :- create_prolog_flag(scasp_show_model, true, [keep(true)]).
 :- create_prolog_flag(scasp_show_justification, true, [keep(true)]).
@@ -270,6 +272,10 @@ check_exports(Exports, Heads) :-
     must_be(list, Exports),
     maplist(check_export(Heads), Exports).
 
+check_export(Heads, -Name/Arity) :-
+    !,
+    atom_concat(-, Name, NName),
+    check_export(Heads, NName/Arity).
 check_export(Heads, Export) :-
     pi_head(Export, EHead),             % raises an exception on malformed PI.
     (   memberchk(EHead, Heads)
@@ -281,6 +287,9 @@ link_clause(Module, Exports, Head,
             (Head :- scasp_embed:scasp_call(Module:Head))) :-
     (   Exports == all
     ->  true
+    ;   functor(Head, NName, Arity),
+        atom_concat(-, Name, NName)
+    ->  memberchk(-Name/Arity, Exports)
     ;   pi_head(PI, Head),
         memberchk(PI, Exports)
     ).
@@ -310,6 +319,17 @@ scasp_call(Query) :-
 not(M:Query) :-
     clause(M:Query, scasp_embed:scasp_call(Module:Query)),
     scasp_call(Module:not(Query)).
+
+%!  -(:Query)
+%
+%   sCASP classical negation.
+
+-(M:Query) :-
+    Query =.. [Name|Args],
+    atom_concat(-, Name, NName),
+    NQuery =.. [NName|Args],
+    clause(M:NQuery, scasp_embed:scasp_call(Module:NQuery)),
+    scasp_call(Module:NQuery).
 
 
 %!  save_model(+Model) is det.
