@@ -16,6 +16,14 @@
 
 This predicate assembles the clauses  that   are  reachable from a given
 goal.
+
+Issues:
+
+  - Represent classical negation as -Term?  Alternatives:
+    - Just use -Term.  Disadvantage is program analysis and module
+      dependencies.
+    - Provide goal- and term-expansion to intern the - into the functor
+      name.   Disadvantage is that we need scasp_assert/1, etc.
 */
 
 scasp(Query) :-
