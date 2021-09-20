@@ -43,7 +43,7 @@ prepare(Clauses, Module, Options) :-
 
 qualify(M:Q0, M:Q) :-
     qualify(Q0, M, Q1),
-    intern_nagation(Q1, Q).
+    intern_negation(Q1, Q).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
 

@@ -37,7 +37,7 @@
             create_unique_functor/3,
             operator/3,
             raise_negation/2,           % +Goal,-UserGoal
-            intern_nagation/2           % +QIn,-QOut
+            intern_negation/2           % +QIn,-QOut
           ]).
 
 /** <module> Common predicates used in multiple files
@@ -182,13 +182,13 @@ raise_negation(TermIn, UserTerm),
 raise_negation(Term, UserTerm) =>
     UserTerm = Term.
 
-%!  intern_nagation(+QIn, -QOut) is det.
+%!  intern_negation(+QIn, -QOut) is det.
 
-intern_nagation(-Q0, Q) =>
+intern_negation(-Q0, Q) =>
     Q0 =.. [Name|Args],
     atom_concat(-, Name, NName),
     Q =.. [NName|Args].
-intern_nagation(Q0, Q) =>
+intern_negation(Q0, Q) =>
     Q = Q0.
 
 %!  operator(+Operator:ground, -Specifier:atom, -Priority:int) is det
