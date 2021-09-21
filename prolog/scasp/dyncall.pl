@@ -54,7 +54,8 @@ scasp_query_clauses(Query, Clauses) :-
     findall(Clause, scasp_clause(Callees, Clause), Clauses).
 
 scasp_clause(Callees, Clause) :-
-    member(M:Head, Callees),
+    member(PI, Callees),
+    pi_head(PI, M:Head),
     @(clause(Head, Body), M),
     mkclause(Head, Body, M, Clause).
 
@@ -81,9 +82,13 @@ qualify(G, M, Q), callable(G) =>
     encoded_module_term(M:G, Q).
 
 query_callees(M:Query, Callees) :-
-    findall(Call, body_calls(Query,M,Call), Calls0),
+    findall(Call, body_calls_pi(Query,M,Call), Calls0),
     sort(Calls0, Calls),
     callee_graph(Calls, Callees).
+
+body_calls_pi(Query, M, PI) :-
+    body_calls(Query, M, Call),
+    pi_head(PI, Call).
 
 callee_graph(Preds, Nodes) :-
     empty_assoc(Expanded),
@@ -92,25 +97,25 @@ callee_graph(Preds, Nodes) :-
 
 callee_closure([], _, Preds, Preds).
 callee_closure([H|T], Expanded, Preds0, Preds) :-
-    pi_head(PI, H),
-    (   get_assoc(PI, Expanded, _)
+    (   get_assoc(H, Expanded, _)
     ->  callee_closure(T, Expanded, Preds0, Preds)
-    ;   put_assoc(PI, Expanded, true, Expanded1),
-        predicate_callees(H, Called),
+    ;   put_assoc(H, Expanded, true, Expanded1),
+        pi_head(H, Head),
+        predicate_callees(Head, Called),
         exclude(expanded(Expanded1), Called, New),
         append(New, T, Agenda),
         append(New, Preds0, Preds1),
         callee_closure(Agenda, Expanded1, Preds1, Preds)
     ).
 
-expanded(Assoc, Head) :-
-    pi_head(PI, Head),
+expanded(Assoc, PI) :-
     get_assoc(PI, Assoc, _).
 
 
 %!  predicate_callees(:Head, -Callees) is det.
 %
-%   True when Callees is the list of _direct_ callees from Head.
+%   True when Callees is the list of _direct_ callees from Head.  Each
+%   callee is a _predicate indicator_.
 
 :- dynamic predicate_callees_c/4.
 
@@ -130,10 +135,11 @@ predicate_callees_nc(Head, Callees) :-
     findall(Callee, predicate_calls(Head, Callee), Callees0),
     sort(Callees0, Callees).
 
-predicate_calls(Head0, Callee) :-
+predicate_calls(Head0, PI) :-
     generalise(Head0, M:Head),
     @(clause(Head, Body), M),
-    body_calls(Body, M, Callee).
+    body_calls(Body, M, Callee),
+    pi_head(PI, Callee).
 
 body_calls(true, _M, _) => fail.
 body_calls((A,B), M, Callee) =>
