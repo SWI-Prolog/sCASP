@@ -242,6 +242,8 @@ mkclause(#(include(Unit)), true, Clause) =>
     scasp_clause(Unit, Clause).
 mkclause(#(Directive), true, Clause) => % TBD: #abducible
     Clause = #(Directive).
+mkclause('_false_0', Body, Clause) =>
+    Clause = (:- Body).
 mkclause(Head, true, Clause) =>
     Clause = Head.
 mkclause(Head, Body, Clause) =>
