@@ -88,8 +88,8 @@ selected(query, _) => true.
 selected(proved(_), _) => true.
 selected(chs(_), _) => true.
 selected(assume(_), _) => true.
-selected(not(Goal), M) =>
-    selected(Goal, M).
+selected(not(Goal), _) =>
+    \+ aux_predicate(Goal).
 selected(-(Goal), M) =>
     selected(Goal, M).
 selected(Goal, M) =>
@@ -97,6 +97,11 @@ selected(Goal, M) =>
     ->  true
     ;   is_global_constraint(Goal)
     ).
+
+aux_predicate(-(o_,_)) :- !.                    % copied from io.pl
+aux_predicate(A) :-
+    functor(A, Name, _Arity),
+    sub_atom(Name, 0, _, _, o_).
 
 is_global_constraint(Atom) :-
     atom(Atom),
