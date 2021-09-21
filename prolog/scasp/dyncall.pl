@@ -7,6 +7,7 @@
 :- use_module(embed).
 :- use_module(common).
 :- use_module(modules).
+:- use_module(io).
 
 :- meta_predicate
     scasp(0),
@@ -36,8 +37,8 @@ scasp(Query) :-
 
 prepare(Clauses, Module, Options) :-
     scasp_compile(Module:Clauses, Options),
-    (   debugging(scasp(rules))
-    ->  listing(Module:pr_rule/2)
+    (   debugging(scasp(code))
+    ->  scasp_portray_program(Module:[])
     ;   true
     ).
 
