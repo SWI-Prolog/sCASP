@@ -155,8 +155,7 @@ comp_dual2(Hn, Bg, Bv) :-
     append(A1, Bv, A2),
     length(A2, Arity),
     split_functor(F, Base0, _), % remove arity
-    length(Bv, NBv),
-    atomic_list_concat([Base0, '_bv', NBv], Base),
+    atomic_list_concat([Base0, '_vh', Arity], Base),
     join_functor(F2, Base, Arity),
     Hn2 =.. [F2|A2], % add body variables to innermost head.
     define_forall(Hn2, G, Bv), % get the call to the innermost dual
