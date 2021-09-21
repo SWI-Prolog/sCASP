@@ -141,7 +141,7 @@ body_calls((A,B), M, Callee) =>
     ).
 body_calls(not(A), M, Callee) =>
     body_calls(A, M, Callee).
-body_calls(-(A), M, Callee) =>
+body_calls(N, M, Callee), rm_classic_negation(N,A) =>
     body_calls(A, M, Callee).
 body_calls(M:A, _, Callee), atom(M) =>
     body_calls(A, M, Callee).
@@ -158,6 +158,14 @@ body_calls(G, M, CalleePM), callable(G) =>
     ).
 body_calls(G, _, _) =>
     type_error(callable, G).
+
+rm_classic_negation(-Goal, Goal) :-
+    !.
+rm_classic_negation(Goal, PGoal) :-
+    functor(Goal, Name, _),
+    atom_concat(-, Plain, Name),
+    Goal  =.. [Name|Args],
+    PGoal =.. [Plain|Args].
 
 pm(P, P).
 pm(M:P, M:MP) :-
