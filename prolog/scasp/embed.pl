@@ -379,8 +379,8 @@ scasp_stack(Stack) :-
 scasp_justification(Tree, Options) :-
     scasp_stack(Stack),
     Stack \== [],
-    justification_tree(Stack, Tree, Options).
-
+    justification_tree(Stack, Tree0, Options),
+    unqualify_justitication_tree(Tree0, Tree).
 
 %!  scasp_listing(+Unit, +Options)
 %
@@ -430,7 +430,8 @@ user:portray(scasp_set_model(Model)) :-
     format('sCASP model: ~p', [Model]).
 user:portray(scasp_set_stack(Stack)) :-
     format('sCASP justification', []),
-    justification_tree(Stack, Tree, []),
+    justification_tree(Stack, Tree0, []),
+    unqualify_justitication_tree(Tree0, Tree),
     print_justification_tree(Tree).
 user:portray('\u2209'(V,S)) :-
     format('~p \u2209 ~p', [V, S]).

@@ -1,10 +1,13 @@
 :- module(stack,
           [ justification_tree/3,		% :Stack, -JustTree, +Options
             print_justification_tree/1,         % :JustTree
-            print_justification_tree/2          % :JustTree, +Options
+            print_justification_tree/2,         % :JustTree, +Options
+            unqualify_justitication_tree/2      % +TreeIn, -TreeOut
           ]).
 :- use_module(predicates).
 :- use_module(common).
+:- use_module(modules).
+
 :- meta_predicate
     justification_tree(:, -, +),
     print_justification_tree(:),
@@ -29,8 +32,8 @@ justification_tree(M:Stack, M:JustificationTree, Options) :-
 
 %!  enumerate(+StackOut, -EnumStack, +Parent, +Order)
 %
-%   Give each node in the stack a rank,   which is a I-J-K-... term that
-%   represents its position in  the   top-down/left-right  layout of the
+%   Give each node in the stack a rank, which is a I-J-K-... term that+M
+%   represents its position in the top-down/left-right layout of the
 %   tree.
 %
 %   @arg EnumStack is a list `Term=Place`
@@ -74,10 +77,10 @@ collect_siblings([_|Stack], Siblings, PId) :-
 %! filter_tree(+Children, +Module, -FilteredChildren)
 
 filter_tree([],_,[]).
-filter_tree([Term0-Childs|Cs], M, [Term-FChilds|Fs]) :-
+filter_tree([Term0-Children|Cs], M, [Term-FChildren|Fs]) :-
     raise_negation(Term0, Term),
     selected(Term, M), !,
-    filter_tree(Childs, M, FChilds),
+    filter_tree(Children, M, FChildren),
     filter_tree(Cs, M, Fs).
 filter_tree([_-Childs|Cs], M, FilterChildren) :-
     append(Childs, Cs, AllCs),
@@ -160,3 +163,12 @@ connector_string(implies, ascii, ':-').
 connector_string(and,     ascii, ',').
 connector_string(implies, unicode, '\u2190').
 connector_string(and,     unicode, ' \u2227').
+
+%!  unqualify_justitication_tree(:TreeIn, -TreeOut) is det.
+
+unqualify_justitication_tree(Module:Tree0, Tree) :-
+    maplist(unqualify_just(Module), Tree0, Tree).
+
+unqualify_just(M, Node0-Children0, Node-Children) :-
+    unqualify_model_term(M, Node0, Node),
+    maplist(unqualify_just(M), Children0, Children).

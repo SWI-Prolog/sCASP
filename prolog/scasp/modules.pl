@@ -1,6 +1,7 @@
 :- module(scasp_modules,
           [ scasp_encoded_module_term/2, % ?MTerm, ?QTerm
-            encoded_module_term/2        % ?TermIn,?TermOut
+            encoded_module_term/2,       % ?TermIn,?TermOut
+            unqualify_model_term/3       % +Module,+TermIn,-TermOut
           ]).
 
 /** <module> Encode modules
@@ -72,3 +73,25 @@ scasp_encoded_module_term(Term, not(QTerm)) =>
     scasp_encoded_module_term(Term1, QTerm).
 scasp_encoded_module_term(MTerm, QTerm) =>
     encoded_module_term(MTerm, QTerm).
+
+%!  unqualify_model_term(+Module, +TermIn, -TermOut)
+
+unqualify_model_term(M, Term0, Term),
+    functor(Term0, Name, 1), model_wrapper(Name) =>
+    Term0 =.. [Name,Arg0],
+    Term  =.. [Name,Arg],
+    unqualify_model_term(M, Arg0, Arg).
+unqualify_model_term(M, Term0, Term) =>
+    (   encoded_module_term(Q:Term1, Term0)
+    ->  (   Q == M
+        ->  Term = Term1
+        ;   Term = Q:Term1
+        )
+    ;   Term0 = Term
+    ).
+
+model_wrapper(-).
+model_wrapper(not).
+model_wrapper(chs).
+model_wrapper(proved).
+model_wrapper(assume).

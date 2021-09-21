@@ -113,18 +113,3 @@ simplify_model([], M) =>
 unqualify_model(Model0, Module, Model) :-
     maplist(unqualify_model_term(Module), Model0, Model).
 
-unqualify_model_term(M, -Term0, Term) =>
-    Term = -Term1,
-    unqualify_model_term(M, Term0, Term1).
-unqualify_model_term(M, not(Term0), Term) =>
-    Term = not(Term1),
-    unqualify_model_term(M, Term0, Term1).
-unqualify_model_term(M, Term0, Term) =>
-    (   encoded_module_term(Q:Term1, Term0)
-    ->  (   Q == M
-        ->  Term = Term1
-        ;   Term = Q:Term1
-        )
-    ;   Term0 = Term
-    ).
-
