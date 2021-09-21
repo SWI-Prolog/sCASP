@@ -278,9 +278,14 @@ sasp_predicate(Pred, error, Pos, Options) :-
 sasp_predicate(Pred, SASPPred, _, _Options) :-
     Pred =.. [Name|Args0],
     functor(Pred, Name, Arity),
-    asp_prefix(Name, Arity, ASPName),
     maplist(asp_term, Args0, Args),
-    SASPPred =.. [ASPName|Args].
+    (   atom_concat(-, PName, Name)     % negation in the name
+    ->  asp_prefix(PName, Arity, ASPName),
+        atom_concat(c_, ASPName, ASPNameNeg),
+        SASPPred =.. [ASPNameNeg|Args]
+    ;   asp_prefix(Name, Arity, ASPName),
+        SASPPred =.. [ASPName|Args]
+    ).
 
 asp_term(Term, Term).
 
