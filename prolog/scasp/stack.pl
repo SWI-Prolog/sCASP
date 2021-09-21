@@ -2,7 +2,7 @@
           [ justification_tree/3,		% :Stack, -JustTree, +Options
             print_justification_tree/1,         % :JustTree
             print_justification_tree/2,         % :JustTree, +Options
-            unqualify_justitication_tree/2      % +TreeIn, -TreeOut
+            unqualify_justitication_tree/3      % +TreeIn, +Module, -TreeOut
           ]).
 :- use_module(predicates).
 :- use_module(common).
@@ -164,9 +164,9 @@ connector_string(and,     ascii, ',').
 connector_string(implies, unicode, '\u2190').
 connector_string(and,     unicode, ' \u2227').
 
-%!  unqualify_justitication_tree(:TreeIn, -TreeOut) is det.
+%!  unqualify_justitication_tree(:TreeIn, +Module, -TreeOut) is det.
 
-unqualify_justitication_tree(Module:Tree0, Tree) :-
+unqualify_justitication_tree(_:Tree0, Module, Tree) :-
     maplist(unqualify_just(Module), Tree0, Tree).
 
 unqualify_just(M, Node0-Children0, Node-Children) :-

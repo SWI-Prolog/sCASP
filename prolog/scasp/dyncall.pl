@@ -1,6 +1,9 @@
 :- module(scasp_dyncall,
           [ scasp/1,                    % :Query
             scasp_query_clauses/2,      % :Query, -Clauses
+            scasp_model/1,              % -Model
+            scasp_justification/2,      % -Tree, +Options
+
             op(900, fy, not)
           ]).
 :- use_module(compile).

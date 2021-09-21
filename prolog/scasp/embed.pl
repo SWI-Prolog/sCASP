@@ -63,6 +63,7 @@
 
 :- meta_predicate
     scasp_model(:),
+    scasp_justification(:, +),
     not(0),
     -(:).
 
@@ -376,11 +377,11 @@ scasp_stack(Stack) :-
 %
 %   Justification for the current sCASP answer.
 
-scasp_justification(Tree, Options) :-
+scasp_justification(M:Tree, Options) :-
     scasp_stack(Stack),
     Stack \== [],
     justification_tree(Stack, Tree0, Options),
-    unqualify_justitication_tree(Tree0, Tree).
+    unqualify_justitication_tree(Tree0, M, Tree).
 
 %!  scasp_listing(+Unit, +Options)
 %
@@ -413,7 +414,7 @@ scasp_residuals([model|T], M) -->
     scasp_residuals(T, M).
 scasp_residuals([justification|T], M) -->
     (   {scasp_stack(Stack), Stack \== []}
-    ->  [ scasp_set_stack(Stack) ]
+    ->  [ scasp_set_stack(M:Stack) ]
     ;   []
     ),
     scasp_residuals(T, M).
@@ -428,10 +429,10 @@ scasp_residual_type(justification) :-
 
 user:portray(scasp_set_model(Model)) :-
     format('sCASP model: ~p', [Model]).
-user:portray(scasp_set_stack(Stack)) :-
+user:portray(scasp_set_stack(M:Stack)) :-
     format('sCASP justification', []),
     justification_tree(Stack, Tree0, []),
-    unqualify_justitication_tree(Tree0, Tree),
+    unqualify_justitication_tree(Tree0, M, Tree),
     print_justification_tree(Tree).
 user:portray('\u2209'(V,S)) :-
     format('~p \u2209 ~p', [V, S]).
