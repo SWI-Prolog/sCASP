@@ -48,10 +48,13 @@ qualify(M:Q0, M:Q) :-
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
 
+:- det(scasp_query_clauses/2).
 
 scasp_query_clauses(Query, Clauses) :-
-    query_callees(Query, Callees),
-    findall(Clause, scasp_clause(Callees, Clause), Clauses).
+    query_callees(Query, Callees0),
+    include_global_constraint(Callees0, Constraints, Callees),
+    findall(Clause, scasp_clause(Callees, Clause), Clauses, QConstraints),
+    maplist(mkconstraint, Constraints, QConstraints).
 
 scasp_clause(Callees, Clause) :-
     member(PI, Callees),
@@ -63,6 +66,9 @@ mkclause(Head, true, M, Clause) =>
     qualify(Head, M, Clause).
 mkclause(Head, Body, M, Clause) =>
     qualify((Head:-Body), M, Clause).
+
+mkconstraint(M:Body, (:- Constraint)) :-
+    qualify(Body, M, Constraint).
 
 qualify(-(Head), M, Q) =>
     Q = -QHead,
@@ -80,6 +86,13 @@ qualify((A:-B), M, Q) =>
     qualify(B, M, QB).
 qualify(G, M, Q), callable(G) =>
     encoded_module_term(M:G, Q).
+
+%!  query_callees(:Query, -Callees) is det.
+%
+%   True when Callees is a list   of predicate indicators for predicates
+%   reachable from Query.
+%
+%   @arg Callees is an ordered set.
 
 query_callees(M:Query, Callees) :-
     findall(Call, body_calls_pi(Query,M,Call), Calls0),
@@ -111,6 +124,24 @@ callee_closure([H|T], Expanded, Preds0, Preds) :-
 expanded(Assoc, PI) :-
     get_assoc(PI, Assoc, _).
 
+%!  include_global_constraint(+Callees, -Constraints, -AllCallees)
+
+include_global_constraint(Callees0, [Body|T], Callees) :-
+    global_constraint(Body),
+    query_callees(Body, Called),
+    ord_intersect(Callees0, Called),
+    ord_union(Callees0, Called, Callees1),
+    Callees1 \== Callees0,
+    !,
+    include_global_constraint(Callees1, T, Callees).
+include_global_constraint(Callees, [], Callees).
+
+
+global_constraint(M:Body) :-
+    current_module(M),
+    current_predicate(M:(-)/0),
+    \+ predicate_property(M:(-), imported_from(_)),
+    @(clause(-, Body), M).
 
 %!  predicate_callees(:Head, -Callees) is det.
 %
@@ -211,6 +242,7 @@ user:term_expansion(-Fact, MFact) :-
 user:term_expansion((-Head :- Body), (MHead :- Body)) :-
     callable(Head),
     intern_negation(-Head, MHead).
+user:term_expansion((false :- Body), ((-) :- Body)).
 
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),
