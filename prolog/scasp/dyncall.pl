@@ -75,7 +75,7 @@ scasp_show(Query, code) =>
     in_temporary_module(
         Module,
         prepare(Clauses, Module, []),
-        Module:scasp_portray_program([])).
+        scasp_portray_program(Module:[])).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
 
