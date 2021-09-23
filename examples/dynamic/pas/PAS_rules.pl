@@ -1,7 +1,10 @@
 :- module(pas_rules,
-          [ chose/1
+          [ chose/1,
+            discarded/1
           ]).
 :- use_module(library(scasp)).
+:- use_module('PAS_guide').
+:- use_module('PAS_patient').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                                        %%

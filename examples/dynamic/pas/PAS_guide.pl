@@ -1,8 +1,14 @@
 :- module(pas_guide,
-          [ reason/1
+          [ reason/1,
+            contraindication/1,
+            concomitant/2,
+            indispensable/2,
+            second_line/2,
+            incompatibility/2
           ]).
 :- use_module(library(scasp)).
 :- use_module('PAS_rules').
+:- use_module('PAS_patient').
 
 :- discontiguous
     evidence/1.

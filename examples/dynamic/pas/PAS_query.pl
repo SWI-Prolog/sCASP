@@ -1,5 +1,4 @@
-:- module(pas_query,
-          []).
+% :- module(pas_query, []).
 :- use_module(library(scasp)).
 :- use_module('PAS_guide').
 :- use_module('PAS_patient').

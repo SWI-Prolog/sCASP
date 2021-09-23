@@ -1,5 +1,10 @@
 :- module(pas_patient,
-          []).
+          [ measurement/2,
+            history/1,
+            diagnosis/1,
+            evidence/1,
+            contraindication/1
+          ]).
 :- use_module(library(scasp)).
 
 :- discontiguous
