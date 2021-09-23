@@ -29,6 +29,7 @@
           [ generate_pr_rules/2,        % +Sources, +Options
             process_pr_pred/2           % +Spec,-Pred
           ]).
+:- use_module(modules).
 
 
 /** <module> Output formatting and printing.
@@ -392,8 +393,21 @@ scasp_pred_pi(DecoratedName, Name/Arity) :-
     strip_prefixes(PrefixedName, Name).
 
 report_undef(PI) :-
+    scasp_is_defined(PI),
+    !.
+report_undef(PI) :-
     print_message(warning,
                   error(existence_error(scasp_predicate, PI), _)).
+
+scasp_is_defined(QName/Arity) :-
+    encoded_module_term(M:Name, QName),
+    !,
+    (   raise_negation(Name, -TheName)
+    ->  functor(Head, TheName, Arity),
+        predicate_property(M:Head, defined)
+    ;   functor(Head, Name, Arity),
+        predicate_property(M:Head, defined)
+    ).
 
 %!  clean_pr_program(+Module) is det.
 %
