@@ -1,6 +1,7 @@
 :- module(pas_guide,
           [ reason/1,
             contraindication/1,
+            '-contraindication'/1,
             concomitant/2,
             indispensable/2,
             second_line/2,
@@ -162,6 +163,9 @@ contraindication(exercise_training) :-
 
 contraindication(X) :-
     case_contraindication(X).
+
+-contraindication(X) :-
+    -case_contraindication(X).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

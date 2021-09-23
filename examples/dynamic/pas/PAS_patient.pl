@@ -5,16 +5,17 @@
             case_history/1,
             case_diagnosis/1,
             case_evidence/1,
-            case_contraindication/1
+            case_contraindication/1,
+            '-case_contraindication'/1
           ]).
 :- use_module(library(scasp)).
 
-:- thread_local
+:- scasp_dynamic((
     case_measurement/2,
     case_history/1,
     case_diagnosis/1,
     case_evidence/1,
-    case_contraindication/1.
+    case_contraindication/1)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Patient Interface

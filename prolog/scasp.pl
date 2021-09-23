@@ -5,6 +5,7 @@
 
             scasp_show/2,               % :Query,+What
 
+            (scasp_dynamic)/1,          % :Spec
             scasp_assert/1,             % :Clause
             scasp_retract/1,            % :Clause
             scasp_retractall/1,         % :Head
@@ -27,7 +28,8 @@
             op(1150, fx, ?),
             op(950, xfx, ::),           % pred not x :: "...".
             op(1150, fx, pred),
-            op(1150, fx, show)
+            op(1150, fx, show),
+            op(1150, fx, scasp_dynamic)
           ]).
 
 /** <module> Using s(CASP) from Prolog

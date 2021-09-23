@@ -6,6 +6,7 @@
 
             scasp_show/2,               % :Query,+What
 
+            (scasp_dynamic)/1,          % :Spec
             scasp_assert/1,             % :Clause
             scasp_retract/1,            % :Clause
             scasp_retractall/1,         % :Head
@@ -16,7 +17,8 @@
             op(900, fy, not),
             op(950, xfx, ::),           % pred not x :: "...".
             op(1150, fx, pred),
-            op(1150, fx, show)
+            op(1150, fx, show),
+            op(1150, fx, scasp_dynamic)
           ]).
 :- use_module(compile).
 :- use_module(embed).
@@ -28,6 +30,7 @@
 :- meta_predicate
     scasp(0),
     scasp_query_clauses(:, -),
+    scasp_dynamic(:),
     scasp_assert(:),
     scasp_retract(:),
     scasp_retractall(:),
@@ -280,6 +283,31 @@ predicate_generation(_, 0).
 		 /*******************************
 		 *   MANIPULATING THE PROGRAM	*
 		 *******************************/
+
+%!  scasp_dynamic(:Spec) is det.
+%
+%   Declare a predicates as dynamic or thread_local.  Usage patterns:
+%
+%      :- scasp_dynamic p/1.
+%      :- scasp_dynamic p/1 as shared.
+
+scasp_dynamic(M:Spec) :-
+    scasp_dynamic(Spec, M, private).
+scasp_dynamic(M:(Spec as Scoped)) :-
+    scasp_dynamic(Spec, M, Scoped).
+
+scasp_dynamic((A,B), M, Scoped) =>
+    scasp_dynamic(A, M, Scoped),
+    scasp_dynamic(B, M, Scoped).
+scasp_dynamic(Name/Arity, M, Scoped) =>
+    atom_concat(-, Name, NName),
+    (   Scoped == shared
+    ->  dynamic((M:Name/Arity,
+                 M:NName/Arity))
+    ;   thread_local((M:Name/Arity,
+                     M:NName/Arity))
+    ).
+
 
 %!  scasp_assert(:Clause) is det.
 %!  scasp_retract(:Clause) is nondet.
