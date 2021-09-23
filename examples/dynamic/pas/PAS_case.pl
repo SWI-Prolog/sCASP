@@ -58,8 +58,17 @@ solve(Query, Case) :-
     patient_data(Data),
     scasp(Query),
     scasp_justification(Tree, []),
-    human_justification_tree(Tree).
+    human_justification_tree(Tree),
+    save_tree(Tree).
 
+save_tree(Tree) :-
+    message_to_string(scasp_justification(Tree,
+                                          [ depth(1)
+                                          ]),
+                      String),
+    setup_call_cleanup(open(us, write, Out),
+                       write(Out, String),
+                       close(Out)).
 
 %% %---------- Anticoagulation: There are 4 reasons to recommend it
 % ?- recommendation(anticoagulation).
