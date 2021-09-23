@@ -11,7 +11,8 @@
 :- use_module('PAS_patient').
 
 :- discontiguous
-    evidence/1.
+    evidence/1,
+    diagnosis/1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% CHF Guide
@@ -145,6 +146,10 @@ contraindication(anticoagulation) :-
 contraindication(exercise_training) :-
     evidence(can_not_improve_functional_status).
 
+contraindication(X) :-
+    case_contraindication(X).
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 4. second_line: What is the second choise if a treatment is not
 %% available
@@ -230,4 +235,8 @@ evidence(potassium_less_than_5_0) :-
 evidence(lvef_equal_or_less_than_35_precent) :-
     measurement(lvef, Data), Data =< 0.35.
 
+evidence(X) :-
+    case_evidence(X).
+diagnosis(X) :-
+    case_diagnosis(X).
 

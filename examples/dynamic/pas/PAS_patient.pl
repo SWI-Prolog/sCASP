@@ -1,14 +1,14 @@
 :- module(pas_patient,
           [ measurement/2,
             history/1,
-            diagnosis/1,
-            evidence/1,
-            contraindication/1
+            case_diagnosis/1,
+            case_evidence/1,
+            case_contraindication/1
           ]).
 :- use_module(library(scasp)).
 
 :- discontiguous
-    evidence/1,
+    case_evidence/1,
     history/1,
     measurement/2.
 
@@ -38,27 +38,27 @@
 
 %* Demographics *%
 measurement(age, 76).
-evidence(african_american).
-evidence(male).
+case_evidence(african_american).
+case_evidence(male).
 
 %* Assessments *%
-evidence(nyha_class_4).
-evidence(accf_stage_c).
+case_evidence(nyha_class_4).
+case_evidence(accf_stage_c).
 
 %* Contraindications *%
-contraindication(continuous_positive_airway_pressure).
+case_contraindication(continuous_positive_airway_pressure).
 
 %* Diagnoses *%
-diagnosis(ischemic_heart_disease).
-diagnosis(hypertension).
-diagnosis(diabetes).
-diagnosis(atrial_fibrillation).
+case_diagnosis(ischemic_heart_disease).
+case_diagnosis(hypertension).
+case_diagnosis(diabetes).
+case_diagnosis(atrial_fibrillation).
 
 %* Dosages *%
 
 %* Evidence *%
-evidence(sleepApnea).
-evidence(angina).
+case_evidence(sleepApnea).
+case_evidence(angina).
 
 %* Illness History *%
 history(stroke).
