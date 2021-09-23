@@ -1,4 +1,5 @@
 :- use_module(library(scasp)).
+:- use_module(library(scasp/human)).
 
 :- use_module('PAS_rules').
 :- use_module('PAS_guide').
@@ -51,9 +52,13 @@ case(1,
 %      ?- solve(chose(ace_inhibitors), 1).
 
 solve(Query, Case) :-
+    set_prolog_flag(scasp_show_justification, false),
+    set_prolog_flag(scasp_show_model, false),
     case(Case, Data),
     patient_data(Data),
-    scasp(Query).
+    scasp(Query),
+    scasp_justification(Tree, []),
+    human_justification_tree(Tree).
 
 
 %% %---------- Anticoagulation: There are 4 reasons to recommend it
