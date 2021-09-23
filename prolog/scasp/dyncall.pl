@@ -265,8 +265,27 @@ pred(M:(Atom :: Template)) =>
     process_pr_pred(Atom :: Template, Spec),
     assertz(M:pr_pred_predicate(Spec)).
 
-show(_M:_Atoms) =>
-    true.
+show(M:PIs) =>
+    phrase(show(PIs), Clauses),
+    maplist(assert_show(M), Clauses).
+
+assert_show(M, Clause) :-
+    assertz(M:Clause).
+
+show(Var) -->
+    { var(Var),
+      instantiation_error(Var)
+    }.
+show((A,B)) -->
+    !,
+    show(A),
+    show(B).
+show(not(PI)) -->
+    { pi_head(PI, Head) },
+    [ pr_show_prdicate(not(Head)) ].
+show(PI) -->
+    { pi_head(PI, Head) },
+    [ pr_show_prdicate(Head) ].
 
 
 		 /*******************************
@@ -282,6 +301,8 @@ user:term_expansion((-Head :- Body), (MHead :- Body)) :-
 user:term_expansion((false :- Body), ((-) :- Body)).
 user:term_expansion((:- pred(SpecIn)), pr_pred_predicate(Spec)) :-
     process_pr_pred(SpecIn, Spec).
+user:term_expansion((:- show(SpecIn)), Clauses) :-
+    phrase(show(SpecIn), Clauses).
 
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),
