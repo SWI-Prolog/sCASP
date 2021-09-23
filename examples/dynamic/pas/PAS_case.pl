@@ -45,28 +45,51 @@ case(1,
        case_history(beta_blockers)
      ]).
 
+load_case(Case) :-
+    case(Case, Data),
+    patient_data(Data).
+
 %!  solve(+Query, +Case)
+%
+%   Solves Query and display the result in _human_ format. The latter is
+%   a hack for now, suppressing the normal output.
 %
 %   Examples
 %
 %      ?- solve(chose(ace_inhibitors), 1).
 
 solve(Query, Case) :-
-    set_prolog_flag(scasp_show_justification, false),
-    set_prolog_flag(scasp_show_model, false),
-    case(Case, Data),
-    patient_data(Data),
-    scasp(Query),
-    scasp_justification(Tree, []),
-    human_justification_tree(Tree),
-    save_tree(Tree).
+    load_case(Case),
+    setup_call_cleanup(
+        set_output(false, false, State),
+        ( scasp(Query),
+          scasp_justification(Tree, []),
+          human_justification_tree(Tree),
+          save_tree(Tree, us)
+        ),
+        restore_output(State)).
 
-save_tree(Tree) :-
+set_output(Model, Justification, s(OldModel, OldJustification)) :-
+    current_prolog_flag(scasp_show_justification, OldJustification),
+    current_prolog_flag(scasp_show_model, OldModel),
+    set_prolog_flag(scasp_show_justification, Justification),
+    set_prolog_flag(scasp_show_model, Model).
+
+restore_output(s(OldModel, OldJustification)) :-
+    set_prolog_flag(scasp_show_justification, OldJustification),
+    set_prolog_flag(scasp_show_model, OldModel).
+
+%!  save_tree(+Tree, +File)
+%
+%   Write the justification tree to File.   Used for comparison with the
+%   original version.
+
+save_tree(Tree, File) :-
     message_to_string(scasp_justification(Tree,
                                           [ depth(1)
                                           ]),
                       String),
-    setup_call_cleanup(open(us, write, Out),
+    setup_call_cleanup(open(File, write, Out),
                        write(Out, String),
                        close(Out)).
 
