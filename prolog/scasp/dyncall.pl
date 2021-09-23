@@ -95,7 +95,11 @@ qualify((A:-B), M, Q) =>
     qualify(A, M, QA),
     qualify(B, M, QB).
 qualify(G, M, Q), callable(G) =>
-    encoded_module_term(M:G, Q).
+    implementation(M:G, Callee),
+    (   built_in(Callee)
+    ->  Callee = _:Q
+    ;   encoded_module_term(Callee, Q)
+    ).
 
 %!  query_callees(:Query, -Callees) is det.
 %
