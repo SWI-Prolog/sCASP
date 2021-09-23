@@ -1,4 +1,4 @@
-:- use_module('../../prolog/scasp/dyncall').
+:- use_module('../../prolog/scasp').
 
 % Given 3 birds, which can fly?
 

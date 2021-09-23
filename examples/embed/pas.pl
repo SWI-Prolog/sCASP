@@ -12,7 +12,7 @@
 %
 %   ?- chose(ace_inhibitors).
 
-:- use_module('../../prolog/scasp/embed').
+:- use_module('../../prolog/scasp').
 :- use_module('../../prolog/scasp/human').
 
 test :-

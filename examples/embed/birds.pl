@@ -1,4 +1,4 @@
-:- use_module('../../prolog/scasp/embed').
+:- use_module('../../prolog/scasp').
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Simple embedding demo.  Example query:
