@@ -26,7 +26,8 @@
 */
 
 :- module(scasp_output,
-          [ generate_pr_rules/2         % +Sources, +Options
+          [ generate_pr_rules/2,        % +Sources, +Options
+            process_pr_pred/2           % +Spec,-Pred
           ]).
 
 
@@ -280,8 +281,7 @@ assert_pr_pred((H,T), M) =>
     assert_pr_pred(H, M),
     assert_pr_pred(T, M).
 assert_pr_pred(T, M) =>
-    process_pr_pred(T,PT),
-    revar(PT,RT,_),
+    process_pr_pred(T,RT),
     assert(M:pr_pred_predicate(RT)).
 
 %!  process_pr_pred(+Spec, -Pred) is det.
@@ -298,13 +298,14 @@ assert_pr_pred(T, M) =>
 
 :- det(process_pr_pred/2).
 
-process_pr_pred(A::B,A::format(Fmt,Args)) :-
+process_pr_pred(A0::B,A::format(Fmt,Args)) :-
     atom_codes(B, Chars),
-    phrase(pr_pred(FmtChars, Args), Chars),
+    phrase(pr_pred(FmtChars, Args, A0, A), Chars),
     atom_codes(Fmt, FmtChars).
 
-pr_pred([0'~,0'p|Fmt], [@($(Var):Type)|Args]) -->
-    temp_var_start(Style), prolog_var_name(Var),
+pr_pred([0'~,0'p|Fmt], [@(Var:Type)|Args], A0, A) -->
+    temp_var_start(Style), prolog_var_name(VarName),
+    { insert_var(A0, A1, VarName, Var) },
     (   ":"
     ->  (   string(TypeChars), temp_var_end(Style)
         ->  {atom_codes(Type, TypeChars)}
@@ -313,12 +314,12 @@ pr_pred([0'~,0'p|Fmt], [@($(Var):Type)|Args]) -->
     ->  {Type = ''}
     ),
     !,
-    pr_pred(Fmt, Args).
-pr_pred([H|T], Args) -->
+    pr_pred(Fmt, Args, A1, A).
+pr_pred([H|T], Args, A0, A) -->
     [H],
     !,
-    pr_pred(T, Args).
-pr_pred([], []) -->
+    pr_pred(T, Args, A0, A).
+pr_pred([], [], A, A) -->
     [].
 
 temp_var_start(classic) --> "@(".
@@ -327,7 +328,19 @@ temp_var_start(modern)  --> "{{".
 temp_var_end(classic) --> ")".
 temp_var_end(modern)  --> "}}".
 
+insert_var($(Name), Repl, Name, Var) =>
+    Repl = Var.
+insert_var(Name, Repl, Name, Var) =>
+    Repl = Var.
+insert_var(In, Out, Name, Var), compound(In) =>
+    In =.. [F|Args0],
+    maplist(insert_var_r(Name, Var), Args0, Args),
+    Out =.. [F|Args].
+insert_var(In, Out, _, _) =>
+    Out = In.
 
+insert_var_r(Name, Var, In, Out) :-
+    insert_var(In, Out, Name, Var).
 
 %!  assert_pr_rules(+Rules:list, +Module) is det.
 

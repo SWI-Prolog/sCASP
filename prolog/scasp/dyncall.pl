@@ -16,6 +16,7 @@
 :- use_module(common).
 :- use_module(modules).
 :- use_module(io).
+:- use_module(output, [process_pr_pred/2]).
 
 :- meta_predicate
     scasp(0),
@@ -260,8 +261,9 @@ predicate_generation(_, 0).
 		 *          DIRECTIVES		*
 		 *******************************/
 
-pred(_M:(_Atom :: _Template)) =>
-    true.
+pred(M:(Atom :: Template)) =>
+    process_pr_pred(Atom :: Template, Spec),
+    assertz(M:pr_pred_predicate(Spec)).
 
 show(_M:_Atoms) =>
     true.
@@ -278,6 +280,8 @@ user:term_expansion((-Head :- Body), (MHead :- Body)) :-
     callable(Head),
     intern_negation(-Head, MHead).
 user:term_expansion((false :- Body), ((-) :- Body)).
+user:term_expansion((:- pred(SpecIn)), pr_pred_predicate(Spec)) :-
+    process_pr_pred(SpecIn, Spec).
 
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),

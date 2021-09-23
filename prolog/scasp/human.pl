@@ -5,6 +5,10 @@
 :- use_module(common).
 :- use_module(clp/disequality).
 
+:- meta_predicate
+    human_justification_tree(:),
+    human_justification_tree(:, +).
+
 human_justification_tree(Tree) :-
     human_justification_tree(Tree, []).
 
@@ -73,6 +77,7 @@ human_output_(Term-[], Options) -->
     emit_atom(Term, Options).
 human_output_(Term-Children, Options) -->
     indent(Options),
+
     emit_atom(Term, Options),
     connector(implies, Options),
     { incr_indent(Options, Options1) },
@@ -99,8 +104,14 @@ emit_atom(chs(Term), Options) -->
     !,
     [ 'it is assumed that '-[] ],
     emit_atom(Term, Options).
+emit_atom(M:Term, Options) -->
+    { atom(M) },
+    !,
+    emit_atom(Term, [module(M)|Options]).
 emit_atom(Term, Options) -->            % #pred Term::Template
     { option(module(M), Options),       % Used existing translation
+      current_predicate(M:pr_pred_predicate/1),
+      \+ predicate_property(M:pr_pred_predicate(_), imported_from(_)),
       M:pr_pred_predicate(::(Term,format(Fmt, Args))),
       !,
       parse_fmt(Fmt, Args, Actions)
