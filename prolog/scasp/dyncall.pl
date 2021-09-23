@@ -3,8 +3,13 @@
             scasp_query_clauses/2,      % :Query, -Clauses
             scasp_model/1,              % -Model
             scasp_justification/2,      % -Tree, +Options
+            (pred)/1,
+            (show)/1,
 
-            op(900, fy, not)
+            op(900, fy, not),
+            op(950, xfx, ::),           % pred not x :: "...".
+            op(1150, fx, pred),
+            op(1150, fx, show)
           ]).
 :- use_module(compile).
 :- use_module(embed).
@@ -14,7 +19,9 @@
 
 :- meta_predicate
     scasp(0),
-    scasp_query_clauses(:, -).
+    scasp_query_clauses(:, -),
+    pred(:),
+    show(:).
 
 /** <module>
 
@@ -233,6 +240,17 @@ predicate_generation(Head, Gen) :-
     !,
     Gen = Gen0.
 predicate_generation(_, 0).
+
+
+		 /*******************************
+		 *          DIRECTIVES		*
+		 *******************************/
+
+pred(_M:(_Atom :: _Template)) =>
+    true.
+
+show(_M:_Atoms) =>
+    true.
 
 
 		 /*******************************

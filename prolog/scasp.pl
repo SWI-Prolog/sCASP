@@ -3,6 +3,9 @@
             (?)/1,                      % :Query
             (??)/1,                     % :Query
 
+            (pred)/1,                   % :Templates
+            (show)/1,                   % :Atoms
+
             begin_scasp/1,              % +Unit
             begin_scasp/2,              % +Unit, +Exports
             end_scasp/0,
@@ -14,8 +17,11 @@
             (-)/1,                      % :Query
 
             op(900,  fy, not),
-            op(1100, fx, ??),
-            op(1100, fx, ?)
+            op(1150, fx, ??),
+            op(1150, fx, ?),
+            op(950, xfx, ::),           % pred not x :: "...".
+            op(1150, fx, pred),
+            op(1150, fx, show)
           ]).
 
 /** <module> Using s(CASP) from Prolog
