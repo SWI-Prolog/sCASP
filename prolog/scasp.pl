@@ -31,7 +31,7 @@ this library (library(scasp)) is used  to   embed  or dynamically create
 s(CASP) programs in Prolog and query them from Prolog.
 */
 
-:- set_prolog_flag(optimise, true).
+%:- set_prolog_flag(optimise, true).
 
 :- use_module(scasp/embed).
 :- use_module(scasp/dyncall).
