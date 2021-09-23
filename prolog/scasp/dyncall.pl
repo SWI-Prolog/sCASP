@@ -196,16 +196,26 @@ body_calls(M:A, _, Callee), atom(M) =>
 body_calls(G, M, CalleePM), callable(G) =>
     implementation(M:G, Callee0),
     generalise(Callee0, Callee),
-    (   predicate_property(Callee, interpreted),
+    (   built_in(Callee)
+    ->  fail
+    ;   predicate_property(Callee, interpreted),
         \+ predicate_property(Callee, meta_predicate(_))
     ->  pm(Callee, CalleePM)
     ;   \+ predicate_property(Callee, _)
-    ->  pm(Callee, CalleePM)
+    ->  pm(Callee, CalleePM)            % undefined
     ;   pi_head(CalleePI, Callee),
         permission_error(scasp, procedure, CalleePI)
     ).
 body_calls(G, _, _) =>
     type_error(callable, G).
+
+built_in(system: (_<_)).
+built_in(system: (_=<_)).
+built_in(system: (_>_)).
+built_in(system: (_>=_)).
+built_in(system: (_=_)).
+built_in(system: (_\=_)).
+built_in(system: (_ is _)).
 
 rm_classic_negation(-Goal, Goal) :-
     !.
