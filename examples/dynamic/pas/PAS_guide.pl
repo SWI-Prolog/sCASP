@@ -36,6 +36,20 @@
 :- pred incompatibility('T0','T') ::
         '@(T:treatment) is incompatible with @(T0)'.
 
+:- pred diagnosis(hf_with_reduced_ef) ::
+        'the patient is diagnosed with heart failure with reduced \c
+         ejection fraction'.
+
+:- pred diagnosis('D') ::
+        'the patient is diagnosed with @(D)'.
+
+:- pred evidence(accf_stage_c) ::
+        'the patient is in ACCF stage C'.
+:- pred evidence(pregnancy) ::
+        'the patient is pregnant or planning to get pregnant'.
+:- pred evidence('E') ::
+        'the patient is/has @(E)'.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Treatments Information
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

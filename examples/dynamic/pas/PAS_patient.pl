@@ -21,20 +21,24 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Evidence
-:- pred evidence(accf_stage_c) :: 'the patient is in ACCF stage C'.
-:- pred evidence(pregnancy) :: 'the patient is pregnant or planning to get pregnant'.
-:- pred evidence('E') :: 'the patient is/has @(E)'.
+:- pred case_evidence(accf_stage_c) ::
+        'the patient is in ACCF stage C [case data]'.
+:- pred case_evidence(pregnancy) ::
+        'the patient is pregnant or planning to get pregnant [case data]'.
+:- pred case_evidence('E') ::
+        'the patient is/has @(E) [case data]'.
 
 %% Diagnosis
-:- pred diagnosis(hf_with_reduced_ef) ::
-       'the patient is diagnosed with heart failure with reduced ejection fraction'.
-:- pred diagnosis('D') :: 'the patient is diagnosed with @(D)'.
+:- pred case_diagnosis('D') ::
+        'the patient is diagnosed with @(D) [case data]'.
 
 %% History
-:- pred history('H') :: 'the patient has a history of @(H)'.
+:- pred case_history('H') ::
+        'the patient has a history of @(H) [case data]'.
 
 %% Measurement
-:- pred measurement('M','V') :: 'there is a measurement of @(M) of @(V)'.
+:- pred case_measurement('M','V') ::
+        'there is a measurement of @(M) of @(V) [case data]'.
 
 patient_data(Data) :-
     clean,
@@ -48,8 +52,8 @@ finding(Term) :-
     domain_error(patient_data, Term).
 
 clean :-
-    retractall(measurement(_,_)),
-    retractall(history(_)),
+    retractall(case_measurement(_,_)),
+    retractall(case_history(_)),
     retractall(case_diagnosis(_)),
     retractall(case_evidence(_)),
     retractall(case_contraindication(_)).
