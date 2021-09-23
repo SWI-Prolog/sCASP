@@ -3,6 +3,12 @@
             (?)/1,                      % :Query
             (??)/1,                     % :Query
 
+            scasp_show/2,               % :Query,+What
+
+            scasp_assert/1,             % :Clause
+            scasp_retract/1,            % :Clause
+            scasp_retractall/1,         % :Head
+            scasp_abolish/1,            % :Name/Arity
             (pred)/1,                   % :Templates
             (show)/1,                   % :Atoms
 

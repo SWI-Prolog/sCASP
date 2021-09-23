@@ -3,6 +3,13 @@
             scasp_query_clauses/2,      % :Query, -Clauses
             scasp_model/1,              % -Model
             scasp_justification/2,      % -Tree, +Options
+
+            scasp_show/2,               % :Query,+What
+
+            scasp_assert/1,             % :Clause
+            scasp_retract/1,            % :Clause
+            scasp_retractall/1,         % :Head
+            scasp_abolish/1,            % :PredicateIndicator
             (pred)/1,
             (show)/1,
 
@@ -21,6 +28,10 @@
 :- meta_predicate
     scasp(0),
     scasp_query_clauses(:, -),
+    scasp_assert(:),
+    scasp_retract(:),
+    scasp_retractall(:),
+    scasp_abolish(:),
     pred(:),
     show(:).
 
@@ -56,6 +67,15 @@ prepare(Clauses, Module, Options) :-
 qualify(M:Q0, M:Q) :-
     qualify(Q0, M, Q1),
     intern_negation(Q1, Q).
+
+%!  scasp_show(:Query, +What)
+
+scasp_show(Query, code) =>
+    scasp_query_clauses(Query, Clauses),
+    in_temporary_module(
+        Module,
+        prepare(Clauses, Module, []),
+        Module:scasp_portray_program([])).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
 
@@ -255,6 +275,61 @@ predicate_generation(Head, Gen) :-
     !,
     Gen = Gen0.
 predicate_generation(_, 0).
+
+
+		 /*******************************
+		 *   MANIPULATING THE PROGRAM	*
+		 *******************************/
+
+%!  scasp_assert(:Clause) is det.
+%!  scasp_retract(:Clause) is nondet.
+%!  scasp_retractall(:Head) is det.
+%
+%   Wrappers for assertz/1, retract/1 and   retractall/1  that deal with
+%   sCASP terms which may have a head or  body terms that are wrapped in
+%   `-(Term)`, indicating classical negation.
+
+scasp_assert(M:(-Head :- Body0)) =>
+    intern_negation(-Head, MHead),
+    expand_goal(Body0, Body),
+    assertz(M:(MHead :- Body)).
+scasp_assert(M:(-Head)) =>
+    intern_negation(-Head, MHead),
+    assertz(M:(MHead)).
+scasp_assert(M:(Head :- Body0)) =>
+    expand_goal(Body0, Body),
+    assertz(M:(Head :- Body)).
+scasp_assert(Head) =>
+    assertz(Head).
+
+scasp_retract(M:(-Head :- Body0)) =>
+    intern_negation(-Head, MHead),
+    expand_goal(Body0, Body),
+    retract(M:(MHead :- Body)).
+scasp_retract(M:(-Head)) =>
+    intern_negation(-Head, MHead),
+    retract(M:(MHead)).
+scasp_retract(M:(Head :- Body0)) =>
+    expand_goal(Body0, Body),
+    retract(M:(Head :- Body)).
+scasp_retract(Head) =>
+    retract(Head).
+
+scasp_retractall(M:(-Head)) =>
+    intern_negation(-Head, MHead),
+    retractall(M:MHead).
+scasp_retractall(Head) =>
+    retractall(Head).
+
+%!  scasp_abolish(:PredicateIndicator) is det.
+%
+%   Remove all facts  for  both   PredicateIndicator  and  its classical
+%   negation.
+
+scasp_abolish(M:(Name/Arity)) =>
+    pi_head(Name/Arity, Head),
+    scasp_retractall(M:Head),
+    scasp_retractall(M:(-Head)).
 
 
 		 /*******************************

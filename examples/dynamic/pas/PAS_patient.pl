@@ -47,13 +47,13 @@ patient_data(Data) :-
 finding(Term) :-
     predicate_property(Term, dynamic),
     !,
-    assertz(Term).
+    scasp_assert(Term).
 finding(Term) :-
     domain_error(patient_data, Term).
 
 clean :-
-    retractall(case_measurement(_,_)),
-    retractall(case_history(_)),
-    retractall(case_diagnosis(_)),
-    retractall(case_evidence(_)),
-    retractall(case_contraindication(_)).
+    scasp_abolish(case_measurement/2),
+    scasp_abolish(case_history/1),
+    scasp_abolish(case_diagnosis/1),
+    scasp_abolish(case_evidence/1),
+    scasp_abolish(case_contraindication/1).
