@@ -129,7 +129,7 @@ contraindication(digoxin) :-
 
 %Ace_inhibitors
 contraindication(ace_inhibitors):-
-    history(angioedema).
+    case_history(angioedema).
 contraindication(ace_inhibitors):-
     evidence(pregnancy).
 
@@ -141,7 +141,7 @@ contraindication(anticoagulation) :-
     diagnosis(hf_with_reduced_ef),
     not evidence(cardioembolic_source),
     not diagnosis(atrial_fibrillation),
-    not history(thromboembolism).
+    not case_history(thromboembolism).
 
 contraindication(exercise_training) :-
     evidence(can_not_improve_functional_status).
@@ -178,10 +178,10 @@ concomitant(aldosterone_antagonist, diuretics).
 %% 6. indispensables: What treatment must be chosen
 
 %Indispensables
-%% "In patients with a current or recent history of fluid retention,
+%% "In patients with a current or recent case_history of fluid retention,
 %% beta blockers should not be prescribed without diuretics"
 indispensable(beta_blockers, diuretics) :-
-    history(fluid_retention).
+    case_history(fluid_retention).
 
 indispensable(hydralazine, isosorbide_dinitrate).
 indispensable(hydralazine, beta_blockers).
@@ -203,26 +203,26 @@ incompatibility(ace_inhibitors,aldosterone_antagonist).
 
 % A1 evidence inference from patient information
 evidence(cardioembolic_stroke_risk_factor):-
-    history(hypertension).
+    case_history(hypertension).
 evidence(cardioembolic_stroke_risk_factor):-
     diagnosis(diabetes).
 evidence(cardioembolic_stroke_risk_factor):-
-    history(stroke).
+    case_history(stroke).
 evidence(cardioembolic_stroke_risk_factor):-
-    history(ischemic_attack).
+    case_history(ischemic_attack).
 evidence(cardioembolic_stroke_risk_factor):-
     evidence(over_75_years_old).
 
 evidence(over_75_years_old):-
-    measurement(age, Data), Data > 75.
+    case_measurement(age, Data), Data > 75.
 
 % A2 diagnosis inference from patient information
 diagnosis(hf_with_reduced_ef) :-
-    measurement(lvef, Data), Data < 0.4.
+    case_measurement(lvef, Data), Data < 0.4.
 evidence(creatinine_equal_or_less_than_2) :-
-    measurement(creatinine, Data), Data =< 2.
+    case_measurement(creatinine, Data), Data =< 2.
 evidence(glomerular_filtration_rate_greater_than_30) :-
-    measurement(glomerular_filtration_rate, Data), Data > 30.
+    case_measurement(glomerular_filtration_rate, Data), Data > 30.
 
 evidence(normal_kidney_function) :-
     evidence(creatinine_equal_or_less_than_2).
@@ -230,10 +230,10 @@ evidence(normal_kidney_function) :-
     evidence(glomerular_filtration_rate_greater_than_30).
 
 evidence(potassium_less_than_5_0) :-
-    measurement(potassium, Data), Data < 5.
+    case_measurement(potassium, Data), Data < 5.
 
 evidence(lvef_equal_or_less_than_35_precent) :-
-    measurement(lvef, Data), Data =< 0.35.
+    case_measurement(lvef, Data), Data =< 0.35.
 
 evidence(X) :-
     case_evidence(X).

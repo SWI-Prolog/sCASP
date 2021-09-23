@@ -5,7 +5,7 @@
 :- use_module('PAS_patient').
 
 case(1,
-     [ measurement(age, 76),
+     [ case_measurement(age, 76),
        case_evidence(african_american),
        case_evidence(male),
 
@@ -29,19 +29,19 @@ case(1,
        case_evidence(angina),
 
        %* Illness History *%
-       history(stroke),
-       history(ischemic_attack),
+       case_history(stroke),
+       case_history(ischemic_attack),
 
        %* Measurements *%
-       measurement(lvef, 0.35),
-       measurement(heart_rate, 72),
-       measurement(creatinine, 1.9),
-       measurement(glomerular_filtration_rate, 55),
-       measurement(potassium, 4.2),
+       case_measurement(lvef, 0.35),
+       case_measurement(heart_rate, 72),
+       case_measurement(creatinine, 1.9),
+       case_measurement(glomerular_filtration_rate, 55),
+       case_measurement(potassium, 4.2),
 
        %* Medication History *%
-       history(ace_inhibitors),
-       history(beta_blockers)
+       case_history(ace_inhibitors),
+       case_history(beta_blockers)
      ]).
 
 %!  solve(+Query, +Case)
