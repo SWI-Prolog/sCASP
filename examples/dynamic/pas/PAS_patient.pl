@@ -9,7 +9,7 @@
           ]).
 :- use_module(library(scasp)).
 
-:- dynamic
+:- thread_local
     measurement/2,
     history/1,
     case_diagnosis/1,
@@ -38,7 +38,14 @@
 
 patient_data(Data) :-
     clean,
-    maplist(assert, Data).
+    maplist(finding, Data).
+
+finding(Term) :-
+    predicate_property(Term, dynamic),
+    !,
+    assertz(Term).
+finding(Term) :-
+    domain_error(patient_data, Term).
 
 clean :-
     retractall(measurement(_,_)),
