@@ -244,3 +244,5 @@ print_option(html(true)) :-
     current_option(html, on).
 print_option(human(true)) :-
     current_option(human, on).
+print_option(duals(true)).
+print_option(constraints(true)).

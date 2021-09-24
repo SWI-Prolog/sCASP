@@ -1124,6 +1124,14 @@ br :- format('<br>').
 %
 %     - human(Boolean)
 %       If `true`, write in _human_ format.
+%     - query(Boolean)
+%       Print the query (default `true`)
+%     - user(Boolean)
+%       Print the user program (default `true`)
+%     - duals(Boolean)
+%       Print the duals (default `false`)
+%     - constraints(Boolean)
+%       Print the global constraints (default `false`)
 
 scasp_portray_program(M:Options) :-
     scasp_portray_program(M, Options).
@@ -1135,23 +1143,10 @@ scasp_portray_program(M, Options) :-
     findall(rule(Head,Body), M:pr_rule(Head,Body),Rules),
     maplist(pretty_term,Rules,PrettyRules),
     filter(PrettyRules, UserRules, DualRules, NMRChecks),
-    print_human_program('% QUERY',PrettyQuery, MOptions),
-    nl,
-    print_human_program('% USER PREDICATES',UserRules, MOptions),
-    (   current_option(short, on)
-    ->  true
-    ;   current_option(mid, on)
-    ->  dual_reverse(DualRules,[_|R_DualRules]),
-        nl,nl,
-        print_human_program('% DUAL RULES',R_DualRules, MOptions)
-    ;   dual_reverse(DualRules,[_|R_DualRules]),
-        nl,nl,
-        print_human_program('% DUAL RULES',R_DualRules, MOptions),
-        nmr_reverse(NMRChecks,R_NMRChecks),
-        nl,nl,
-        print_human_program('% INTEGRITY CONSTRAINTS',R_NMRChecks, MOptions)
-    ),
-    nl.
+    print_human_program(query,       PrettyQuery, MOptions),
+    print_human_program(user,        UserRules,   MOptions),
+    print_human_program(duals,       DualRules,   MOptions),
+    print_human_program(constraints, NMRChecks,   MOptions).
 
 %!  filter(+Rules, -UserRules, -DualRules, -NMRChecks) is det.
 
@@ -1180,15 +1175,26 @@ chk_pred(Pred) :-
     ),
     !.
 
-%!  print_human_program(+Title, +Rules, +Options)
+%!  print_human_program(+Section, +Rules, +Options)
 
-print_human_program(Title, Rules, Options) :-
-    format('~w:\n', [Title]),
-    (   Title == '% QUERY'
+print_human_program(_, [], _) :-
+    !.
+print_human_program(Section, Rules, Options) :-
+    code_section_title(Section, Default, Title),
+    Opt =.. [Section,true],
+    option(Opt, Options, Default),
+    !,
+    format("% ~w:\n", [Title]),
+    (   Section == query
     ->  print_human_query(Rules, Options)
     ;   print_human_rules(Rules, Options)
     ).
+print_human_program(_, _, _).
 
+code_section_title(query,       true,  'QUERY').
+code_section_title(user,        true,  'USER PREDICATES').
+code_section_title(duals,       false, 'DUAL RULES').
+code_section_title(constraints, false, 'INTEGRITY CONSTRAINTS').
 
 print_human_query([not(o_false)], _Options) :- !,
     format('% Query not defined\n').

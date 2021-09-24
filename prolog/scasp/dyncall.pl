@@ -72,13 +72,27 @@ qualify(M:Q0, M:Q) :-
     intern_negation(Q1, Q).
 
 %!  scasp_show(:Query, +What)
+%
+%   Show some aspect of the translated s(CASP) program.  Currently
+%   What is one of:
+%
+%     - code(Options)
+%       Show the collected program.  By default shows the query
+%       and user program.  To show only the integrity constraints,
+%       use:
+%
+%           ?- scasp_show(Query, code(user(false), constraints(true))).
 
-scasp_show(Query, code) =>
+scasp_show(Query, What) :-
+    What =.. [Type|Options],
+    scasp_show(Query, Type, Options).
+
+scasp_show(Query, code, Options) =>
     scasp_query_clauses(Query, Clauses),
     in_temporary_module(
         Module,
         prepare(Clauses, Module, []),
-        scasp_portray_program(Module:[])).
+        scasp_portray_program(Module:Options)).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
 
