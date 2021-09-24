@@ -169,9 +169,11 @@ create_unique_functor(Hi, C, Ho) :-
 
 %!  raise_negation(+Goal, -UserGoal) is det.
 
-raise_negation(not(TermIn), UserTerm) =>
-    UserTerm = not(Term),
-    raise_negation(TermIn, Term).
+raise_negation(WrappedTerm, UserTerm),
+    nonvar(WrappedTerm), scasp_wrapper(WrappedTerm) =>
+    WrappedTerm =.. [F,ArgIn],
+    raise_negation(ArgIn, Arg),
+    UserTerm =.. [F,Arg].
 raise_negation(TermIn, UserTerm),
     functor(TermIn, Name, _),
     atom_concat(-, Plain, Name)
@@ -181,6 +183,12 @@ raise_negation(TermIn, UserTerm),
     UserTerm = -Term.
 raise_negation(Term, UserTerm) =>
     UserTerm = Term.
+
+scasp_wrapper(not(_)).
+scasp_wrapper(proved(_)).
+scasp_wrapper(chs(_)).
+scasp_wrapper(assume(_)).
+
 
 %!  intern_negation(+QIn, -QOut) is det.
 

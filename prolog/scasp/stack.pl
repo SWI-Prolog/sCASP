@@ -189,17 +189,38 @@ term(not(Term), Options) :-
     !,
     format("not ", []),
     term(Term, Options).
+term(-Term, Options) :-
+    !,
+    connector(negation, Conn, Options),
+    format('~w', [Conn]),
+    print(Term).
+term(proved(Term), Options) :-
+    !,
+    term1(proved, Term, Options).
+term(assume(Term), Options) :-
+    !,
+    term1(assume, Term, Options).
+term(chs(Term), Options) :-
+    !,
+    term1(chs, Term, Options).
 term(Term, _Options) :-
     print(Term).
+
+term1(Functor, Arg, Options) :-
+    format('~w(', [Functor]),
+    term(Arg, Options),
+    format(')', []).
 
 connector(Semantics, Conn, Options) :-
     option(format(Format), Options, unicode),
     connector_string(Semantics, Format, Conn).
 
-connector_string(implies, ascii, ':-').
-connector_string(and,     ascii, ',').
-connector_string(implies, unicode, '\u2190').   % <-
-connector_string(and,     unicode, ' \u2227').  % /\
+connector_string(implies,  ascii, ':-').
+connector_string(and,      ascii, ',').
+connector_string(negation, ascii, '-').
+connector_string(implies,  unicode, '\u2190').   % <-
+connector_string(and,      unicode, ' \u2227').  % /\
+connector_string(negation, unicode, '\u00ac ').  % -
 
 %!  unqualify_justitication_tree(:TreeIn, +Module, -TreeOut) is det.
 %
