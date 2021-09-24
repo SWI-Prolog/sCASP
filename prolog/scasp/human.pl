@@ -53,35 +53,33 @@ var_name(Var, Name) :-
 
 %!  human_output(+FilterChildren, +Options)
 
-human_output([A,B|Rs], Options) -->
-    human_output_(A, Options),
-    connector(and, Options),
-    human_output([B|Rs], Options).
-human_output([A], Options) -->
-    human_output_(A, Options),
-    (   {option(depth(0), Options)}
-    ->  full_stop(Options)
-    ;   []
-    ).
-
-human_output_(query-[Query,o_nmr_check-[]], Options) -->
+human_output(query-[Query,o_nmr_check-[]], Options) -->
     !,
-    human_output_(Query, Options).
-human_output_(query-Children, Options) -->
+    human_output(Query, Options),
+    full_stop(Options).
+human_output(query-Children, Options) -->
     !,
-    human_output(Children, Options).
-human_output_(o_nmr_check-[], _Options) -->
+    human_output_children(Children, Options),
+    full_stop(Options).
+human_output(o_nmr_check-[], _Options) -->
     !.
-human_output_(Term-[], Options) -->
+human_output(Term-[], Options) -->
     indent(Options),
     emit_atom(Term, Options).
-human_output_(Term-Children, Options) -->
+human_output(Term-Children, Options) -->
     indent(Options),
-
     emit_atom(Term, Options),
     connector(implies, Options),
     { incr_indent(Options, Options1) },
-    human_output(Children, Options1).
+    human_output_children(Children, Options1).
+
+
+human_output_children([A,B|Rs], Options) -->
+    human_output(A, Options),
+    connector(and, Options),
+    human_output_children([B|Rs], Options).
+human_output_children([A], Options) -->
+    human_output(A, Options).
 
 emit_atom(not(GlobalConstraint), _Options) -->
     { is_global_constraint(GlobalConstraint, N)
