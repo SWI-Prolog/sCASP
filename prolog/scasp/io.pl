@@ -651,6 +651,7 @@ portray(Constraint) :-
     format("~p ~w ~p",[A,Op,B]).
 
 special_start(Name, Start, Rest) :-
+    atom(Name),
     special_start(Start),
     atom_concat(Start, Rest, Name),
     Rest \== '',
