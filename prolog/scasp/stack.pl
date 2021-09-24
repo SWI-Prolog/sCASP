@@ -139,8 +139,16 @@ is_global_constraint(Atom) :-
 %!  print_justification_tree(:Tree) is det.
 %!  print_justification_tree(:Tree, +Options) is det.
 %
-%   Print the justification tree as returned by justification_tree/3 or
-%   scasp_justification/2.
+%   Print the justification tree as  returned by justification_tree/3 or
+%   scasp_justification/2. The tree is  printed   to  the current output
+%   stream. Options:
+%
+%     - format(+Format)
+%       One of `unicode` (default) or `ascii`.
+%     - depth(+Integer)
+%       Initial indentation (0)
+%     - indent(+Integer)
+%       Indent increment per level (3).
 
 print_justification_tree(Tree) :-
     print_justification_tree(Tree, []).
@@ -148,7 +156,7 @@ print_justification_tree(Tree) :-
 :- det(print_justification_tree/2).
 
 print_justification_tree(M:Tree, Options) :-
-    plain_output(Tree, [depth(1),module(M)|Options]).
+    plain_output(Tree, [depth(0),module(M)|Options]).
 
 %!  plain_output(+FilterChildren, +Options)
 
@@ -161,7 +169,8 @@ plain_output(Term-[], Options) :-
 plain_output(Term-Children, Options) :-
     !,
     select_option(depth(D), Options, Options1),
-    Indent is D*3,
+    option(indent(Width), Options1, 3),
+    Indent is D*Width,
     connector(implies, Conn, Options),
     nl, tab(Indent), term(Term, Options), format(" ~w",[Conn]),
     D1 is D+1,

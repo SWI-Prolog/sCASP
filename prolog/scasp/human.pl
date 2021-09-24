@@ -9,6 +9,13 @@
     human_justification_tree(:),
     human_justification_tree(:, +).
 
+%!  human_justification_tree(:Tree) is det.
+%!  human_justification_tree(:Tree, +Options) is det.
+%
+%   Print Tree through the message system in _human_ representation.
+%
+%   @see print_message/2.
+
 human_justification_tree(Tree) :-
     human_justification_tree(Tree, []).
 
