@@ -128,7 +128,8 @@ selected(Goal, M) =>
 aux_predicate(-(o_,_)) :- !.                    % copied from io.pl
 aux_predicate(A) :-
     functor(A, Name, _Arity),
-    sub_atom(Name, 0, _, _, o_).
+    sub_atom(Name, 0, _, _, o_),
+    \+ is_global_constraint(Name).
 
 is_global_constraint(Atom) :-
     atom(Atom),
