@@ -33,7 +33,8 @@
 
 :- module(scasp_model,
           [ canonical_model/2,          % +RawModel, -Canonical
-            unqualify_model/3           % +ModelIn, +Module, -ModelOut
+            unqualify_model/3,          % +ModelIn, +Module, -ModelOut
+            print_model/2               % +Model, +Options
           ]).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
@@ -113,3 +114,102 @@ simplify_model([], M) =>
 unqualify_model(Model0, Module, Model) :-
     maplist(unqualify_model_term(Module), Model0, Model).
 
+%!  print_model(+Model, +Options) is det.
+%
+%   Print the model in aligned columns.  Options processed:
+%
+%     - width(Width)
+%       Assumed terminal width.  Default from tty_size/2 or 80.
+
+print_model(Model, Options) :-
+    (   option(width(Width), Options)
+    ->  true
+    ;   catch(tty_size(_, Width), _, Width = 80)
+    ),
+    layout(Model, Width, Layout),
+    compound_name_arguments(Array, v, Model),
+    format('{ ', []),
+    print_table(0, Array, Layout.put(_{ sep:',',
+                                        end:'\n}',
+                                        prefix:'  ',
+                                        options:Options
+                                      })).
+
+print_table(I, Array, Layout) :-
+    Cols = Layout.cols,
+    Rows = Layout.rows,
+    Row is I // Cols,
+    Col is I mod Cols,
+    Index is Row + Col * Rows + 1,
+    (   (I+1) mod Cols =:= 0
+    ->  NL = true
+    ;   NL = false
+    ),
+    (   Row+1 =:= Rows,
+        functor(Array, _, LastIndex),
+        LastCol is LastIndex - (Rows-1)*Cols,
+        Col+1 =:= LastCol
+    ->  Last = true
+    ;   Last = false
+    ),
+    (   arg(Index, Array, Atom)
+    ->  (   NL == false,
+            Last == false
+        ->  format('~|~@~w~t~*+',
+                   [print_model_term(Atom, Layout.options),
+                    Layout.sep, Layout.col_width])
+        ;   Last == false
+        ->  format('~@~w', [print_model_term(Atom, Layout.options), Layout.sep])
+        ;   format('~@~w', [print_model_term(Atom, Layout.options), Layout.end])
+        )
+    ;   true
+    ),
+    (   I2 is I+1,
+        I2 < Cols*Layout.rows
+    ->  (   NL == true
+        ->  format('~n~w', [Layout.prefix])
+        ;   true
+        ),
+        print_table(I2, Array, Layout)
+    ;   true
+    ).
+
+layout(Atoms, Width, _{cols:Cols, rows:Rows, col_width:ColWidth}) :-
+    length(Atoms, L),
+    longest(Atoms, Longest),
+    Cols0 is max(1, Width // (Longest + 3)),
+    Rows is ceiling(L / Cols0),
+    Cols is ceiling(L/Rows),
+    ColWidth is Width // Cols.
+
+longest(List, Longest) :-
+    longest(List, 0, Longest).
+
+longest([], M, M) :- !.
+longest([H|T], Sofar, M) :-
+    write_length(H, Length,
+                 [ portray(true),
+                   numbervars(true),
+                   quoted(true)
+                 ]),
+    Length >= Sofar,
+    !,
+    longest(T, Length, M).
+longest([_|T], S, M) :-
+    longest(T, S, M).
+
+print_model_term(not(-Term), Options) =>
+    format('not \u00ac ', []),
+    print_plain(Term, Options).
+print_model_term(-Term, Options) =>
+    format('\u00ac ', []),
+    print_plain(Term, Options).
+print_model_term(not(Term), Options) =>
+    !,
+    format('not ', []),
+    print_plain(Term, Options).
+print_model_term(Term, Options) =>
+    print_plain(Term, Options).
+
+print_plain(Term, _Options) :-
+    print(Term).

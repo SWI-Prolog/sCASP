@@ -428,13 +428,14 @@ scasp_residual_type(justification) :-
     current_prolog_flag(scasp_show_justification, true).
 
 user:portray(scasp_set_model(Model)) :-
-    format('sCASP model: ~p', [Model]).
+    ansi_format(comment, '% s(CASP) model~n', []),
+    print_model(Model, []).
 user:portray(scasp_set_stack(M:Stack)) :-
-    format('sCASP justification', []),
+    ansi_format(comment, '% s(CASP) justification', []),
     justification_tree(Stack, Tree0, []),
     unqualify_justitication_tree(Tree0, M, Tree),
     print_justification_tree(Tree).
-user:portray('\u2209'(V,S)) :-
+user:portray('\u2209'(V,S)) :-          % not element of
     format('~p \u2209 ~p', [V, S]).
 
 
