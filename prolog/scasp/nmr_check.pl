@@ -33,9 +33,25 @@
 
 Detect OLON rules and construct nmr_check.
 
+Terminology:
+
+  - OLON: a loop with an odd number of default. negations in its
+    circular call dependency path.
+  - CHS: _Coinductive Hypothesis Set_, i.e., an atom that is true
+    due to coinduction, i.e. because it unifies with an ancestor.
+  - NMR check: non-monotonic reasoning check (from _Computing Stable
+    Models of Normal Logic Programs Without Grounding_ by Kyle Marple
+    et al.
+
 @author Kyle Marple
 @version 20170127
 @license BSD-3
+
+@see An OLON is a loop with an   odd number of default. negations in its
+circular call dependency path, from "Layered Models Top-Down Querying of
+Normal Logic Programs" by LM Pereira, PADL09.
+@see "Galliwasp: A Goal-Directed Answer Set Solver" by Kyle Marple and
+Gopal Gupta, LOPSTR 2012 for details on the _NMR check_
 */
 
 :- use_module(library(lists)).
