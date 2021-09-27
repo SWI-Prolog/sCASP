@@ -1,4 +1,4 @@
-:- module(stack,
+:- module(scasp_stack,
           [ justification_tree/3,		% :Stack, -JustTree, +Options
             print_justification_tree/1,         % :JustTree
             print_justification_tree/2,         % :JustTree, +Options
@@ -12,6 +12,9 @@
     justification_tree(:, -, +),
     print_justification_tree(:),
     print_justification_tree(:, +).
+
+:- multifile
+    justification_tree_hook/2.
 
 %!  justification_tree(:Stack, -JustificationTree, +Options)
 %
@@ -131,12 +134,18 @@ is_global_constraint(Atom) :-
 %       Initial indentation (0)
 %     - indent(+Integer)
 %       Indent increment per level (3).
+%     - full_stop(+Bool)
+%       End the tree with a full stop and newline.  If `false`,
+%       it ends with the last atom.
 
 print_justification_tree(Tree) :-
     print_justification_tree(Tree, []).
 
 :- det(print_justification_tree/2).
 
+print_justification_tree(Tree, Options) :-
+    justification_tree_hook(Tree, Options),
+    !.
 print_justification_tree(M:Tree, Options) :-
     merge_options([depth(0),module(M)], Options, Options1),
     plain_output(Tree, Options1),
@@ -218,6 +227,8 @@ connector_string(negation, unicode, '\u00ac ').  % -
 %
 %   Unqualify the nodes in TreeIn, turning the nodes qualified to module
 %   Module into plain nodes.
+
+:- det(unqualify_justitication_tree/3).
 
 unqualify_justitication_tree(_:Tree0, Module, Tree) :-
     is_list(Tree0),
