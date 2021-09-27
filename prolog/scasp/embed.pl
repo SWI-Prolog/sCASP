@@ -37,6 +37,7 @@
             end_scasp/0,
             scasp_listing/2,            % +Unit, +Options
             scasp_model/1,              % :Model
+            scasp_model/2,              % :Model, +Options
             scasp_stack/1,              % -Stack
             scasp_justification/2,      % -Tree, +Options
             (not)/1,                    % :Query
@@ -67,8 +68,12 @@
     not(0),
     -(:).
 
-:- create_prolog_flag(scasp_show_model, true, [keep(true)]).
-:- create_prolog_flag(scasp_show_justification, true, [keep(true)]).
+:- create_prolog_flag(scasp_show_model,
+                      unicode,
+                      [keep(true)]).
+:- create_prolog_flag(scasp_show_justification,
+                      unicode,
+                      [keep(true)]).
 :- initialization set_options(['--tree', '--unicode']).
 
 /** <module>  Embed sCASP programs in Prolog sources
@@ -350,11 +355,15 @@ save_model(Model) :-
     ).
 
 %!  scasp_model(:Model) is semidet.
+%!  scasp_model(:Model, +Options) is semidet.
 %
 %   True when Model  represents  the  current   set  of  true  and false
 %   literals.
 
 scasp_model(M:Model) :-
+    scasp_model(M:Model, []).
+
+scasp_model(M:Model, _Options) :-
     nb_current(scasp_model, RawModel),
     canonical_model(RawModel, Model1),
     unqualify_model(Model1, M, Model).
@@ -406,15 +415,15 @@ scasp_residuals -->
 
 scasp_residuals([], _) -->
     [].
-scasp_residuals([model|T], M) -->
-    (   {scasp_model(M:Model)}
-    ->  [ scasp_set_model(Model) ]
+scasp_residuals([model(Options)|T], M) -->
+    (   {scasp_model(M:Model, Options)}
+    ->  [ scasp_show_model(Model, Options) ]
     ;   []
     ),
     scasp_residuals(T, M).
-scasp_residuals([justification|T], M) -->
+scasp_residuals([justification(Options)|T], M) -->
     (   {scasp_stack(Stack), Stack \== []}
-    ->  [ scasp_set_stack(M:Stack) ]
+    ->  [ scasp_show_stack(M:Stack, Options) ]
     ;   []
     ),
     scasp_residuals(T, M).
@@ -422,19 +431,30 @@ scasp_residuals([justification|T], M) -->
 scasp_residual_types(Types) :-
     findall(Type, scasp_residual_type(Type), Types).
 
-scasp_residual_type(model) :-
-    current_prolog_flag(scasp_show_model, true).
-scasp_residual_type(justification) :-
-    current_prolog_flag(scasp_show_justification, true).
+scasp_residual_type(model(Options)) :-
+    current_prolog_flag(scasp_show_model, Spec),
+    Spec \== false,
+    res_options(Spec, Options).
+scasp_residual_type(justification(Options)) :-
+    current_prolog_flag(scasp_show_justification, Spec),
+    Spec \== false,
+    res_options(Spec, Options).
 
-user:portray(scasp_set_model(Model)) :-
+res_options(List, Options), is_list(List) =>
+    Options = List.
+res_options(true, Options) =>
+    Options = [format(unicode)].
+res_options(Format, Options), atom(Format) =>
+    Options = [format(Format)].
+
+user:portray(scasp_show_model(Model, Options)) :-
     ansi_format(comment, '% s(CASP) model~n', []),
-    print_model(Model, []).
-user:portray(scasp_set_stack(M:Stack)) :-
+    print_model(Model, Options).
+user:portray(scasp_show_stack(M:Stack, Options)) :-
     ansi_format(comment, '% s(CASP) justification', []),
-    justification_tree(Stack, Tree0, []),
+    justification_tree(Stack, Tree0, Options),
     unqualify_justitication_tree(Tree0, M, Tree),
-    print_justification_tree(Tree, [full_stop(false)]).
+    print_justification_tree(Tree, [full_stop(false)|Options]).
 user:portray('\u2209'(V,S)) :-          % not element of
     format('~p \u2209 ~p', [V, S]).
 
