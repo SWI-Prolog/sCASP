@@ -93,8 +93,6 @@ atom(o_nmr_check, Options) -->
     !,
     utter(global_constraints_hold, Options).
 atom(Term, Options) -->
-    { atom(Term) },
-    !,
     utter(holds(Term), Options).
 
 %!  utter(+Exppression, +Options)
