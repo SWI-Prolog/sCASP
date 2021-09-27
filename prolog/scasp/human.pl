@@ -3,6 +3,7 @@
             human_justification_tree/2
           ]).
 :- use_module(common).
+:- use_module(output).
 :- use_module(clp/disequality).
 
 :- meta_predicate
@@ -22,7 +23,7 @@ human_justification_tree(Tree) :-
     human_justification_tree(Tree, []).
 
 human_justification_tree(M:Tree, Options) :-
-    \+ \+ ( analyse_variables(Tree),
+    \+ \+ ( ovar_analyze_term(Tree),
             print_message(information,
                           scasp_justification(Tree,
                                               [ depth(0),
@@ -30,35 +31,6 @@ human_justification_tree(M:Tree, Options) :-
                                               | Options
                                               ]))
           ).
-
-analyse_variables(Tree) :-
-    term_singletons(Tree, Singletons),
-    term_variables(Tree, AllVars),
-    maplist(mark_singleton, Singletons),
-    foldl(name_variable, AllVars, 0, _).
-
-mark_singleton(Var) :-
-    put_attr(Var, scasp_just_human, singleton).
-
-name_variable(Var, N0, N) :-
-    (   is_singleton(Var)
-    ->  N = N0
-    ;   L is N0 mod 26 + 0'A,
-        N is N0 // 26,
-        (   N == 0
-        ->  char_code(Name, L)
-        ;   format(atom(Name), '~c~d', [L, N])
-        ),
-        put_attr(Var, scasp_just_human, name(Name))
-    ).
-
-attr_unify_hook(_Attr, _Value).
-
-is_singleton(Var) :-
-    get_attr(Var, scasp_just_human, singleton).
-var_name(Var, Name) :-
-    get_attr(Var, scasp_just_human, name(Name)).
-
 
 %!  human_output(+FilterChildren, +Options)
 
@@ -117,11 +89,7 @@ emit_atom(M:Term, Options) -->
     emit_atom(Term, [module(M)|Options]).
 emit_atom(Term, Options) -->            % #pred Term::Template
     { option(module(M), Options),       % Used existing translation
-      current_predicate(M:pr_pred_predicate/1),
-      \+ predicate_property(M:pr_pred_predicate(_), imported_from(_)),
-      M:pr_pred_predicate(::(Term,format(Fmt, Args))),
-      !,
-      parse_fmt(Fmt, Args, Actions)
+      human_expression(M:Term, Actions)
     },
     emit_fmt_actions(Actions, Options).
 emit_atom(o_nmr_check, _Options) -->
@@ -155,7 +123,7 @@ emit_term(@(NegVar:''), Options) -->
     ).
 emit_term(@(NegVar:Type), Options) -->
     { get_neg_var(NegVar, List),
-      is_singleton(NegVar)
+      ovar_is_singleton(NegVar)
     },
     !,
     (   {List = [One]}
@@ -240,27 +208,6 @@ indent(Options) -->
 incr_indent(Options0, [depth(D)|Options1]) :-
     select_option(depth(D0), Options0, Options1),
     D is D0+1.
-
-%!  parse_fmt(+Fmt, +Args, -Actions) is det.
-%
-%   Translate a human template and its arguments  into a list of actions
-%   for our DCG. The template  allows   form  interpolating  a variable,
-%   optionally with a type. The core translator   adds  ~p to the format
-%   and a term @(Var:Type) or @(Var:'') to   the arguments. Actions is a
-%   list of text(String) or @(Var:Type).
-
-:- det(parse_fmt/3).
-
-parse_fmt(Fmt, Args, Actions) :-
-    format_spec(Fmt, Spec),
-    fmt_actions(Spec, Args, Actions).
-
-fmt_actions([], [], []).
-fmt_actions([text(S)|T0], Args, [text(S)|T]) :-
-    fmt_actions(T0, Args, T).
-fmt_actions([escape(nothing, no_colon, p)|T0], [A0|Args], [A0|T]) :-
-    fmt_actions(T0, Args, T).
-
 
 :- multifile prolog:message//1.
 
