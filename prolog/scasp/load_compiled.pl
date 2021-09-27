@@ -1,9 +1,11 @@
 :- module(scasp_load_compiled,
           [ read_compiled_source/1
           ]).
-:- use_module(output).
+:- use_module(pr_rules).
 
 /** <module> Load a precompiled program
+
+@tbd: Not compatible with module handling.
 */
 
 :- op(700, fx, [not, #]).
@@ -23,11 +25,9 @@
                  '#>='
                  ]).
 
-read_compiled_source(S) :-
-    retractall(pr_user_predicate(_)),
-    retractall(pr_query(_)),
-    retractall(pr_rule(_,_)),
-    read_compiled_files(S), !.
+read_compiled_source(M:S) :-
+    clean_pr_program(M),
+    read_compiled_files(M:S), !.
 
 read_compiled_files([]).
 read_compiled_files([F|Fs]) :-

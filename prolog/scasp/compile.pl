@@ -46,7 +46,7 @@ results.
 :- use_module(program).
 :- use_module(comp_duals).
 :- use_module(nmr_check).
-:- use_module(output).
+:- use_module(pr_rules).
 
 :- meta_predicate
     scasp_load(:, +),

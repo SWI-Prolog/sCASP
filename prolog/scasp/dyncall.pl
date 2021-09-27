@@ -25,7 +25,7 @@
 :- use_module(common).
 :- use_module(modules).
 :- use_module(io).
-:- use_module(output, [process_pr_pred/2]).
+:- use_module(pr_rules, [process_pr_pred/2]).
 
 :- meta_predicate
     scasp(0),

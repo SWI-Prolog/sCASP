@@ -25,9 +25,10 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(scasp_output,
+:- module(scasp_pr_rules,
           [ generate_pr_rules/2,        % +Sources, +Options
-            process_pr_pred/2           % +Spec,-Pred
+            process_pr_pred/2,          % +Spec, -Pred
+            clean_pr_program/1          % +Module
           ]).
 :- use_module(modules).
 
