@@ -185,32 +185,21 @@ plain_output_children([A], Options) :-
 
 %!  term(+Node, +Options) is det.
 %
-%   Print a, possibly annotated, atom.
+%   Print a, possibly annotated, stack atom.
 
-term(not(Term), Options) :-
-    !,
-    format("not ", []),
-    term(Term, Options).
-term(-Term, Options) :-
-    !,
-    connector(negation, Conn, Options),
-    format('~w', [Conn]),
-    print(Term).
-term(proved(Term), Options) :-
-    !,
+term(proved(Term), Options) =>
     term1(proved, Term, Options).
-term(assume(Term), Options) :-
-    !,
+term(assume(Term), Options) =>
     term1(assume, Term, Options).
-term(chs(Term), Options) :-
-    !,
+term(chs(Term), Options) =>
     term1(chs, Term, Options).
-term(Term, _Options) :-
-    print(Term).
+term(Term, Options) =>
+    print_model_term(Term, Options).
 
 term1(Functor, Arg, Options) :-
-    format('~w(', [Functor]),
-    term(Arg, Options),
+    print_connector(Functor, Options),
+    format('(', []),
+    print_model_term(Arg, Options),
     format(')', []).
 
 %!  unqualify_justitication_tree(:TreeIn, +Module, -TreeOut) is det.
