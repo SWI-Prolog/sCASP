@@ -7,6 +7,7 @@
 :- use_module(predicates).
 :- use_module(common).
 :- use_module(modules).
+:- use_module(output).
 
 :- meta_predicate
     justification_tree(:, -, +),
@@ -211,17 +212,6 @@ term1(Functor, Arg, Options) :-
     format('~w(', [Functor]),
     term(Arg, Options),
     format(')', []).
-
-connector(Semantics, Conn, Options) :-
-    option(format(Format), Options, unicode),
-    connector_string(Semantics, Format, Conn).
-
-connector_string(implies,  ascii, ':-').
-connector_string(and,      ascii, ',').
-connector_string(negation, ascii, '-').
-connector_string(implies,  unicode, '\u2190').   % <-
-connector_string(and,      unicode, ' \u2227').  % /\
-connector_string(negation, unicode, '\u00ac ').  % -
 
 %!  unqualify_justitication_tree(:TreeIn, +Module, -TreeOut) is det.
 %
