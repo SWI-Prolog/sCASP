@@ -18,8 +18,7 @@
 %   Process Stack as produced by solve/4 into a justification tree.
 %   Options include:
 %
-%     - format(+Format)
-%       One of `tree` (default) or `list`.
+%      <none yet>
 %
 %   The `tree` format is defined as follows.
 %
@@ -45,14 +44,11 @@
 
 :- det(justification_tree/3).
 
-justification_tree(M:Stack, M:JustificationTree, Options) :-
+justification_tree(M:Stack, M:JustificationTree, _Options) :-
     reverse(Stack, RevStack),
     enumerate([query|RevStack],EnumStack,1,1),
-    (   option(format(tree), Options, tree)
-    ->  collect_children(EnumStack, Children, 1),
-        filter_tree(Children, M, [JustificationTree])
-    ;   collect_parents(EnumStack, JustificationTree)
-    ).
+    collect_children(EnumStack, Children, 1),
+    filter_tree(Children, M, [JustificationTree]).
 
 %!  enumerate(+StackOut, -EnumStack, +Parent, +Order)
 %
@@ -82,20 +78,6 @@ collect_children([Term=PId-O|Stack], [Term-Children | Cs], PId) :- !,
     collect_children(Stack, Children, PId-O).
 collect_children([_|Stack], Cs, PId) :-
     collect_children(Stack, Cs, PId).
-
-
-%! collect_parents(:EnumStack, :Childs, :ParentId)
-
-collect_parents([], []) :- !.
-collect_parents([Term=PId|Stack], [(Term, Siblings) | Cs]) :-
-    collect_parents(Stack, Cs),
-    collect_siblings(Stack, Siblings, PId).
-
-collect_siblings([], [], _) :- !.
-collect_siblings([(Term, PId-_)|Stack], [Term|Siblings], PId) :- !,
-    collect_siblings(Stack, Siblings, PId).
-collect_siblings([_|Stack], Siblings, PId) :-
-    collect_siblings(Stack, Siblings, PId).
 
 
 %! filter_tree(+Children, +Module, -FilteredChildren)
