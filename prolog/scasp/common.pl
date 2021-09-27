@@ -195,6 +195,7 @@ scasp_wrapper(assume(_)).
 intern_negation(-Q0, Q) =>
     Q0 =.. [Name|Args],
     atom_concat(-, Name, NName),
+    Name \== '',
     Q =.. [NName|Args].
 intern_negation(Q0, Q) =>
     Q = Q0.
