@@ -175,6 +175,10 @@ emit_term(Term, _Options) -->
     { atomic(Term) },
     !,
     [ '~q'-[Term] ].
+emit_term(Term, _Options) -->
+    { var_number(Term, _) },
+    !,
+    [ '~p'-[Term] ].
 emit_term(Term, Options) -->
     { compound(Term),
       Term =.. [Name|Args]
