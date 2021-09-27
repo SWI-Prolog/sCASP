@@ -434,7 +434,7 @@ user:portray(scasp_set_stack(M:Stack)) :-
     ansi_format(comment, '% s(CASP) justification', []),
     justification_tree(Stack, Tree0, []),
     unqualify_justitication_tree(Tree0, M, Tree),
-    print_justification_tree(Tree).
+    print_justification_tree(Tree, [full_stop(false)]).
 user:portray('\u2209'(V,S)) :-          % not element of
     format('~p \u2209 ~p', [V, S]).
 

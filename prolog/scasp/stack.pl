@@ -156,7 +156,12 @@ print_justification_tree(Tree) :-
 :- det(print_justification_tree/2).
 
 print_justification_tree(M:Tree, Options) :-
-    plain_output(Tree, [depth(0),module(M)|Options]).
+    merge_options([depth(0),module(M)], Options, Options1),
+    plain_output(Tree, Options1),
+    (   option(full_stop(true), Options, true)
+    ->  format(".~n", [])
+    ;   true
+    ).
 
 %!  plain_output(+FilterChildren, +Options)
 
@@ -174,11 +179,7 @@ plain_output(Term-Children, Options) :-
     connector(implies, Conn, Options),
     nl, tab(Indent), term(Term, Options), format(" ~w",[Conn]),
     D1 is D+1,
-    plain_output_children(Children, [depth(D1)|Options1]),
-    (   D == 0
-    ->  format(".", [])
-    ;   true
-    ).
+    plain_output_children(Children, [depth(D1)|Options1]).
 
 plain_output_children([A,B|Rs], Options) :-
     !,
