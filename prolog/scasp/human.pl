@@ -16,6 +16,8 @@
 %
 %   @see print_message/2.
 
+:- det(human_justification_tree/2).
+
 human_justification_tree(Tree) :-
     human_justification_tree(Tree, []).
 
@@ -260,3 +262,11 @@ fmt_actions([escape(nothing, no_colon, p)|T0], [A0|Args], [A0|T]) :-
 
 prolog:message(scasp_justification(Tree, Options)) -->
     human_output(Tree, Options).
+
+:- multifile
+    scasp_stack:justification_tree_hook/2.
+
+scasp_stack:justification_tree_hook(Tree, Options) :-
+    option(format(human), Options),
+    !,
+    human_justification_tree(Tree, Options).
