@@ -200,16 +200,27 @@ longest([_|T], S, M) :-
 
 print_model_term(not(-Term), Options) =>
     format('not \u00ac ', []),
-    print_plain(Term, Options).
+    print_plain(Term, likely, Options).
 print_model_term(-Term, Options) =>
     format('\u00ac ', []),
-    print_plain(Term, Options).
+    print_plain(Term, false, Options).
 print_model_term(not(Term), Options) =>
     !,
     format('not ', []),
-    print_plain(Term, Options).
+    print_plain(Term, unlikely, Options).
 print_model_term(Term, Options) =>
-    print_plain(Term, Options).
+    print_plain(Term, true, Options).
 
-print_plain(Term, _Options) :-
-    print(Term).
+print_plain(M:Term, Trust, Options) :-
+    atom(M),
+    !,
+    ansi_format(fg('#888'), '~q:', [M]),
+    print_plain(Term, Trust, Options).
+print_plain(Term, Trust, _Options) :-
+    style(Trust, Style),
+    ansi_format(Style, '~p', [Term]).
+
+style(true,     [bold]).
+style(false,    [bold, fg(red)]).
+style(likely,   []).
+style(unlikely, [fg(red)]).
