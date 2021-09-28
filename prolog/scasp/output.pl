@@ -3,6 +3,7 @@
             connector/3,                         % +Semantics,-Conn,+Options
             print_connector/2,
             ovar_analyze_term/1,                 % +Term
+            ovar_clean/1,                        % +Term
             ovar_is_singleton/1,                 % @Var
             ovar_var_name/2,                     % @Var,-Name
             human_expression/2                   % :Atom, -Actions
@@ -103,15 +104,28 @@ name_variable(Var, N0, N) :-
     (   ovar_is_singleton(Var)
     ->  N = N0
     ;   L is N0 mod 26 + 0'A,
-        N is N0 // 26,
-        (   N == 0
+        I is N0 // 26,
+        (   I == 0
         ->  char_code(Name, L)
-        ;   format(atom(Name), '~c~d', [L, N])
+        ;   format(atom(Name), '~c~d', [L, I])
         ),
-        put_attr(Var, scasp_output, name(Name))
+        put_attr(Var, scasp_output, name(Name)),
+        N is N0+1
     ).
 
 attr_unify_hook(_Attr, _Value).
+
+%!  ovar_clean(+Term)
+%
+%   Delete all attributes added by ovar_analyze_term/1
+
+ovar_clean(Term) :-
+    term_attvars(Term, Attvars),
+    maplist(del_var_info, Attvars).
+
+del_var_info(V) :-
+    del_attr(V, scasp_output).
+
 
 %!  ovar_is_singleton(@Var) is semidet.
 %

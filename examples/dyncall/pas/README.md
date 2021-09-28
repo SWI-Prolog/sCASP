@@ -16,8 +16,17 @@ set of rules using different patient data.
 
 ## Running the demo
 
+### Interactive
+
     swipl PAS_case.pl
     ?- solve(chose(ace_inhibitors), 1).
+
+### HTTP
+
+    swipl PAS_server.pl
+    ?- server(8080).
+
+And then connect to http://localhost:8080/
 
 ## Issues
 

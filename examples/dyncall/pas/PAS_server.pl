@@ -1,5 +1,6 @@
 :- use_module(library(scasp)).
 :- use_module(library(scasp/html)).
+:- use_module(library(scasp/output)).
 
 :- use_module('PAS_rules').
 :- use_module('PAS_guide').
@@ -10,8 +11,13 @@
 :- use_module(library(http/js_write)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/jquery)).
-:- use_module(library(http/http_json)).
 :- use_module(library(http/http_dispatch)).
+:- use_module(library(dcg/high_order)).
+:- use_module(library(http/term_html)).
+
+%!  server(+Port)
+%
+%   Start HTTP server at the indicated port.
 
 server(Port) :-
     http_server([port(Port)]).
@@ -76,19 +82,21 @@ patient_form(Case) -->
                      forall(member(D, Data),
                             format('~q.~n', [D])))
     },
-    html([ h2('Patient data'),
-
+    html([ h4('Patient data'),
            textarea([id(data), rows(Rows), cols(60)],
                     String),
-           br([]),
-           '?- ', textarea([id(query), rows(1), cols(57)],
-                           'chose(ace_inhibitors)'),
-           br([]),
+           h4('Query'),
+           '?- ', input([id(query),
+                         value('chose(ace_inhibitors)')]),
+           h4(''),
            button(id(solve), 'Solve'),
            button(id(clear), 'Clear'),
-           div(id(model), []),
-           div(id(justification), [])
+           div(id(results), [])
          ]),
+    button_actions,
+    tree_resources.
+
+button_actions -->
     { http_link_to_id(solve, [], SolveURL) },
     js_script({|javascript(SolveURL)||
 $(function() {
@@ -101,12 +109,14 @@ $("#solve").on("click", function() {
           query: query
         },
         function(reply) {
-            $("#justification").html(reply.justification);
+          $("#results").html(reply);
+          $(".tree").treemenu({delay:0});
+          $(".model").modelmenu({delay:0});
         });
 });
 
 $("#clear").on("click", function() {
-  $("#justification").empty();
+  $("#results").empty();
 });
 
 });
@@ -123,11 +133,41 @@ solve(Request) :-
         read_terms(In, Terms),
         close(In)),
     patient_data(Terms),
-    term_string(Query, QueryS),
+    term_string(Query, QueryS, [variable_names(VNames)]),
+    call_time(findall(result(N, Time, VNames, Model, Justification),
+                      call_nth(call_time(scasp(Query, Model, Justification), Time), N),
+                      Results),
+              TotalTime),
+    reply_html_page([],
+                    \results(Results, TotalTime)).
+
+scasp(Query, Model, Justification) :-
     scasp(Query),
-    scasp_justification(Tree, []),
-    html_string(\html_justification_tree(Tree, []), Justification),
-    reply_json(_{justification: Justification}).
+    scasp_model(Model),
+    scasp_justification(Justification, []).
+
+results([], Time) -->
+    !,
+    html(h3('No models (~3f sec)'-[Time.cpu])).
+results(Results, _Time) -->
+    sequence(result, Results).
+
+result(result(N, Time, Bindings, Model, Justification)) -->
+    { ovar_analyze_term(t(Bindings,Model,Justification))
+    },
+    html(div(class(result),
+             [ h3('Result #~D (~3f sec)'-[N, Time.cpu]),
+               \binding_section(Bindings),
+               div(class(model),
+                   [ h4('Model'),
+                     \html_model(Model, [])
+                   ]),
+               div(class(justification),
+                   [ h4('Justification'),
+                     \tree_buttons,
+                     \html_justification_tree(Justification, [])
+                   ])
+             ])).
 
 read_terms(In, Terms) :-
     read_term(In, Term0, []),
@@ -139,9 +179,29 @@ read_terms(Term, In, [Term|T]) :-
     read_term(In, Term1, []),
     read_terms(Term1, In, T).
 
-:- html_meta
-    html_string(html, -).
+%!  binding_section(+Bindings)//
 
-html_string(HTML, String) :-
-    phrase(html(HTML), Tokens),
-    with_output_to(string(String), print_html(Tokens)).
+binding_section([]) -->
+    !.
+binding_section(Bindings) -->
+    html(div(class(bindings),
+             [ h4('Bindings'),
+               \bindings(Bindings)
+             ])).
+
+%!  bindings(+Bindings)//
+%
+%   Report on the bindings.
+
+bindings([]) -->
+    [].
+bindings([H|T]) -->
+    binding(H),
+    bindings(T).
+
+binding(Name=Value) -->
+    html(div(class(binding),
+             [ var(Name),
+               ' = ',
+               \term(Value, [])
+             ])).
