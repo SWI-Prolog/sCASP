@@ -229,8 +229,22 @@ constraint(H, End) -->
 constraint('\u2209'(V,S)) -->
     !,
     html([ \term(V), ' \u2209 ', \term(S) ]).
+constraint({ClpQ}) -->
+    !,
+    { comma_list(ClpQ, List),
+      maplist(to_clpq, List, Constraints)
+    },
+    constraints(Constraints).
 constraint(C) -->
     term(C).
+
+to_clpq(A > B,   C) => C = (A #>  B).
+to_clpq(A < B,   C) => C = (A #<  B).
+to_clpq(A >= B,  C) => C = (A #>= B).
+to_clpq(A =< B,  C) => C = (A #=< B).
+to_clpq(A = B,   C) => C = (A #=  B).
+to_clpq(A =\= B, C) => C = (A #<> B).
+to_clpq(X, Y)       => Y = X.
 
 term(T) -->
     term(T,
