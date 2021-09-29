@@ -29,7 +29,7 @@ server(Port) :-
 
 :- http_handler(root(.),     http_redirect(see_other, root(scasp)), []).
 :- http_handler(root(scasp), home,  []).
-:- http_handler(root(solve), solve, [id(solve)]).
+:- http_handler(root(scasp/solve), solve, [id(solve)]).
 
 home(_Request) :-
     reply_html_page([ title('s(CASP) web server')
