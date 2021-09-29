@@ -76,24 +76,35 @@ solve(Request) :-
                     [ data(Data, []),
                       query(QueryS, [])
                     ]),
-    setup_call_cleanup(
-        open_string(Data, In),
-        read_terms(In, Terms),
-        close(In)),
-    term_string(Query, QueryS, [variable_names(VNames)]),
+    Error = error(Formal,_),
+    catch(( setup_call_cleanup(
+                open_string(Data, In),
+                read_terms(In, Terms),
+                close(In)),
+            term_string(Query, QueryS, [variable_names(VNames)])
+          ),
+          Error,
+          true),
+    (   nonvar(Formal)
+    ->  reply_html_page([],
+                        \error(Error))
+    ;   in_temporary_module(
+            M,
+            ( use_module(library(scasp)),
+              maplist(assertz, Terms)
+            ),
+            ( call_time(findall(result(N, Time, M, VNames, Model, Justification),
+                                call_nth(call_time(scasp(M:Query, Model, Justification), Time), N),
+                                Results),
+                        TotalTime),
+              reply_html_page([],
+                              \results(Results, TotalTime))
+            ))
+    ).
 
-    in_temporary_module(
-        M,
-        ( use_module(library(scasp)),
-          maplist(assertz, Terms)
-        ),
-        ( call_time(findall(result(N, Time, M, VNames, Model, Justification),
-                            call_nth(call_time(scasp(M:Query, Model, Justification), Time), N),
-                            Results),
-                    TotalTime),
-          reply_html_page([],
-                          \results(Results, TotalTime))
-        )).
+error(Error) -->
+    { message_to_string(Error, Message) },
+    html(div(class(error), Message)).
 
 scasp(Query, Model, Justification) :-
     scasp(Query),
@@ -131,14 +142,19 @@ set_name(Name = Var) :-
     ).
 
 read_terms(In, Terms) :-
-    read_term(In, Term0, []),
+    read_one_term(In, Term0),
     read_terms(Term0, In, Terms).
 
 read_terms(end_of_file, _, []) :-
     !.
 read_terms(Term, In, [Term|T]) :-
-    read_term(In, Term1, []),
+    read_one_term(In, Term1),
     read_terms(Term1, In, T).
+
+read_one_term(In, Term) :-
+    read_term(In, Term,
+              [ module(scasp_dyncall)
+              ]).
 
 %!  binding_section(+Bindings)//
 
