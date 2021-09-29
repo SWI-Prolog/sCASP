@@ -100,7 +100,7 @@ solve(Request) :-
     ;   in_temporary_module(
             M,
             ( use_module(library(scasp)),
-              maplist(assertz, Terms)
+              maplist(add_to_program(M), Terms)
             ),
             ( call_time(findall(result(N, Time, M, VNames, Model, Justification),
                                 call_nth(call_time(limit(Limit,
@@ -117,6 +117,17 @@ solve(Request) :-
 error(Error) -->
     { message_to_string(Error, Message) },
     html(div(class(error), Message)).
+
+%!  add_to_program(+Module, +Term)
+%
+%   Add clauses to the program.  Also handles s(CASP) directives.
+
+add_to_program(M, (:- show Spec)) =>
+    show(M:Spec).
+add_to_program(M, (:- pred Spec)) =>
+    pred(M:Spec).
+add_to_program(M, Term) =>
+    assertz(M:Term).
 
 scasp(Query, Model, Justification) :-
     scasp(Query),
