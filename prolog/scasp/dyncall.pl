@@ -214,6 +214,10 @@ predicate_callees(M:Head, Callees) :-
     !,
     Callees = Callees0.
 predicate_callees(M:Head, Callees) :-
+    module_property(M, class(temporary)),
+    !,
+    predicate_callees_nc(M:Head, Callees).
+predicate_callees(M:Head, Callees) :-
     retractall(predicate_callees_c(Head, M, _, _)),
     predicate_callees_nc(M:Head, Callees0),
     predicate_generation(M:Head, Gen),
