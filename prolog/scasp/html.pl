@@ -582,7 +582,25 @@ tree_script -->
 
             if (!options.nonroot) {
                 this.addClass("treemenu-root");
+
                 addButtons(this);
+
+                this.on("click", ".toggler", function(ev) {
+                    var li = $(ev.target).parent('li');
+
+                    if (options.closeOther && li.hasClass('tree-closed')) {
+                        var siblings = li.parent('ul').find("li:not(.tree-empty)");
+                        siblings.removeClass("tree-opened");
+                        siblings.addClass("tree-closed");
+                        siblings.removeClass(options.activeSelector);
+                        siblings.find('> ul').slideUp(options.delay);
+                    }
+
+                    li.find('> ul').slideToggle(options.delay);
+                    li.toggleClass('tree-opened');
+                    li.toggleClass('tree-closed');
+                    li.toggleClass(options.activeSelector);
+                });
             }
 
             options.nonroot = true;
@@ -603,23 +621,6 @@ tree_script -->
                     subtree.hide();
 
                     e.addClass('tree-closed');
-
-                    e.find(button).click(function() {
-                        var li = $(this).parent('li');
-
-                        if (options.closeOther && li.hasClass('tree-closed')) {
-                            var siblings = li.parent('ul').find("li:not(.tree-empty)");
-                            siblings.removeClass("tree-opened");
-                            siblings.addClass("tree-closed");
-                            siblings.removeClass(options.activeSelector);
-                            siblings.find('> ul').slideUp(options.delay);
-                        }
-
-                        li.find('> ul').slideToggle(options.delay);
-                        li.toggleClass('tree-opened');
-                        li.toggleClass('tree-closed');
-                        li.toggleClass(options.activeSelector);
-                    });
 
                     $(this).find('> ul').treemenu(options);
                 } else {
