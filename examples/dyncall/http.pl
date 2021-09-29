@@ -11,12 +11,21 @@
 :- use_module(library(dcg/high_order)).
 :- use_module(library(http/term_html)).
 
+% Become Unix daemon process when on Unix and not attached to a
+% terminal.
+
+:- if((current_prolog_flag(unix,true),
+       \+ stream_property(current_input, tty(true)))).
+:- format(user_error, '% Loading as Unix daemon~n', []).
+:- use_module(library(http/http_unix_daemon)).
+:- else.
 %!  server(+Port)
 %
 %   Start HTTP server at the indicated port.
 
 server(Port) :-
     http_server([port(Port)]).
+:- endif.
 
 :- http_handler(root(.),     home,  []).
 :- http_handler(root(solve), solve, [id(solve)]).
