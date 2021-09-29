@@ -5,7 +5,8 @@
             ovar_analyze_term/1,                 % +Term
             ovar_clean/1,                        % +Term
             ovar_is_singleton/1,                 % @Var
-            ovar_var_name/2,                     % @Var,-Name
+            ovar_var_name/2,                     % @Var, -Name
+            ovar_set_name/2,                     % +Var, +Name
             human_expression/2                   % :Atom, -Actions
           ]).
 :- use_module(library(ansi_term)).
@@ -92,25 +93,31 @@ connector_string(chs,      _, 'chs').
 %   ovar_is_singleton/1 and ovar_var_name/1.
 
 ovar_analyze_term(Tree) :-
+    term_attvars(Tree, AttVars),
+    convlist(ovar_var_name, AttVars, VarNames),
     term_singletons(Tree, Singletons),
     term_variables(Tree, AllVars),
     maplist(mark_singleton, Singletons),
-    foldl(name_variable, AllVars, 0, _).
+    foldl(name_variable(VarNames), AllVars, 0, _).
 
 mark_singleton(Var) :-
     put_attr(Var, scasp_output, singleton).
 
-name_variable(Var, N0, N) :-
-    (   ovar_is_singleton(Var)
+name_variable(Assigned, Var, N0, N) :-
+    (   (   ovar_is_singleton(Var)
+        ;   ovar_var_name(Var, _)
+        )
     ->  N = N0
-    ;   L is N0 mod 26 + 0'A,
-        I is N0 // 26,
+    ;   between(N0, 100000, N1),
+        L is N1 mod 26 + 0'A,
+        I is N1 // 26,
         (   I == 0
         ->  char_code(Name, L)
         ;   format(atom(Name), '~c~d', [L, I])
         ),
-        put_attr(Var, scasp_output, name(Name)),
-        N is N0+1
+        \+ memberchk(Name, Assigned)
+    ->  ovar_set_name(Var, Name),                % make sure it is unique
+        N is N1+1
     ).
 
 attr_unify_hook(_Attr, _Value).
@@ -133,6 +140,13 @@ del_var_info(V) :-
 
 ovar_is_singleton(Var) :-
     get_attr(Var, scasp_output, singleton).
+
+%!  ovar_set_name(+Var, +Name)
+%
+%   Set the name of Var to Name.
+
+ovar_set_name(Var, Name) :-
+    put_attr(Var, scasp_output, name(Name)).
 
 %!  ovar_var_name(@Var, -Name) is semidet.
 %
