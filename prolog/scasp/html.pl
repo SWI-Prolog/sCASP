@@ -6,7 +6,9 @@
           ]).
 :- use_module(common).
 :- use_module(clp/disequality).
+:- use_module(clp/clpq).
 :- use_module(output).
+
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
 :- use_module(library(http/term_html)).
@@ -233,6 +235,12 @@ var(NegVar, Options) -->
     ;   html([var(Name), ' not ']),
         list(List, [last_connector(or)|Options])
     ).
+var(Var, Options) -->
+    { is_clpq_var(Var),
+      !,
+      clpqr_dump_constraints([Var], [Var], Constraints)
+    },
+    clpq(Var, Constraints, Options).
 var(Var, _Options) -->
     { ovar_var_name(Var, Name)
     },
@@ -240,6 +248,29 @@ var(Var, _Options) -->
     html(var(Name)).
 var(_, _) -->
     html(anything).
+
+%!  clpq(@Var, +Constraints, +Options)//
+
+clpq(Var, [Constraint], Options) -->
+    { compound(Constraint),
+      Constraint =.. [Op,A,B],
+      Var == A,
+      cmp_op(Op, Text),
+      (   ovar_var_name(Var, Name)
+      ->  Id = var(Name)
+      ;   Id = number
+      )
+    },
+    html(['any ', Id, ' ', Text, ' ']),
+    scasp_term(B, Options).
+
+cmp_op(.>.,  'larger than').
+cmp_op(.>=., 'larger than or equal to').
+cmp_op(.<.,  'smaller than').
+cmp_op(.=<., 'smaller than or equal to').
+cmp_op(.=.,  'equal to').
+cmp_op(.<>., 'not equal to').
+
 
 %!  var(@Var, +Type, +Options)//
 
@@ -265,6 +296,12 @@ var(NegVar, Type, Options) -->
     ;   html([var(Name), ', a ', Type, ' not ']),
         list(List, [last_connector(or)|Options])
     ).
+var(Var, _Type, Options) -->            % TBD: include type in NLP
+    { is_clpq_var(Var),
+      !,
+      clpqr_dump_constraints([Var], [Var], Constraints)
+    },
+    clpq(Var, Constraints, Options).
 var(Var, Type, _Options) -->
     { ovar_var_name(Var, Name)
     },
