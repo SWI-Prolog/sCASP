@@ -74,9 +74,7 @@ $("#solve").on("click", function() {
         function(reply) {
           $("#results").html(reply);
           $(".model").modelmenu({delay:0});
-          setTimeout(function() {
-              $(".tree").treemenu({delay:0});
-          }, 0);
+          $(".tree").treemenu({delay:0});
         });
 });
 

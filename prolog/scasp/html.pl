@@ -471,9 +471,7 @@ tree_script -->
 
             if ( options.step ) {
                var g_depth = this.data("g_depth") + options.step;
-               var max_depth = this.data("max_depth");
                g_depth = g_depth < 0 ? 0 : g_depth;
-               g_depth = g_depth > max_depth ? max_depth : g_depth;
                this.data("g_depth", g_depth);
                depth = g_depth;
                delete options.step;
@@ -516,11 +514,6 @@ tree_script -->
                 var root = false;
                 var tree = $(this);
 
-                if ( depth == 0 ) {
-                    options.g_depth = 0;
-                    root = true;
-                }
-
                 tree.find("> li").each(function() {
                     e = $(this)
                     var subtree = e.find('> ul');
@@ -534,13 +527,7 @@ tree_script -->
 
                         subtree.expand(options,depth+1);
                     }
-                    options.g_depth=Math.max(options.g_depth,depth);
                 });
-
-                if ( root ) {
-                    tree.data("g_depth", options.g_depth);
-                    tree.data("max_depth", options.g_depth);
-                }
             });
 
             return this;
@@ -648,9 +635,6 @@ tree_script -->
                     }
                 });
             }
-
-            this.expand({delay:0},0);
-            this.collapse({delay:0});
 
             return this;
         }
