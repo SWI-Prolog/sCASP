@@ -18,7 +18,13 @@
             op(950, xfx, ::),           % pred not x :: "...".
             op(1150, fx, pred),
             op(1150, fx, show),
-            op(1150, fx, scasp_dynamic)
+            op(1150, fx, scasp_dynamic),
+            op(700, xfx, #=),
+            op(700, xfx, #<>),
+            op(700, xfx, #<),
+            op(700, xfx, #>),
+            op(700, xfx, #=<),
+            op(700, xfx, #>=)
           ]).
 :- use_module(compile).
 :- use_module(embed).
