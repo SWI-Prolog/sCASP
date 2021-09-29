@@ -8,6 +8,7 @@
 :- use_module(clp/disequality).
 :- use_module(output).
 :- use_module(library(http/html_write)).
+:- use_module(library(http/js_write)).
 :- use_module(library(http/term_html)).
 :- use_module(library(dcg/high_order)).
 
