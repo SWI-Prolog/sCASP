@@ -22,18 +22,18 @@
 
 %!  html_justification_tree(:Tree, +Options)// is det.
 %
-%   Convert the tree to HTML.
+%   Convert the tree to HTML. The  caller should use ovar_analyze_term/1
+%   on Tree to name variables and identify  singletons. This is not done
+%   in this predicate as the user may or  may not wish to combin the the
+%   variable analysis with the bindings and/or model.
 %
 %   @see print_message/2.
 
 :- det(html_justification_tree//2).
 
-html_justification_tree(Tree, Options) -->
-    { copy_term(Tree, M:Tree1),
-      ovar_analyze_term(Tree1)
-    },
+html_justification_tree(M:Tree, Options) -->
     html(ul(class(tree),
-            \justification_tree(Tree1,
+            \justification_tree(Tree,
                                 [ depth(0),
                                   module(M)
                                 | Options
