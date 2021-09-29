@@ -11,12 +11,14 @@
             scasp_retract/1,            % :Clause
             scasp_retractall/1,         % :Head
             scasp_abolish/1,            % :PredicateIndicator
+            (#)/1,                      % :Directive
             (pred)/1,
             (show)/1,
             (abducible)/1,
 
             op(900, fy, not),
             op(950, xfx, ::),           % pred not x :: "...".
+            op(1200, fx, #),
             op(1150, fx, pred),
             op(1150, fx, show),
             op(1150, fx, abducible),
@@ -399,6 +401,15 @@ scasp_abolish(M:(Name/Arity)) =>
 		 *          DIRECTIVES		*
 		 *******************************/
 
+%!  #(:Directive)
+%
+%   Handle s(CASP) directives.  Same as ``:- Directive.``.  Provides
+%   compatibility with sCASP sources as normally found.
+
+#(M:pred(Spec))      => pred(M:Spec).
+#(M:show(Spec))      => show(M:Spec).
+#(M:abducible(Spec)) => abducible(M:Spec).
+
 pred(M:(Atom :: Template)) =>
     process_pr_pred(Atom :: Template, Spec),
     assertz(M:pr_pred_predicate(Spec)).
@@ -482,6 +493,12 @@ user:term_expansion((:- pred(SpecIn)), pr_pred_predicate(Spec)) :-
 user:term_expansion((:- show(SpecIn)), Clauses) :-
     phrase(show(SpecIn), Clauses).
 user:term_expansion((:- abducible(SpecIn)), Clauses) :-
+    phrase(abducible(SpecIn), Clauses).
+user:term_expansion((# pred(SpecIn)), pr_pred_predicate(Spec)) :-
+    process_pr_pred(SpecIn, Spec).
+user:term_expansion((# show(SpecIn)), Clauses) :-
+    phrase(show(SpecIn), Clauses).
+user:term_expansion((# abducible(SpecIn)), Clauses) :-
     phrase(abducible(SpecIn), Clauses).
 
 user:goal_expansion(-Goal, MGoal) :-

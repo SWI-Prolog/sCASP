@@ -10,6 +10,7 @@
             scasp_retract/1,            % :Clause
             scasp_retractall/1,         % :Head
             scasp_abolish/1,            % :Name/Arity
+            (#)/1,                      % :Directive
             (pred)/1,                   % :Templates
             (show)/1,                   % :Atoms
             (abducible)/1,              % :Heads
@@ -28,6 +29,7 @@
             op(1150, fx, ??),
             op(1150, fx, ?),
             op(950, xfx, ::),           % pred not x :: "...".
+            op(1200, fx, #),
             op(1150, fx, pred),
             op(1150, fx, show),
             op(1150, fx, abducible),

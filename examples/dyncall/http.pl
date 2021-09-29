@@ -132,6 +132,8 @@ error(Error) -->
 %
 %   Add clauses to the program.  Also handles s(CASP) directives.
 
+add_to_program(M, (# Directive)) =>
+    #(M:Directive).
 add_to_program(M, (:- show Spec)) =>
     show(M:Spec).
 add_to_program(M, (:- pred Spec)) =>
