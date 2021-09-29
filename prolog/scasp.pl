@@ -12,6 +12,7 @@
             scasp_abolish/1,            % :Name/Arity
             (pred)/1,                   % :Templates
             (show)/1,                   % :Atoms
+            (abducible)/1,              % :Heads
 
             begin_scasp/1,              % +Unit
             begin_scasp/2,              % +Unit, +Exports
@@ -29,6 +30,7 @@
             op(950, xfx, ::),           % pred not x :: "...".
             op(1150, fx, pred),
             op(1150, fx, show),
+            op(1150, fx, abducible),
             op(1150, fx, scasp_dynamic),
             op(700, xfx, #=),
             op(700, xfx, #<>),

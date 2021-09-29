@@ -13,11 +13,13 @@
             scasp_abolish/1,            % :PredicateIndicator
             (pred)/1,
             (show)/1,
+            (abducible)/1,
 
             op(900, fy, not),
             op(950, xfx, ::),           % pred not x :: "...".
             op(1150, fx, pred),
             op(1150, fx, show),
+            op(1150, fx, abducible),
             op(1150, fx, scasp_dynamic),
             op(700, xfx, #=),
             op(700, xfx, #<>),
@@ -42,7 +44,8 @@
     scasp_retractall(:),
     scasp_abolish(:),
     pred(:),
-    show(:).
+    show(:),
+    abducible(:).
 
 /** <module>
 
@@ -422,6 +425,46 @@ show(PI) -->
     { pi_head(PI, Head) },
     [ pr_show_prdicate(Head) ].
 
+%!  abducible(:Spec)
+%
+%   Declare Spec, a comma list  of   _heads_  to be _abducible_, meaning
+%   they can both be in or outside the model.
+
+abducible(M:(A,B)) =>
+    abducible(M:A),
+    abducible(M:B).
+abducible(M:Head), callable(Head) =>
+    abducible_rules(Head, Rules),
+    @(maplist(assertz, Rules), M).
+
+abducible_rules(Head,
+                [ (Head                 :- not AHead, abducible_1(Head)),
+                  (AHead                :- not Head),
+                  (abducible_1(Head)    :- not '_abducible_1'(Head)),
+                  ('_abducible_1'(Head) :- not abducible_1(Head))
+                ]) :-
+    Head =.. [F|Args],
+    atom_concat('_', F, AF),
+    AHead =.. [AF|Args].
+
+abducible(Var) -->
+    { var(Var),
+      instantiation_error(Var)
+    }.
+abducible((A,B)) -->
+    !,
+    abducible(A),
+    abducible(B).
+abducible(Head) -->
+    { must_be(callable, Head),
+      abducible_rules(Head, Clauses)
+    },
+    list(Clauses).
+
+list([]) --> [].
+list([H|T]) --> [H], list(T).
+
+
 
 		 /*******************************
 		 *            EXPAND		*
@@ -438,6 +481,8 @@ user:term_expansion((:- pred(SpecIn)), pr_pred_predicate(Spec)) :-
     process_pr_pred(SpecIn, Spec).
 user:term_expansion((:- show(SpecIn)), Clauses) :-
     phrase(show(SpecIn), Clauses).
+user:term_expansion((:- abducible(SpecIn)), Clauses) :-
+    phrase(abducible(SpecIn), Clauses).
 
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),

@@ -126,6 +126,8 @@ add_to_program(M, (:- show Spec)) =>
     show(M:Spec).
 add_to_program(M, (:- pred Spec)) =>
     pred(M:Spec).
+add_to_program(M, (:- abducible Spec)) =>
+    abducible(M:Spec).
 add_to_program(M, Term) =>
     assertz(M:Term).
 
