@@ -139,10 +139,10 @@ qualify((A:-B), M, Q) =>
     qualify(A, M, QA),
     qualify(B, M, QB).
 qualify(G, M, Q), callable(G) =>
-    implementation(M:G, Callee),
-    (   built_in(Callee)
-    ->  Callee = _:Q
-    ;   encoded_module_term(Callee, Q)
+    (   built_in(G)
+    ->  Q = G
+    ;   implementation(M:G, Callee),
+        encoded_module_term(Callee, Q)
     ).
 
 %!  query_callees(:Query, -Callees) is det.
@@ -245,12 +245,12 @@ body_calls(N, M, Callee), rm_classic_negation(N,A) =>
     body_calls(A, M, Callee).
 body_calls(M:A, _, Callee), atom(M) =>
     body_calls(A, M, Callee).
+body_calls(G, _M, _CalleePM), callable(G), built_in(G) =>
+    fail.
 body_calls(G, M, CalleePM), callable(G) =>
     implementation(M:G, Callee0),
     generalise(Callee0, Callee),
-    (   built_in(Callee)
-    ->  fail
-    ;   predicate_property(Callee, interpreted),
+    (   predicate_property(Callee, interpreted),
         \+ predicate_property(Callee, meta_predicate(_))
     ->  pm(Callee, CalleePM)
     ;   \+ predicate_property(Callee, _)
@@ -261,13 +261,21 @@ body_calls(G, M, CalleePM), callable(G) =>
 body_calls(G, _, _) =>
     type_error(callable, G).
 
-built_in(system: (_<_)).
-built_in(system: (_=<_)).
-built_in(system: (_>_)).
-built_in(system: (_>=_)).
-built_in(system: (_=_)).
-built_in(system: (_\=_)).
-built_in(system: (_ is _)).
+built_in(_<_).
+built_in(_=<_).
+built_in(_>_).
+built_in(_>=_).
+built_in(_=_).
+
+built_in(_#<_).
+built_in(_#=<_).
+built_in(_#>_).
+built_in(_#>=_).
+built_in(_#=_).
+built_in(_#<>_).
+
+built_in(_\=_).
+built_in(_ is _).
 
 rm_classic_negation(-Goal, Goal) :-
     !.
