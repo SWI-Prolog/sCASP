@@ -34,8 +34,10 @@ query_page -->
            textarea([id(data), rows(10), cols(80),
                      placeholder('s(CASP) program')], ''),
            h4('Query'),
-           '?- ', input([id(query),
-                         placeholder('Query')]),
+           '?- ',     input([id(query),
+                             placeholder('Query')]),
+           ' Limit ', input([type(number), min(1), id(limit), value(1),
+                             placeholder('Empty means all answer sets')]),
            h4(''),
            button(id(solve), 'Solve'),
            button(id(clear), 'Clear'),
@@ -52,9 +54,11 @@ $(function() {
 $("#solve").on("click", function() {
   var data = $("#data").val();
   var query = $("#query").val();
+  var limit = $("#limit").val();
   $.get(SolveURL,
         { data: data,
-          query: query
+          query: query,
+          limit: limit
         },
         function(reply) {
           $("#results").html(reply);
@@ -74,7 +78,8 @@ $("#clear").on("click", function() {
 solve(Request) :-
     http_parameters(Request,
                     [ data(Data, []),
-                      query(QueryS, [])
+                      query(QueryS, []),
+                      limit(Limit, [optional(true), integer])
                     ]),
     Error = error(Formal,_),
     catch(( setup_call_cleanup(
@@ -85,6 +90,10 @@ solve(Request) :-
           ),
           Error,
           true),
+    (   var(Limit)
+    ->  Limit = infinite
+    ;   true
+    ),
     (   nonvar(Formal)
     ->  reply_html_page([],
                         \error(Error))
@@ -94,7 +103,10 @@ solve(Request) :-
               maplist(assertz, Terms)
             ),
             ( call_time(findall(result(N, Time, M, VNames, Model, Justification),
-                                call_nth(call_time(scasp(M:Query, Model, Justification), Time), N),
+                                call_nth(call_time(limit(Limit,
+                                                         scasp(M:Query, Model, Justification)),
+                                                   Time),
+                                         N),
                                 Results),
                         TotalTime),
               reply_html_page([],
