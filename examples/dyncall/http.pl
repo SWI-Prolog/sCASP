@@ -65,6 +65,7 @@ $("#solve").on("click", function() {
   var data = $("#data").val();
   var query = $("#query").val();
   var limit = $("#limit").val();
+  $("#results").empty();
   $.get(SolveURL,
         { data: data,
           query: query,
@@ -72,8 +73,10 @@ $("#solve").on("click", function() {
         },
         function(reply) {
           $("#results").html(reply);
-          $(".tree").treemenu({delay:0});
           $(".model").modelmenu({delay:0});
+          setTimeout(function() {
+              $(".tree").treemenu({delay:0});
+          }, 0);
         });
 });
 
