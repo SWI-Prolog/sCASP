@@ -142,7 +142,7 @@ add_to_program(M, (:- pred Spec)) =>
 add_to_program(M, (:- abducible Spec)) =>
     abducible(M:Spec).
 add_to_program(M, Term) =>
-    assertz(M:Term).
+    scasp_assert(M:Term).
 
 scasp(Query, Model, Justification) :-
     scasp(Query),
