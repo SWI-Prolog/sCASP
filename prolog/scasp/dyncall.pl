@@ -504,3 +504,18 @@ user:term_expansion((# abducible(SpecIn)), Clauses) :-
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),
     intern_negation(-Goal, MGoal).
+
+
+		 /*******************************
+		 *            SANDBOX		*
+		 *******************************/
+
+:- multifile
+    sandbox:safe_meta_predicate/1.
+
+% scasp/1 is safe as it only allows for pure Prolog predicates
+% and limited arithmetic.  Note that this does allow calling e.g.
+% member/2. s(CASP) does not allow for calling _qualified goals,
+% lists:member(...),
+
+sandbox:safe_meta(scasp_dyncall:scasp(_), []).
