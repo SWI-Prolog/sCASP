@@ -8,7 +8,11 @@
             apply_clpq_constraints/1,
             dump_clpq_var/3,
 
-            op(700, xfx, [(.<>.),(.<.),(.=<.),(.>.),(.>=.)])
+            op(700, xfx, .<>.),
+            op(700, xfx, .<.),
+            op(700, xfx, .=<.),
+            op(700, xfx, .>.),
+            op(700, xfx, .>=.)
           ]).
 
 /** <module> Extension of the constraint solver CLP(Q)
