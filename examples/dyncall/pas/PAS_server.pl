@@ -75,6 +75,7 @@ case(1,
 
 patient_form(Case) -->
     html_requires(jquery),
+    html_requires(scasp),
     { case(Case, Data),
       length(Data, Length),
       Rows is max(20,Length+1),
@@ -93,8 +94,7 @@ patient_form(Case) -->
            button(id(clear), 'Clear'),
            div(id(results), [])
          ]),
-    button_actions,
-    tree_resources.
+    button_actions.
 
 button_actions -->
     { http_link_to_id(solve, [], SolveURL) },
@@ -109,9 +109,18 @@ $("#solve").on("click", function() {
           query: query
         },
         function(reply) {
-          $("#results").html(reply);
-          $(".tree").treemenu({delay:0});
-          $(".model").modelmenu({delay:0});
+          var results = $("#results");
+
+          results.html(reply);
+          results.find(".model")
+                 .collapsable({collapsed:true,
+                               delay:500
+                              });
+          results.find(".scasp-justification")
+                 .collapsable({ collapsed:true,
+                                tree:true,
+                                buttons:true
+                              });
         });
 });
 
@@ -158,13 +167,12 @@ result(result(N, Time, Bindings, Model, Justification)) -->
     html(div(class(result),
              [ h3('Result #~D (~3f sec)'-[N, Time.cpu]),
                \binding_section(Bindings),
-               div(class(model),
-                   [ h4('Model'),
-                     \html_model(Model, [])
+               div(class([model, collapsable]),
+                   [ h4(class('collapsable-header'), 'Model'),
+                     \html_model(Model, [class('collapsable-content')])
                    ]),
                div(class(justification),
                    [ h4('Justification'),
-                     \tree_buttons,
                      \html_justification_tree(Justification, [])
                    ])
              ])).

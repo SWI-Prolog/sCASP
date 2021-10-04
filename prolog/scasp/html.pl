@@ -1,8 +1,6 @@
 :- module(scasp_just_html,
           [ html_justification_tree//2,		% +Tree, +Options
-            html_model//2,			% +Model, +Options
-            tree_resources//0,
-            tree_buttons//0
+            html_model//2			% +Model, +Options
           ]).
 :- use_module(common).
 :- use_module(clp/disequality).
@@ -10,12 +8,27 @@
 :- use_module(output).
 
 :- use_module(library(http/html_write)).
-:- use_module(library(http/js_write)).
 :- use_module(library(http/term_html)).
+:- use_module(library(http/html_head)).
+:- use_module(library(http/http_server_files)).
 :- use_module(library(dcg/high_order)).
 
 :- meta_predicate
     html_justification_tree(:, +, ?, ?).
+
+:- multifile user:file_search_path/2.
+
+user:file_search_path(js,  library(scasp/web/js)).
+user:file_search_path(css, library(scasp/web/css)).
+
+:- html_resource(scasp,
+                 [ virtual(true),
+                   requires([ jquery,
+                              js('scasp.js'),
+                              css('scasp.css')
+                            ]),
+                   ordered(true)
+                 ]).
 
 /** <module> Render s(CASP) justification as HTML
 */
@@ -32,7 +45,7 @@
 :- det(html_justification_tree//2).
 
 html_justification_tree(M:Tree, Options) -->
-    html(ul(class(tree),
+    html(ul(class('scasp-justification'),
             \justification_tree(Tree,
                                 [ depth(0),
                                   module(M)
@@ -53,14 +66,20 @@ justification_tree(o_nmr_check-[], _Options) -->
     !.
 justification_tree(Term-[], Options) -->
     !,
-    html(li([ \tree_atom(Term, Options),
-              \connect(Options)
+    html(li([ div(class(node),
+                  [ \tree_atom(Term, Options),
+                    \connect(Options)
+                  ])
             ])).
 justification_tree(Term-Children, Options) -->
     { incr_indent(Options, Options1) },
-    html(li([ \tree_atom(Term, Options),
-              \connector(implies, Options),
-              ul(\justification_tree_children(Children, Options1))
+    html(li( class(collapsable),
+             [ div(class([node, 'collapsable-header']),
+                  [ \tree_atom(Term, Options),
+                    \connector(implies, Options)
+                  ]),
+              ul(class('collapsable-content'),
+                 \justification_tree_children(Children, Options1))
             ])).
 
 justification_tree_children([A,B|Rs], Options) -->
@@ -95,7 +114,12 @@ scasp_atom_string(Atom, String) :-
 %   nested model terms.
 
 html_model(Model, Options) -->
-    html(div(class('scasp-model'),
+    { (   option(class(Class), Options)
+      ->  Classes = [Class]
+      ;   Classes = []
+      )
+    },
+    html(div(class(['scasp-model'|Classes]),
              \sequence(model_term_r(Options), Model))).
 
 model_term_r(Options, Atom) -->
@@ -358,314 +382,3 @@ incr_indent(Options0, [depth(D)|Options2]) :-
     select_option(depth(D0), Options0, Options1),
     select_option(connect(_), Options1, Options2, _),
     D is D0+1.
-
-
-		 /*******************************
-		 *           RESOURCES		*
-		 *******************************/
-
-%!  tree_buttons//
-
-tree_buttons -->
-    html({|html||
-<button class="btn-expand">Expand All</button>
-<button class="btn-depth-incr">+1</button>
-<button class="btn-depth-decr">-1</button>
-<button class="btn-collapse">Collapse All</button>
-|}).
-
-%!  tree_resources//
-%
-%   Emit the JavaScript and HTML style resources for the collapsable
-%   justification tree.
-
-tree_resources -->
-    tree_style,
-    tree_script.
-
-tree_style -->
-    html({|html||
- <style>
-.toggler { cursor: pointer; }
-.toggler:before { display: inline-block; margin-right: 2pt; }
-
-.treemenu li { list-style: none; }
-li.tree-empty > .toggler { opacity: 0.3; cursor: default; }
-li.tree-empty > .toggler:before { content: " "; }
-li.tree-closed > .toggler:before {
-    content: "";
-    height: 0;
-    width: 0;
-    border-color: transparent blue;
-    border-style: solid;
-    border-width: 0.35em 0 0.35em 0.5em;
-}
-li.tree-opened > .toggler:before {
-    content: "";
-    height: 0;
-    width: 0;
-    border-color: blue transparent ;
-    border-style: solid;
-    border-width: 0.5em 0.35em 0 0.35em;
-}
-
-/* Open/close the model */
-
-div.model-closed > .scasp-model {display:none;}
-
-div.model-closed > h4 > .toggler:before {
-    content: "";
-    height: 0;
-    width: 0;
-    border-color: transparent blue;
-    border-style: solid;
-    border-width: 0.35em 0 0.35em 0.5em;
-}
-div.model-opened > h4 > .toggler:before {
-    content: "";
-    height: 0;
-    width: 0;
-    border-color: blue transparent ;
-    border-style: solid;
-    border-width: 0.5em 0.35em 0 0.35em;
-}
-</style>
-         |}).
-
-tree_script -->
-    js_script({|javascript||
-    (function($){
-
-	function addButtons(tree) {
-	    var just = tree.closest(".justification");
-
-            function findTree(ev) {
-              return $(ev.target).closest(".justification").find("> .tree");
-            }
-
-            just.find("button.btn-expand").on("click", function(ev) {
-              var tree = findTree(ev);
-              if ( tree.length > 0 )
-                tree.expand({delay:0},0);
-            });
-            just.find("button.btn-depth-incr").on("click", function(ev) {
-              var tree = findTree(ev);
-              if ( tree.length > 0 )
-                tree.depth({delay:500, step:1});
-            });
-            just.find("button.btn-depth-decr").on("click", function(ev) {
-              var tree = findTree(ev);
-              if ( tree.length > 0 )
-                tree.depth({delay:500,step:-1});
-            });
-            just.find("button.btn-collapse").on("click", function(ev) {
-              var tree = findTree(ev);
-              if ( tree.length > 0 )
-                tree.collapse({delay:0});
-            });
-	}
-
-        $.fn.depth = function(options,depth) {
-            options = options || {};
-            options.delay = options.delay || 0;
-
-            if ( options.step ) {
-               var g_depth = this.data("g_depth") + options.step;
-               g_depth = g_depth < 0 ? 0 : g_depth;
-               this.data("g_depth", g_depth);
-               depth = g_depth;
-               delete options.step;
-            }
-
-            this.find("> li").each(function() {
-                e = $(this)
-                var subtree = e.find('> ul');
-
-                if (subtree.length > 0) {
-                    if (depth > 0) {
-                        e.addClass('tree-opened');
-                        e.removeClass('tree-closed');
-
-                        subtree.slideDown(options.delay);
-                        subtree.show(options.delay);
-
-                        subtree.depth(options,depth-1);
-                    } else {
-                        e.removeClass('tree-opened');
-                        e.addClass('tree-closed');
-
-                        subtree.slideUp(options.delay);
-                        subtree.hide(options.delay);
-
-                        subtree.collapse(options);
-                    }
-                }
-            });
-            return true;
-        }
-
-        /* Expand the tree and set g_depth to the depth of the deepest branch */
-
-        $.fn.expand = function(options,depth) {
-            options = options || {};
-            options.delay = options.delay || 0;
-
-	    this.each(function() {
-                var root = false;
-                var tree = $(this);
-
-                tree.find("> li").each(function() {
-                    e = $(this)
-                    var subtree = e.find('> ul');
-
-                    if (subtree.length > 0) {
-                        e.addClass('tree-opened');
-                        e.removeClass('tree-closed');
-
-                        subtree.slideDown(options.delay);
-                        subtree.show(options.delay);
-
-                        subtree.expand(options,depth+1);
-                    }
-                });
-            });
-
-            return this;
-        }
-
-        $.fn.collapse = function(options) {
-            options = options || {};
-            options.delay = options.delay || 0;
-
-            this.find("> li").each(function() {
-                e = $(this)
-                var subtree = e.find('> ul');
-
-                if (subtree.length > 0) {
-                    e.removeClass('tree-opened');
-                    e.addClass('tree-closed');
-
-                    subtree.slideUp(options.delay);
-                    subtree.hide(options.delay);
-
-                    subtree.collapse(options);
-                }
-            });
-
-            this.data("g_depth", 0);
-
-            return true;
-        }
-
-        $.fn.treemenu = function(options) {
-            options = options || {};
-            options.delay = options.delay || 0;
-            options.openActive = options.openActive || false;
-            options.closeOther = options.closeOther || false;
-            options.activeSelector = options.activeSelector || ".active";
-
-            this.addClass("treemenu");
-            this.data("g_depth", 0);
-
-            if (!options.nonroot) {
-                this.addClass("treemenu-root");
-
-                addButtons(this);
-
-                this.on("click", ".toggler", function(ev) {
-                    var li = $(ev.target).parent('li');
-
-                    if (options.closeOther && li.hasClass('tree-closed')) {
-                        var siblings = li.parent('ul').find("li:not(.tree-empty)");
-                        siblings.removeClass("tree-opened");
-                        siblings.addClass("tree-closed");
-                        siblings.removeClass(options.activeSelector);
-                        siblings.find('> ul').slideUp(options.delay);
-                    }
-
-                    li.find('> ul').slideToggle(options.delay);
-                    li.toggleClass('tree-opened');
-                    li.toggleClass('tree-closed');
-                    li.toggleClass(options.activeSelector);
-                });
-            }
-
-            options.nonroot = true;
-
-            this.find("> li").each(function() {
-                e = $(this);
-                var subtree = e.find('> ul');
-                var button = e.find('.toggler').eq(0);
-
-                if(button.length == 0) {
-                    // create toggler
-                    var button = $('<span>');
-                    button.addClass('toggler');
-                    e.prepend(button);
-                }
-
-                if(subtree.length > 0) {
-                    subtree.hide();
-
-                    e.addClass('tree-closed');
-
-                    $(this).find('> ul').treemenu(options);
-                } else {
-                    $(this).addClass('tree-empty');
-                }
-            });
-
-            if (options.openActive) {
-                var cls = this.attr("class");
-
-                this.find(options.activeSelector).each(function(){
-                    var el = $(this).parent();
-
-                    while (el.attr("class") !== cls) {
-                        el.find('> ul').show();
-                        if(el.prop("tagName") === 'UL') {
-                            el.show();
-                        } else if (el.prop("tagName") === 'LI') {
-                            el.removeClass('tree-closed');
-                            el.addClass("tree-opened");
-                            el.show();
-                        }
-
-                        el = el.parent();
-                    }
-                });
-            }
-
-            return this;
-        }
-
-        $.fn.modelmenu = function(options) {
-	    this.addClass("model-closed");
-
-            this.each(function() {
-                e = $(this);
-                var button = e.find('.toggler').eq(0);
-
-                if(button.length == 0) {
-                    // create toggler
-                    var button = $('<span>');
-                    button.addClass('toggler');
-                    e.find("h4").eq(0).prepend(button);
-                }
-
-                e.find(button).click(function(ev) {
-                    var div = $(ev.target).closest("div.model");
-                    div.toggleClass('model-opened');
-                    div.toggleClass('model-closed');
-                });
-            });
-        }
-    })(jQuery);
-
-/*
-$(function(){
-    $(".tree").treemenu({delay:0});
-});
-*/
-
-|}).
