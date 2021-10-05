@@ -201,7 +201,9 @@ include_global_constraint(Callees, [], Callees).
 
 
 global_constraint(M:Body) :-
-    current_module(M),
+    (   current_temporary_module(M)
+    ;   current_module(M)
+    ),
     current_predicate(M:(-)/0),
     \+ predicate_property(M:(-), imported_from(_)),
     @(clause(-, Body), M).
@@ -352,7 +354,11 @@ scasp_dynamic(Name/Arity, M, Scoped) =>
 %
 %   Wrappers for assertz/1, retract/1 and   retractall/1  that deal with
 %   sCASP terms which may have a head or  body terms that are wrapped in
-%   `-(Term)`, indicating classical negation.
+%   `-(Term)`, indicating classical negation.  Also   deals  with global
+%   constraints written in any of these formats:
+%
+%     - `false :- Constraint`.
+%     - `:- Constraint`.
 
 scasp_assert(M:(-Head :- Body0)) =>
     intern_negation(-Head, MHead),
@@ -361,6 +367,12 @@ scasp_assert(M:(-Head :- Body0)) =>
 scasp_assert(M:(-Head)) =>
     intern_negation(-Head, MHead),
     assertz(M:(MHead)).
+scasp_assert(M:(:- Body0)) =>
+    expand_goal(Body0, Body),
+    assertz(M:((-) :- Body)).
+scasp_assert(M:(false :- Body0)) =>
+    expand_goal(Body0, Body),
+    assertz(M:((-) :- Body)).
 scasp_assert(M:(Head :- Body0)) =>
     expand_goal(Body0, Body),
     assertz(M:(Head :- Body)).
@@ -374,6 +386,12 @@ scasp_retract(M:(-Head :- Body0)) =>
 scasp_retract(M:(-Head)) =>
     intern_negation(-Head, MHead),
     retract(M:(MHead)).
+scasp_retract(M:(:- Body0)) =>
+    expand_goal(Body0, Body),
+    retract(M:((-) :- Body)).
+scasp_retract(M:(false :- Body0)) =>
+    expand_goal(Body0, Body),
+    retract(M:((-) :- Body)).
 scasp_retract(M:(Head :- Body0)) =>
     expand_goal(Body0, Body),
     retract(M:(Head :- Body)).
