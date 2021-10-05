@@ -6,31 +6,72 @@
 
 :- use_module(embed).
 :- use_module(html).
+:- use_module(output).
 
 /** <module> s(CASP) adapter for SWISH
+
+Hook into SWISH to make the  model   and  justification available in the
+SWISH web interface.
 */
 
 :- multifile
     swish_config:config/2,
+    swish_trace:post_context/1,
     swish_trace:post_context/3.
+
+%!  swish_trace:post_context(+Dict) is semidet.
+%
+%   Called before the other context extraction. We   use  it to name the
+%   variables.    Note    that    we    also    do    the    work    for
+%   swish_trace:post_context/3  here  because  we  need  to  remove  the
+%   attributes.
+%
+%   The model and justification are  communicated   as  a  Prolog string
+%   holding HTML. That is dubious as the SWISH infrastructure turns this
+%   into escaped HTML which we need to undo in SWISH' `runner.js`.
+
+swish_trace:post_context(Dict) :-
+    _{bindings:Bindings0} :< Dict,
+    selectchk('_scasp_model' = HTMLModel, Bindings0, Bindings1),
+    selectchk('_scasp_justification' = HTMLJustification, Bindings1, Bindings),
+    pengine_self(Module),
+    scasp_model(Module:Model),
+    scasp_justification(Module:Justification, []),
+    Term = t(Bindings, Model, Justification),
+    findall(HTMLModel-HTMLJustification, % revert backtrackable changes
+            to_html(Module:Term, HTMLModel, HTMLJustification),
+            [ HTMLModel-HTMLJustification ]).
+
+:- det(to_html/3).
+
+to_html(M:Term, HTMLModel, HTMLJustification) :-
+    Term = t(Bindings, Model, Justification),
+    maplist(set_name, Bindings),
+    ovar_analyze_term(Term),
+    inline_constraints(Term, []),
+    html_string(html_model(M:Model, []), HTMLModel),
+    html_string(html_justification_tree(M:Justification, []), HTMLJustification).
+
+set_name(Name = Var) :-
+    (   var(Var)
+    ->  ovar_set_name(Var, Name)
+    ;   true
+    ).
 
 swish_config:config(scasp_model_var, '_scasp_model').
 swish_config:config(scasp_justification_var, '_scasp_justification').
+
+%!  swish_trace:post_context(+Name, +Goal, -Var) is semidet.
+%
+%   Bind Var with the context  information   that  belongs to Name. Note
+%   that we suppress normal  residuals  using   the  first  clause as we
+%   report these through the others.  The   model  and justification are
+%   already emitted in swish_trace:post_context/1 above.
 
 swish_trace:post_context(Name, _Goal,  _) :-
     swish_config(residuals_var, Name),
     scasp_model(_),
     !.
-swish_trace:post_context(Name, _Goal, HTMLModel) :-
-    swish_config:config(scasp_model_var, Name),
-    pengine_self(Module),
-    scasp_model(Module:Model),
-    html_string(html_model(Model, []), HTMLModel).
-swish_trace:post_context(Name, _Goal, HTMLJustification) :-
-    swish_config:config(scasp_justification_var, Name),
-    pengine_self(Module),
-    scasp_justification(Module:Tree, []),
-    html_string(html_justification_tree(Tree, []), HTMLJustification).
 
 :- meta_predicate
     html_string(//, -).

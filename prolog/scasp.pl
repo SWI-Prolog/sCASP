@@ -26,6 +26,7 @@
             (-)/1,                      % :Query
 
             op(900,  fy, not),
+            op(700, xfx, '\u2209'),     % not element of
             op(1150, fx, ??),
             op(1150, fx, ?),
             op(950, xfx, ::),           % pred not x :: "...".

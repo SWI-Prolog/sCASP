@@ -1,5 +1,6 @@
 :- module(scasp_output,
           [ print_model_term/2,
+            inline_constraints/2,                % +Term, +Options
             connector/3,                         % +Semantics,-Conn,+Options
             print_connector/2,
             ovar_analyze_term/1,                 % +Term
@@ -12,6 +13,9 @@
 :- use_module(library(ansi_term)).
 :- use_module(library(apply)).
 :- use_module(library(option)).
+
+:- use_module(clp/disequality).
+:- use_module(clp/clpq).
 
 :- meta_predicate
     human_expression(:, -).
@@ -81,6 +85,64 @@ connector_string(not,      _, 'not ').
 connector_string(proved,   _, 'proved').
 connector_string(assume,   _, 'assume').
 connector_string(chs,      _, 'chs').
+
+
+		 /*******************************
+		 *          CONSTRAINTS		*
+		 *******************************/
+
+%!  inline_constraints(+Term, +Options) is det.
+%
+%   Get constraints on variables notated as  ``Var | {Constraints}`` and
+%   use assigned variable names. Note  that   this  binds the attributed
+%   variables in Term. This code is normally   used  on a copy or inside
+%   double  negation  (``\+  \+   (  inline_constraints(Term,  Options),
+%   ...)``).
+
+inline_constraints(Term, Options) :-
+    term_attvars(Term, AttVars),
+    maplist(inline_constraint(Options), AttVars).
+
+inline_constraint(_Options, Var) :-
+    get_neg_var(Var, List),
+    List \== [],
+    !,
+    var_name(Var, Name),
+    del_attrs(Var),
+    Var = '| '(Name, {'\u2209'(Name, List)}).
+inline_constraint(_Options, Var) :-
+    is_clpq_var(Var),
+    clpqr_dump_constraints([Var], [Var], Constraints),
+    Constraints \== [],
+    !,
+    var_name(Var, Name),
+    sort(0, @>, Constraints, Sorted),
+    maplist(pretty_clp_, Sorted, Pretty),
+    comma_list(Term, Pretty),
+    del_attrs(Var),
+    Var = '| '(Name, {Term}).
+inline_constraint(_Options, Var) :-
+    var_name(Var, Name),
+    del_attrs(Var),
+    Var = Name.
+
+pretty_clp_(.=.(A,B),  '#='(A,B) ).
+pretty_clp_(.<>.(A,B), '#<>'(A,B)).
+pretty_clp_(.<.(A,B),  '#<'(A,B) ).
+pretty_clp_(.>.(A,B),  '#>'(A,B) ).
+pretty_clp_(.=<.(A,B), '#=<'(A,B)).
+pretty_clp_(.>=.(A,B), '#>='(A,B)).
+
+var_name(Var, Name) :-
+    ovar_var_name(Var, Name0),
+    !,
+    Name = '$VAR'(Name0).
+var_name(Var, Name) :-
+    ovar_is_singleton(Var),
+    !,
+    Name = '$VAR'('_').
+var_name(Var, Var).
+
 
 		 /*******************************
 		 *        VARIABLE ANALYSIS	*

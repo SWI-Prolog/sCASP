@@ -83,15 +83,7 @@ $("#solve").on("click", function() {
           var results = $("#results");
 
           results.html(reply);
-          results.find(".model")
-                 .collapsable({collapsed:true,
-                               delay:500
-                              });
-          results.find(".scasp-justification")
-                 .collapsable({ collapsed:true,
-                                tree:true,
-                                buttons:true
-                              });
+          results.sCASP('swish_answer');
         })
   .fail(function(error) {
     if ( error.responseJSON ) {
@@ -169,9 +161,10 @@ add_to_program(M, Term) =>
     scasp_assert(M:Term).
 
 scasp(Query, Model, Justification) :-
+    Query = M:_,
     scasp(Query),
-    scasp_model(Model),
-    scasp_justification(Justification, []).
+    scasp_model(M:Model),
+    scasp_justification(M:Justification, []).
 
 results([], Time) -->
     !,
@@ -179,21 +172,16 @@ results([], Time) -->
 results(Results, _Time) -->
     sequence(result, Results).
 
-result(result(N, Time, _M, Bindings, Model, Justification)) -->
+result(result(N, Time, M, Bindings, Model, Justification)) -->
     { maplist(set_name, Bindings),
-      ovar_analyze_term(t(Bindings, Model, Justification))
+      ovar_analyze_term(t(Bindings, Model, Justification)),
+      inline_constraints(Model+Justification, [])
     },
     html(div(class(result),
              [ h3('Result #~D (~3f sec)'-[N, Time.cpu]),
                \binding_section(Bindings),
-               div(class([model, collapsable]),
-                   [ h4(class('collapsable-header'), 'Model'),
-                     \html_model(Model, [class('collapsable-content')])
-                   ]),
-               div(class(justification),
-                   [ h4('Justification'),
-                     \html_justification_tree(Justification, [])
-                   ])
+               \html_model(M:Model, [class('collapsable-content')]),
+               \html_justification_tree(M:Justification, [])
              ])).
 
 set_name(Name = Var) :-

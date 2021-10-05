@@ -1,6 +1,6 @@
 :- module(scasp_just_html,
-          [ html_justification_tree//2,		% +Tree, +Options
-            html_model//2			% +Model, +Options
+          [ html_justification_tree//2,		% :Tree, +Options
+            html_model//2			% :Model, +Options
           ]).
 :- use_module(common).
 :- use_module(clp/disequality).
@@ -14,6 +14,7 @@
 :- use_module(library(dcg/high_order)).
 
 :- meta_predicate
+    html_model(:, +, ?, ?),
     html_justification_tree(:, +, ?, ?).
 
 :- multifile user:file_search_path/2.
@@ -45,12 +46,13 @@ user:file_search_path(css, library(scasp/web/css)).
 :- det(html_justification_tree//2).
 
 html_justification_tree(M:Tree, Options) -->
-    html(ul(class('scasp-justification'),
-            \justification_tree(Tree,
-                                [ depth(0),
-                                  module(M)
-                                | Options
-                                ]))).
+    html(div(class('scasp-justification'),
+             ul(class('scasp-justification'),
+                \justification_tree(Tree,
+                                    [ depth(0),
+                                      module(M)
+                                    | Options
+                                    ])))).
 
 %!  justification_tree(+FilterChildren, +Options)//
 
@@ -96,52 +98,45 @@ connect(_) -->
     [].
 
 tree_atom(Atom, Options) -->
-    { atom_classes(Atom, Classes),
-      scasp_atom_string(Atom, String)
+    { scasp_atom_string(Atom, String)
     },
-    html(span([ class(['scasp-atom'|Classes]),
-                title(String)
-              ],
-              \atom(Atom, Options))).
+    html(span(class(['scasp-atom']),
+              [ span([class(human), title(String)], \atom(Atom, Options)),
+                span(class(machine), \machine_atom(Atom, Options))
+              ])).
 
 scasp_atom_string(Atom, String) :-
     with_output_to(string(String),
-                   print_model_term(Atom, [])).
+                   print_model_term_v(Atom, [])).
 
-%!  html_model(+Model, +Options)// is det.
+print_model_term_v(Atom, Options) :-
+    \+ \+ ( inline_constraints(Atom, Options),
+            print_model_term(Atom, Options)
+          ).
+
+
+%!  html_model(:Model, +Options)// is det.
 %
 %   Emit the model as HTML terms.   We export the model as a dict with
 %   nested model terms.
 
-html_model(Model, Options) -->
+html_model(M:Model, Options) -->
     { (   option(class(Class), Options)
       ->  Classes = [Class]
       ;   Classes = []
-      )
+      ),
+      Options1 = [module(M)|Options]
     },
     html(div(class(['scasp-model'|Classes]),
-             \sequence(model_term_r(Options), Model))).
+             \sequence(model_term_r(Options1), Model))).
 
 model_term_r(Options, Atom) -->
-    { atom_classes(Atom, Classes),
-      scasp_atom_string(Atom, String)
+    { scasp_atom_string(Atom, String)
     },
-    html(div([ class(['scasp-atom'|Classes]),
-               title(String)
-             ],
-             \atom(Atom, Options))).
-
-
-atom_classes(A, []) :-
-    var(A),
-    !.
-atom_classes(not(A), ['scasp-not'|T]) :-
-    !,
-    atom_classes(A, T).
-atom_classes(-(A), ['scasp-negation'|T]) :-
-    !,
-    atom_classes(A, T).
-atom_classes(_, []).
+    html(div(class(['scasp-atom']),
+             [ div([class(human), title(String)], \atom(Atom, Options)),
+               div(class(machine), \machine_atom(Atom, Options))
+             ])).
 
 %!  atom(+SCASPAtom, +Options)//
 %
@@ -155,26 +150,27 @@ atom(not(GlobalConstraint), Options) -->
     utter(global_constraint(N), Options).
 atom(not(Term), Options) -->
     !,
-    utter(not(Term), Options).
+    utter(not(Term), [class(not)|Options]).
 atom(-Term, Options) -->
     !,
-    utter(-(Term), Options).
+    utter(-(Term), [class(neg)|Options]).
 atom(proved(Term), Options) -->
     !,
-    utter(proved(Term), Options).
+    utter(proved(Term), [class(proved)|Options]).
 atom(chs(Term), Options) -->
     !,
-    utter(chs(Term), Options).
+    utter(chs(Term), [class(chs)|Options]).
 atom(M:Term, Options) -->
     { atom(M) },
     !,
     atom(Term, [module(M)|Options]).
 atom(Term, Options) -->            % #pred Term::Template
     { option(module(M), Options),       % Used existing translation
-      human_expression(M:Term, Actions)
+      human_expression(M:Term, Actions),
+      css_classes(Options, Classes)
     },
     !,
-    actions(Actions, Options).
+    html(span(class(Classes), \actions(Actions, Options))).
 atom(o_nmr_check, Options) -->
     !,
     utter(global_constraints_hold, Options).
@@ -200,12 +196,21 @@ utter(chs(Atom), Options) -->
     html('it is assumed that '),
     atom(Atom, Options).
 utter(holds(Atom), Options) -->
+    { css_classes(Options, Classes) },
     (   { atom(Atom) }
-    ->  html([span(class(atom), Atom), ' holds'])
+    ->  html([span(class(Classes), Atom), ' holds'])
     ;   { Atom =.. [Name|Args] }
-    ->  html([span(class(atom), Name), ' holds for ']),
+    ->  html([span(class(Classes), Name), ' holds for ']),
         list(Args, Options)
     ).
+
+css_classes(Options, [atom|Classes]) :-
+    findall(Class, member(class(Class), Options), Classes0),
+    (   Classes0 == []
+    ->  Classes = [pos]
+    ;   Classes = Classes0
+    ).
+
 
 :- det(scasp_term//2).
 
@@ -234,37 +239,25 @@ scasp_term(Term, _Options) -->
     { var_number(Term, _) },
     !,
     [ '~p'-[Term] ].
+scasp_term('| '(Var, {Constraints}), Options) -->
+    !,
+    inlined_var(Var, Constraints, Options).
 scasp_term(Term, Options) -->
-    term(Term, Options).
+    term(Term, [numbervars(true)|Options]).
 
-var(NegVar, Options) -->
-    { get_neg_var(NegVar, List),
-      ovar_is_singleton(NegVar)
-    },
-    !,
-    (   {List = [One]}
-    ->  html('anything except for '),
-        scasp_term(One, Options)
-    ;   html('anything except for '),
-        list(List, [last_connector(or)|Options])
-    ).
-var(NegVar, Options) -->
-    { get_neg_var(NegVar, List),
-      ovar_var_name(NegVar, Name)
-    },
-    !,
-    (   {List = [One]}
-    ->  html([var(Name), ' other than ']),
-        scasp_term(One, Options)
-    ;   html([var(Name), ' not ']),
-        list(List, [last_connector(or)|Options])
-    ).
+%!  var(+Var, +Options)//
+%
+%   Handle a variable, optionally with   consttrains and annotated using
+%   ovar_analyze_term/2.
+
 var(Var, Options) -->
-    { is_clpq_var(Var),
-      !,
-      clpqr_dump_constraints([Var], [Var], Constraints)
+    { copy_term(Var, Copy),
+      inline_constraints(Copy, Options),
+      nonvar(Copy),
+      Copy = '| '(V, {Constraints})
     },
-    clpq(Var, Constraints, Options).
+    !,
+    inlined_var(V, Constraints, Options).
 var(Var, _Options) -->
     { ovar_var_name(Var, Name)
     },
@@ -273,27 +266,86 @@ var(Var, _Options) -->
 var(_, _) -->
     html(anything).
 
+%!  inlined_var(+Var, +Constraint, +Options)//
+%
+%   Deal with constraints as represented after inline_constraints/2.
+
+inlined_var(Var, Constraints, Options) -->
+    { Constraints = '\u2209'(Var, List),
+      Var == '$VAR'('_')
+    },
+    !,
+    (   {List = [One]}
+    ->  html('anything except for '),
+        scasp_term(One, Options)
+    ;   html('anything except for '),
+        list(List, [last_connector(or)|Options])
+    ).
+inlined_var(Var, Constraints, Options) -->
+    { Constraints = '\u2209'(Var, List),
+      compound(Var),
+      Var = '$VAR'(Name)
+    },
+    !,
+    (   {List = [One]}
+    ->  html([var(Name), ' other than ']),
+        scasp_term(One, Options)
+    ;   html([var(Name), ' not ']),
+        list(List, [last_connector(or)|Options])
+    ).
+inlined_var(Var, Constraints, Options) -->
+    { comma_list(Constraints, CLPQ)
+    },
+    clpq(Var, CLPQ, Options).
+
 %!  clpq(@Var, +Constraints, +Options)//
 
-clpq(Var, [Constraint], Options) -->
+clpq(Var, [Constraint|More], Options) -->
     { compound(Constraint),
       Constraint =.. [Op,A,B],
       Var == A,
       cmp_op(Op, Text),
-      (   ovar_var_name(Var, Name)
+      (   nonvar(Var),
+          Var = '$VAR'(Name)
       ->  Id = var(Name)
       ;   Id = number
       )
     },
     html(['any ', Id, ' ', Text, ' ']),
-    scasp_term(B, Options).
+    scasp_term(B, Options),
+    (   {More == []}
+    ->  []
+    ;   html(' and '),
+        clpq_and(More, Var, Options)
+    ).
 
-cmp_op(.>.,  'larger than').
+clpq_and([Constraint|More], Var, Options) -->
+    { compound(Constraint),
+      Constraint =.. [Op,A,B],
+      A == Var,
+      cmp_op(Op, Text)
+    },
+    html([Text, ' ']),
+    scasp_term(B, Options),
+    (   {More == []}
+    ->  []
+    ;   html(' and '),
+        clpq_and(More, Var, Options)
+    ).
+
+cmp_op(.>.,  'larger than').            % should be made canonical
 cmp_op(.>=., 'larger than or equal to').
 cmp_op(.<.,  'smaller than').
 cmp_op(.=<., 'smaller than or equal to').
 cmp_op(.=.,  'equal to').
 cmp_op(.<>., 'not equal to').
+
+cmp_op(#>,  'larger than').
+cmp_op(#>=, 'larger than or equal to').
+cmp_op(#<,  'smaller than').
+cmp_op(#=<, 'smaller than or equal to').
+cmp_op(#=,  'equal to').
+cmp_op(#<>, 'not equal to').
 
 
 %!  var(@Var, +Type, +Options)//
@@ -367,18 +419,77 @@ action(Term, Options) -->
 %   Emit a logical connector.
 
 connector(and, _Options) -->
-    html(', and').
+    html([ span(class(human), ', and'),
+           span(class(machine), ',')
+         ]).
 connector(not, _Options) -->
-    html('there is no evidence that ').
+    html([ span(class(human), 'there is no evidence that '),
+           span(class(machine), 'not ')
+         ]).
 connector(-, _Options) -->
-    html('-').
+    html([ span(class(human), 'it is not the case that '),
+           span(class(machine), '\u00ac ')
+         ]).
 connector(implies, _Options) -->
-    html(', because').
+    html([ span(class(human), ', because'),
+           span(class(machine), ' \u2190')
+         ]).
 
 full_stop(_Options) -->
-    html('\u220e').
+    html('\u220e').                     % QED block
 
 incr_indent(Options0, [depth(D)|Options2]) :-
     select_option(depth(D0), Options0, Options1),
     select_option(connect(_), Options1, Options2, _),
     D is D0+1.
+
+		 /*******************************
+		 *         MACHINE HTML		*
+		 *******************************/
+
+%!  machine_atom(+SCASPAtom, +Options)//
+%
+%   Emit an s(CASP) atom with annotations as   they  appear in the model
+%   and justification.
+
+machine_atom(not(Term), Options) -->
+    !,
+    html([span(class([connector,not]), not), ' ']),
+    machine_atom(Term, [class(not)|Options]).
+machine_atom(-Term, Options) -->
+    !,
+    html([span(class([connector,neg]), '\u00ac'), ' ']),
+    machine_atom(Term, [class(neg)|Options]).
+machine_atom(proved(Term), Options) -->
+    !,
+    html([ span(class([connector,proved]), proved), '(',
+           \machine_atom(Term, [class(proved)|Options]),
+           ')'
+         ]).
+machine_atom(chs(Term), Options) -->
+    !,
+    html([ span(class([connector,chs]), chs), '(',
+           \machine_atom(Term, [class(chs)|Options]),
+           ')'
+         ]).
+machine_atom(M:Term, Options) -->
+    { atom(M) },
+    !,
+    html(span(class(module), [M,:])),
+    machine_atom(Term, [module(M)|Options]).
+machine_atom(Term, Options) -->
+    { css_classes(Options, Classes),
+      merge_options(Options, [numbervars(true)], WOptions)
+    },
+    html(span(class(Classes), \term(Term, WOptions))).
+
+:- multifile
+    term_html:portray//2.
+
+term_html:portray(Term, Options) -->
+    { nonvar(Term),
+      Term = '| '(Var, Constraints)
+    },
+    term(Var, Options),
+    html(' | '),
+    term(Constraints, Options).

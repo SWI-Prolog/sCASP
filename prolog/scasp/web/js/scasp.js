@@ -102,7 +102,7 @@ define([ "jquery" ],
       var div = $('<div class="scasp-tree-buttons">');
       var elem = this;
 
-      this.before(div);
+      this.closest("div.scasp-justification").prepend(div);
 
       div.append('<button class="btn-expand">Expand All</button>\n' +
 		 '<button class="btn-depth-incr">+1</button>\n' +
@@ -288,9 +288,31 @@ define([ "jquery" ],
     swish_answer: function() {
       this.find(".scasp-model")
           .addClass("collapsable-content")
-          .wrap("<div class='collapsable'><div>")
-	  .prepend("<h4 class='collapsable-header'>s(CASP) model</h4>")
+          .wrap("<div class='collapsable human'></div>").parent()
+	  .prepend("<h4 class='collapsable-header'>s(CASP) model"+
+		   "<span class='hm-switch'></span></h4>")
 	  .collapsable({collapsed:true, delay:500});
+      this.find("div.scasp-justification")
+	  .addClass("collapsable-content")
+	  .wrap("<div class='collapsable human'></div>").parent()
+	  .prepend("<h4 class='collapsable-header'>s(CASP) justification"+
+		   "<span class='hm-switch'></span></h4>")
+	  .collapsable({collapsed:true, delay:500});
+      this.find("ul.scasp-justification")
+	  .collapsable({ collapsed:true,
+			 tree:true,
+			 buttons:true
+		       });
+      this.find(".hm-switch").click(function(ev) {
+	var div = $(ev.target).closest("div.collapsable");
+	if ( div.hasClass("human") ) {
+	  div.removeClass("human");
+	  div.addClass("machine");
+	} else {
+	  div.removeClass("machine");
+	  div.addClass("human");
+	}
+      });
     }
   }; // methods
 

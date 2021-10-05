@@ -21,4 +21,52 @@
     border-width: 0.5em 0.35em 0 0.35em;
 }
 
-.scasp-justification li { list-style: none; }
+ul.scasp-justification li { list-style: none; }
+
+ul.scasp-justification { padding-left: 0px; }
+div.scasp-justification { padding-left: 1em; }
+div.scasp-model { padding-left: 1em; }
+div.scasp-tree-buttons { font-size: small; line-height: 1.8ex; }
+
+/* s(CASP) atoms */
+
+.scasp-atom .human .atom.not.neg { color: green; }
+.scasp-atom .human .atom.not     { color: orange; }
+.scasp-atom .human .atom.neg     { color: red; }
+.scasp-atom .human .atom.chs     { color: darkgreen; }
+.scasp-atom .human .atom.proved  { color: blue; }
+.scasp-atom .human .atom.pos     { color: black; }
+.scasp-atom .human .atom         { font-weight: bold; }
+
+.atom.not.neg > .pl-compound > .pl-functor { color: green; }
+.atom.not.neg > .pl-atom                   { color: green; }
+.atom.not     > .pl-compound > .pl-functor { color: orange; }
+.atom.not     > .pl-atom                   { color: orange; }
+.atom.neg     > .pl-compound > .pl-functor { color: red; }
+.atom.neg     > .pl-atom                   { color: red; }
+.atom.chs     > .pl-compound > .pl-functor { color: darkgreen; }
+.atom.chs     > .pl-atom                   { color: darkgreen; }
+.atom.proved  > .pl-compound > .pl-functor { color: blue; }
+.atom.proved  > .pl-atom                   { color: blue; }
+.atom.pos     > .pl-compound > .pl-functor { color: black; }
+.atom.pos     > .pl-atom                   { color: black; }
+.atom         > .pl-compound > .pl-functor { font-weight: bold; }
+.atom         > .pl-atom                   { font-weight: bold; }
+
+span.module { color: #aaa; }
+
+.connector { color: #2a9; }
+
+/* Human <-> machine switch */
+
+div.human   .machine {display: none;}
+div.machine .human   {display: none;}
+div.human   span.hm-switch:before { content: "\01f464"; }
+div.machine span.hm-switch:before { content: "\00267E"; }
+span.hm-switch { margin-left: 0.3em; }
+.collapsable.collapsed span.hm-switch { display: none; }
+
+/* SWISH embedding */
+
+div.scasp-answer { margin-left: 1em; }
+div.scasp-answer h4 { margin-bottom: 5px; }

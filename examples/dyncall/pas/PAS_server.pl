@@ -112,15 +112,7 @@ $("#solve").on("click", function() {
           var results = $("#results");
 
           results.html(reply);
-          results.find(".model")
-                 .collapsable({collapsed:true,
-                               delay:500
-                              });
-          results.find(".scasp-justification")
-                 .collapsable({ collapsed:true,
-                                tree:true,
-                                buttons:true
-                              });
+          results.sCASP('swish_answer');
         });
 });
 
@@ -167,14 +159,8 @@ result(result(N, Time, Bindings, Model, Justification)) -->
     html(div(class(result),
              [ h3('Result #~D (~3f sec)'-[N, Time.cpu]),
                \binding_section(Bindings),
-               div(class([model, collapsable]),
-                   [ h4(class('collapsable-header'), 'Model'),
-                     \html_model(Model, [class('collapsable-content')])
-                   ]),
-               div(class(justification),
-                   [ h4('Justification'),
-                     \html_justification_tree(Justification, [])
-                   ])
+               \html_model(Model, [class('collapsable-content')]),
+               \html_justification_tree(Justification, [])
              ])).
 
 read_terms(In, Terms) :-
