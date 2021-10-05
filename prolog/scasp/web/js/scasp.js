@@ -271,4 +271,53 @@ define([ "jquery" ],
   };
 }(jQuery));
 
+(function($) {
+  var pluginName = 'sCASP';
+
+  /** @lends $.fn.sCASP */
+  var methods = {
+    _init: function(options) {
+      return this.each(function() {
+	var elem = $(this);
+	var data = {};			/* private data */
+
+	elem.data(pluginName, data);	/* store with element */
+      });
+    },
+
+    swish_answer: function() {
+      this.find(".scasp-model")
+          .addClass("collapsable-content")
+          .wrap("<div class='collapsable'><div>")
+	  .prepend("<h4 class='collapsable-header'>s(CASP) model</h4>")
+	  .collapsable({collapsed:true, delay:500});
+    }
+  }; // methods
+
+  /**
+   * <Class description>
+   *
+   * @class sCASP
+   * @tutorial jquery-doc
+   * @memberOf $.fn
+   * @param {String|Object} [method] Either a method name or the jQuery
+   * plugin initialization object.
+   * @param [...] Zero or more arguments passed to the jQuery `method`
+   */
+
+  $.fn.sCASP = function(method) {
+    if ( methods[method] ) {
+      return methods[method]
+	.apply(this, Array.prototype.slice.call(arguments, 1));
+    } else if ( typeof method === 'object' || !method ) {
+      return methods._init.apply(this, arguments);
+    } else {
+      $.error('Method ' + method + ' does not exist on jQuery.' + pluginName);
+    }
+  };
+}(jQuery));
+
+return {
+}
+
 });
