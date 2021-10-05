@@ -84,7 +84,14 @@ $("#solve").on("click", function() {
                                 tree:true,
                                 buttons:true
                               });
-        });
+        })
+  .fail(function(error) {
+    if ( error.responseJSON ) {
+      $("#results").text(error.responseJSON.message);
+    } else {
+      console.log(error);
+    }
+  });
 });
 
 $("#clear").on("click", function() {
