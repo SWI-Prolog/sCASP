@@ -6,6 +6,7 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
 :- use_module(library(http/html_head)).
+:- use_module(library(http/http_path)).
 :- use_module(library(http/jquery)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(dcg/high_order)).
@@ -27,9 +28,16 @@ server(Port) :-
     http_server([port(Port)]).
 :- endif.
 
-:- http_handler(root(.),     http_redirect(see_other, root(scasp)), []).
-:- http_handler(root(scasp), home,  []).
-:- http_handler(root(scasp/solve), solve, [id(solve)]).
+:- multifile http:location/3.
+:- dynamic   http:location/3.
+
+http:location(scasp, root(scasp), []).
+http:location(js,    scasp(js),   []).
+http:location(css,   scasp(css),  []).
+
+:- http_handler(root(.),      http_redirect(see_other, scasp(.)), []).
+:- http_handler(scasp(.),     home,  []).
+:- http_handler(scasp(solve), solve, [id(solve)]).
 
 home(_Request) :-
     reply_html_page([ title('s(CASP) web server')
