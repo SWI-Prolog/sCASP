@@ -330,8 +330,19 @@ temp_var_start(modern)  --> "{{".
 temp_var_end(classic) --> ")".
 temp_var_end(modern)  --> "}}".
 
+%!  insert_var(+TermIn, -Term, +VarName, +Var) is det.
+
 insert_var($(Name), Repl, Name, Var) =>
     Repl = Var.
+insert_var('$VAR'(Name), Repl, Name, Var) =>
+    Repl = Var.
+insert_var(V0, Repl, Name, Var), var(V0) =>
+    (   prolog_load_context(variable_names, Bindings),
+        member(Name = V1, Bindings),
+        V0 == V1
+    ->  Repl = Var
+    ;   Repl = V0
+    ).
 insert_var(Name, Repl, Name, Var) =>
     Repl = Var.
 insert_var(In, Out, Name, Var), compound(In) =>

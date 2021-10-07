@@ -202,8 +202,37 @@ read_terms(Term, In, [Term|T]) :-
 
 read_one_term(In, Term) :-
     read_term(In, Term,
-              [ module(scasp_dyncall)
-              ]).
+              [ module(scasp_dyncall),
+                variable_names(Bindings)
+              ]),
+    fixup_pred(Term, Bindings).
+
+%!  fixup_pred(+Term, +Bindings) is det.
+%
+%   If Term is a `pred` directive, bind the variables in the atom
+%   to '$VAR'(Name) if possible.
+
+fixup_pred((#pred Atom :: _Template), Bindings) =>
+    fixup_atom(Atom, Bindings).
+fixup_pred((:-pred Atom :: _Template), Bindings) =>
+    fixup_atom(Atom, Bindings).
+fixup_pred(_, _) =>
+    true.
+
+fixup_atom(Var, Bindings), var(Var) =>
+    (   member(Name = V, Bindings),
+        V == Var
+    ->  Var = '$VAR'(Name)
+    ;   true
+    ).
+fixup_atom(Term, Bindings), compound(Term) =>
+    compound_name_arguments(Term, _Name, Args),
+    maplist(fixup_atom_r(Bindings), Args).
+fixup_atom(_, _) =>
+    true.
+
+fixup_atom_r(Bindings, Atom) :-
+    fixup_atom(Atom, Bindings).
 
 %!  binding_section(+Bindings)//
 
