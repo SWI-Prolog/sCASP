@@ -238,7 +238,7 @@ scasp_term(@(Value:Type), Options) -->
 scasp_term(Term, _Options) -->
     { var_number(Term, _) },
     !,
-    [ '~p'-[Term] ].
+    html('~p'-[Term]).
 scasp_term('| '(Var, {Constraints}), Options) -->
     !,
     inlined_var(Var, Constraints, Options).
