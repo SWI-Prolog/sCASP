@@ -127,16 +127,16 @@ html_model(M:Model, Options) -->
       ),
       Options1 = [module(M)|Options]
     },
-    html(div(class(['scasp-model'|Classes]),
-             \sequence(model_term_r(Options1), Model))).
+    html(ul(class(['scasp-model'|Classes]),
+            \sequence(model_term_r(Options1), Model))).
 
 model_term_r(Options, Atom) -->
     { scasp_atom_string(Atom, String)
     },
-    html(div(class(['scasp-atom']),
-             [ div([class(human), title(String)], \atom(Atom, Options)),
-               div(class(machine), \machine_atom(Atom, Options))
-             ])).
+    html(li(class(['scasp-atom']),
+            [ span([class(human), title(String)], \atom(Atom, Options)),
+              span(class(machine), \machine_atom(Atom, Options))
+            ])).
 
 %!  atom(+SCASPAtom, +Options)//
 %
