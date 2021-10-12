@@ -33,6 +33,11 @@ div.scasp-tree-buttons { font-size: small; line-height: 1.8ex; }
 ul.scasp-model { list-style-type: "\027A2"; }
 ul.scasp-model > li > span { margin-left: 5px; }
 
+/* Query */
+
+div.scasp-query-title   { color: #888; }
+div.scasp-query-literal { margin-left: 1em; }
+
 /* s(CASP) atoms */
 
 .scasp-atom .human .atom.not.neg { color: green; }

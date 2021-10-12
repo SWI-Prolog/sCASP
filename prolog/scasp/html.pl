@@ -1,10 +1,10 @@
 :- module(scasp_just_html,
           [ html_justification_tree//2,		% :Tree, +Options
-            html_model//2			% :Model, +Options
+            html_model//2,			% :Model, +Options
+            html_bindings//2,                   % :Bindings, +Options
+            html_query//2                       % :Query, +Options
           ]).
 :- use_module(common).
-:- use_module(clp/disequality).
-:- use_module(clp/clpq).
 :- use_module(output).
 
 :- use_module(library(http/html_write)).
@@ -15,7 +15,8 @@
 
 :- meta_predicate
     html_model(:, +, ?, ?),
-    html_justification_tree(:, +, ?, ?).
+    html_justification_tree(:, +, ?, ?),
+    html_query(:, +, ?, ?).
 
 :- multifile user:file_search_path/2.
 
@@ -138,6 +139,71 @@ model_term_r(Options, Atom) -->
               span(class(machine), \machine_atom(Atom, Options))
             ])).
 
+%!  html_bindings(+Bindings, +Options)//
+%
+%   Print the variable bindings.
+
+html_bindings([], _Options) -->
+    [].
+html_bindings([H|T], Options) -->
+    (   {T==[]}
+    ->  html_binding(H, [last(true)|Options])
+    ;   html_binding(H, Options),
+        html_bindings(T, Options)
+    ).
+
+html_binding(Name=Value, Options) -->
+    html(div(class('scasp-binding'),
+             [ var(Name),
+               ' = ',
+               \scasp_term(Value, Options),
+               \connect_binding(Options)
+             ])).
+
+connect_binding(Options) -->
+    { option(last(true), Options) },
+    !.
+connect_binding(_Options) -->
+    html(',').
+
+%!  html_query(:Query, +Options)//
+%
+%   Emit the query.
+
+:- det(html_query//2).
+
+html_query(M:Query, Options) -->
+    { delete(Query, o_nmr_check, Query1),
+      comma_list(Body, Query1)
+    },
+    html(div(class('scasp-query'),
+             [ div(class(human),
+                   [ div(class('scasp-query-title'),
+                         'I would like to know if'),
+                     \query_terms(Query1, [module(M)|Options])
+                   ]),
+               div(class(machine),
+                   [ '?- ', \term(Body, [numbervars(true)|Options])
+                   ])
+             ])).
+
+query_terms([], Options) -->
+    query_term(true, Options).
+query_terms([H1,H2|T], Options) -->
+    !,
+    query_term(H1, [connect(and)|Options]),
+    query_terms([H2|T], Options).
+query_terms([Last], Options) -->
+    !,
+    query_term(Last, [connect(?)|Options]).
+
+query_term(Term, Options) -->
+    html(div(class('scasp-query-literal'),
+             [ \atom(Term, Options),
+               \connect(Options)
+             ])).
+
+
 %!  atom(+SCASPAtom, +Options)//
 %
 %   Emit an s(CASP) atom with annotations as   they  appear in the model
@@ -227,7 +293,7 @@ scasp_term(@(Var:Type), Options) -->
     { var(Var)
     },
     !,
-    var(Var, Type, Options).
+    typed_var(Var, Type, Options).
 scasp_term(@(Value:''), Options) -->
     !,
     scasp_term(Value, Options).
@@ -247,7 +313,7 @@ scasp_term(Term, Options) -->
 
 %!  var(+Var, +Options)//
 %
-%   Handle a variable, optionally with   consttrains and annotated using
+%   Handle a variable, optionally with   constraints and annotated using
 %   ovar_analyze_term/2.
 
 var(Var, Options) -->
@@ -348,11 +414,28 @@ cmp_op(#=,  'equal to').
 cmp_op(#<>, 'not equal to').
 
 
-%!  var(@Var, +Type, +Options)//
+%!  typed_var(@Var, +Type, +Options)//
 
-var(NegVar, Type, Options) -->
-    { get_neg_var(NegVar, List),
-      ovar_is_singleton(NegVar)
+typed_var(Var, Type, Options) -->
+    { copy_term(Var, Copy),
+      inline_constraints(Copy, Options),
+      nonvar(Copy),
+      Copy = '| '(V, {Constraints})
+    },
+    !,
+    inlined_typed_var(V, Type, Constraints, Options).
+typed_var(Var, Type, _Options) -->
+    { ovar_var_name(Var, Name)
+    },
+    !,
+    html([var(Name), ', a ', Type]).
+typed_var(_Var, Type, _Options) -->
+    html(['a ', Type]).
+
+
+inlined_typed_var(Var, Type, Constraints, Options) -->
+    { Constraints = '\u2209'(Var, List),
+      Var == '$VAR'('_')
     },
     !,
     (   {List = [One]}
@@ -361,9 +444,10 @@ var(NegVar, Type, Options) -->
     ;   html(['any ', Type, ' except for ']),
         list(List, [last_connector(or)|Options])
     ).
-var(NegVar, Type, Options) -->
-    { get_neg_var(NegVar, List),
-      ovar_var_name(NegVar, Name)
+inlined_typed_var(Var, Type, Constraints, Options) -->
+    { Constraints = '\u2209'(Var, List),
+      nonvar(Var),
+      Var = '$VAR'(Name)
     },
     !,
     (   {List = [One]}
@@ -372,21 +456,12 @@ var(NegVar, Type, Options) -->
     ;   html([var(Name), ', a ', Type, ' not ']),
         list(List, [last_connector(or)|Options])
     ).
-var(Var, _Type, Options) -->            % TBD: include type in NLP
-    { is_clpq_var(Var),
-      !,
-      clpqr_dump_constraints([Var], [Var], Constraints)
+inlined_typed_var(Var, Type, Constraints, Options) --> % TBD: include type in NLP
+    { comma_list(Constraints, CLPQ)
     },
-    clpq(Var, Constraints, Options).
-var(Var, Type, _Options) -->
-    { ovar_var_name(Var, Name)
-    },
-    !,
-    html([var(Name), ', a ', Type]).
-var(_, Type, _) -->
-    html(['a ', Type]).
+    clpq(Var, CLPQ, [type(Type)|Options]).
 
-%!  list(+Elements) is det.
+%!  list(+Elements, +Options) is det.
 %
 %   Emit a collection as "a, b, and c"
 
@@ -433,6 +508,10 @@ connector(-, _Options) -->
 connector(implies, _Options) -->
     html([ span(class(human), ', because'),
            span(class(machine), ' \u2190')
+         ]).
+connector(?, _Options) -->
+    html([ span(class(human), '?'),
+           span(class(machine), '.')
          ]).
 
 full_stop(_Options) -->

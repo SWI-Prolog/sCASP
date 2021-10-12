@@ -8,6 +8,7 @@
             ovar_is_singleton/1,                 % @Var
             ovar_var_name/2,                     % @Var, -Name
             ovar_set_name/2,                     % +Var, +Name
+            ovar_set_bindings/1,                 % +Bindings
             human_expression/2                   % :Atom, -Actions
           ]).
 :- use_module(library(ansi_term)).
@@ -236,6 +237,20 @@ ovar_is_singleton(Var) :-
 
 ovar_set_name(Var, Name) :-
     put_attr(Var, scasp_output, name(Name)).
+
+%!  ovar_set_bindings(+Bindings) is det.
+%
+%   Given Bindings as a  list  of  `Name=Var`,   set  the  names  of the
+%   variables.
+
+ovar_set_bindings(Bindings) :-
+    maplist(ovar_set_binding, Bindings).
+
+ovar_set_binding(Name=Var) :-
+    (   var(Var)
+    ->  ovar_set_name(Var, Name)
+    ;   true
+    ).
 
 %!  ovar_var_name(@Var, -Name) is semidet.
 %

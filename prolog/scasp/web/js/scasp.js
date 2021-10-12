@@ -285,26 +285,50 @@ define([ "jquery" ],
       });
     },
 
-    swish_answer: function() {
+    swish_answer: function(options) {
+      options   = options || {};
+      var def   = options.open_as || "human";
+      var model = options.model || {};
+      var just  = options.justification || {};
+
+      function defaults(obj) {
+	if ( obj.collapsed == undefined )
+	  obj.collapsed = true;
+	if ( obj.delay == undefined )
+	  obj.delay = 500;
+      }
+
+      defaults(model);
+      defaults(just);
+
       this.find(".scasp-model")
           .addClass("collapsable-content")
-          .wrap("<div class='collapsable human'></div>").parent()
+          .wrap("<div class='collapsable hm-switch "+def+"'></div>").parent()
 	  .prepend("<h4 class='collapsable-header'>s(CASP) model"+
 		   "<span class='hm-switch'></span></h4>")
-	  .collapsable({collapsed:true, delay:500});
+	  .collapsable(model);
       this.find("div.scasp-justification")
 	  .addClass("collapsable-content")
-	  .wrap("<div class='collapsable human'></div>").parent()
+	  .wrap("<div class='collapsable hm-switch "+def+"'></div>").parent()
 	  .prepend("<h4 class='collapsable-header'>s(CASP) justification"+
 		   "<span class='hm-switch'></span></h4>")
-	  .collapsable({collapsed:true, delay:500});
+	  .collapsable(just);
       this.find("ul.scasp-justification")
 	  .collapsable({ collapsed:true,
 			 tree:true,
 			 buttons:true
 		       });
-      this.find(".hm-switch").click(function(ev) {
-	var div = $(ev.target).closest("div.collapsable");
+      this.find("div.scasp-query")
+	  .wrap("<div class='hm-switch "+def+"'></div>").parent()
+	  .prepend("<h4>s(CASP) query"+
+		   "<span class='hm-switch'></span></h4>");
+      if ( just.collapse_below ) {
+	this.find("ul.scasp-justification")
+	    .collapsable('depth', {depth:just.collapse_below});
+      }
+
+      this.find("span.hm-switch").click(function(ev) {
+	var div = $(ev.target).closest("div.hm-switch");
 	if ( div.hasClass("human") ) {
 	  div.removeClass("human");
 	  div.addClass("machine");

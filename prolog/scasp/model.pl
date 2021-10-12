@@ -34,7 +34,7 @@
 :- module(scasp_model,
           [ canonical_model/2,          % +RawModel, -Canonical
             unqualify_model/3,          % +ModelIn, +Module, -ModelOut
-            print_model/2               % +Model, +Options
+            print_model/2               % :Model, +Options
           ]).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
@@ -43,6 +43,12 @@
 :- use_module(common).
 :- use_module(modules).
 :- use_module(output).
+
+:- meta_predicate
+    print_model(:, +).
+
+:- multifile
+    model_hook/2.
 
 /** <module> sCASP model handling
 
@@ -115,7 +121,7 @@ simplify_model([], M) =>
 unqualify_model(Model0, Module, Model) :-
     maplist(unqualify_model_term(Module), Model0, Model).
 
-%!  print_model(+Model, +Options) is det.
+%!  print_model(:Model, +Options) is det.
 %
 %   Print the model in aligned columns.  Options processed:
 %
@@ -123,6 +129,9 @@ unqualify_model(Model0, Module, Model) :-
 %       Assumed terminal width.  Default from tty_size/2 or 80.
 
 print_model(Model, Options) :-
+    model_hook(Model, Options),
+    !.
+print_model(_:Model, Options) :-
     (   option(width(Width), Options)
     ->  true
     ;   catch(tty_size(_, Width), _, Width = 80)
@@ -181,7 +190,7 @@ layout(Atoms, Width, _{cols:Cols, rows:Rows, col_width:ColWidth}) :-
     Cols0 is max(1, Width // (Longest + 3)),
     Rows is ceiling(L / Cols0),
     Cols is ceiling(L/Rows),
-    ColWidth is Width // Cols.
+    ColWidth is min(Longest+3, Width // Cols).
 
 longest(List, Longest) :-
     longest(List, 0, Longest).

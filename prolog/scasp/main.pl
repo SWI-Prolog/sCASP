@@ -12,6 +12,13 @@
 :- use_module(options).
 :- use_module(solve).
 :- use_module(predicates).
+:- use_module(stack).
+:- use_module(human).
+:- use_module(output).
+:- use_module(model).
+:- use_module(html).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/js_write)).
 
 /** <module> sCASP as a stand-alone program
 
@@ -133,117 +140,270 @@ scasp_pi(not(G), PI) :-
 scasp_pi(G, PI) :-
     pi_head(PI, G).
 
-%!  main_solve(+Query)
+%!  main_solve(+Query).
+%!  main_solve(+Query, +Options).
 %
 %   Solve a toplevel query. Query is a callable term where variables are
 %   represented as $Name.
+%
+%   @tbd: If minimal_model(true) is given  we   must  select the minimal
+%   model using printable_model/2 and simply print all answers.
 
 main_solve(Q0) :-
-    current_option(minimal_model, on), !,
-    collect_min_models(Q0),
-    fail.
-main_solve(Q0) :-
-    current_option(answers, Number),
+    main_options(Options),
+    main_solve(Q0, Options).
 
-    process_query(Q0, Q, Query, D0),
-    maplist(arg(2), D0, Vars),
+main_solve(Q0, Options) :-
+    option(answers(Number), Options, -1),
 
-    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
-    print_query(PQ),
+    process_query(Q0, _Q, Query, Bindings),
+    (   option(html(true), Options)
+    ->  copy_term(Query-Bindings, QueryVar-QBindings),
+        ovar_set_bindings(QBindings),
+        inline_constraints(QueryVar, [])
+    ;   print_query(Query, Bindings, Options)
+    ),
 
-    statistics(runtime, _),
-    (   call_nth(solve(Query, [], StackOut, Model), Counter)
-    *-> nl
-    ;   format('\nno models\n\n'),
+    (   call_nth(call_time(solve(Query, [], StackOut, ModelOut), Time), Counter)
+    *-> true
+    ;   ansi_format(warning, 'No models~n', []),
         fail
     ),
-    statistics(runtime, [_,T]),
 
-    format('\tANSWER:\t~w (in ~w ms)\n', [Counter, T]),
+    print_answer(Counter, Time, Options),
 
-    pretty_term(D1, D2, par(Q, Vars, Model), par(PAnswer, Bindings, P_Model)),
+    justification_tree(StackOut, Tree, Options),
+    canonical_model(ModelOut, Model),
 
-    if_user_option(process_stack, (
-            reverse(StackOut, Reverse_StackOut),
-            pretty_term(D2, _D3, Reverse_StackOut, P_StackOut)
-        )),
+    All = t(Bindings, Model, StackOut),
+    ovar_set_bindings(Bindings),
+    ovar_analyze_term(All),
+    inline_constraints(All, []),
 
-    if_user_option(html, print_html([PQ, PAnswer, Bindings, PVars], P_Model, P_StackOut)),
-    if_user_option(print_tree, scasp_portray_justification(P_StackOut)),
-    print_model(P_Model), nl,
-
-    print_unifier(Bindings, PVars),
+    (   option(html(true), Options)
+    ->  print_html(QueryVar, Bindings, Model, Tree, Options)
+    ;   (   option(print_tree(true), Options)
+        ->  print_justification(Tree, Options)
+        ;   true
+        ),
+        main_print_model(Model, Options),
+        print_bindings(Bindings, [full_stop(false)|Options])
+    ),
 
     (   Number == -1
     ->  allways_ask_for_more_models, nl, nl
     ;   Number == 0
     ->  nl, nl,
-        statistics(runtime, _),
         fail
     ;   Number > 0
     ->  nl, nl,
-        statistics(runtime, _),
         Counter = Number
     ),
     !.
 
-% Predicate aggregated
-take_min(Query, MinModel, Model, StackOut, T) :-
-    statistics(runtime, _),
-    solve(Query, [], StackOut, Model),
-    statistics(runtime, [_,T]),
-    printable_model(Model, PrintableModel),
-    sort(PrintableModel, MinModel).
+%!  main_options(-Options) is det.
+%
+%   Collect the relevant options from the options module.
 
-collect_min_models(Q0) :-
-    process_query(Q0, Q, Query), term_variables(Q, Vars),
-    unifiable(Q0, Q, D0),
+main_options(Options) :-
+    findall(Opt, main_option(Opt), Options).
 
-    pretty_term(D0, D1, par(Vars, Q), par(PVars, PQ)),
+main_option(html(true)) :-
+    current_option(html, on).
+main_option(html_name(File)) :-
+    current_option(html_name, File).
+main_option(human(true)) :-
+    current_option(human, on).
+main_option(human(true)) :-
+    current_option(human, on).
+main_option(answers(Number)) :-
+    current_option(answers, Number).
+main_option(print_tree(true)) :-
+    current_option(print_tree, on).
+main_option(constraints(true)).
 
-    print_query(PQ),
-    (   call_nth(take_min(Query, _MinModel, Model, StackOut, T), Counter)
-    *-> nl
-    ;   format('\nno models\n\n'),
-        fail
+%!  print_answer(+Nth, +Resources:dict, +Options)
+
+print_answer(Nth, Resources, Options) :-
+    (   option(width(Width), Options)
+    ->  true
+    ;   catch(tty_size(_, Width), _, Width = 80)
     ),
-
-    format('\tANSWER:\t~w (in ~w ms)\n', [Counter, T]),
-
-    pretty_term(D1, D2, par(Q, Vars, Model), par(PAnswer, Bindings, P_Model)),
-
-    if_user_option(process_stack, (
-            reverse(StackOut, Reverse_StackOut),
-            pretty_term(D2, _D3, Reverse_StackOut, P_StackOut)
-        )),
-
-    if_user_option(html, print_html([PQ, PAnswer, Bindings, PVars], P_Model, P_StackOut)),
-    if_user_option(print_tree, scasp_portray_justification(P_StackOut)),
-    print_model(P_Model), nl,
-
-    print_unifier(Bindings, PVars),
-
-    nl, nl.
+    LineWidth is Width-8,
+    ansi_format(comment, '~N% ~`\u2015t~*|~n', [LineWidth]),
+    ansi_format(comment, '~N%', []),
+    ansi_format(bold,    '~t Answer ~D (~3f sec) ~t~*|~n',
+                [Nth, Resources.cpu, LineWidth]),
+    ansi_format(comment, '~N% ~`\u2015t~*|~n', [LineWidth]).
 
 
-print_model(Model) :-
-    print_options(Options),
-    scasp_portray_model(Model, Options).
+%!  main_print_model(+Model, +Options)
+
+main_print_model(Model, Options) :-
+    ansi_format(comment, '~N% Model~n', []),
+    print_model(Model,
+                [ as_comment(false)
+                | Options
+                ]).
+
+%!  write_program
 
 write_program :-
-    print_options(Options),
+    main_options(Options),
     scasp_portray_program(Options).
 
-print_query(PQ) :-
-    print_options(Options),
-    scasp_portray_query(PQ, Options).
+%!  print_query(:Query, +Bindings, +Options)
 
-print_options(Options) :-
-    findall(Opt, print_option(Opt), Options).
+print_query(M:Query, Bindings, Options) :-
+    ansi_format(comment, '~N% Query~n', []),
+    (   option(human(true), Options)
+    ->  human_query(M:Query, [as_comment(false)|Options])
+    ;   format('?- '),
+        query_body(Query, PQ),
+        portray_clause(current_output, PQ, [variable_names(Bindings)])
+    ).
 
-print_option(html(true)) :-
-    current_option(html, on).
-print_option(human(true)) :-
-    current_option(human, on).
-print_option(duals(true)).
-print_option(constraints(true)).
+query_body(Query, Body) :-
+    append(Q1, [o_nmr_check], Query),
+    !,
+    comma_list(Body, Q1).
+query_body(Query, Body) :-
+    comma_list(Body, Query).
+
+%!  print_justification(+Tree, +Options)
+
+print_justification(Tree, Options) :-
+    ansi_format(comment, '~N% Justification~n', []),
+    print_justification_tree(Tree, [ depth(1),
+                                     as_comment(false)
+                                   | Options
+                                   ]).
+
+print_bindings(Bindings, Options) :-
+    exclude(empty_binding, Bindings, Bindings1),
+    (   Bindings1 == []
+    ->  ansi_format(comment, '~N% No bindings~n', []),
+        (   option(full_stop(true), Options, true)
+        ->  ansi_format(bold, 'true.', [])
+        ;   ansi_format(bold, 'true', [])
+        )
+    ;   ansi_format(comment, '~N% Bindings~n', []),
+        print_bindings1(Bindings1, Options)
+    ).
+
+empty_binding(Name = Value) :-
+    Value == '$VAR'(Name).
+
+print_bindings1([], _).
+print_bindings1([H|T], Options) :-
+    print_binding(H, Options),
+    (   T == []
+    ->  (   option(full_stop(true), Options, true)
+        ->  format('.')
+        ;   true
+        )
+    ;   format(',~n'),
+        print_bindings1(T, Options)
+    ).
+
+print_binding(Name = Value, Options) :-
+    format('~w = ~W',
+           [ Name,
+             Value, [ numbervars(true),
+                      quoted(true),
+                      portray(true)
+                    | Options
+                    ]
+           ]).
+
+
+%!  print_html(+Query, +Bindings, +Model, +Stack, +Options)
+%
+%   Options processed:
+%
+%     - open_as(As)
+%       One of `machine` or `human` (default), indicating the initial
+%       mode of the HTML elements.
+%     - collapse_below(Depth)
+%       Collapse the justification tree below the given level (default:
+%       2).
+%     - style(+Boolean)
+%       When `false` (default `true`), do not include the HTML style
+%       sheets.
+%     - script(+Boolean)
+%       When `false` (default `true`), do not include the JavaScript.
+
+print_html(Query, Bindings, Model, Stack, Options) :-
+    option(html_name(Name), Options),
+    !,
+    ensure_extension(Name, html, File),
+    setup_call_cleanup(
+        open(File, write, Out, [encoding(utf8)]),
+        ( phrase(reply(Query, Bindings, Model, Stack, Options), Tokens),
+          print_html(Out, Tokens)
+        ),
+        close(Out)).
+print_html(Query, Bindings, Model, Stack, Options) :-
+    phrase(reply(Query, Bindings, Model, Stack, Options), Tokens),
+    print_html(Tokens).
+
+ensure_extension(Base, Ext, File) :-
+    file_name_extension(_, Ext, Base),
+    !,
+    File = Base.
+ensure_extension(Base, Ext, File) :-
+    file_name_extension(Base, Ext, File).
+
+reply(Query, Bindings, Model, Tree, Options) -->
+    html(\page([],
+               [ \styles(Options),
+                 h4('Query'),
+                 \html_query(Query, Options),
+                 h4('Bindings'),
+                 \html_bindings(Bindings, Options),
+                 \html_model(Model, Options),
+                 \html_justification_tree(Tree, Options),
+                 \scripts(Options)
+               ])).
+
+styles(Options) -->
+    { option(style(false), Options) },
+    !.
+styles(_Options) -->
+    { read_file(library('scasp/web/css/scasp.css'), SCASPCSS),
+      read_file(library('http/web/css/plterm.css'), TermCSS)
+    },
+    html(style(SCASPCSS)),
+    html(style(TermCSS)).
+
+styles(Options) -->
+    { option(script(false), Options) },
+    !.
+scripts(Options) -->
+    { option(open_as(As), Options, human),
+      must_be(oneof([human,machine]), As),
+      option(collapse_below(Depth), Options, 2)
+    },
+    html(script(
+             [ src('https://code.jquery.com/jquery-1.11.2.min.js'),
+               integrity('sha256-Ls0pXSlb7AYs7evhd+VLnWsZ/AqEHcXBeMZUycz/CcA='),
+               crossorigin('anonymous')
+             ], [])),
+    { read_file(library('scasp/web/js/scasp.js'), String) },
+    html(script(String)),
+    js_script({|javascript(As,Depth)||
+
+$(function() {
+  $("body").sCASP("swish_answer", {
+    open_as:As,
+    justification: {
+      collapse_below: Depth,
+      collapsed: false
+    }
+  });
+});
+              |}).
+
+read_file(Spec, String) :-
+    absolute_file_name(Spec, Path, [access(read)]),
+    read_file_to_string(Path, String, []).

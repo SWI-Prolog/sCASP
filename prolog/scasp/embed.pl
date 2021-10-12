@@ -443,9 +443,11 @@ scasp_residual_type(justification(Options)) :-
 res_options(List, Options), is_list(List) =>
     Options = List.
 res_options(true, Options) =>
-    Options = [format(unicode)].
-res_options(Format, Options), atom(Format) =>
-    Options = [format(Format)].
+    Options = [unicode(true)].
+res_options(unicode, Options) =>
+    Options = [unicode(true)].
+res_options(human, Options) =>
+    Options = [human(true)].
 
 user:portray(scasp_show_model(Model, Options)) :-
     ansi_format(comment, '% s(CASP) model~n', []),

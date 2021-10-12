@@ -99,7 +99,6 @@ allways_ask_for_more_models :-
         get_single_char(R),
         memberchk(R, `\s;`)
     ->  format(';\n'),
-        statistics(runtime,_),
         fail
     ;   true
     ).

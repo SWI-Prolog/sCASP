@@ -148,7 +148,7 @@ print_justification_tree(Tree, Options) :-
     justification_tree_hook(Tree, Options),
     !.
 print_justification_tree(M:Tree, Options) :-
-    merge_options([depth(0),module(M)], Options, Options1),
+    merge_options(Options, [depth(0),module(M)], Options1),
     plain_output(Tree, Options1),
     (   option(full_stop(true), Options, true)
     ->  format(".~n", [])
@@ -161,7 +161,7 @@ plain_output(Term-[], Options) :-
     !,
     option(depth(D), Options),
     Indent is D*3,
-    nl, tab(Indent),
+    nl_indent(Indent),
     term(Term, Options).
 plain_output(Term-Children, Options) :-
     !,
@@ -169,9 +169,12 @@ plain_output(Term-Children, Options) :-
     option(indent(Width), Options1, 3),
     Indent is D*Width,
     connector(implies, Conn, Options),
-    nl, tab(Indent), term(Term, Options), format(" ~w",[Conn]),
+    nl_indent(Indent), term(Term, Options), format(" ~w",[Conn]),
     D1 is D+1,
     plain_output_children(Children, [depth(D1)|Options1]).
+
+nl_indent(Indent) :-
+    format('~N~t~*|', [Indent]).
 
 plain_output_children([A,B|Rs], Options) :-
     !,
