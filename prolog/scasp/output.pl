@@ -118,8 +118,9 @@ inline_constraint(_Options, Var) :-
     var_name(Var, Name),
     sort(0, @>, Constraints, Sorted),
     maplist(pretty_clp_, Sorted, Pretty),
-    comma_list(Term, Pretty),
+    comma_list(Term0, Pretty),
     del_attrs(Var),
+    replace_var(Var, Name, Term0, Term),
     Var = '| '(Name, {Term}).
 inline_constraint(_Options, Var) :-
     var_name(Var, Name),
@@ -142,6 +143,32 @@ var_name(Var, Name) :-
     !,
     Name = '$VAR'('_').
 var_name(Var, Var).
+
+%!  replace_var(+Var, +Name, +TermIn, -TermOut)
+
+replace_var(Var, Name, TermIn, TermOut) :-
+    Var == TermIn,
+    !,
+    TermOut = Name.
+replace_var(Var, Name, TermIn, TermOut) :-
+    compound(TermIn),
+    !,
+    same_functor(TermIn, TermOut, Arity),
+    replace_var(1, Arity, Var, Name, TermIn, TermOut).
+replace_var(_, _, Term, Term).
+
+replace_var(I, Arity, Var, Name, TermIn, TermOut) :-
+    I =< Arity,
+    !,
+    arg(I, TermIn, AIn),
+    arg(I, TermOut, AOut),
+    replace_var(Var, Name, AIn, AOut),
+    I2 is I+1,
+    replace_var(I2, Arity, Var, Name, TermIn, TermOut).
+replace_var(_, _, _, _, _, _).
+
+
+
 
 
 		 /*******************************
