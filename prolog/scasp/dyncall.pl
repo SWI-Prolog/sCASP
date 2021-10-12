@@ -187,17 +187,22 @@ callee_closure([H|T], Expanded, Preds0, Preds) :-
 expanded(Assoc, PI) :-
     get_assoc(PI, Assoc, _).
 
-%!  include_global_constraint(+Callees, -Constraints, -AllCallees)
+%!  include_global_constraint(+Callees, -Constraints, -AllCallees) is det
 
-include_global_constraint(Callees0, [Body|T], Callees) :-
+include_global_constraint(Callees0, Constraints, Callees) :-
+    include_global_constraint(Callees0, Callees, [], Constraints).
+
+include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
     global_constraint(Body),
-    query_callees(Body, Called),
-    ord_intersect(Callees0, Called),
-    ord_union(Callees0, Called, Callees1),
-    Callees1 \== Callees0,
+    \+ ( member(Body0, Constraints0),
+         Body =@= Body0
+       ),
     !,
-    include_global_constraint(Callees1, T, Callees).
-include_global_constraint(Callees, [], Callees).
+    query_callees(Body, Called),
+    ord_union(Callees0, Called, Callees1),
+    include_global_constraint(Callees1, Callees,
+                              [Body|Constraints0], Constraints).
+include_global_constraint(Callees, Callees, Constraints, Constraints).
 
 
 global_constraint(M:Body) :-
