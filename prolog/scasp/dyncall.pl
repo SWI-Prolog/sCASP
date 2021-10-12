@@ -197,8 +197,9 @@ include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
     \+ ( member(Body0, Constraints0),
          Body =@= Body0
        ),
-    !,
     query_callees(Body, Called),
+    ord_intersect(Callees0, Called),
+    !,
     ord_union(Callees0, Called, Callees1),
     include_global_constraint(Callees1, Callees,
                               [Body|Constraints0], Constraints).
