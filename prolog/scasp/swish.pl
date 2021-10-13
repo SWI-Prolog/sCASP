@@ -2,6 +2,9 @@
           []).
 :- use_module(library(http/html_write)).
 :- use_module(library(pengines)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+
 :- use_module(swish(lib/config)).
 
 :- use_module(embed).
@@ -32,8 +35,10 @@ SWISH web interface.
 
 swish_trace:post_context(Dict) :-
     _{bindings:Bindings0} :< Dict,
-    selectchk('_scasp_model' = HTMLModel, Bindings0, Bindings1),
-    selectchk('_scasp_justification' = HTMLJustification, Bindings1, Bindings),
+    swish_config:config(scasp_model_var, ModelVar),
+    swish_config:config(scasp_justification_var, JustificationVar),
+    selectchk(ModelVar = HTMLModel, Bindings0, Bindings1),
+    selectchk(JustificationVar = HTMLJustification, Bindings1, Bindings),
     pengine_self(Module),
     scasp_model(Module:Model),
     scasp_justification(Module:Justification, []),
@@ -58,8 +63,8 @@ set_name(Name = Var) :-
     ;   true
     ).
 
-swish_config:config(scasp_model_var, '_scasp_model').
-swish_config:config(scasp_justification_var, '_scasp_justification').
+swish_config:config(scasp_model_var, '_swish__scasp_model').
+swish_config:config(scasp_justification_var, '_swish__scasp_justification').
 
 %!  swish_trace:post_context(+Name, +Goal, -Var) is semidet.
 %
