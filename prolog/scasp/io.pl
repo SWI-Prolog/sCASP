@@ -1188,7 +1188,8 @@ print_human_program(Section, Rules, Options) :-
     format("% ~w:\n", [Title]),
     (   Section == query
     ->  print_human_query(Rules, Options)
-    ;   print_human_rules(Rules, Options)
+    ;   order_rules(Section, Rules, Rules1),
+        print_human_rules(Rules1, Options)
     ).
 print_human_program(_, _, _).
 
@@ -1196,6 +1197,14 @@ code_section_title(query,       true,  'QUERY').
 code_section_title(user,        true,  'USER PREDICATES').
 code_section_title(duals,       false, 'DUAL RULES').
 code_section_title(constraints, false, 'INTEGRITY CONSTRAINTS').
+
+order_rules(duals, DualRules, R_DualRules) :-
+    !,
+    dual_reverse(DualRules,[_|R_DualRules]).
+order_rules(constraints, NMRRules, R_NMRRules) :-
+    !,
+    nmr_reverse(NMRRules, R_NMRRules).
+order_rules(_, Rules, Rules).
 
 print_human_query([not(o_false)], _Options) :- !,
     format('% Query not defined\n').
