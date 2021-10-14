@@ -250,7 +250,7 @@ main_print_model(Model, Options) :-
 
 write_program :-
     main_options(Options),
-    scasp_portray_program(Options).
+    scasp_portray_program([duals(true)|Options]).
 
 %!  print_query(:Query, +Bindings, +Options)
 
