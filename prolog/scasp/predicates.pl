@@ -3,7 +3,6 @@
             shown_predicate/1,
             prolog_builtin/1,           % ?Goal
             clp_builtin/1,              % ?Goal
-            clp_builtin_translate/2,    % ?Goal,?Goal_T
             clp_interval/1,             % ?Goal
             user_predicate/1,           % ?Goal
             scasp_compiled/1            % ?Head
@@ -70,17 +69,6 @@ clp_builtin(_ #< _).
 clp_builtin(_ #> _).
 clp_builtin(_ #>= _).
 clp_builtin(_ #=< _).
-
-%!  clp_builtin_translate(?Goal, ?Goal_T)
-%
-%   Translate s(CASP) constraints into CLP(Q/R) syntax
-
-clp_builtin_translate(A #=  B, A #=  B).
-clp_builtin_translate(A #<> B, A #<> B).
-clp_builtin_translate(A #<  B, A #<  B).
-clp_builtin_translate(A #>  B, A #>  B).
-clp_builtin_translate(A #>= B, A #>= B).
-clp_builtin_translate(A #=< B, A #=< B).
 
 %!  clp_interval(?Goal)
 %

@@ -307,8 +307,9 @@ solve_goal_builtin(not(Goal), StackIn, StackIn, _Model) :-
     if_user_option(warning,format("\nWARNING s(CASP): Failure calling negation of ~p\n",[Goal])),
     fail.
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
-    clp_builtin_translate(Goal, Goal_T), !,
-    exec_goal(apply_clpq_constraints(Goal_T)),
+    clp_builtin(Goal),
+    !,
+    exec_goal(apply_clpq_constraints(Goal)),
     Model = [Goal].
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     prolog_builtin(Goal), !,
@@ -317,7 +318,7 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
 % The predicate is not defined as user_predicates neither builtin
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     if_user_option(check_calls,
-        format('The predicate ~p is not user_defined / builtin\n', [Goal])),
+                   format('The predicate ~p is not user_defined / builtin\n', [Goal])),
     (   Goal = not(_)
     ->  Model = [Goal] %% the negation of a not defined predicate success.
     ;   fail %% a not defined predicate allways fails.
