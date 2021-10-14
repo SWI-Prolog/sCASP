@@ -1,7 +1,8 @@
 :- module(scasp_main,
           [ main/1,                         % +Argv
 
-            op(900, fy, not)
+            op(900, fy, not),
+            op(700, xfx, '\u2209')          % not element of
           ]).
 :- set_prolog_flag(optimise, true).
 
