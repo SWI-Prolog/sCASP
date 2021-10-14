@@ -1,8 +1,7 @@
-
-
+:- use_module(library(scasp)).
 
 p(a,b,c,d,A) :-
-    A .<. 5, A.>.1.
+    A #< 5, A #> 1.
 
 
 ?- p(A,B,C,D,E).

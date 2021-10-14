@@ -622,14 +622,14 @@ portray(@(Args)) :-
 portray('$'(X)) :- !,
     write(X).
 portray(Constraint) :-
-    functor(Constraint, Op, 2),
-    pretty_clp(_,Op),
+    nonvar(Constraint),
+    scasp_op(Constraint),
     Constraint =.. [Op,A,ND],
     nonvar(ND),
     ND = N/D,
     current_option(real,on),
     C is N/D, truncate_(C,R),
-    pretty_clp(_,Op), !,
+    !,
     format("~p ~w ~p",[A,Op,R]).
 portray('| '(A,B)) :-
     !,
@@ -645,8 +645,10 @@ portray(Compound) :-
     Compound2 =.. [Rest|Args],
     format('~w~p', [Start, Compound2]).
 portray(Constraint) :-
+    nonvar(Constraint),
+    scasp_op(Constraint),
+    !,
     Constraint =.. [Op,A,B],
-    pretty_clp(_,Op), !,
     format("~p ~w ~p",[A,Op,B]).
 
 special_start(Name, Start, Rest) :-
@@ -788,17 +790,18 @@ pretty_term(D0,D0,rat(A,B),C) :-
     ;   C = A/B
     ), !.
 pretty_term(D0,D1,Functor,PF) :-
+    nonvar(Functor),
+    scasp_op(Functor),
+    !,
+    Functor =.. [Name|Args],
+    pretty_term(D0,D1,Args,PArgs),
+    simple_operands(PArgs,SArgs),
+    PF =.. [Name|SArgs].
+pretty_term(D0,D1,Functor,PF) :-
     Functor =.. [Name|Args],
     !,
     pretty_term(D0,D1,Args,PArgs),
-    (   pretty_clp(Name,PName)
-    ->  simple_operands(PArgs,SArgs),
-        PF =.. [PName|SArgs]
-    ;   pretty_clp(_,Name)
-    ->  simple_operands(PArgs,SArgs),
-        PF =.. [Name|SArgs]
-    ;   PF =.. [Name|PArgs]
-    ).
+    PF =.. [Name|PArgs].
 pretty_term(D0,D0,A,'?'(A)).
 
 simple_operands([A,B],[SA,SB]) :-
@@ -841,34 +844,31 @@ pretty_constraints([A|As],(C,Cs)) :-
     pretty_constraints_(A,C),
     pretty_constraints(As,Cs).
 pretty_constraints_(A,C) :-
+    (   scasp_op(A)
+    ->  true
+    ;   print_message(warning, scasp(undefined_operator(A)))
+    ),
     A =.. [Op,X,Y],
     pretty_rat(X,PX),
     pretty_rat(Y,PY),
-    (   pretty_clp(Op,P_Op)
-    ->  C =.. [P_Op,PX,PY]
-    ;   print_message(warning, scasp(undefined_operator(Op))),
-        C =.. [Op,PX,PY]
-    ).
+    C =.. [Op,PX,PY].
 pretty_constraints_(A,A).
 
 pretty_rat(rat(A,B),A/B) :- !.
 pretty_rat(A,A).
 
-pretty_clp(N,PN) :- pretty_clp_(N,PN), !.
-
-pretty_clp_(.=.,  '#=' ).
-pretty_clp_(.<>., '#<>').
-pretty_clp_(.<.,  '#<' ).
-pretty_clp_(.>.,  '#>' ).
-pretty_clp_(.=<., '#=<').
-pretty_clp_(.>=., '#>=').
-pretty_clp_(\=, \=).
-pretty_clp_(= ,= ).
-pretty_clp_(< ,< ).
-pretty_clp_(> ,> ).
-pretty_clp_(=<,=<).
-pretty_clp_(>=,>=).
-
+scasp_op(_#=_).
+scasp_op(_#<>_).
+scasp_op(_#<_).
+scasp_op(_#>_).
+scasp_op(_#=<_).
+scasp_op(_#>=_).
+scasp_op(_\=_).
+scasp_op(_=_).
+scasp_op(_>_).
+scasp_op(_<_).
+scasp_op(_=<_).
+scasp_op(_>=_).
 
 :- use_module('html/html_head').
 :- use_module('html/jquery_tree').

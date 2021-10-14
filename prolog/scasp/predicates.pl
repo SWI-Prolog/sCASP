@@ -64,23 +64,23 @@ prolog_builtin(_ =< _).
 %
 %   Success if Goal is a builtin constraint predicate
 
-clp_builtin(_ .=. _).
-clp_builtin(_ .<>. _).
-clp_builtin(_ .<. _).
-clp_builtin(_ .>. _).
-clp_builtin(_ .>=. _).
-clp_builtin(_ .=<. _).
+clp_builtin(_ #= _).
+clp_builtin(_ #<> _).
+clp_builtin(_ #< _).
+clp_builtin(_ #> _).
+clp_builtin(_ #>= _).
+clp_builtin(_ #=< _).
 
 %!  clp_builtin_translate(?Goal, ?Goal_T)
 %
 %   Translate s(CASP) constraints into CLP(Q/R) syntax
 
-clp_builtin_translate(A #=  B, A .=.  B).
-clp_builtin_translate(A #<> B, A .<>. B).
-clp_builtin_translate(A #<  B, A .<.  B).
-clp_builtin_translate(A #>  B, A .>.  B).
-clp_builtin_translate(A #>= B, A .>=. B).
-clp_builtin_translate(A #=< B, A .=<. B).
+clp_builtin_translate(A #=  B, A #=  B).
+clp_builtin_translate(A #<> B, A #<> B).
+clp_builtin_translate(A #<  B, A #<  B).
+clp_builtin_translate(A #>  B, A #>  B).
+clp_builtin_translate(A #>= B, A #>= B).
+clp_builtin_translate(A #=< B, A #=< B).
 
 %!  clp_interval(?Goal)
 %

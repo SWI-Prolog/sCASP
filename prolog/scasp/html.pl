@@ -399,13 +399,6 @@ clpq_and([Constraint|More], Var, Options) -->
         clpq_and(More, Var, Options)
     ).
 
-cmp_op(.>.,  'larger than').            % should be made canonical
-cmp_op(.>=., 'larger than or equal to').
-cmp_op(.<.,  'smaller than').
-cmp_op(.=<., 'smaller than or equal to').
-cmp_op(.=.,  'equal to').
-cmp_op(.<>., 'not equal to').
-
 cmp_op(#>,  'larger than').
 cmp_op(#>=, 'larger than or equal to').
 cmp_op(#<,  'smaller than').

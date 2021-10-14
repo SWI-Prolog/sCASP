@@ -1,4 +1,4 @@
-:- module(casp_clp_clpq,
+:- module(casp_clpq,
           [ is_clpq_var/1,
             clpqr_dump_constraints/3,
             disequality_clpq/2,
@@ -8,11 +8,12 @@
             apply_clpq_constraints/1,
             dump_clpq_var/3,
 
-            op(700, xfx, .<>.),
-            op(700, xfx, .<.),
-            op(700, xfx, .=<.),
-            op(700, xfx, .>.),
-            op(700, xfx, .>=.)
+            op(700, xfx, #=),
+            op(700, xfx, #<>),
+            op(700, xfx, #<),
+            op(700, xfx, #=<),
+            op(700, xfx, #>),
+            op(700, xfx, #>=)
           ]).
 
 /** <module> Extension of the constraint solver CLP(Q)
@@ -43,12 +44,12 @@ to_clpq_var(X, V) :-
     ;   true
     ).
 
-ciao_constraint(A=B,     Ciao) => Ciao = (A.=.B).
-ciao_constraint(A-B=\=0, Ciao) => Ciao = (A.<>.B).
-ciao_constraint(A>B,     Ciao) => Ciao = (A.>.B).
-ciao_constraint(A>=B,    Ciao) => Ciao = (A.>=.B).
-ciao_constraint(A<B,     Ciao) => Ciao = (A.<.B).
-ciao_constraint(A=<B,    Ciao) => Ciao = (A.=<.B).
+ciao_constraint(A=B,     Ciao) => Ciao = (A#=B).
+ciao_constraint(A-B=\=0, Ciao) => Ciao = (A#<>B).
+ciao_constraint(A>B,     Ciao) => Ciao = (A#>B).
+ciao_constraint(A>=B,    Ciao) => Ciao = (A#>=B).
+ciao_constraint(A<B,     Ciao) => Ciao = (A#<B).
+ciao_constraint(A=<B,    Ciao) => Ciao = (A#=<B).
 
 clpq_entailed(C) :-
     entailed(C).
@@ -69,12 +70,12 @@ clpqr_meta_list([A|As]) :- !,
         clpqr_meta(A),
         clpqr_meta_list(As).
 
-translate_meta_clp(A.=.B)  => to_rat(A, AR), to_rat(B, BR), {AR =:= BR}.
-translate_meta_clp(A.<>.B) => to_rat(A, AR), to_rat(B, BR), {AR =\= BR}.
-translate_meta_clp(A.<.B)  => to_rat(A, AR), to_rat(B, BR), {AR  <  BR}.
-translate_meta_clp(A.=<.B) => to_rat(A, AR), to_rat(B, BR), {AR =<  BR}.
-translate_meta_clp(A.>.B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
-translate_meta_clp(A.>=.B) => to_rat(A, AR), to_rat(B, BR), {AR  >= BR}.
+translate_meta_clp(A#=B)  => to_rat(A, AR), to_rat(B, BR), {AR =:= BR}.
+translate_meta_clp(A#<>B) => to_rat(A, AR), to_rat(B, BR), {AR =\= BR}.
+translate_meta_clp(A#<B)  => to_rat(A, AR), to_rat(B, BR), {AR  <  BR}.
+translate_meta_clp(A#=<B) => to_rat(A, AR), to_rat(B, BR), {AR =<  BR}.
+translate_meta_clp(A#>B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
+translate_meta_clp(A#>=B) => to_rat(A, AR), to_rat(B, BR), {AR  >= BR}.
 % for bec_light.pl
 translate_meta_clp(A < B)  => to_rat(A, AR), to_rat(B, BR), {AR  <  BR}.
 translate_meta_clp(A > B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
@@ -90,20 +91,20 @@ is_clpq_var(X) :-
     attvar(X),
     clp_type(X, clpq).
 
-apply_clpq_constraints(A .<>. B + C) :-
+apply_clpq_constraints(A #<> B + C) :-
     get_neg_var(A,[Num]),
     number(Num),
     Num is B + C, !.
-apply_clpq_constraints(A .<>. B) :- !,       % JW: Why not simply {A =\= B}?
-    (   apply_clpq_constraints(A .<. B)
-    ;   apply_clpq_constraints(A .>. B)
+apply_clpq_constraints(A #<> B) :- !,       % JW: Why not simply {A =\= B}?
+    (   apply_clpq_constraints(A #< B)
+    ;   apply_clpq_constraints(A #> B)
     ).
 apply_clpq_constraints(Constraints) :-
     clpq_meta(Constraints).
 
 dump_clpq_var([Ground], [NewVar], Constraints) :-
     ground(Ground),
-    Constraints = [NewVar .=. Ground].
+    Constraints = [NewVar #= Ground].
 dump_clpq_var(Var, NewVar, Constraints) :-
     \+ ground(Var),
     clpqr_dump_constraints([Var], [NewVar], Constraints).
@@ -117,22 +118,20 @@ dual_clpq([Init, Next|Is], Dual) :-
         dual_clpq([Next|Is], NextDual),
         Dual = [Init|NextDual]
     ).
-dual_clpq_(A .<. B, A .>=. B).
-dual_clpq_(A .=<. B, A .>. B).
-dual_clpq_(A .>. B, A .=<. B).
-dual_clpq_(A .>=. B, A .<. B).
-dual_clpq_(A .<>. B, A .=. B).
-%dual_clpq_(A .=. B, A .<>. B).
-dual_clpq_(A .=. B, A .>. B).
-dual_clpq_(A .=. B, A .<. B).
+dual_clpq_(A #< B, A #>= B).
+dual_clpq_(A #=< B, A #> B).
+dual_clpq_(A #> B, A #=< B).
+dual_clpq_(A #>= B, A #< B).
+dual_clpq_(A #<> B, A #= B).
+%dual_clpq_(A #= B, A .<>. B).
+dual_clpq_(A #= B, A #> B).
+dual_clpq_(A #= B, A #< B).
 
 
 disequality_clpq(A, B) :-
     \+ is_clpq_var(B), !,
-    (
-        apply_clpq_constraints([A .>. B])
-    ;
-        apply_clpq_constraints([A .<. B])
+    (   apply_clpq_constraints([A #> B])
+    ;   apply_clpq_constraints([A #< B])
     ).
 
 % Success if StoreA >= StoreB
@@ -194,9 +193,9 @@ pretty_print_(A, X) =>
     ;   write(A)
     ).
 
-pretty_op(.<., <).
-pretty_op(.=<., =<).
-pretty_op(.>., >).
-pretty_op(.>=., >=).
-pretty_op(.=., =).
-pretty_op(.\=., \=).
+pretty_op(#<,    <).
+pretty_op(#=<,  =<).
+pretty_op(#>,  >).
+pretty_op(#>=, >=).
+pretty_op(#=,   =).
+pretty_op(#<>, \=).

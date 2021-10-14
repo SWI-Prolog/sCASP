@@ -1,6 +1,5 @@
 :- module(scasp_ops,
-          [ op(700, xfx, [.=., .\=.,.<>.,.<.,.=<.,.>.,.>=.]),
-            op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]),
+          [ op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]),
             op(700, xfx, [::]),
             op(700, xfx, ['| ']),
             op(700, xfx, [~>, <~]),
@@ -30,7 +29,6 @@ term_expansion(scasp_op(Pri, Ass, List), Ops) :-
 
 mkop(Pri, Ass, Op, scasp_op(Pri, Ass, Op)).
 
-scasp_op(700, xfx, [.=., .\=.,.<>.,.<.,.=<.,.>.,.>=.]).
 scasp_op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]).
 scasp_op(700, xfx, [::]).
 scasp_op(700, xfx, ['| ']).

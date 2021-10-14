@@ -53,7 +53,6 @@ This module defines reading sCASP input based on the Prolog parser.
 % `module` option of read_term/3.
 % TBD: Do we need both sets of comparison operators?
 
-:- op(700, xfx, [.=., .\=.,.<>.,.<.,.=<.,.>.,.>=.]).
 :- op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]).
 :- op(900, fy,  not).
 :- op(1200, fx,  #).

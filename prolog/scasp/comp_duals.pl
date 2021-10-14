@@ -212,12 +212,12 @@ dual_goal(#<(A, B), #>=(A,B)).
 dual_goal(#>=(A, B), #<(A,B)).
 dual_goal(#=<(A, B), #>(A,B)).
 % clpq/r
-dual_goal(.=.(A, B), .<>.(A,B)).
-dual_goal(.<>.(A, B), .=.(A,B)).
-dual_goal(.>.(A, B), .=<.(A,B)).
-dual_goal(.<.(A, B), .>=.(A,B)).
-dual_goal(.>=.(A, B), .<.(A,B)).
-dual_goal(.=<.(A, B), .>.(A,B)).
+dual_goal(#=(A, B), #<>(A,B)).
+dual_goal(#<>(A, B), #=(A,B)).
+dual_goal(#>(A, B), #=<(A,B)).
+dual_goal(#<(A, B), #>=(A,B)).
+dual_goal(#>=(A, B), #<(A,B)).
+dual_goal(#=<(A, B), #>(A,B)).
 
 dual_goal(=\=(A, B), =:=(A,B)).
 dual_goal(=:=(A, B), =\=(A,B)).
@@ -229,10 +229,10 @@ dual_goal(@<(A, B), @>=(A,B)).
 dual_goal(@>(A, B), @=<(A,B)).
 dual_goal(@=<(A, B), @>(A,B)).
 dual_goal(@>=(A, B), @<(A,B)).
-%dual_goal(=(A, B), '.\=.'(A,B)).
+%dual_goal(=(A, B), '#<>'(A,B)).
 dual_goal(=(A, B), \=(A,B)).
 dual_goal(\=(A, B), =(A,B)).
-%dual_goal('.\=.'(A, B), =(A,B)).
+%dual_goal('#<>'(A, B), =(A,B)).
 dual_goal(is(A, B), not(is(A,B))). % special case for is
 dual_goal(not(X), X) :-
     predicate(X, _, _),

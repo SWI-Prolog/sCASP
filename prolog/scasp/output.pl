@@ -118,8 +118,7 @@ inline_constraint(_Options, Var) :-
     !,
     var_name(Var, Name),
     sort(0, @>, Constraints, Sorted),
-    maplist(pretty_clp_, Sorted, Pretty),
-    comma_list(Term0, Pretty),
+    comma_list(Term0, Sorted),
     del_attrs(Var),
     replace_var(Var, Name, Term0, Term),
     Var = '| '(Name, {Term}).
@@ -127,13 +126,6 @@ inline_constraint(_Options, Var) :-
     var_name(Var, Name),
     del_attrs(Var),
     Var = Name.
-
-pretty_clp_(.=.(A,B),  '#='(A,B) ).
-pretty_clp_(.<>.(A,B), '#<>'(A,B)).
-pretty_clp_(.<.(A,B),  '#<'(A,B) ).
-pretty_clp_(.>.(A,B),  '#>'(A,B) ).
-pretty_clp_(.=<.(A,B), '#=<'(A,B)).
-pretty_clp_(.>=.(A,B), '#>='(A,B)).
 
 var_name(Var, Name) :-
     ovar_var_name(Var, Name0),
