@@ -478,6 +478,7 @@ actions([H|T], Options) -->
     actions(T, Options).
 
 action(text(S), _) -->
+    !,
     html(S).
 action(Term, Options) -->
     scasp_term(Term, Options).
