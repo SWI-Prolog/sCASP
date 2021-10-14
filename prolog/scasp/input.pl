@@ -101,7 +101,9 @@ term_statements([H|T], Statements, Options) :-
 
 %!  sasp_read(+File, -Statements) is det.
 %
-%   Read File into a list of ASP statements.
+%   Read File into a list of ASP  statements. To facilitate using a file
+%   both as dynamic and stand-alone  file, statements (:- use_module(_))
+%   are ignored.
 
 sasp_read(File, Statements) :-
     sasp_read(File, Statements, []).
@@ -162,6 +164,9 @@ sasp_read_stream(In, Statements, Options) :-
     b_setval('$term_position', Start),
     (   Term == end_of_file
     ->  Statements = []
+    ;   Term = (:- use_module(library(File))),
+        nonvar(File)
+    ->  sasp_read_stream(In, Statements, Options)
     ;   sasp_statement(Term, VarNames, New, Pos, Options),
         add_statements(New, Tail, Statements),
         sasp_read_stream(In, Tail, Options)
