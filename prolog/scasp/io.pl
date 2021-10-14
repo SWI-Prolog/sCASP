@@ -66,7 +66,7 @@ process_query(M:Q, M:Query, M:TotalQuery, VarNames) :-
     revar(Q, A, VarNames),
     (   is_list(A)
     ->  Query = A
-    ;   Query = [A]
+    ;   comma_list(A, Query)
     ),
     retractall(cont),
     (   ground(Query)
