@@ -707,7 +707,7 @@ solve_var_forall_(Goal, M,
     my_copy_vars(C_Vars, [Goal, Prev_Store, C_Stores], C_Vars2, [Goal2, Prev_Store2, C_Stores2]),
 
     apply_const_store(Prev_Store),
-    (   if_user_option(check_calls,format('apply_const_store ~@\n',[print_goal(C_St)])),
+    (   %if_user_option(check_calls,format('apply_const_store ~@\n',[print_goal(C_St)])),
         apply_const_store(C_St) % apply a Dual
     ->  solve([Goal], M, StackIn, [[]|StackOut1], Model1),
         find_duals(C_Vars-C_Vars1, OtherVars, Duals),       %% New Duals
