@@ -662,7 +662,8 @@ solve_other_forall(Goal, M,
                           \t Constraints2 \t~p\n\n",
                           [OtherVars, OtherVars1, Constraints1, Constraints2])),
 
-    apply_const_store(Constraints1),!,
+    apply_const_store(Constraints1),
+    !,
 
     solve_var_forall_(Goal1, M,
                       entry(Vars1, Initial_Const),
