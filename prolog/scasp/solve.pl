@@ -752,7 +752,7 @@ apply_const_store([C|Cs]) :-
 apply_constraint(A \= B) =>
     A .\=. B.
 apply_constraint(A = B) =>
-    A .=. B.
+    A = B.
 apply_constraint(CLPConstraint) =>
     apply_clpq_constraints(CLPConstraint).
 
