@@ -756,10 +756,19 @@ apply_constraint(A = B) =>
 apply_constraint(CLPConstraint) =>
     apply_clpq_constraints(CLPConstraint).
 
+%!  find_duals(+C_VarsPairC_Vars1, +OtherVars, -Duals)
+%
+%   We C_VarsPairC_Vars1 is a Pair   C_Vars-C_Vars1.  Before solve/4, we
+%   copied C_Vars to C_Vars1. This  predicate   is  called after solve/4
+%   succeeds. So, C_Vars contains the  instantiation relative to C_Vars1
+%   created by solve/4.
+%
+%   Our task is to create a dual list of all pending constraints.
+
 find_duals(C_Vars-C_Vars1, OtherVars, Duals) :-
     % disequality and clp for numbers
     dump_constraint(C_Vars, C_Vars1, Dump, []-[], Pending-Pending1), !,
-    clp_vars_in(OtherVars, OtherCLPVars),
+    clp_vars_in(OtherVars, OtherCLPVars),		% clp(Q) vars
     append(Pending, OtherCLPVars, CLPVars),
     append(Pending1, OtherCLPVars, CLPVars1),
     clpqr_dump_constraints(CLPVars, CLPVars1, CLP),
@@ -795,14 +804,17 @@ dual(=(A,B), [\=(A,B)]).
 dual(\=(A,B), [=(A,B)]).
 
 
+%!  dump_constraint(+C_Vars, +C_Vars1, -Dump, +Pending0, -Pending) is det
+%
+%   @arg Dump is a list of V1=B and V1\=B, where V1 is a variable from
+%   C_Vars1.
+%   @arg Pending is a pair of lists with variables from C_Vars and
+%   C_Vars1 that are not processed (in reverse order, why?)
+
+:- det(dump_constraint/5).
 dump_constraint([], [], [], Pending, Pending).
 dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
-    ground(V),
-    \+ number(V), !,
-    dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
-dump_constraint([V|Vs], [V1|V1s], [V1 = V | Vs_Dump], P0, P1) :-
-    ground(V),
-    number(V), !,
+    ground(V), !,
     dump_constraint(Vs, V1s, Vs_Dump, P0, P1).
 dump_constraint([V|Vs], [V1|V1s], Rs_Dump, P0, P1) :-
     get_neg_var(V, List),
@@ -815,7 +827,6 @@ dump_constraint([V|Vs], [V1|V1s], Vs_Dump, PV-PV1, P1) :-
 
 dump_neg_list(_,[],[]) :- !.
 dump_neg_list(V,[L|Ls],[V \= L|Rs]) :- dump_neg_list(V,Ls,Rs).
-
 
 clp_vars_in(Vars, ClpVars) :-
     include(is_clpq_var, Vars, ClpVars).
