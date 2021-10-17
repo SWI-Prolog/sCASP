@@ -17,6 +17,7 @@
 :- use_module(output).
 :- use_module(model).
 :- use_module(html).
+:- use_module(html_text).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
 
@@ -355,16 +356,16 @@ ensure_extension(Base, Ext, File) :-
     file_name_extension(Base, Ext, File).
 
 reply(Query, Bindings, Model, Tree, Options) -->
-    html(\page([],
-               [ \styles(Options),
-                 h4('Query'),
-                 \html_query(Query, Options),
-                 h4('Bindings'),
-                 \html_bindings(Bindings, Options),
-                 \html_model(Model, Options),
-                 \html_justification_tree(Tree, Options),
-                 \scripts(Options)
-               ])).
+    emit_as(\page([],
+                  [ \styles(Options),
+                    h4('Query'),
+                    \html_query(Query, Options),
+                    h4('Bindings'),
+                    \html_bindings(Bindings, Options),
+                    \html_model(Model, Options),
+                    \html_justification_tree(Tree, Options),
+                    \scripts(Options)
+                  ]), html).
 
 styles(Options) -->
     { option(style(false), Options) },
