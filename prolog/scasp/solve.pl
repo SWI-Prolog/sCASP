@@ -26,9 +26,9 @@ solve(M:Goals, StackIn, StackOut, Model) :-
 
 solve([], _, StackIn, [[]|StackIn], []).
 solve([Goal|Goals], M, StackIn, StackOut, Model) :-
-    if_user_option(check_calls, print_check_calls_calling(Goal, StackIn)),
+    verbose(print_check_calls_calling(Goal, StackIn)),
     check_goal(Goal, M, StackIn, StackMid, Modelx), Modelx = [AddGoal|JGoal],
-    if_user_option(check_calls, format('Success ~@\n', [print_goal(Goal)])),
+    verbose(format('Success ~@\n', [print_goal(Goal)])),
     solve(Goals, M, StackMid, StackOut, Modelxs),
     Modelxs = JGoals,
     (   shown_predicate(M:Goal)
@@ -106,7 +106,7 @@ solve_goal(Goal, _, _, _, _) :-
 solve_goal(Goal, M, StackIn, StackOut, Model) :-
     Goal \= [], Goal \= [_|_], Goal \= builtin(_),
     table_predicate(M:Goal),
-    if_user_option(check_calls, format('Solve the tabled goal ~p\n', [Goal])),
+    verbose(format('Solve the tabled goal ~p\n', [Goal])),
     AttStackIn <~ stack([Goal|StackIn]),
     solve_goal_table_predicate(Goal, M, AttStackIn, AttStackOut, AttModel),
     AttStackOut ~> stack(StackOut),
@@ -154,14 +154,12 @@ solve_goal_forall(forall(Var, Goal), M, StackIn, [[]|StackOut], Model) :-
     my_copy_term(Var, Goal, NewVar, NewGoal),
     my_copy_term(Var, Goal, NewVar2, NewGoal2),
     solve([NewGoal], M, StackIn, [[]|StackMid], ModelMid),
-    if_user_option(check_calls,
-                   format('\tSuccess solve ~@\n\t\t for the ~@\n',
-                          [print_goal(NewGoal), print_goal(forall(Var, Goal))])),
+    verbose(format('\tSuccess solve ~@\n\t\t for the ~@\n',
+                   [print_goal(NewGoal), print_goal(forall(Var, Goal))])),
     check_unbound(NewVar, List),
     (   List == ground
-    ->  if_user_option(check_calls,
-                       format('The var ~p is grounded so try with other clause\n',
-                              [NewVar])),
+    ->  verbose(format('The var ~p is grounded so try with other clause\n',
+                       [NewVar])),
         fail
     ;   List == []
     ->  StackOut = StackMid,
@@ -170,17 +168,15 @@ solve_goal_forall(forall(Var, Goal), M, StackIn, [[]|StackOut], Model) :-
     ->  findall(dual(NewVar3, ConDual),
                 dual_clpq(Constraints, ConDual),
                 DualList),
-        if_user_option(check_calls,
-                       format('Executing ~@ with clpq ConstraintList = ~p\n',
-                              [print_goal(Goal), DualList])),
+        verbose(format('Executing ~@ with clpq ConstraintList = ~p\n',
+                       [print_goal(Goal), DualList])),
         exec_with_clpq_constraints(NewVar2, NewGoal2,
                                    entry(NewVar3, []),
                                    DualList, StackMid, StackOut, ModelList), !,
         append(ModelMid, ModelList, Model)
     ;   !,   %% Position of the cut in s(CASP) - remove answers in max.lp
-        if_user_option(check_calls,
-                       format('Executing ~@ with clp_disequality list = ~p\n',
-                              [print_goal(Goal), List])),
+        verbose(format('Executing ~@ with clp_disequality list = ~p\n',
+                       [print_goal(Goal), List])),
         exec_with_neg_list(NewVar2, NewGoal2,
                            List, StackMid, StackOut, ModelList),
         append(ModelMid, ModelList, Model)
@@ -207,42 +203,36 @@ exec_with_clpq_constraints(Var, Goal, entry(ConVar, ConEntry),
     my_copy_term(ConVar, ConEntry, ConVar02, ConEntry02),
     Var01 = ConVar,
     (   apply_clpq_constraints(Con)
-    ->  if_user_option(check_calls,
-                       format('Executing ~p with clpq_constrains ~p\n',
-                              [Goal01, Con])),
+    ->  verbose(format('Executing ~p with clpq_constrains ~p\n',
+                       [Goal01, Con])),
         solve([Goal01], StackIn01, [[]|StackOut01], Model01),
-        if_user_option(check_calls,
-                       format('Success executing ~p with constrains ~p\n',
-                              [Goal01, Con])),
-        if_user_option(check_calls,
-                       format('Check entails Var = ~p with const ~p and ~p\n',
-                              [Var01, ConVar01, Con01])),
+        verbose(format('Success executing ~p with constrains ~p\n',
+                       [Goal01, Con])),
+        verbose(format('Check entails Var = ~p with const ~p and ~p\n',
+                       [Var01, ConVar01, Con01])),
         (   entails([Var01], ([ConVar01], Con01))
-        ->  if_user_option(check_calls, format('\tOK\n', [])),
+        ->  verbose(format('\tOK\n', [])),
             StackOut02 = StackOut01,
             Model03 = Model01
-        ;   if_user_option(check_calls, format('\tFail\n', [])),
+        ;   verbose(format('\tFail\n', [])),
             dump_clpq_var([Var01], [ConVar01], ExitCon),
             findall(dual(ConVar01, ConDual01),
                     dual_clpq(ExitCon, ConDual01),
                     DualList),
-            if_user_option(check_calls,
-                           format('Executing ~p with clpq ConstraintList = ~p\n',
-                                  [Goal, DualList])),
+            verbose(format('Executing ~p with clpq ConstraintList = ~p\n',
+                           [Goal, DualList])),
             exec_with_clpq_constraints(Var, Goal, entry(ConVar01, Con01),
                                        DualList, StackOut01, StackOut02, Model02),
             append(Model01, Model02, Model03)
         )
-    ;   if_user_option(check_calls,
-                       format('Skip execution of an already checked \c
-                              constraint ~p (it is inconsitent with ~p)\n',
-                              [ConDual, ConEntry])),
+    ;   verbose(format('Skip execution of an already checked \c
+                        constraint ~p (it is inconsitent with ~p)\n',
+                       [ConDual, ConEntry])),
         StackOut02 = StackIn01,
         Model03 = []
     ),
-    if_user_option(check_calls,
-                   format('Executing ~p with clpq ConstraintList = ~p\n',
-                          [Goal, Duals])),
+    verbose(format('Executing ~p with clpq ConstraintList = ~p\n',
+                   [Goal, Duals])),
     exec_with_clpq_constraints(Var02, Goal02,
                                entry(ConVar02, ConEntry02),
                                Duals, StackOut02, StackOut, Model04),
@@ -252,12 +242,10 @@ exec_with_neg_list(_, _, [], StackIn, StackIn, []).
 exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
     my_copy_term(Var, [Goal, StackIn], NewVar, [NewGoal, NewStackIn]),
     NewVar = Value,
-    if_user_option(check_calls,
-                   format('Executing ~p with value ~p\n', [NewGoal, Value])),
+    verbose(format('Executing ~p with value ~p\n', [NewGoal, Value])),
     solve([NewGoal], NewStackIn, [[]|NewStackMid], ModelMid),
-    if_user_option(check_calls,
-                   format('Success executing ~p with value ~p\n',
-                          [NewGoal, Value])),
+    verbose(format('Success executing ~p with value ~p\n',
+                   [NewGoal, Value])),
     exec_with_neg_list(Var, Goal, Vs, NewStackMid, StackOut, Models),
     append(ModelMid, Models, Model).
 
@@ -317,17 +305,16 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Model = [Goal].
 % The predicate is not defined as user_predicates neither builtin
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
-    if_user_option(check_calls,
-                   format('The predicate ~p is not user_defined / builtin\n', [Goal])),
+    verbose(format('The predicate ~p is not user_defined / builtin\n', [Goal])),
     (   Goal = not(_)
     ->  Model = [Goal] %% the negation of a not defined predicate success.
     ;   fail %% a not defined predicate allways fails.
     ).
 
 exec_goal(A \= B) :- !,
-    if_user_option(check_calls, format('exec ~@\n', [print_goal(A \= B)])),
+    verbose(format('exec ~@\n', [print_goal(A \= B)])),
     A .\=. B,
-    if_user_option(check_calls, format('ok   ~@\n', [print_goal(A \= B)])).
+    verbose(format('ok   ~@\n', [print_goal(A \= B)])).
 exec_goal(Goal) :-
     (   current_option(check_calls, on)
     ->  E = error(_,_),
@@ -349,7 +336,7 @@ capture_rational(A, A) :- ground(A).
 % TODO: Peding StackOut to carry the literal involved in the findall (if needed)
 exec_findall(findall(Var, Call, List), M, StackIn, StackOut, Model) :-
 
-    if_user_option(check_calls, format('execution of findall(~p, ~p, _) \n', [Var, Call])),
+    verbose(format('execution of findall(~p, ~p, _) \n', [Var, Call])),
 
     findall(t(Var, S, M), (
             solve([Call], M, StackIn, S0, M),
@@ -359,7 +346,7 @@ exec_findall(findall(Var, Call, List), M, StackIn, StackOut, Model) :-
     process_vsmlist(VSMList, List, SOut, Model),
     append(SOut, [findall(Var, Call, List)|StackIn], StackOut),
 
-    if_user_option(check_calls, format('Result execution = ~p \n', [List])).
+    verbose(format('Result execution = ~p \n', [List])).
 
 process_vsmlist(VSMList, List, [[]|StackOut], Model) :-
     process_vsmlist_(VSMList, List, StackOut, Model).
@@ -372,7 +359,7 @@ process_vsmlist_([t(V, [[]|S], M)|Rs], [V|Vs], S1, M1) :-
 
 % TODO: What to do with the negation of findall/3 (if required)
 exec_neg_findall(Goal, _, _) :-
-    if_user_option(check_calls, format('PENDING: execution of not ~p \n', [Goal])),
+    verbose(format('PENDING: execution of not ~p \n', [Goal])),
     fail.
 
 
@@ -400,7 +387,7 @@ check_CHS_(Goal, _, I, co_success) :-
 % call stack
 check_CHS_(Goal, _, I, co_failure) :-
     \+ \+ neg_in_stack(Goal, I), !,
-    if_user_option(check_calls, format('Negation of the goal in the stack, failling (Goal = ~w)\n', [Goal])).
+    verbose(format('Negation of the goal in the stack, failling (Goal = ~w)\n', [Goal])).
 % coinduction fails <- cycles containing positive loops can be solve
 % using tabling
 check_CHS_(Goal, M, I, co_failure) :-
@@ -408,14 +395,14 @@ check_CHS_(Goal, M, I, co_failure) :-
     if_user_option(no_fail_loop, fail),
     \+ \+ (
         type_loop(Goal, I, fail_pos(S)),
-        if_user_option(check_calls, format('Positive loop, failling (Goal == ~w)\n', [Goal])),
+        verbose(format('Positive loop, failling (Goal == ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w == ~w)\n', [Goal, S]))
     ), !.
 check_CHS_(Goal, M, I, _Cont) :-
     \+ table_predicate(M:Goal),
     \+ \+ (
         type_loop(Goal, I, pos(S)),
-        if_user_option(check_calls, format('Positive loop, continuing (Goal = ~w)\n', [Goal])),
+        verbose(format('Positive loop, continuing (Goal = ~w)\n', [Goal])),
         if_user_option(pos_loops, format('\nNote: positive loop continuing (Goal ~w = ~w)\n', [Goal, S]))
     ), fail.
 % coinduction does not succeed or fail <- the execution continues inductively
@@ -456,12 +443,12 @@ neg_in_stack(Goal, [_|Ss]) :-
 
 % ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
-    if_user_option(check_calls, format('Enter ground_neg_in_stack for ~@\n',
+    verbose(format('Enter ground_neg_in_stack for ~@\n',
                                        [print_goal(Goal)])),
     ground_neg_in_stack_(Goal, S, 0, 0, Flag),
     Flag == found,
     %       ( Flag == found_dis ; Flag == found_clpq ),
-    if_user_option(check_calls, format('\tThere exit the negation of ~@\n\n',
+    verbose(format('\tThere exit the negation of ~@\n\n',
                                        [print_goal(Goal)])).
 
 ground_neg_in_stack_(_, [], _, _, _Flag) :- !.
@@ -471,9 +458,8 @@ ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
 ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
     same_functor(Goal, NegGoal), % limit output
-    if_user_option(check_calls,
-                   format('\t\tCheck disequality of ~@ and ~@\n',
-                          [print_goal(Goal), print_goal(chs(not(NegGoal)))])),
+    verbose(format('\t\tCheck disequality of ~@ and ~@\n',
+                   [print_goal(Goal), print_goal(chs(not(NegGoal)))])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
     NewMaxInter is max(Intervening, MaxInter),
@@ -482,9 +468,8 @@ ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found)
 ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
     same_functor(Goal, NegGoal),
-    if_user_option(check_calls,
-                   format('\t\tCheck disequality of ~@ and ~@\n',
-                          [print_goal(not(Goal)), print_goal(chs(NegGoal))])),
+    verbose(format('\t\tCheck disequality of ~@ and ~@\n',
+                   [print_goal(not(Goal)), print_goal(chs(NegGoal))])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
     NewMaxInter is max(Intervening, MaxInter),
@@ -493,9 +478,8 @@ ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found)
 ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
     Intervening =< MaxInter,
     same_functor(Goal, NegGoal),
-    if_user_option(check_calls,
-                   format('\t\tCheck disequality of ~@ and ~@\n',
-                          [print_goal(not(Goal)), print_goal(NegGoal)])),
+    verbose(format('\t\tCheck disequality of ~@ and ~@\n',
+                   [print_goal(not(Goal)), print_goal(NegGoal)])),
     \+ \+ Goal = NegGoal,
     loop_term(Goal, NegGoal), !,
     NewMaxInter is max(Intervening, MaxInter),
@@ -511,19 +495,17 @@ ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
 constrained_neg_in_stack(_, []).
 constrained_neg_in_stack(not(Goal), [NegGoal|Ss]) :-
     same_functor(Goal, NegGoal),
-    if_user_option(check_calls,
-                   format('\t\tCheck if not(~@) is consistent with ~@\n',
-                          [print_goal(Goal), print_goal(NegGoal)])), !,
+    verbose(format('\t\tCheck if not(~@) is consistent with ~@\n',
+                   [print_goal(Goal), print_goal(NegGoal)])), !,
     loop_term(Goal, NegGoal), !,
-    if_user_option(check_calls, format('\t\tOK\n', [])),
+    verbose(format('\t\tOK\n', [])),
     constrained_neg_in_stack(not(Goal), Ss).
 constrained_neg_in_stack(Goal, [not(NegGoal)|Ss]) :-
     same_functor(Goal, NegGoal),
-    if_user_option(check_calls,
-                   format('\t\tCheck if not(~@) is consistent with ~@\n',
-                          [print_goal(Goal), print_goal(NegGoal)])), !,
+    verbose(format('\t\tCheck if not(~@) is consistent with ~@\n',
+                   [print_goal(Goal), print_goal(NegGoal)])), !,
     loop_term(Goal, NegGoal), !,
-    if_user_option(check_calls, format('\t\tOK\n', [])),
+    verbose(format('\t\tOK\n', [])),
     constrained_neg_in_stack(Goal, Ss).
 constrained_neg_in_stack(Goal, [_|Ss]) :-
     constrained_neg_in_stack(Goal, Ss).
@@ -533,9 +515,8 @@ constrained_neg_in_stack(Goal, [_|Ss]) :-
 % proved_in_stack
 proved_in_stack(Goal, S) :-
     proved_in_stack_(Goal, S, 0, -1),
-    if_user_option(check_calls,
-                   format('\tGoal ~@ is already in the stack\n',
-                          [print_goal(Goal)])).
+    verbose(format('\tGoal ~@ is already in the stack\n',
+                   [print_goal(Goal)])).
 
 proved_in_stack_(Goal, [Top|Ss], Intervening, MaxInter) :-
     (   Top == []
@@ -614,7 +595,7 @@ type_loop_fail_pos(Goal, S) :-
 solve_c_forall(Forall, M, StackIn, [[]|StackOut], Model) :-
     collect_vars(Forall, c_forall(Vars0, Goal0)),    % c_forall([F,G], not q_1(F,G))
 
-    if_user_option(check_calls,format('\nc_forall(~p,\t~p)\n\n',[Vars0, Goal0])),
+    verbose(format('\nc_forall(~p,\t~p)\n\n',[Vars0, Goal0])),
 
     my_copy_vars(Vars0, Goal0, Vars1, Goal1),        % Vars should remain free
     my_diff_term(Goal1, Vars1, OtherVars),
@@ -640,8 +621,7 @@ solve_other_forall(Goal, M,
     my_copy_vars(AllVars, [Goal,StackIn,OtherVars,Vars],
                  _AllVars2, [Goal2,StackIn2,OtherVars2,Vars2]),
 
-    if_user_option(check_calls,
-                   format("solve other forall:\n\c
+    verbose(format("solve other forall:\n\c
                            \t Goal \t~p\n\c
                            \t Vars1       \t~p\n\c
                            \t OtherVars   \t~p\n\c
@@ -654,8 +634,7 @@ solve_other_forall(Goal, M,
     append(CLP, Dump, Constraints1),
     my_copy_vars(OtherVars1, Constraints1, OtherVars2, Constraints2),
 
-    if_user_option(check_calls,
-                   format("solve other forall:\n\c
+    verbose(format("solve other forall:\n\c
                           \t OtherVars1   \t~p\n\c
                           \t OtherVars2   \t~p\n\c
                           \t Constraints1   \t~p\n\c
@@ -695,8 +674,7 @@ solve_var_forall_(Goal, M,
                   entry(C_Vars, Prev_Store),
                   dual(C_Vars, [C_St|C_Stores]),
                   OtherVars, StackIn, StackOut, Model) :-
-    if_user_option(check_calls,
-                   format("solve forall:\n\c
+    verbose(format("solve forall:\n\c
                           \tPrev_Store \t~p\n\c
                           \tC_St       \t~p\n\c
                           \tC_Stores   \t~p\n\c
@@ -707,19 +685,19 @@ solve_var_forall_(Goal, M,
     my_copy_vars(C_Vars, [Goal, Prev_Store, C_Stores], C_Vars2, [Goal2, Prev_Store2, C_Stores2]),
 
     apply_const_store(Prev_Store),
-    (   %if_user_option(check_calls,format('apply_const_store ~@\n',[print_goal(C_St)])),
+    (   %verbose(format('apply_const_store ~@\n',[print_goal(C_St)])),
         apply_const_store(C_St) % apply a Dual
     ->  solve([Goal], M, StackIn, [[]|StackOut1], Model1),
         find_duals(C_Vars-C_Vars1, OtherVars, Duals),       %% New Duals
-        if_user_option(check_calls,format('Duals = \t ~p\n',[Duals])),
+        verbose(format('Duals = \t ~p\n',[Duals])),
         append_set(Prev_Store1, C_St1, Current_Store1),
         solve_var_forall_(Goal1, M,
                           entry(C_Vars1, Current_Store1),
                           dual(C_Vars1, Duals),
                           OtherVars, StackOut1, StackOut2, Model2),
         append(Model1,Model2,Model3)
-    ;   if_user_option(check_calls,format('Entail: Fail  applying \t ~@\n',
-                                         [print_goal(C_St)])),
+    ;   verbose(format('Entail: Fail  applying \t ~@\n',
+                       [print_goal(C_St)])),
         %% The dual C_St is not consistent with Prev_Store -> already checked (entails)
         StackOut2 = StackIn,
         Model3 = []

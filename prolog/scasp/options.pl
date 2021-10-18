@@ -39,7 +39,6 @@ set_options(Options) :-
 set_default_options :-
     retractall(current_option(_, _)),
     set(answers,-1),
-    set(verbose,0),
     set(unicode,true).
 
 set_default_tree_options :-
@@ -169,6 +168,9 @@ if_user_option(Name, Call) :-
 %
 %   Used to set-up the user options
 
+set(check_calls, On) :-
+    !,
+    set_prolog_flag(scasp_verbose, On).
 set(Option, Value) :-
     retractall(current_option(Option, _)),
     assert(current_option(Option,Value)).
