@@ -127,6 +127,15 @@ unqualify_model(Model0, Module, Model) :-
 %
 %     - width(Width)
 %       Assumed terminal width.  Default from tty_size/2 or 80.
+%
+%   Model terms are printed in columns. E.g., for  a 10 atom model and 4
+%   columns we get:
+%
+%   ```
+%      1  4  7  10
+%      2  5  8
+%      3  6  9
+%   ```
 
 print_model(Model, Options) :-
     model_hook(Model, Options),
@@ -151,17 +160,24 @@ print_table(I, Array, Layout) :-
     Row is I // Cols,
     Col is I mod Cols,
     Index is Row + Col * Rows + 1,
-    (   (I+1) mod Cols =:= 0
-    ->  NL = true
-    ;   NL = false
-    ),
-    (   Row+1 =:= Rows,
+
+    % If the next index is outside, we need a newline.  If we are
+    % also on the last row we have the very last element
+    (   NIndex is Row + (Col+1) * Rows + 1,
         functor(Array, _, LastIndex),
-        LastCol is LastIndex - (Rows-1)*Cols,
-        Col+1 =:= LastCol
-    ->  Last = true
-    ;   Last = false
+        NIndex =< LastIndex
+    ->  NL = false,
+        Last = false
+    ;   NL = true,
+        (   Row+1 =:= Rows
+        ->  Last = true
+        ;   Last = false
+        )
     ),
+
+    % If we are not the last on the line and not the last, print the
+    % cell, padding to the column with and followed by a separator (,)
+    % Else we print withput padding either a separator or the end.
     (   arg(Index, Array, Atom)
     ->  (   NL == false,
             Last == false
@@ -171,17 +187,21 @@ print_table(I, Array, Layout) :-
         ;   Last == false
         ->  format('~@~w', [print_model_term(Atom, Layout.options), Layout.sep])
         ;   format('~@~w', [print_model_term(Atom, Layout.options), Layout.end])
-        )
+        ),
+        Print = true
     ;   true
     ),
-    (   I2 is I+1,
-        I2 < Cols*Layout.rows
-    ->  (   NL == true
+
+    % Emit a newline if this is the last one on the line and we printed this
+    % cell.
+    (   Last == true
+    ->  true
+    ;   (   Print == true, NL == true
         ->  format('~n~w', [Layout.prefix])
         ;   true
         ),
+        I2 is I+1,
         print_table(I2, Array, Layout)
-    ;   true
     ).
 
 layout(Atoms, Width, _{cols:Cols, rows:Rows, col_width:ColWidth}) :-

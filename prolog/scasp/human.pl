@@ -34,15 +34,20 @@
 :- module(scasp_just_human,
           [ human_justification_tree/2, % :Tree, +Options
             human_model/2,              % :Model, +Options
-            human_query/2               % :Query, +Options
+            human_query/2,              % :Query, +Options
+            human_predicate/2,          % :Rule, +Options
+            human_rule/2                % :Rule, +Options
           ]).
 :- use_module(html).
 :- use_module(html_text).
+:- use_module(library(http/html_write)).
 
 :- meta_predicate
     human_justification_tree(:, +),
     human_model(:, +),
-    human_query(:, +).
+    human_query(:, +),
+    human_predicate(:, +),
+    human_rule(:, +).
 
 /** <module> Print s(CASP) output in human language
 
@@ -123,6 +128,46 @@ human_query(M:Query, Options) :-
 emit_query(Query, Options) -->
     emit_as(\html_query(Query, Options),
             plain).
+
+
+		 /*******************************
+		 *           PROGRAM		*
+		 *******************************/
+
+%!  human_predicate(Clauses, Options)
+%
+%
+
+human_predicate(Clauses, Options) :-
+    human_text(\html_predicate(Clauses, Options)).
+
+%!  human_rule(:Rule, +Options)
+
+human_rule(M:Rule, Options) :-
+    phrase(emit_rule(Rule,
+                     [ module(M)
+                     | Options
+                     ]), Tokens0),
+    fixup_layout(Tokens0, Tokens),
+    print_message_lines(current_output, '', Tokens).
+
+:- det(emit_rule//2).
+
+emit_rule(Rule, Options) -->
+    emit_as(\html_rule(Rule, Options),
+            plain).
+
+
+:- html_meta
+    human_text(html).
+
+human_text(Rule) :-
+    phrase(emit_as(Rule, plain), Tokens0),
+    fixup_layout(Tokens0, Tokens),
+    print_message_lines(current_output, '', Tokens).
+
+
+
 
 
 		 /*******************************

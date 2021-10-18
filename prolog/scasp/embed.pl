@@ -48,7 +48,6 @@
             op(900, fy, not)
           ]).
 :- use_module(ops).
-:- use_module(io).
 :- use_module(input).
 :- use_module(compile).
 :- use_module(predicates).
@@ -56,6 +55,7 @@
 :- use_module(model).
 :- use_module(stack).
 :- use_module(options).
+:- use_module(listing).
 
 :- use_module(library(apply)).
 :- use_module(library(error)).
@@ -311,11 +311,11 @@ link_clause(Module, Exports, Head,
 :- public scasp_call/1.
 
 scasp_call(Query) :-
-    process_query(Query, _, Query1),
+    scasp_compile_query(Query, Compiled, []),
     scasp_stack(StackIn),
-    solve(Query1, StackIn, StackOut, Model),
+    solve(Compiled, StackIn, StackOut, Model),
     save_model(Model),
-    Query1 = M:_,                       % TBD: Properly handle the module
+    Compiled = M:_,                       % TBD: Properly handle the module
     save_stack(M:StackOut).
 
 %!  not(:Query)

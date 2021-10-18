@@ -321,8 +321,7 @@ scasp_test(Args, Stacks-Models) :-
     parse_args(Args, Options, Sources),
     set_options(Options),
     scasp_load(Sources, [undefined(silent)]),
-    scasp_query(Q),
-    process_query(Q, _, Query),
+    scasp_query(Query, _Bindings, []),
     findall(
         Stack-Model,
         ( solve(Query, [], StackOut, ModelOut),

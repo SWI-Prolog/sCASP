@@ -2,7 +2,9 @@
           [ html_justification_tree//2,		% :Tree, +Options
             html_model//2,			% :Model, +Options
             html_bindings//2,                   % :Bindings, +Options
-            html_query//2                       % :Query, +Options
+            html_query//2,                      % :Query, +Options
+            html_predicate//2,                  % :Predicate, +Options
+            html_rule//2                        % :Rule, +Options
           ]).
 :- use_module(common).
 :- use_module(output).
@@ -17,7 +19,9 @@
 :- meta_predicate
     html_model(:, +, ?, ?),
     html_justification_tree(:, +, ?, ?),
-    html_query(:, +, ?, ?).
+    html_query(:, +, ?, ?),
+    html_predicate(:, +, ?, ?),
+    html_rule(:, +, ?, ?).
 
 :- multifile user:file_search_path/2.
 
@@ -169,24 +173,45 @@ connect_binding(_Options) -->
 
 %!  html_query(:Query, +Options)//
 %
-%   Emit the query.
+%   Emit the query. This rule accepts  the   query  both  in s(CASP) and
+%   normal Prolog notation.
 
 :- det(html_query//2).
 
 html_query(M:Query, Options) -->
-    { delete(Query, o_nmr_check, Query1),
-      comma_list(Body, Query1)
+    { (   is_list(Query)
+      ->  prolog_query(Query, Prolog)
+      ;   Prolog = Query
+      ),
+      !,
+      comma_list(Prolog, List0),
+      clean_query(List0, List)
     },
     emit(div(class('scasp-query'),
              [ div(class(human),
                    [ div(class('scasp-query-title'),
                          'I would like to know if'),
-                     \query_terms(Query1, [module(M)|Options])
+                     \query_terms(List, [module(M)|Options])
                    ]),
                div(class(machine),
-                   [ '?- ', \term(Body, [numbervars(true)|Options])
+                   [ '?- ', \term(Prolog, [numbervars(true)|Options])
                    ])
              ])).
+html_query(_, _) -->
+    emit(div(class(comment), '% No query')).
+
+prolog_query([not(o_false)], _) =>
+    fail.
+prolog_query(List, Query), is_list(List) =>
+    clean_query(List, List1),
+    (   List1 == []
+    ->  Query = true
+    ;   comma_list(Query, List1)
+    ).
+
+clean_query(Q0, Q) :-
+    delete(Q0, o_nmr_check, Q1),
+    delete(Q1, true, Q).
 
 query_terms([], Options) -->
     query_term(true, Options).
@@ -195,14 +220,61 @@ query_terms([H1,H2|T], Options) -->
     query_term(H1, [connect(and)|Options]),
     query_terms([H2|T], Options).
 query_terms([Last], Options) -->
-    !,
-    query_term(Last, [connect(?)|Options]).
+    { option(end(End), Options, ?)
+    },
+    query_term(Last, [connect(End)|Options]).
 
 query_term(Term, Options) -->
     emit(div(class('scasp-query-literal'),
              [ \atom(Term, Options),
                \connect(Options)
              ])).
+
+%!  html_predicate(:Rules, Options)//
+
+html_predicate(M:Clauses, Options) -->
+    emit(div(class('scasp-predicate'),
+             \sequence(html_rule_r(M, Options), Clauses))).
+
+html_rule_r(M, Options, Clause) -->
+    html_rule(M:Clause, Options).
+
+%!  html_rule(:Rule, +Options)//
+
+html_rule(Rule, Options) -->
+    { ovar_analyze_term(Rule) },
+    html_rule_(Rule, Options),
+    { ovar_clean(Rule) }.
+
+html_rule_(M:(Head :- Body), Options) -->
+    !,
+    { MOptions = [module(M)|Options]
+    },
+    emit(div(class('scasp-rule'),
+             [ div(class('scasp-head'),
+                   [ \atom(Head, MOptions),
+                     ', if'
+                   ]),
+               div(class('scasp-body'),
+                   \html_body(Body, [end(.)|MOptions]))
+             ])).
+html_rule_(M:Head, Options) -->
+    emit(div(class('scasp-rule'),
+             div(class('scasp-head'),
+                 [ \atom(Head, [module(M)|Options]),
+                   \connector('.', Options)
+                 ]))).
+
+html_body(forall(X, not(Goal)), Options) -->
+    !,
+    emit(div(class('scasp-query-literal'),
+             [ 'there exist no ', \scasp_term(X, Options),
+               ' for which ', \atom(Goal, Options)
+             ])).
+html_body(Body, Options) -->
+    { comma_list(Body, List) },
+    query_terms(List, Options).
+
 
 
 %!  atom(+SCASPAtom, +Options)//
@@ -511,6 +583,9 @@ connector(implies, _Options) -->
 connector(?, _Options) -->
     emit([ span(class(human), '?'),
            span(class(machine), '.')
+         ]).
+connector(., _Options) -->
+    emit([ span(class('full-stop'), '.')
          ]).
 
 full_stop(_Options) -->

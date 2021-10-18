@@ -127,19 +127,20 @@ emit(div(Attrs, Content), M) -->
     !,
     [indent(3)],
     emit(Content, M),
-    [indent(-3), nl1].
+    [indent(-3), nl(1)].
 emit(div(Attrs, Content), M) -->
     !,
+    classes_pre_lines(Attrs),
     (   classes_bullet(Attrs)
     ->  emit(Content, M),
         [bullet(pop)]
     ;   emit(Content, M)
     ),
-    [nl1].
+    [nl(1)].
 emit(div(Content), M) -->
     !,
     emit(Content, M),
-    [nl1].
+    [nl(1)].
 emit(ul(_Attrs, LIs), M) -->
     !,
     [indent(3)],
@@ -149,12 +150,12 @@ emit(li(_Attrs, Content), M) -->
     !,
     [bullet],
     emit(Content, M),
-    [nl1].
+    [nl(1)].
 emit(li(Content), M) -->
     !,
     [bullet],
     emit(Content, M),
-    [nl1].
+    [nl(1)].
 emit(Fmt-Args, _M) -->
     !,
     [ Fmt-Args ].
@@ -184,6 +185,13 @@ classes_bullet(Attrs) -->
     { has_class(Attrs, 'scasp-justification') },
     !,
     [ bullet('') ].
+
+classes_pre_lines(Attrs) -->
+    { has_class(Attrs, 'scasp-predicate') },
+    !,
+    [ nl(1) ].
+classes_pre_lines(_) -->
+    [].
 
 has_class(Attrs, Class) :-
     classes(Attrs, Classes),
@@ -219,13 +227,18 @@ classes_ansi_map([pos],     [bold]).
 :- det(fixup_layout/2).
 
 fixup_layout(Tokens, Final) :-
-    fixup_layout(Tokens, Final, #{indent:0, ansi:[], ansi_stack:[], bullet:['\u2022']}).
+    fixup_layout(Tokens, Final,
+                 #{ indent:0,
+                    ansi:[], ansi_stack:[],
+                    bullet:['\u2022']
+                  }).
 
 fixup_layout([], [], _).
-fixup_layout([nl1|T0], [nl|T], State) :-
+fixup_layout([nl(Lines0)|T0], Final, State) :-
     !,
     Indent0 = State.indent,
-    skip_nl1(T0, T1, Indent0, Indent),
+    join_blank_lines(T0, T1, Indent0, Indent, Lines0, Lines),
+    skip_lines(Lines, Final, T),
     (   T1 == []
     ->  T = []
     ;   Indent > 0
@@ -275,17 +288,31 @@ fixup_element(Fmt-Args, ansi(Ansi, Fmt, Args), Ansi) :-
     !.
 fixup_element(E, E, _).
 
-skip_nl1([nl1|T0], T, I0, I) :-
+%!  join_blank_lines(+Tokens, -RestTokens,
+%                    +Indent0, -Indent, +Lines0, -Lines) is det.
+%
+%   Deal with a sequence of nl(N) and indent(Incr) tokens, computing the
+%   next relevant indentation and the number of newlines to insert.
+
+join_blank_lines([nl(N)|T0], T, I0, I, Lines0, Lines) :-
     !,
-    skip_nl1(T0, T, I0, I).
-skip_nl1([indent(N)|T0], T, I0, I) :-
+    Lines1 is max(N, Lines0),
+    join_blank_lines(T0, T, I0, I, Lines1, Lines).
+join_blank_lines([indent(N)|T0], T, I0, I, Lines0, Lines) :-
     !,
     I1 is I0+N,
-    skip_nl1(T0, T, I1, I).
-skip_nl1(L, L, I, I).
+    join_blank_lines(T0, T, I1, I, Lines0, Lines).
+join_blank_lines(L, L, I, I, Lines, Lines).
 
 indent(I, [Spaces|T], T) :-
     I > 0,
     !,
     format(atom(Spaces), '~t~*|', [I]).
 indent(_, L, L).
+
+skip_lines(N, [nl|L0], L) :-
+    succ(N1, N),
+    !,
+    skip_lines(N1, L0, L).
+skip_lines(_, L, L).
+

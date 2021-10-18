@@ -26,10 +26,17 @@
 */
 
 :- module(scasp_compile,
-          [ scasp_load/2,        % :Sources, +Options
-            scasp_compile/2,     % :Terms, +Options
-            scasp_query/1        % :Query
+          [ scasp_load/2,          % :Sources, +Options
+            scasp_compile/2,       % :Terms, +Options
+            scasp_compile_query/3, % :Goal,-Query,+Options
+            scasp_query/1,         % :Query
+            scasp_query/3          % :Query, -Bindings, +Options
           ]).
+:- use_module(library(error)).
+:- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(prolog_code)).
+:- use_module(predicates).
 
 /** <module> s(ASP) Ungrounded Stable Models Solver
 
@@ -47,11 +54,13 @@ results.
 :- use_module(comp_duals).
 :- use_module(nmr_check).
 :- use_module(pr_rules).
+:- use_module(variables).
 
 :- meta_predicate
     scasp_load(:, +),
     scasp_compile(:, +),
-    scasp_query(:).
+    scasp_query(:),
+    scasp_query(:, -, +).
 
 %!  scasp_load(:Sources, +Options)
 %
@@ -66,6 +75,7 @@ results.
 %
 %   @arg Sources A list of paths of input files.
 
+:- det(scasp_load/2).
 scasp_load(M:Spec, Options) :-
     to_list(Spec, Sources),
     call_cleanup(
@@ -81,7 +91,6 @@ scasp_load_guarded(M:Sources, Options) :-
     load_source_files(Sources),
     comp_duals,
     generate_nmr_check,
-    debug(scasp(compile), 'SASP step of input program complete.', []),
     generate_pr_rules(M:Sources, Options).
 
 %!  scasp_compile(:Terms, +Options) is det.
@@ -97,8 +106,46 @@ scasp_compile_guarded(M:Terms, Options) :-
     scasp_load_terms(Terms, Options),
     comp_duals,
     generate_nmr_check,
-    debug(scasp(compile), 'SASP step of input program complete.', []),
     generate_pr_rules(M:_Sources, Options). % ignored anyway
+
+%!  scasp_compile_query(:Goal, -Query, +Options) is det.
+
+scasp_compile_query(M:Goal, M:Query, Options) :-
+    conj_to_list(Goal, Q0),
+    maplist(capture_classical_neg, Q0, Q1),
+    add_nmr(Q1, Query, Options),
+    maplist(check_existence(M), Query).
+
+conj_to_list(true, []) :-
+    !.
+conj_to_list(Conj, List) :-
+    comma_list(Conj, List).
+
+capture_classical_neg(-S, N) =>
+    S =.. [Name|Args],
+    atom_concat('-', Name, NegName),
+    N =.. [NegName|Args].
+capture_classical_neg(S0, S) =>
+    S = S0.
+
+add_nmr(Q0, Q, Options) :-
+    option(nmr(false), Options),
+    Q = Q0.
+add_nmr(Q0, Q, _Options) :-
+    append(Q0, [o_nmr_check], Q).
+
+check_existence(M, G) :-
+    shown_predicate(M:G),
+    !.
+check_existence(_, G) :-
+    scasp_pi(G, PI),
+    existence_error(scasp_predicate, PI).
+
+scasp_pi(not(G), PI) :-
+    !,
+    scasp_pi(G, PI).
+scasp_pi(G, PI) :-
+    pi_head(PI, G).
 
 %!  scasp_query(:Query) is det.
 %
@@ -112,3 +159,26 @@ scasp_query(M:_Query) :-
     existence_error(scasp_query, M).
 scasp_query(M:Query) :-
     M:pr_query(Query).
+
+%!  scasp_query(:Query, -Bindings, +Options) is det.
+%
+%   True when Query is the s(CASP) query as a list that includes the NMR
+%   check if required. Bindings is a list of `Name=Var` terms expressing
+%   the names of the variables.
+
+scasp_query(M:Query, Bindings, Options) :-
+    scasp_query(M:Query0),
+    process_query(M:Query0, _, M:Query, Bindings, Options),
+    maplist(check_existence(M), Query).
+
+process_query(M:Q, M:Query, M:TotalQuery, VarNames, Options) :-
+    revar(Q, A, VarNames),
+    (   is_list(A)
+    ->  Query = A
+    ;   comma_list(A, Query)
+    ),
+    (   option(nmr(false), Options)
+    ->  TotalQuery = Query
+    ;   append(Query, [o_nmr_check], TotalQuery)
+    ).
+

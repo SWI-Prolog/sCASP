@@ -6,7 +6,7 @@
 :- use_module(predicates).
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
-:- use_module(io).
+:- use_module(verbose).
 
 :- meta_predicate
     solve(:, +, -, -).

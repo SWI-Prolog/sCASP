@@ -34,7 +34,7 @@
 :- use_module(embed).
 :- use_module(common).
 :- use_module(modules).
-:- use_module(io).
+:- use_module(listing).
 :- use_module(pr_rules, [process_pr_pred/2]).
 
 :- meta_predicate

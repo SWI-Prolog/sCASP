@@ -176,13 +176,20 @@ raise_negation(WrappedTerm, UserTerm),
     UserTerm =.. [F,Arg].
 raise_negation(TermIn, UserTerm),
     functor(TermIn, Name, _),
-    atom_concat(-, Plain, Name)
+    negation_name(Name, Plain)
     =>
     TermIn =.. [Name|Args],
     Term   =.. [Plain|Args],
     UserTerm = -Term.
 raise_negation(Term, UserTerm) =>
     UserTerm = Term.
+
+negation_name(Name, Plain) :-
+    atom_concat(-, Plain, Name),
+    !.
+negation_name(Name, Plain) :-
+    atom_concat('o_-', Base, Name),
+    atom_concat('o_', Base, Plain).
 
 scasp_wrapper(not(_)).
 scasp_wrapper(proved(_)).

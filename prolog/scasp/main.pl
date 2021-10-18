@@ -6,20 +6,22 @@
           ]).
 :- set_prolog_flag(optimise, true).
 
-:- use_module(io).
 :- use_module(compile).
 :- use_module(ops).
 :- use_module(options).
 :- use_module(solve).
-:- use_module(predicates).
 :- use_module(stack).
 :- use_module(human).
 :- use_module(output).
 :- use_module(model).
+:- use_module(listing).
 :- use_module(html).
 :- use_module(html_text).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
+
+:- meta_predicate
+    print_query(:, +, +).
 
 /** <module> sCASP as a stand-alone program
 
@@ -34,37 +36,34 @@ or more scasp source files, answer the (last) query and exit.
 %   Used when calling from command  line   by  passing  the command line
 %   options and the input files.
 
-main(Args) :-
-    parse_args(Args, Options, Sources),
-    set_options(Options),
-    load_sources(Sources),
-    (   current_option(write_program, on)
-    ->  write_program,
+main(Argv) :-
+    parse_args(Argv, OptionsArgv, Sources),
+    set_options(OptionsArgv),
+    main_options(Options),
+    main(Sources, Options).
+
+main(Sources, Options) :-
+    load_sources(Sources, Options),
+    (   option(write_program(true), Options)
+    ->  scasp_portray_program([duals(true)|Options]),
         halt
-    ;   current_option(interactive, on)
+    ;   option(interactive(true), Options)
     ->  '$toplevel':setup_readline,
-        main_loop
-    ;   scasp_query(Q)
-    ->  (   maplist(check_existence, Q)
-        ->  ignore(main_solve(Q))
-        ;   halt(1)
-        )
+        main_loop(Options)
+    ;   scasp_query(Q, Bindings, Options)
+    ->  ignore(main_solve(Q, [variable_names(Bindings)|Options]))
     ).
 
-load_sources([]) :-
+load_sources([], _) :-
     !,
     print_message(error, scasp(no_input_files)),
     s_help,
     halt(1).
-load_sources(Sources) :-
-    findall(Opt, load_option(Opt), Options),
+load_sources(Sources, Options) :-
     catch_with_backtrace(
         scasp_load(Sources, Options),
         Error,
         load_error(Error)).
-
-load_option(undefined(Mode)) :-
-    current_option(undefined, Mode).
 
 load_error(error(scasp_undefined(PIs), _)) :-
     !,
@@ -79,70 +78,33 @@ report_undef(PI) :-
                   error(existence_error(scasp_predicate, PI), _)).
 
 
-%!  main_loop
+%!  main_loop(+Options)
 %
-%   Run an interactive toplevel loop.   Invoked  by `scasp --interactive
-%   ...`
+%   Run an interactive toplevel loop.   Invoked  by `scasp -i ...`
 
-main_loop :-
+main_loop(Options) :-
     read_term_with_history(R,
                            [ prompt('casp ~! ?- '),
                              variable_names(Bindings)
                            ]),
-    maplist(bind_var, Bindings),            % sCASP vars are $(Name), see revar/2.
-    conj_to_list(R, RQ),
-    capture_classical_neg(RQ, Q),
     (   atom(R),
         end_of_input(R)
     ->  format('~N'),
         halt
-    ;   maplist(check_existence, Q)
-    ->  (   main_solve(Q)
-        ->  nl, main_loop
-        ;   main_loop
+    ;   scasp_compile_query(R, Q, Options),
+        (   main_solve(Q, [variable_names(Bindings)|Options])
+        ->  nl, main_loop(Options)
+        ;   main_loop(Options)
         )
-    ;   main_loop
+    ;   main_loop(Options)
     ).
-
-bind_var(Name = Var) :-
-    Var = $Name.
 
 end_of_input(end_of_file).
 end_of_input(exit).
 end_of_input(quit).
 end_of_input(halt).
 
-conj_to_list(true, []) :-
-    !.
-conj_to_list(Conj, List) :-
-    comma_list(Conj, List).
-
-
-capture_classical_neg([], []) :- !.
-capture_classical_neg([-S|Ss], [N|NSs]) :- !,
-    S =.. [Name|Args],
-    atom_concat('-', Name, NegName),
-    N =.. [NegName|Args],
-    capture_classical_neg(Ss, NSs).
-capture_classical_neg([S|Ss], [S|NSs]) :-
-    capture_classical_neg(Ss, NSs).
-
-check_existence(G) :-
-    shown_predicate(G),
-    !.
-check_existence(G) :-
-    scasp_pi(G, PI),
-    print_message(error, error(existence_error(scasp_predicate, PI), _)),
-    fail.
-
-scasp_pi(not(G), PI) :-
-    !,
-    scasp_pi(G, PI).
-scasp_pi(G, PI) :-
-    pi_head(PI, G).
-
-%!  main_solve(+Query).
-%!  main_solve(+Query, +Options).
+%!  main_solve(+Query, +Options) is semidet.
 %
 %   Solve a toplevel query. Query is a callable term where variables are
 %   represented as $Name.
@@ -150,14 +112,9 @@ scasp_pi(G, PI) :-
 %   @tbd: If minimal_model(true) is given  we   must  select the minimal
 %   model using printable_model/2 and simply print all answers.
 
-main_solve(Q0) :-
-    main_options(Options),
-    main_solve(Q0, Options).
-
-main_solve(Q0, Options) :-
+main_solve(Query, Options) :-
     option(answers(Number), Options, -1),
-
-    process_query(Q0, _Q, Query, Bindings),
+    option(variable_names(Bindings), Options, []),
     (   option(html(true), Options)
     ->  copy_term(Query-Bindings, QueryVar-QBindings),
         ovar_set_bindings(QBindings),
@@ -221,6 +178,14 @@ main_option(answers(Number)) :-
     current_option(answers, Number).
 main_option(print_tree(true)) :-
     current_option(print_tree, on).
+main_option(nmr(false)) :-
+    current_option(no_nmr, on).
+main_option(undefined(Mode)) :-
+    current_option(undefined, Mode).
+main_option(write_program(true)) :-
+    current_option(write_program, on).
+main_option(interactive(true)) :-
+    current_option(interactive, on).
 main_option(constraints(true)).
 
 %!  print_answer(+Nth, +Resources:dict, +Options)
@@ -247,14 +212,9 @@ main_print_model(Model, Options) :-
                 | Options
                 ]).
 
-%!  write_program
-
-write_program :-
-    main_options(Options),
-    scasp_portray_program([duals(true)|Options]).
-
 %!  print_query(:Query, +Bindings, +Options)
 
+:- det(print_query/3).
 print_query(M:Query, Bindings, Options) :-
     ansi_format(comment, '~N% Query~n', []),
     (   option(human(true), Options)
@@ -408,3 +368,17 @@ $(function() {
 read_file(Spec, String) :-
     absolute_file_name(Spec, Path, [access(read)]),
     read_file_to_string(Path, String, []).
+
+%!  ask_for_more_models is semidet.
+%
+%   Ask if the  user  want  to   generate  more  models  (execution from
+%   console)".  __Fails__ if a next model is requested.
+
+allways_ask_for_more_models :-
+    (   format(' ? ', []),
+        get_single_char(R),
+        memberchk(R, `\s;`)
+    ->  format(';\n'),
+        fail
+    ;   true
+    ).
