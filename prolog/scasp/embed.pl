@@ -74,7 +74,8 @@
 :- create_prolog_flag(scasp_show_justification,
                       unicode,
                       [keep(true)]).
-:- initialization set_options(['--tree', '--unicode']).
+:- initialization set_options([ tree(true)
+                              ]).
 
 /** <module>  Embed sCASP programs in Prolog sources
 

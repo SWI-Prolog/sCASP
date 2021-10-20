@@ -14,6 +14,10 @@
 /** <module> The sCASP solver
 */
 
+:- create_prolog_flag(scasp_no_fail_loop, false, []).
+:- create_prolog_flag(scasp_assume,       true,  []).
+:- create_prolog_flag(scasp_forall,       all_c, []).
+
 %!  solve(:Goals, +StackIn, -StackOut, -Model)
 %
 %   Solve the list of sub-goals `Goal`  where   StackIn  is  the list of
@@ -50,7 +54,7 @@ check_goal(Goal, M, StackIn, StackOut, Model) :-
 
 % coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, _M, StackIn, StackOut, Model) :-
-    (   current_option(assume,on)
+    (   current_prolog_flag(scasp_assume, true)
     ->  mark_prev_goal(Goal,StackIn, StackMark),
         StackOut = [[],chs(Goal)|StackMark]
     ;   StackOut = [[],chs(Goal)|StackIn]
@@ -88,7 +92,7 @@ mark_prev_goal(_Goal,[],[]).
 solve_goal(Goal, M, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
     !,
-    (   current_option(prev_forall, on)
+    (   current_prolog_flag(scasp_forall, prev)
     ->  solve_goal_forall(Goal, M, [Goal|StackIn], StackOut, Model)
     ;   solve_c_forall(Goal, M, [Goal|StackIn], StackOut, Model)
     ),
@@ -118,13 +122,8 @@ solve_goal(Goal, M, StackIn, StackOut, Model) :-
     (   solve_goal_predicate(Goal, M, [Goal|StackIn], StackOut, Model)
     *-> true
     ;   shown_predicate(M:Goal),
-        if_user_option(
-            trace_failures,
-            ( if_user_option(show_tree,
-                             print_check_calls_calling(Goal, [Goal|StackIn])),
-              format("\nFAILURE to prove the literal: ~@\n\n", [print_goal(Goal)])
-            )
-        ),
+        scasp_trace(scasp_trace_failures,
+                    trace_failure(Goal, [Goal|StackIn])),
         fail
     ).
 solve_goal(call(Goal),M,StackIn,StackOut,[call(Goal)|Model]) :- !,
@@ -292,7 +291,7 @@ solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     Model = [Goal].
 solve_goal_builtin(not(Goal), StackIn, StackIn, _Model) :-
     clp_interval(Goal), !,
-    if_user_option(warning,format("\nWARNING s(CASP): Failure calling negation of ~p\n",[Goal])),
+    scasp_warning(scasp(failure_calling_negation(Goal))),
     fail.
 solve_goal_builtin(Goal, StackIn, StackIn, Model) :-
     clp_builtin(Goal),
@@ -316,11 +315,11 @@ exec_goal(A \= B) :- !,
     A .\=. B,
     verbose(format('ok   ~@\n', [print_goal(A \= B)])).
 exec_goal(Goal) :-
-    (   current_option(check_calls, on)
+    (   current_prolog_flag(scasp_verbose, true)
     ->  E = error(_,_),
-        format('exec goal ~@ \n', [print_goal(Goal)]),
+        verbose(format('exec goal ~@ \n', [print_goal(Goal)])),
         catch(call(Goal), E, (print_message(warning, E), fail)),
-        format('ok   goal ~@ \n', [print_goal(Goal)])
+        verbose(format('ok   goal ~@ \n', [print_goal(Goal)]))
     ;   catch(call(Goal), error(_,_), fail)
     ).
 
@@ -388,22 +387,22 @@ check_CHS_(Goal, _, I, co_success) :-
 check_CHS_(Goal, _, I, co_failure) :-
     \+ \+ neg_in_stack(Goal, I), !,
     verbose(format('Negation of the goal in the stack, failling (Goal = ~w)\n', [Goal])).
-% coinduction fails <- cycles containing positive loops can be solve
+% coinduction fails <- cycles containing positive loops can be solved
 % using tabling
 check_CHS_(Goal, M, I, co_failure) :-
     \+ table_predicate(M:Goal),
-    if_user_option(no_fail_loop, fail),
+    \+ current_prolog_flag(scasp_no_fail_loop, true),
     \+ \+ (
         type_loop(Goal, I, fail_pos(S)),
-        verbose(format('Positive loop, failling (Goal == ~w)\n', [Goal])),
-        if_user_option(pos_loops, format('\nWarning: positive loop failling (Goal ~w == ~w)\n', [Goal, S]))
+        verbose(format('Positive loop, failing (Goal == ~w)\n', [Goal])),
+        scasp_warning(scasp_warn_pos_loops, pos_loop(fail, Goal, S))
     ), !.
 check_CHS_(Goal, M, I, _Cont) :-
     \+ table_predicate(M:Goal),
     \+ \+ (
         type_loop(Goal, I, pos(S)),
         verbose(format('Positive loop, continuing (Goal = ~w)\n', [Goal])),
-        if_user_option(pos_loops, format('\nNote: positive loop continuing (Goal ~w = ~w)\n', [Goal, S]))
+        scasp_info(scasp_warn_pos_loops, pos_loop(continue, Goal, S))
     ), fail.
 % coinduction does not succeed or fail <- the execution continues inductively
 check_CHS_(Goal, _, I, cont) :-
@@ -426,18 +425,10 @@ neg_in_stack(Goal, [not(NegGoal)|_]) :-
     Goal == NegGoal, !.
 neg_in_stack(not(Goal), [NegGoal|_]) :-
     variant(Goal, NegGoal), !,
-    if_user_option(warning,
-                   format("~NWARNING: Co-Failing in a negated loop due \c
-                           to a variant call (extension clp-disequality required).\n\c
-                           \tCurrent call:\t~@\n\tPrevious call:\t~@\n",
-                          [print_goal(Goal), print_goal(NegGoal)])).
+    scasp_warning(co_failing_in_negated_loop(Goal, NegGoal)).
 neg_in_stack(Goal, [not(NegGoal)|_]) :-
     variant(Goal, NegGoal), !,
-    if_user_option(warning,
-                   format("~NWARNING: Co-Failing in a negated loop due \c
-                          to a variant call (extension clp-disequality required).\n\c
-                          \tCurrent call:\t~@\n\tPrevious call:\t~@\n",
-                          [print_goal(Goal), print_goal(NegGoal)])).
+    scasp_warning(co_failing_in_negated_loop(Goal, NegGoal)).
 neg_in_stack(Goal, [_|Ss]) :-
     neg_in_stack(Goal, Ss).
 
@@ -575,12 +566,10 @@ type_loop_fail_pos(Goal, S) :-
     Goal == S, !.
 type_loop_fail_pos(Goal, S) :-
     variant(Goal, S), !,
-    if_user_option(warning,format("\nWARNING: Failing in a positive loop due to a variant call (tabling required).\n\tCurrent call:\t~@\n\tPrevious call:\t~@\n",
-                                  [print_goal(Goal),print_goal(S)])).
+    scasp_warning(variant_loop(Goal, S)).
 type_loop_fail_pos(Goal, S) :-
     entail_terms(Goal, S),
-    if_user_option(warning, format("\nWARNING: Failing in a positive loop due to a subsumed call under clp(q).\n\tCurrent call:\t~@\n\tPrevious call:\t~@\n", [print_goal(Goal), print_goal(S)])).
-
+    scasp_warning(subsumed_loop(Goal, S)).
 
 %!  solve_c_forall(+Forall, +Module, +StackIn, -StackOut, -GoalModel)
 %
@@ -600,7 +589,7 @@ solve_c_forall(Forall, M, StackIn, [[]|StackOut], Model) :-
     my_copy_vars(Vars0, Goal0, Vars1, Goal1),        % Vars should remain free
     my_diff_term(Goal1, Vars1, OtherVars),
     Initial_Const = [],                              % Constraint store = top
-    (   current_option(all_forall,on)
+    (   current_prolog_flag(scasp_forall, all)
     ->  solve_var_forall_(Goal1, M,
                           entry(Vars1, Initial_Const),
                           dual(Vars1, [Initial_Const]),

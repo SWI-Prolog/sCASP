@@ -1,242 +1,242 @@
 :- module(scasp_options,
-          [ if_user_option/2,
-            set/2,
-            parse_args/3,
-            current_option/2,
-            set_options/1,
-            s_help/0
+          [ parse_args/3,                  % +Argv, -Sources, -Options
+            scasp_help/0,
+            set_options/1                  % +Options
           ]).
+:- use_module(library(main)).
 
 /** <module> (Command line) option handling for sCASP
 
 @author Joaquin Arias
 */
 
-:- meta_predicate
-    if_user_option(+, 0).
+% Prefer Unicode symbols over ASCII
+:- create_prolog_flag(scasp_unicode, true, []).
 
-:- dynamic current_option/2.
-
-%!  scasp_version
+%!  scasp_version(-Version)
 %
 %   print the current version of s(CASP)
 
-scasp_version :-
-    format('s(CASP) version ~p\n',['swi.0.21.08.03']),
-    halt.
+scasp_version('swi.0.21.08.03').
 
 %!  set_options(+Options) is det.
 %
-%   Set the user options. Options is  a   list  of atoms that denote the
-%   commandline arguments that start with `-`.
+%   Set Prolog flags that control the solver from Options.
 
 set_options(Options) :-
-    set_default_options,
-    set_user_options(Options),
-    set_default_tree_options,
-    check_compatibilities.
+    maplist(set_option, Options).
 
-set_default_options :-
-    retractall(current_option(_, _)),
-    set(answers,-1),
-    set(unicode,true).
+% Solver options
+set_option(nmr(Bool)) =>
+    set_prolog_flag(scasp_compile_nmr, Bool).
+set_option(olon(Bool)) =>
+    set_prolog_flag(scasp_compile_olon, Bool).
+% Presentation uptions
+set_option(unicode(Bool)) =>
+    set_prolog_flag(scasp_unicode, Bool).
+% Verbosity options
+set_option(verbose(Bool)) =>
+    set_prolog_flag(scasp_verbose, Bool).
+set_option(warning(Bool)) =>
+    set_prolog_flag(scasp_warnings, Bool).
+set_option(trace_fails(Bool)) =>
+    set_prolog_flag(scasp_trace_failures, Bool).
+set_option(raw(Bool)) =>
+    set_prolog_flag(scasp_list_raw, Bool).
+set_option(color(Bool)) =>
+    set_prolog_flag(color_term, Bool).
+% Ignore other well formed options.
+set_option(Term), compound(Term), functor(Term, _, 1) =>
+    true.
 
-set_default_tree_options :-
-    (   current_option(print_tree,on)
-    ->  (   \+ current_option(short,on),
-            \+ current_option(long,on)
-        ->  set(mid,on)
-        ;   true
-        ),
-        (   \+ current_option(pos,on)
-        ->  set(neg,on)
-        ;   true
-        )
-    ;   true
-    ).
+%!  default_options(+OptionsIn, -OptionsOut) is det.
+%
+%   Add additional default options
 
-check_compatibilities :-
-    current_option(check_calls,on),
-    current_option(human,on), !,
-    format('ERROR: verboser and human output do not allowed together!\n\n',[]),
-    s_help,
-    halt(1).
-check_compatibilities.
+default_options(Options0, Options) :-
+    default_tree_options(Options0, Options).
 
+%!  default_tree_options(+OptionsIn, -OptionsOut) is det.
+%
+%   Fill in the default options about printing the tree.  This
+%   results in the following options:
+%
+%     - tree(Detail)
+%     - one of pos(true) or neg(true).
 
-set_user_options([]).
-set_user_options([O|Os]) :-
-    (   set_user_option(O)
-    ->  set_user_options(Os)
-    ;   format('ERROR: The option ~w is not supported!\n\n',[O]),
-        s_help,
+default_tree_options(Options0, Options) :-
+    select_option(print_tree(true), Options0, Options1),
+    !,
+    tree_details(Options1, Options2),
+    tree_pos(Options2, Options).
+default_tree_options(Options, Options).
+
+tree_details(Options0, [print_tree(Detail)|Options3]) :-
+    select_option(short(Short), Options0, Options1, -),
+    select_option(mid(Mid),     Options1, Options2, -),
+    select_option(long(Long),   Options2, Options3, -),
+    (   tree_detail(Short, Mid, Long, Detail)
+    ->  true
+    ;   print_message(error, scasp(opt_tree_detail)),
         halt(1)
     ).
 
-set_user_option('--help_all')           :- help_all, halt.
-set_user_option('-h')                   :- s_help, halt.
-set_user_option('-?')                   :- s_help, halt.
-set_user_option('--help')               :- s_help, halt.
-set_user_option('-i')                   :- set(interactive, on).
-set_user_option('--interactive')        :- set(interactive, on).
-set_user_option('-a').
-set_user_option('--auto').
-set_user_option(Option)                 :- atom_chars(Option,['-','s'|Ns]),
-                                           number_chars(N,Ns),
-                                           set(answers,N).
-set_user_option(Option)                 :- atom_chars(Option,['-','n'|Ns]),
-                                           number_chars(N,Ns),
-                                           set(answers,N).
-set_user_option('-c')                   :- set(compiled, on).
-set_user_option('--compiled')           :- set(compiled, on).
+tree_detail(true, -, -, short).
+tree_detail(-, true, -, mid).
+tree_detail(-, -, true, long).
+tree_detail(-, -, -,    mid).
 
-set_user_option('-d')                   :- set(plain_dual, on).
-set_user_option('--plaindual')          :- set(plain_dual, on).
-
-set_user_option('-r')                   :- set(real, on), set(decimals,5).
-set_user_option(Option)                 :- atom_concat('-r=',Ns,Option),
-                                           atom_number(Ns,D),set(real,on),
-                                           set(decimals,D).
-
-set_user_option('--code')               :- set(write_program, on), set(neg,on).
-set_user_option('--tree')               :- set(process_stack, on),
-                                           set(print_tree, on).
-set_user_option('--tree*')              :- set(process_stack, on),
-                                           set(print_tree, on),
-                                           set(assume,on).
-
-set_user_option('--plain')              .
-set_user_option('--human')              :- set(human, on).
-
-set_user_option('--long')               :- set(long,on).
-set_user_option('--mid')                :- set(mid,on).
-set_user_option('--short')              :- set(mid,on), set(short,on).
-
-set_user_option('--neg')                :- set(neg,on).
-set_user_option('--pos')                :- set(pos,on).
-
-set_user_option('-u')                   :- set(unicode, true).
-set_user_option('--unicode')            :- set(unicode, true).
-
-set_user_option('--html')               :- set(process_stack, on), set(html, on).
-set_user_option(Option)                 :- atom_concat('--html=',File,Option),
-                                           set(html_name, File),
-                                           set(process_stack, on),
-                                           set(html, on).
-
-set_user_option('-v')                   :- set(check_calls, on).
-set_user_option('--verbose')            :- set(check_calls, on).
-set_user_option('-f0')                  :- set(trace_failures, on).
-set_user_option('-f')                   :- set(trace_failures, on),
-                                           set(show_tree,on).
-set_user_option('--tracefails')         :- set(trace_failures, on),
-                                           set(show_tree,on).
-set_user_option('--version')            :- scasp_version.
-% Development
-set_user_option('-no')                  :- set(no_nmr, on).         %% skip the evaluation of nmr-checks (but compile them).
-set_user_option('--no_nmr')             :- set(no_compile_nmr, on),
-					   set(no_compile_olon, on).
-set_user_option('--no_olon')            :- set(no_compile_olon, on).
-set_user_option('-w')                   :- set(warning, on).
-set_user_option('--warning')            :- set(warning, on).
-set_user_option('--variant')            :- set(no_fail_loop, on).
-set_user_option(Option)                 :- undef_option(Option, Undef),
-					   set(undefined, Undef).
-%% Only with tabling
-set_user_option('-m')                   :- set(minimal_model,on).
-set_user_option('--minimal')            :- set(minimal_model,on).
-set_user_option('--all_c_forall')       :- set(all_forall,on).
-set_user_option('--prev_forall')        :- set(prev_forall,on).
-set_user_option('--raw')                :- set(raw,on).
-
-undef_option(Option, Val) :-
-    atom_concat('--undef=', Val, Option),
-    must_be(oneof([silent,warning,error]), Val).
-
-
-%!  if_user_option(:Name, :Call)
-%
-%   If the flag Name is `on` then the call Call is executed
-
-if_user_option(Name, Call) :-
-    (   current_option(Name,on)
-    ->  call(Call)
+tree_pos(Options, Options) :-
+    option(pos(true), Options),
+    !,
+    (   option(neg(true), Options)
+    ->  print_message(error, scasp(opt_tree_pos)),
+        halt(1)
     ;   true
     ).
+tree_pos(Options, Options) :-
+    option(neg(true), Options),
+    !.
+tree_pos(Options, [neg(true)|Options]).
 
-%!  set(+Option, +Value)
+
+%!  check_options(+Options) is det.
 %
-%   Used to set-up the user options
+%   Verify the consistency of the Options. Print a message and halt with
+%   status 1 if there is a conflict.
 
-set(check_calls, On) :-
+check_options(Options) :-
+    option(verbose(true), Options),
+    option(human(true), Options),
     !,
-    set_prolog_flag(scasp_verbose, On).
-set(Option, Value) :-
-    retractall(current_option(Option, _)),
-    assert(current_option(Option,Value)).
-
-s_help :-
-    format('Usage: scasp [options] InputFile(s)\n\n'),
-    format('s(CASP) computes stable models of predicate normal logic programs with contraints\n'),
-    format('  using a top-down evaluation algorihtm.\n'),
-    format('Command-line switches are case-sensitive!\n\n'),
-    format('General Options:\n\n'),
-    format('  -h, -?, --help        Print this help message and terminate.\n'),
-    format('  --help_all            Print extended help.\n'),
-    format('  -i, --interactive     Run in interactive mode (REP loop).\n'),
-    format('  -a, --auto            Run in batch mode (no user interaction).\n'),
-    format('  -sN, -nN              Compute N answer sets, where N >= 0. N = 0 means ''all''.\n'),
-    format('  -c, --compiled        Load compiled files (e.g. extracted using --code).\n'),
-    format('  -d, --plaindual       Generate dual program with single-goal clauses\n'),
-    format('                        (for propositional programs).\n'),
-    format('  -r[=d]                Output rational numbers as real numbers.\n'),
-    format('                        [d] determines precision. Defaults to d = 5.\n'),
-    format('\n'),
-    format('  --code                Print program with dual clauses and exit.\n'),
-    format('  --tree                Print justification tree for each answer (if any).\n'),
-    format('\n'),
-    format('  --plain               Output code / justification tree as literals (default).\n'),
-    format('  --human               Output code / justification tree in natural language.\n'),
-    format('\n'),
-    format('  --long                Output long version of justification.\n'),
-    format('  --mid                 Output mid-sized version of justification (default) .\n'),
-    format('  --short               Short version of justification.\n'),
-    format('\n'),
-    format('  --pos                 Only format the selected literals in the justification.\n'),
-    format('  --neg                 Add the negated literals in the justification (default).\n'),
-    format('\n'),
-    format('  --html[=name]         Generate HTML file for the justification. [name]:\n'),
-    format('                        use \'name.html\'. Default: first InputFile name.\n'),
-    format('\n'),
-    format('  -v, --verbose         Enable verbose progress messages.\n'),
-    format('  -f, --tracefails      Trace user-predicate failures.\n'),
-    format('  --version             Output the current version of s(CASP)\n'),
-    format('\n'),
-    format('  --all_c_forall        Exhaustive evaluation of c_forall/2.\n'),
-    format('  --prev_forall         Deprecated evaluation of forall/2.\n'),
-    format('\n').
-
-help_all :-
-    help,
-    format('  --no_olon             Do not compile olon rules (for debugging purposes).\n'),
-    format('  --no_nmr              Do not compile NMR checks (for debugging purposes).\n'),
-    format('  -w, --warning         Enable warning messages (failures in variant loops / disequality).\n'),
-    format('  --undef=Mode          Check for undefined predicates (silent,warning,error)\n'),
-    format('  --variant             Do not fail in the presence of variant loops.\n'),
-    format('\n'),
-    format('  -m, --minimal         Collect only the minimal models (TABLING required).\n'),
-    format('  --raw                 Sort the clauses as s(ASP) does (use with --code).\n'),
-    format('\n').
+    print_message(error, scasp(opt_verbose_human)),
+    halt(1).
+check_options(_).
 
 
-%!  parse_args(?Args, ?Options, ?Sources)
+		 /*******************************
+		 *             SPEC		*
+		 *******************************/
+
+%!  opt_type(?Opt, ?Destination, ?Type)
+
+opt_type(interactive, interactive,    boolean).
+opt_type(i,           interactive,    boolean).
+
+opt_type(s,           answers,        nonneg).
+
+opt_type(compiled,    compiled,       boolean).
+opt_type(c,           compiled,       boolean).
+
+opt_type(plaindual,   plain_dual,     boolean).
+opt_type(d,           plain_dual,     boolean).
+
+opt_type(r,           real,           natural).
+
+opt_type(code,        write_program,  boolean).
+opt_type(human,       human,          boolean).
+opt_type(tree,        tree,           boolean).
+
+opt_type(html,        html,           file).
+opt_type(css,         style,          boolean).
+opt_type(script,      script,         boolean).
+opt_type(collapse,    collapse_below, nonneg).
+
+opt_type(unicode,     unicode,        boolean).
+opt_type(u,           unicode,        boolean).
+
+opt_type(color,       color,          boolean).
+
+opt_type(verbose,     verbose,        boolean).
+opt_type(v,           verbose,        boolean).
+
+opt_type(version,     version,        boolean).
+
+opt_type(forall,      forall,         oneof([all,all_c,prev])).
+
+opt_type(tracefails,  trace_fails,    boolean).
+opt_type(f,           trace_fails,    boolean).
+
+opt_type(nmr,         nmr,            boolean(false)).
+opt_type(olon,        olon,           boolean(false)).
+
+opt_type(undef,       undefined,      oneof([silent,warning,error])).
+
+opt_type(warning,     warning,        boolean).
+opt_type(w,           warning,        boolean).
+
+opt_type(minimal,     minimal,        boolean).
+opt_type(m,           minimal,        boolean).
+
+opt_type(raw,         raw,            boolean).
+
+opt_help(interactive,    "Run in interactive mode (REP loop)").
+opt_help(answers,        "Number of answers to report (0 for all)").
+opt_help(compiled,       "Load compiled files (e.g. extracted using --code)").
+opt_help(write_program,  "Output the compiled program and exit").
+opt_help(plain_dual,     "Generate dual program with single-goal clauses").
+opt_help(real,           "Output rational numbers as real numbers").
+opt_help(code,           "Print program with dual clauses and exit").
+opt_help(human,          "Output code/justification tree in natural language").
+opt_help(tree,           "Print justification tree for each answer").
+opt_help(long,           "Output long version of justification.").
+opt_help(mid,            "Output mid-sized version of justification (default)").
+opt_help(short,          "Short version of justification").
+opt_help(pos,            "Only format the selected literals in the \c
+                          justification").
+opt_help(neg,            "Add the negated literals in the justification \c
+                          (default)").
+opt_help(html,           "Generate an HTML file (\"-\" for standard output)").
+opt_help(style,          "Include CSS in HTML output (default)").
+opt_help(script,         "Include JavaScript in HTML output (default)").
+opt_help(collapse_below, "Collapse HTML tree below this level (2)").
+opt_help(unicode,        "Use Unicode symbols in output").
+opt_help(color,          "Use ANSI sequences to color terminal output").
+opt_help(verbose,        "Enable verbose progress messages").
+opt_help(trace_fails,    "Trace user-predicate failures").
+opt_help(undefined,      "Act on undefined predicates (silent,warning,error)").
+opt_help(forall,         "Forall algorithm to use (all, [all_c], prev)").
+opt_help(olon,           "Compile olon rules (--no-olon for debugging purposes)").
+opt_help(nmr,            "Compile NMR rules (--no-nmr for debugging purposes)").
+opt_help(warning,        "Enable warning messages (failures in variant \c
+                          loops / disequality)").
+opt_help(version,        "Print version and exit").
+opt_help(variant,        "Do not fail in the presence of variant loops").
+opt_help(minimal,        "Collect only the minimal models (TABLING required)").
+opt_help(raw,            "Sort the clauses as s(ASP) does (use with --code)").
+
+opt_help(usage,          "[options] file ...").
+
+opt_meta(answers,        'COUNT').
+opt_meta(real,           'DECIMALS').
+opt_meta(undefined,      'MODE').
+opt_meta(collapse_below, 'LEVELS').
+
+%!  scasp_help
+%
+%   Print command line option help.
+
+scasp_help :-
+    argv_usage(debug).
+
+%!  parse_args(+Args, -Sources, -Options)
 %
 %   Select  from  the  list  of   arguments  in   Args  which   are  the
 %   user-options, Options and which are the program files, Sources
 
-parse_args([],[],[]).
-parse_args([O|Args], [O|Os], Ss) :-
-    atom_concat('-',_,O),!,
-    parse_args(Args, Os, Ss).
-parse_args([S|Args], Os, [S|Ss]) :-
-    parse_args(Args, Os, Ss).
+parse_args(Argv, Sources, Options) :-
+    argv_options(Argv, Sources, Options0),
+    info_and_exit_option(Sources, Options0),
+    default_options(Options0, Options),
+    check_options(Options).
+
+info_and_exit_option(_Sources, Options) :-
+    info_option(Options),
+    !,
+    halt(0).
+info_and_exit_option(_, _).
+
+info_option(Options) :-
+    option(version(true), Options),
+    scasp_version(Version),
+    print_message(informational, scasp(version(Version))).

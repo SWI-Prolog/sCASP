@@ -60,7 +60,9 @@ Gopal Gupta, LOPSTR 2012 for details on the _NMR check_
 :- use_module(comp_duals).
 :- use_module(program).
 :- use_module(variables).
-:- use_module(options).
+
+:- create_prolog_flag(scasp_compile_olon, true, []).
+:- create_prolog_flag(scasp_compile_nmr,  true, []).
 
 %!  generate_nmr_check is det
 %
@@ -118,12 +120,12 @@ olon_rules(R, Rc) :-
 
 olon_rules_(R2, Ns, Rc) :-
     dfs(Ns, Pc, _, _),
-    (   current_option(no_compile_olon, on)
+    (   current_prolog_flag(scasp_compile_olon, false)
     ->  Rc1 = []
     ;   extract_ids(Pc, Ic),
         divide_rules(R2, Ic, Rc1, _) % get OLON rules
     ),
-    (   current_option(no_compile_nmr, on)
+    (   current_prolog_flag(scasp_compile_nmr, false)
     ->  Rc = []
     ;   get_headless_rules(R2, Rc1, Rc)
     ).

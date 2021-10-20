@@ -17,8 +17,10 @@
 :- use_module(listing).
 :- use_module(html).
 :- use_module(html_text).
+:- use_module(messages).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
+:- use_module(library(dcg/high_order)).
 
 :- meta_predicate
     print_query(:, +, +).
@@ -37,9 +39,8 @@ or more scasp source files, answer the (last) query and exit.
 %   options and the input files.
 
 main(Argv) :-
-    parse_args(Argv, OptionsArgv, Sources),
-    set_options(OptionsArgv),
-    main_options(Options),
+    parse_args(Argv, Sources, Options),
+    set_options(Options),
     main(Sources, Options).
 
 main(Sources, Options) :-
@@ -57,7 +58,7 @@ main(Sources, Options) :-
 load_sources([], _) :-
     !,
     print_message(error, scasp(no_input_files)),
-    s_help,
+    scasp_help,
     halt(1).
 load_sources(Sources, Options) :-
     catch_with_backtrace(
@@ -69,6 +70,10 @@ load_error(error(scasp_undefined(PIs), _)) :-
     !,
     maplist(report_undef, PIs),
     halt(1).
+load_error(error(existence_error(source_sink, Source),_)) :-
+    print_message(error, scasp(source_not_found(Source))),
+    halt(1).
+
 load_error(PrologError) :-
     print_message(error, PrologError),
     halt(1).
@@ -113,80 +118,84 @@ end_of_input(halt).
 %   model using printable_model/2 and simply print all answers.
 
 main_solve(Query, Options) :-
-    option(answers(Number), Options, -1),
+    option(html(_File), Options),
+    !,
+    option(answers(MaxAnswers), Options, 0),
     option(variable_names(Bindings), Options, []),
-    (   option(html(true), Options)
-    ->  copy_term(Query-Bindings, QueryVar-QBindings),
-        ovar_set_bindings(QBindings),
-        inline_constraints(QueryVar, [])
-    ;   print_query(Query, Bindings, Options)
-    ),
 
-    (   call_nth(call_time(solve(Query, [], StackOut, ModelOut), Time), Counter)
+    copy_term(Query-Bindings, QueryVar-QBindings),
+    ovar_set_bindings(QBindings),
+    inline_constraints(QueryVar, []),
+
+    statistics(cputime, T0),
+    (   MaxAnswers == 0
+    ->  findall(Result,
+                solve_results(Query, Bindings, Result, Options),
+                Results)
+    ;   findnsols(MaxAnswers, Result,
+                  solve_results(Query, Bindings, Result, Options),
+                  Results)
+    ->  true
+    ),
+    statistics(cputime, T1),
+    Time is T1-T0,
+
+    html_print_results(scasp{ query:QueryVar,
+                              cpu:Time,
+                              answers:Results
+                            },
+                       Options).
+main_solve(Query, Options) :-
+    option(answers(MaxAnswers), Options, -1),
+    option(variable_names(Bindings), Options, []),
+
+    print_query(Query, Bindings, Options),
+    statistics(cputime, T0),
+    (   solve_results(Query, Bindings, Result, Options)
     *-> true
-    ;   ansi_format(warning, 'No models~n', []),
+    ;   statistics(cputime, T1),
+        T is T1-T0,
+        print_message(warning, scasp(no_models(T))),
         fail
     ),
 
-    print_answer(Counter, Time, Options),
+    print_answer(Result.answer, Result.time, Options),
 
-    justification_tree(StackOut, Tree, Options),
-    canonical_model(ModelOut, Model),
-
-    All = t(Bindings, Model, StackOut),
-    ovar_set_bindings(Bindings),
-    ovar_analyze_term(All),
-    inline_constraints(All, []),
-
-    (   option(html(true), Options)
-    ->  print_html(QueryVar, Bindings, Model, Tree, Options)
-    ;   (   option(print_tree(true), Options)
-        ->  print_justification(Tree, Options)
-        ;   true
-        ),
-        main_print_model(Model, Options),
-        print_bindings(Bindings, [full_stop(false)|Options])
+    (   option(tree(_Detail), Options)
+    ->  print_justification(Result.tree, Options)
+    ;   true
     ),
+    main_print_model(Result.model, Options),
+    print_bindings(Bindings, [full_stop(false)|Options]),
 
-    (   Number == -1
+    (   MaxAnswers == -1
     ->  allways_ask_for_more_models, nl, nl
-    ;   Number == 0
+    ;   MaxAnswers == 0
     ->  nl, nl,
         fail
-    ;   Number > 0
+    ;   MaxAnswers > 0
     ->  nl, nl,
-        Counter = Number
+        Result.answer = MaxAnswers
     ),
     !.
 
-%!  main_options(-Options) is det.
-%
-%   Collect the relevant options from the options module.
+solve_results(Query, Bindings,
+              scasp{ query:Query,
+                     answer:Counter,
+                     bindings:Bindings,
+                     model:Model,
+                     tree:Tree,
+                     time:Time
+                   },
+              Options) :-
+    call_nth(call_time(solve(Query, [], StackOut, ModelOut), Time), Counter),
+    justification_tree(StackOut, Tree, Options),
+    canonical_model(ModelOut, Model),
+    All = t(Bindings, Model, StackOut),
+    ovar_set_bindings(Bindings),
+    ovar_analyze_term(All),
+    inline_constraints(All, []).
 
-main_options(Options) :-
-    findall(Opt, main_option(Opt), Options).
-
-main_option(html(true)) :-
-    current_option(html, on).
-main_option(html_name(File)) :-
-    current_option(html_name, File).
-main_option(human(true)) :-
-    current_option(human, on).
-main_option(human(true)) :-
-    current_option(human, on).
-main_option(answers(Number)) :-
-    current_option(answers, Number).
-main_option(print_tree(true)) :-
-    current_option(print_tree, on).
-main_option(nmr(false)) :-
-    current_option(no_nmr, on).
-main_option(undefined(Mode)) :-
-    current_option(undefined, Mode).
-main_option(write_program(true)) :-
-    current_option(write_program, on).
-main_option(interactive(true)) :-
-    current_option(interactive, on).
-main_option(constraints(true)).
 
 %!  print_answer(+Nth, +Resources:dict, +Options)
 
@@ -278,13 +287,13 @@ print_binding(Name = Value, Options) :-
            ]).
 
 
-%!  print_html(+Query, +Bindings, +Model, +Stack, +Options)
+%!  html_print_results(+Results:dict, +Options)
 %
 %   Options processed:
 %
-%     - open_as(As)
-%       One of `machine` or `human` (default), indicating the initial
-%       mode of the HTML elements.
+%     - human(Bool)
+%       If `true`, open the HTML in human mode.  Default is to use
+%       the formal notation.
 %     - collapse_below(Depth)
 %       Collapse the justification tree below the given level (default:
 %       2).
@@ -294,18 +303,19 @@ print_binding(Name = Value, Options) :-
 %     - script(+Boolean)
 %       When `false` (default `true`), do not include the JavaScript.
 
-print_html(Query, Bindings, Model, Stack, Options) :-
-    option(html_name(Name), Options),
+html_print_results(Results, Options) :-
+    option(html(Name), Options),
+    Name \== '-',               % stdout
     !,
     ensure_extension(Name, html, File),
     setup_call_cleanup(
         open(File, write, Out, [encoding(utf8)]),
-        ( phrase(reply(Query, Bindings, Model, Stack, Options), Tokens),
+        ( phrase(reply(Results, Options), Tokens),
           print_html(Out, Tokens)
         ),
         close(Out)).
-print_html(Query, Bindings, Model, Stack, Options) :-
-    phrase(reply(Query, Bindings, Model, Stack, Options), Tokens),
+html_print_results(Results, Options) :-
+    phrase(reply(Results, Options), Tokens),
     print_html(Tokens).
 
 ensure_extension(Base, Ext, File) :-
@@ -315,17 +325,33 @@ ensure_extension(Base, Ext, File) :-
 ensure_extension(Base, Ext, File) :-
     file_name_extension(Base, Ext, File).
 
-reply(Query, Bindings, Model, Tree, Options) -->
+reply(Results, Options) -->
+    { length(Results.answers, Count)
+    },
     emit_as(\page([],
                   [ \styles(Options),
-                    h4('Query'),
-                    \html_query(Query, Options),
-                    h4('Bindings'),
-                    \html_bindings(Bindings, Options),
-                    \html_model(Model, Options),
-                    \html_justification_tree(Tree, Options),
+                    \html_query(Results.query, Options),
+                    \sequence(answer(Options), Results.answers),
+                    div(class('scasp-statistics'),
+                        [ h4('Statistics'),
+                          p('~D answers in ~3f seconds'-[Count, Results.cpu])
+                        ]),
                     \scripts(Options)
                   ]), html).
+
+answer(Options, Answer) -->
+    emit([ div(class('scasp-answer-header'),
+               'Answer ~D (~3f seconds)'-[Answer.answer, Answer.time.cpu]),
+           div(class('scasp-answer'),
+               [ \html_bindings(Answer.bindings, Options),
+                 \html_model(Answer.model, Options),
+                 \html_justification_tree(Answer.tree, Options)
+               ])
+         ]).
+
+%!  styles(+Options)
+%
+%   Include the style sheets unless ``--no-styles`` is given.
 
 styles(Options) -->
     { option(style(false), Options) },
@@ -337,12 +363,14 @@ styles(_Options) -->
     html(style(SCASPCSS)),
     html(style(TermCSS)).
 
-styles(Options) -->
+scripts(Options) -->
     { option(script(false), Options) },
     !.
 scripts(Options) -->
-    { option(open_as(As), Options, human),
-      must_be(oneof([human,machine]), As),
+    { (   option(human(true), Options)
+      ->  As = human
+      ;   As = machine
+      ),
       option(collapse_below(Depth), Options, 2)
     },
     html(script(

@@ -10,7 +10,7 @@
             op(700, xfx, .\=.),
             op(700, xfx, '\u2209')      % Not an element of
           ]).
-:- use_module('../options').
+:- use_module('../verbose').
 :- use_module(clpq).
 
 /** <module> Constraint solver for disequalities
@@ -155,7 +155,7 @@ loop_var_disequality(A, B) :-
     ->  loop_var_disequality_(B, ListA)
     ).
 loop_var_disequality(A, B) :-
-    if_user_option(check_calls, format('\t\tLoop_var_disequality( ~p , ~p )\n',[A,B])),
+    verbose(format('\t\tLoop_var_disequality( ~p , ~p )\n',[A,B])),
     A .\=. B.
 
 loop_var_disequality_(A, [NegB|_]) :-
@@ -218,13 +218,13 @@ attr_unify_hook(neg(A),B) :-
 attribute_goals(X) -->
     { get_neg_var(X, G)
     },
-    (   {current_option(unicode, true)}
+    (   {current_prolog_flag(scasp_unicode, true)}
     ->  [ '\u2209'(X, G) ]
     ;   [.\=.(X, G)]
     ).
 
 attr_portray_hook(neg(List), Var) :-
-    (   current_option(unicode, true)
+    (   current_prolog_flag(scasp_unicode, true)
     ->  format("~p \u2209 ~p",[Var,List])
     ;   format("~p .\\=. ~p",[Var,List])
     ).

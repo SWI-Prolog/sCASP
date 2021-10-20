@@ -3,7 +3,6 @@
           ]).
 :- autoload(library(listing), [portray_clause/3]).
 
-:- use_module(options).
 :- use_module(human).
 :- use_module(compile).
 :- use_module(output).
@@ -11,6 +10,9 @@
 
 :- meta_predicate
     scasp_portray_program(:).
+
+:- create_prolog_flag(scasp_list_raw, false, []).
+
 
 %!  scasp_portray_program(:Options)
 %
@@ -172,12 +174,14 @@ rule_eq(rule(H,_),rule(H1,_)) :- !, rule_eq_(H,H1).
 rule_eq_(H, H1) :-
     same_functor(H, H1).
 
-%!  dual_reverse(A, B)
+%!  dual_reverse(A, B) is det.
 %
 %   Auxiliary predicate to sort the DUAL rules
 
-dual_reverse(L,[_|L]) :- current_option(raw,on), !.
-
+:- det(dual_reverse/2).
+dual_reverse(L,[_|L]) :-
+    current_prolog_flag(scasp_list_raw, true),
+    !.
 dual_reverse(L,R):-
     dual_reverse_(L,[],R).
 
@@ -242,7 +246,7 @@ remove_nmr_checks(NMRChecks0, UserRules0, NMRChecks, UserRules) =>
 :- det(nmr_reverse/2).
 
 nmr_reverse(L,L) :-
-    current_option(raw,on),
+    current_prolog_flag(scasp_list_raw, true),
     !.
 nmr_reverse(L,[A|Rs]) :-
     nmr_check(A),

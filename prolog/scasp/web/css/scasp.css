@@ -80,3 +80,13 @@ span.hm-switch { margin-left: 0.3em; }
 
 div.scasp-answer { margin-left: 1em; }
 div.scasp-answer h4 { margin-bottom: 5px; }
+
+/* Main output */
+div.scasp-answer-header {
+  margin-top: 2em;
+  margin-bottom: 5px;
+  text-align: center;
+  font-weight: bold;
+  border-top: 2px solid #888;
+  border-bottom: 2px solid #888;
+}

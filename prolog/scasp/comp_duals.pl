@@ -46,6 +46,8 @@ Computation of dual rules (rules for the negation of a literal).
 :- use_module(variables).
 :- use_module(options).
 
+:- create_prolog_flag(scasp_plain_dual, false, []).
+
 %!  comp_duals is det
 %
 %   Compute rules for the negations of   positive literals (dual rules),
@@ -181,14 +183,14 @@ comp_dual3(_, [], _) :-
 comp_dual3(Hn, [X|T], U) :-
     X = builtin_1(_), % handle built-ins specially
     !,
-    (   current_option(plain_dual, on)
+    (   current_prolog_flag(scasp_plain_dual, true)
     ->  U2 = [X]
     ;   append(U, [X], U2)
     ),
     comp_dual3(Hn, T, U2).
 comp_dual3(Hn, [X|T], U) :-
     dual_goal(X, X2),
-    (   current_option(plain_dual, on)
+    (   current_prolog_flag(scasp_plain_dual, true)
     ->  Db = [X2]
     ;   append(U, [X2], Db) % Keep all goals prior to the dual one.
     ),
