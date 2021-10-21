@@ -296,6 +296,9 @@ atom(-Term, Options) -->
 atom(proved(Term), Options) -->
     !,
     utter(proved(Term), [class(proved)|Options]).
+atom(assume(Term), Options) -->
+    !,
+    utter(assume(Term), [class(assume)|Options]).
 atom(chs(Term), Options) -->
     !,
     utter(chs(Term), [class(chs)|Options]).
@@ -333,6 +336,9 @@ utter(proved(Atom), Options) -->
     emit(', justified above').
 utter(chs(Atom), Options) -->
     emit('it is assumed that '),
+    atom(Atom, Options).
+utter(assume(Atom), Options) -->
+    emit('we assume that '),
     atom(Atom, Options).
 utter(holds(Atom), Options) -->
     { css_classes(Options, Classes) },
@@ -617,6 +623,12 @@ machine_atom(proved(Term), Options) -->
     !,
     emit([ span(class([connector,proved]), proved), '(',
            \machine_atom(Term, [class(proved)|Options]),
+           ')'
+         ]).
+machine_atom(assume(Term), Options) -->
+    !,
+    emit([ span(class([connector,assume]), assume), '(',
+           \machine_atom(Term, [class(assume)|Options]),
            ')'
          ]).
 machine_atom(chs(Term), Options) -->

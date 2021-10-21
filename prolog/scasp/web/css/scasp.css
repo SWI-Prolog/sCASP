@@ -44,6 +44,7 @@ div.scasp-query-literal { margin-left: 1em; }
 .scasp-atom .human .atom.not     { color: orange; }
 .scasp-atom .human .atom.neg     { color: red; }
 .scasp-atom .human .atom.chs     { color: darkgreen; }
+.scasp-atom .human .atom.assume  { color: seagreen; }
 .scasp-atom .human .atom.proved  { color: blue; }
 .scasp-atom .human .atom.pos     { color: black; }
 .scasp-atom .human .atom         { font-weight: bold; }
@@ -56,6 +57,8 @@ div.scasp-query-literal { margin-left: 1em; }
 .atom.neg     > .pl-atom                   { color: red; }
 .atom.chs     > .pl-compound > .pl-functor { color: darkgreen; }
 .atom.chs     > .pl-atom                   { color: darkgreen; }
+.atom.assume  > .pl-compound > .pl-functor { color: seagreen; }
+.atom.assume  > .pl-atom                   { color: seagreen; }
 .atom.proved  > .pl-compound > .pl-functor { color: blue; }
 .atom.proved  > .pl-atom                   { color: blue; }
 .atom.pos     > .pl-compound > .pl-functor { color: black; }
