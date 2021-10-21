@@ -15,7 +15,7 @@
 */
 
 :- create_prolog_flag(scasp_no_fail_loop, false, []).
-:- create_prolog_flag(scasp_assume,       true,  []).
+:- create_prolog_flag(scasp_assume,       false, []).
 :- create_prolog_flag(scasp_forall,       all_c, []).
 
 %!  solve(:Goals, +StackIn, -StackOut, -Model)
