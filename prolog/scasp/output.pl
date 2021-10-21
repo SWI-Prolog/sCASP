@@ -288,3 +288,11 @@ fmt_actions([text(S)|T0], Args, [text(S)|T]) :-
     fmt_actions(T0, Args, T).
 fmt_actions([escape(nothing, no_colon, p)|T0], [A0|Args], [A0|T]) :-
     fmt_actions(T0, Args, T).
+
+% portray rules for inlines constraints. Possibly we need something that
+% alows us to specify that an operator always requires spaces?
+
+user:portray('| '(Var, Constraints)) :-
+    format('~p | ~p', [Var, Constraints]).
+user:portray('\u2209'(Var, List)) :-
+    format('~p \u2209 ~p', [Var, List]).
