@@ -289,7 +289,7 @@ fixup_element(Fmt-Args, ansi(Ansi, Fmt, Args), Ansi) :-
 fixup_element(E, E, _).
 
 %!  join_blank_lines(+Tokens, -RestTokens,
-%                    +Indent0, -Indent, +Lines0, -Lines) is det.
+%!                   +Indent0, -Indent, +Lines0, -Lines) is det.
 %
 %   Deal with a sequence of nl(N) and indent(Incr) tokens, computing the
 %   next relevant indentation and the number of newlines to insert.
