@@ -64,13 +64,11 @@ default_options(Options0, Options) :-
 %   results in the following options:
 %
 %     - tree(Detail)
-%     - one of pos(true) or neg(true).
 
 default_tree_options(Options0, Options) :-
     select_option(print_tree(true), Options0, Options1),
     !,
-    tree_details(Options1, Options2),
-    tree_pos(Options2, Options).
+    tree_details(Options1, Options).
 default_tree_options(Options, Options).
 
 tree_details(Options0, [print_tree(Detail)|Options3]) :-
@@ -86,18 +84,6 @@ tree_detail(true, -, -, short).
 tree_detail(-, true, -, mid).
 tree_detail(-, -, true, long).
 tree_detail(-, -, -,    mid).
-
-tree_pos(Options, Options) :-
-    option(pos(true), Options),
-    !,
-    (   option(neg(true), Options)
-    ->  at_most_one_of([pos,neg])
-    ;   true
-    ).
-tree_pos(Options, Options) :-
-    option(neg(true), Options),
-    !.
-tree_pos(Options, [neg(true)|Options]).
 
 
 %!  check_options(+Options) is det.
@@ -145,6 +131,8 @@ opt_type(r,           real,           natural).
 opt_type(code,        write_program,  boolean).
 opt_type(human,       human,          boolean).
 opt_type(tree,        tree,           boolean).
+opt_type(pos,         pos,            boolean).
+opt_type(neg,         neg,            boolean).
 opt_type(assume,      assume,         boolean).
 
 opt_type(html,        html,           file).
@@ -195,8 +183,6 @@ opt_help(mid,            "Output mid-sized version of justification (default)").
 opt_help(short,          "Short version of justification").
 opt_help(pos,            "Only format the selected literals in the \c
                           justification").
-opt_help(neg,            "Add the negated literals in the justification \c
-                          (default)").
 opt_help(html,           "Generate an HTML file (\"-\" for standard output)").
 opt_help(style,          "Include CSS in HTML output (default)").
 opt_help(script,         "Include JavaScript in HTML output (default)").

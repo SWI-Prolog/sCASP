@@ -48,11 +48,11 @@
 
 :- det(justification_tree/3).
 
-justification_tree(M:Stack, M:JustificationTree, _Options) :-
+justification_tree(M:Stack, M:JustificationTree, Options) :-
     reverse(Stack, RevStack),
     enumerate([query|RevStack],EnumStack,1,1),
     collect_children(EnumStack, Children, 1),
-    filter_tree(Children, M, [JustificationTree]).
+    filter_tree(Children, M, [JustificationTree], Options).
 
 %!  enumerate(+StackOut, -EnumStack, +Parent, +Order)
 %
@@ -84,18 +84,25 @@ collect_children([_|Stack], Cs, PId) :-
     collect_children(Stack, Cs, PId).
 
 
-%! filter_tree(+Children, +Module, -FilteredChildren)
+%! filter_tree(+Children, +Module, -FilteredChildren, +Options)
 
-filter_tree([],_,[]).
-filter_tree([Term0-Children|Cs], M, [Term-FChildren|Fs]) :-
+filter_tree([],_,[], _).
+filter_tree([Term0-Children|Cs], M, [Term-FChildren|Fs], Options) :-
+    filter_pos(Term0, Options),
     raise_negation(Term0, Term),
     selected(Term, M), !,
-    filter_tree(Children, M, FChildren),
-    filter_tree(Cs, M, Fs).
-filter_tree([_-Childs|Cs], M, FilterChildren) :-
+    filter_tree(Children, M, FChildren, Options),
+    filter_tree(Cs, M, Fs, Options).
+filter_tree([_-Childs|Cs], M, FilterChildren, Options) :-
     append(Childs, Cs, AllCs),
-    filter_tree(AllCs, M, FilterChildren).
+    filter_tree(AllCs, M, FilterChildren, Options).
 
+filter_pos(not(GC), _Options), is_global_constraint(GC) =>
+    true.
+filter_pos(not(_), Options) =>
+    \+ option(pos(true), Options).
+filter_pos(_, _) =>
+    true.
 
 selected(query, _) => true.
 selected(proved(_), _) => true.
