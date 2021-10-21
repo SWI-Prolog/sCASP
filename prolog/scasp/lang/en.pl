@@ -37,17 +37,12 @@ scasp_message(no_query) -->
     [ 'the program does not contain ?- Query.'-[] ].
 scasp_message(undefined_operator(Op)) -->
     [ 'clp operator ~p not defined'-[Op] ].
-scasp_message(opt_tree_detail) -->
-    [ 'At most one of '-[] ],
-    list(['--short', '--mid', '--long']),
-    [ ' is allowed.'-[] ].
-scasp_message(opt_tree_pos) -->
-    [ 'At most one of '-[] ],
-    list(['--pos', '--neg']),
-    [ ' is allowed.'-[] ].
-scasp_message(opt_verbose_human) -->
-    [ 'At most one of '-[] ],
-    list(['--human', '--verbose']),
+scasp_message(at_most_one_of([A,B])) -->
+    ['Options '], opt(A), [' and '], opt(B),
+    [' cannot be used together' ].
+scasp_message(at_most_one_of(List)) -->
+    [ 'At most one of the options '-[] ],
+    options(List),
     [ ' is allowed.'-[] ].
 
 % Solver messages
@@ -122,6 +117,16 @@ goal(Goal) -->
 		 /*******************************
 		 *             UTIL		*
 		 *******************************/
+
+options(Values) -->
+    sequence(opt, [', '-[]], Values).
+
+opt(Name) -->
+    { atom_length(Name, 1) },
+    !,
+    [ ansi(code, '-~w', [Name]) ].
+opt(Name) -->
+    [ ansi(code, '--~w', [Name]) ].
 
 list(Values) -->
     sequence(code, [', '-[]], Values).

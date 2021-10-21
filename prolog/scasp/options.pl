@@ -34,6 +34,8 @@ set_option(olon(Bool)) =>
 % Presentation uptions
 set_option(unicode(Bool)) =>
     set_prolog_flag(scasp_unicode, Bool).
+set_option(assume(Bool)) =>
+    set_prolog_flag(scasp_assume, Bool).
 % Verbosity options
 set_option(verbose(Bool)) =>
     set_prolog_flag(scasp_verbose, Bool).
@@ -77,8 +79,7 @@ tree_details(Options0, [print_tree(Detail)|Options3]) :-
     select_option(long(Long),   Options2, Options3, -),
     (   tree_detail(Short, Mid, Long, Detail)
     ->  true
-    ;   print_message(error, scasp(opt_tree_detail)),
-        halt(1)
+    ;   at_most_one_of([short,mid,long])
     ).
 
 tree_detail(true, -, -, short).
@@ -90,8 +91,7 @@ tree_pos(Options, Options) :-
     option(pos(true), Options),
     !,
     (   option(neg(true), Options)
-    ->  print_message(error, scasp(opt_tree_pos)),
-        halt(1)
+    ->  at_most_one_of([pos,neg])
     ;   true
     ).
 tree_pos(Options, Options) :-
@@ -109,9 +109,17 @@ check_options(Options) :-
     option(verbose(true), Options),
     option(human(true), Options),
     !,
-    print_message(error, scasp(opt_verbose_human)),
-    halt(1).
+    at_most_one_of([verbose,human]).
+check_options(Options) :-
+    option(interactive(true), Options),
+    option(html(_), Options),
+    !,
+    at_most_one_of([interactive,html]).
 check_options(_).
+
+at_most_one_of(List) :-
+    print_message(error, scasp(at_most_one_of(List))),
+    halt(1).
 
 
 		 /*******************************
@@ -124,6 +132,7 @@ opt_type(interactive, interactive,    boolean).
 opt_type(i,           interactive,    boolean).
 
 opt_type(s,           answers,        nonneg).
+opt_type(n,           answers,        nonneg).
 
 opt_type(compiled,    compiled,       boolean).
 opt_type(c,           compiled,       boolean).
@@ -136,6 +145,7 @@ opt_type(r,           real,           natural).
 opt_type(code,        write_program,  boolean).
 opt_type(human,       human,          boolean).
 opt_type(tree,        tree,           boolean).
+opt_type(assume,      assume,         boolean).
 
 opt_type(html,        html,           file).
 opt_type(css,         style,          boolean).
@@ -179,6 +189,7 @@ opt_help(real,           "Output rational numbers as real numbers").
 opt_help(code,           "Print program with dual clauses and exit").
 opt_help(human,          "Output code/justification tree in natural language").
 opt_help(tree,           "Print justification tree for each answer").
+opt_help(assume,         "Mark assumed nodes in the tree").
 opt_help(long,           "Output long version of justification.").
 opt_help(mid,            "Output mid-sized version of justification (default)").
 opt_help(short,          "Short version of justification").
