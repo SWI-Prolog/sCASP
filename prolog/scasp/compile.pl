@@ -60,7 +60,8 @@ results.
     scasp_load(:, +),
     scasp_compile(:, +),
     scasp_query(:),
-    scasp_query(:, -, +).
+    scasp_query(:, -, +),
+    scasp_compile_query(:, -, +).
 
 %!  scasp_load(:Sources, +Options)
 %

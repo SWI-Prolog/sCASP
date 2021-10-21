@@ -96,8 +96,8 @@ main_loop(Options) :-
         end_of_input(R)
     ->  format('~N'),
         halt
-    ;   scasp_compile_query(R, Q, Options),
-        (   main_solve(Q, [variable_names(Bindings)|Options])
+    ;   scasp_compile_query(R, Q, Options)
+    ->  (   main_solve(Q, [variable_names(Bindings)|Options])
         ->  nl, main_loop(Options)
         ;   main_loop(Options)
         )
