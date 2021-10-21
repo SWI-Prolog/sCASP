@@ -49,8 +49,10 @@ main(Argv) :-
 
 main(Sources, Options) :-
     load_sources(Sources, Options),
-    (   option(write_program(true), Options)
-    ->  scasp_portray_program([duals(true)|Options]),
+    (   option(write_program(Detail), Options)
+    ->  program_details(Detail, DetailOptions),
+        merge_options(Options, DetailOptions, ProgramOptions),
+        scasp_portray_program(ProgramOptions),
         halt
     ;   option(interactive(true), Options)
     ->  '$toplevel':setup_readline,
@@ -58,6 +60,10 @@ main(Sources, Options) :-
     ;   scasp_query(Q, Bindings, Options)
     ->  ignore(main_solve(Q, [variable_names(Bindings)|Options]))
     ).
+
+program_details(short, [query(true), user(true)]).
+program_details(mid,   [query(true), user(true), duals(true)]).
+program_details(long,  [query(true), user(true), duals(true), constraints(true)]).
 
 load_sources([], _) :-
     !,

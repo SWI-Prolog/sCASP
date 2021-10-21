@@ -84,18 +84,34 @@ collect_children([_|Stack], Cs, PId) :-
     collect_children(Stack, Cs, PId).
 
 
-%! filter_tree(+Children, +Module, -FilteredChildren, +Options)
+%!  filter_tree(+Children, +Module, -FilteredChildren, +Options)
+%
+%   Clean the tree from less  interesting   details.  By default removes
+%   auxiliary nodes created as part of the compilation and the NMR proof
+%   if this is empty. Additional filtering is based on Options:
+%
+%      - pos(true)
+%        Remove all not(_) nodes from the tree.
 
 filter_tree([],_,[], _).
-filter_tree([Term0-Children|Cs], M, [Term-FChildren|Fs], Options) :-
+filter_tree([Term0-Children|Cs], M, Tree, Options) :-
     filter_pos(Term0, Options),
     raise_negation(Term0, Term),
     selected(Term, M), !,
     filter_tree(Children, M, FChildren, Options),
+    (   Term == o_nmr_check, FChildren == []
+    ->  Tree = Fs
+    ;   Tree = [Term-FChildren|Fs]
+    ),
     filter_tree(Cs, M, Fs, Options).
 filter_tree([_-Childs|Cs], M, FilterChildren, Options) :-
     append(Childs, Cs, AllCs),
     filter_tree(AllCs, M, FilterChildren, Options).
+
+%!  filter_pos(+Node, +Options) is semidet.
+%
+%   Filter negated nodes when  ``--pos``  is   active.  We  should _not_
+%   filter the global constraint nodes.
 
 filter_pos(not(GC), _Options), is_global_constraint(GC) =>
     true.

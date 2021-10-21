@@ -55,8 +55,10 @@ set_option(Term), compound(Term), functor(Term, _, 1) =>
 %
 %   Add additional default options
 
+:- det(default_options/2).
 default_options(Options0, Options) :-
-    default_tree_options(Options0, Options).
+    default_tree_options(Options0, Options1),
+    default_write_program_options(Options1, Options).
 
 %!  default_tree_options(+OptionsIn, -OptionsOut) is det.
 %
@@ -68,22 +70,30 @@ default_options(Options0, Options) :-
 default_tree_options(Options0, Options) :-
     select_option(print_tree(true), Options0, Options1),
     !,
-    tree_details(Options1, Options).
+    details(Options1, print_tree, Options).
 default_tree_options(Options, Options).
 
-tree_details(Options0, [print_tree(Detail)|Options3]) :-
+default_write_program_options(Options0, Options) :-
+    select_option(write_program(true), Options0, Options1),
+    !,
+    details(Options1, write_program, Options).
+default_write_program_options(Options, Options).
+
+
+details(Options0, Name, [Opt|Options3]) :-
+    Opt =.. [Name,Detail],
     select_option(short(Short), Options0, Options1, -),
     select_option(mid(Mid),     Options1, Options2, -),
     select_option(long(Long),   Options2, Options3, -),
-    (   tree_detail(Short, Mid, Long, Detail)
+    (   detail(Short, Mid, Long, Detail)
     ->  true
     ;   at_most_one_of([short,mid,long])
     ).
 
-tree_detail(true, -, -, short).
-tree_detail(-, true, -, mid).
-tree_detail(-, -, true, long).
-tree_detail(-, -, -,    mid).
+detail(true, -, -, short).
+detail(-, true, -, mid).
+detail(-, -, true, long).
+detail(-, -, -,    mid).
 
 
 %!  check_options(+Options) is det.
@@ -132,8 +142,11 @@ opt_type(code,        write_program,  boolean).
 opt_type(human,       human,          boolean).
 opt_type(tree,        tree,           boolean).
 opt_type(pos,         pos,            boolean).
-opt_type(neg,         neg,            boolean).
 opt_type(assume,      assume,         boolean).
+opt_type(short,       short,          boolean).
+opt_type(mid,         pos,            boolean).
+opt_type(long,        long,           boolean).
+
 
 opt_type(html,        html,           file).
 opt_type(css,         style,          boolean).
@@ -177,10 +190,11 @@ opt_help(real,           "Output rational numbers as real numbers").
 opt_help(code,           "Print program with dual clauses and exit").
 opt_help(human,          "Output code/justification tree in natural language").
 opt_help(tree,           "Print justification tree for each answer").
-opt_help(assume,         "Mark assumed nodes in the tree").
-opt_help(long,           "Output long version of justification.").
-opt_help(mid,            "Output mid-sized version of justification (default)").
-opt_help(short,          "Short version of justification").
+opt_help(assume,         "Mark assumed nodes in the justification").
+opt_help(long,           "Output long version of code or justification.").
+opt_help(mid,            "Output mid-sized version of code or justification \c
+			  (default)").
+opt_help(short,          "Short version of code or justification").
 opt_help(pos,            "Only format the selected literals in the \c
                           justification").
 opt_help(html,           "Generate an HTML file (\"-\" for standard output)").
