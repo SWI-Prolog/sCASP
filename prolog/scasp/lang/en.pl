@@ -33,6 +33,8 @@ scasp_message(source_not_found(Source)) -->
     ).
 scasp_message(no_input_files) -->
     [ 'No input file specified!' ].
+scasp_message(no_query) -->
+    [ 'the program does not contain ?- Query.'-[] ].
 scasp_message(undefined_operator(Op)) -->
     [ 'clp operator ~p not defined'-[Op] ].
 scasp_message(opt_tree_detail) -->

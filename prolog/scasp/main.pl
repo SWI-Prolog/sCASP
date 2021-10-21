@@ -39,9 +39,13 @@ or more scasp source files, answer the (last) query and exit.
 %   options and the input files.
 
 main(Argv) :-
-    parse_args(Argv, Sources, Options),
-    set_options(Options),
-    main(Sources, Options).
+    catch_with_backtrace(
+        ( parse_args(Argv, Sources, Options),
+          set_options(Options),
+          main(Sources, Options)
+        ),
+        Error,
+        error(Error)).
 
 main(Sources, Options) :-
     load_sources(Sources, Options),
@@ -61,20 +65,24 @@ load_sources([], _) :-
     scasp_help,
     halt(1).
 load_sources(Sources, Options) :-
-    catch_with_backtrace(
-        scasp_load(Sources, Options),
-        Error,
-        load_error(Error)).
+    scasp_load(Sources, Options).
 
-load_error(error(scasp_undefined(PIs), _)) :-
+%!  error(Error)
+%
+%   Report expected errors concisely and  unexpected   ones  with a full
+%   backtrace.
+
+error(error(scasp_undefined(PIs), _)) :-
     !,
     maplist(report_undef, PIs),
     halt(1).
-load_error(error(existence_error(source_sink, Source),_)) :-
+error(error(existence_error(source_sink, Source),_)) :-
     print_message(error, scasp(source_not_found(Source))),
     halt(1).
-
-load_error(PrologError) :-
+error(error(existence_error(scasp_query,scasp_main), _)) :-
+    print_message(error, scasp(no_query)),
+    halt(1).
+error(PrologError) :-
     print_message(error, PrologError),
     halt(1).
 
