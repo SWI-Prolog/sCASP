@@ -222,6 +222,7 @@ opt_meta(answers,        'COUNT').
 opt_meta(real,           'DECIMALS').
 opt_meta(undefined,      'MODE').
 opt_meta(collapse_below, 'LEVELS').
+opt_meta(forall,	 'ALGORITHM').
 
 %!  scasp_help
 %
