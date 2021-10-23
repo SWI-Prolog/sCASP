@@ -1,8 +1,10 @@
 .PHONY: clean lpdoc_clean
 
-
+# --no-pce is only supported in the latest git build.  Remove
+# when using an older version.  It only makes the program a
+# little larger.
 compile_scasp:
-	swipl -O -o scasp -c prolog/scasp/main.pl
+	swipl --no-pce -O -o scasp -c prolog/scasp/main.pl
 
 check:
 	swipl test/test_scasp.pl
