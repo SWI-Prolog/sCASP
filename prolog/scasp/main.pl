@@ -60,7 +60,7 @@ main(Sources, Options) :-
     ;   option(interactive(true), Options)
     ->  '$toplevel':setup_readline,
         main_loop(Options)
-    ;   scasp_query(Q, Bindings, Options)
+    ;   query(Q, Bindings, Options)
     ->  ignore(main_solve(Q, [variable_names(Bindings)|Options]))
     ).
 
@@ -99,6 +99,17 @@ report_undef(PI) :-
     print_message(error,
                   error(existence_error(scasp_predicate, PI), _)).
 
+
+query(Query, Bindings, Options) :-
+    option(query(Term), Options),
+    !,
+    (   prolog_load_context(variable_names, Bindings)
+    ->  true
+    ;   Bindings = []
+    ),
+    scasp_compile_query(Term, Query, Options).
+query(Query, Bindings, Options) :-
+    scasp_query(Query, Bindings, Options).
 
 %!  main_loop(+Options)
 %

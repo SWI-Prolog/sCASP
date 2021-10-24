@@ -180,6 +180,8 @@ opt_type(i,           interactive,    boolean).
 opt_type(s,           answers,        nonneg).
 opt_type(n,           answers,        nonneg).
 
+opt_type(query,       query,          term).
+
 opt_type(compiled,    compiled,       boolean).
 opt_type(c,           compiled,       boolean).
 
@@ -233,6 +235,7 @@ opt_type(raw,         raw,            boolean).
 
 opt_help(interactive,    "Run in interactive mode (REP loop)").
 opt_help(answers,        "Number of answers to report (0 for all)").
+opt_help(query,          "Query to run (overrules ?- query from program)").
 opt_help(compiled,       "Load compiled files (e.g. extracted using --code)").
 opt_help(write_program,  "Output the compiled program and exit").
 opt_help(plain_dual,     "Generate dual program with single-goal clauses").
