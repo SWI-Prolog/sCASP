@@ -36,6 +36,8 @@ set_option(unicode(Bool)) =>
     set_prolog_flag(scasp_unicode, Bool).
 set_option(assume(Bool)) =>
     set_prolog_flag(scasp_assume, Bool).
+set_option(real(Decimals)) =>
+    set_prolog_flag(scasp_real, Decimals).
 % Verbosity options
 set_option(verbose(Bool)) =>
     set_prolog_flag(scasp_verbose, Bool).

@@ -48,6 +48,9 @@ main(Argv) :-
         error(Error)).
 
 main(Sources, Options) :-
+    set_prolog_flag(rational_syntax, natural),
+    set_prolog_flag(prefer_rationals, true),
+
     load_sources(Sources, Options),
     (   option(write_program(Detail), Options)
     ->  program_details(Detail, DetailOptions),
@@ -299,6 +302,17 @@ print_binding(Name = Value, Options) :-
                     | Options
                     ]
            ]).
+
+% rational number handling
+
+:- multifile
+    user:portray/1.
+
+user:portray(Rat) :-
+    rational(Rat),
+    current_prolog_flag(scasp_real, Decimals),
+    integer(Decimals),
+    format('~*f', [Decimals, Rat]).
 
 
 %!  html_print_results(+Results:dict, +Options)
