@@ -39,6 +39,9 @@ or more scasp source files, answer the (last) query and exit.
 %   options and the input files.
 
 main(Argv) :-
+    require_prolog_version('8.5.0-71',
+                           [ warning(rational)
+                           ]),
     catch_with_backtrace(
         ( parse_args(Argv, Sources, Options),
           set_options(Options),
