@@ -51,43 +51,101 @@ set_option(color(Bool)) =>
 set_option(Term), compound(Term), functor(Term, _, 1) =>
     true.
 
-%!  default_options(+OptionsIn, -OptionsOut) is det.
+		 /*******************************
+		 *        OPTION CHECKING	*
+		 *******************************/
+
+%!  opt_process(+OptionsIn, -Options) is det.
 %
-%   Add additional default options
-
-:- det(default_options/2).
-default_options(Options0, Options) :-
-    default_tree_options(Options0, Options1),
-    default_write_program_options(Options1, Options).
-
-%!  default_tree_options(+OptionsIn, -OptionsOut) is det.
+%   Post processs the option list. This   does a findall/3 on opt_rule/1
+%   which may use opt/1 to access the   option list being processed. The
+%   opt_rule/1 returns one or more actions.  Defined actions are:
 %
-%   Fill in the default options about printing the tree.  This
-%   results in the following options:
+%     - default(+Opt)
+%       If Opt is not defined, add Opt as default.
+%     - add(+Opt)
+%       Add an option.  If the option is defined, remove it.
+%     - replace(+Opts, +Opt)
+%       Remove options for Opts (a list or a single option) and
+%       add Opt.
+%     - warning(Term)
+%       call print_message(warning, Term) and continue.
+%     - error(Term)
+%       call print_message(error, Term) and die using halt(1).
+
+%   @tbd This is code that might go into the Prolog libraries at some time.
+
+:- det(opt_process/2).
+opt_process(Options0, Options) :-
+    opt_step(Options0, Options1),
+    (   Options1 == Options0
+    ->  Options = Options1
+    ;   opt_step(Options1, Options)
+    ).
+
+opt_step(Options0, Options) :-
+    findall(Act, opt_act(Options0, Act), Actions),
+    foldl(apply_action, Actions, Options0, Options).
+
+apply_action(default(Opt), Options0, Options) =>
+    merge_options(Options0, [Opt], Options).
+apply_action(add(Opt), Options0, Options) =>
+    merge_options([Opt], Options0, Options).
+apply_action(replace(Old, New), Options0, Options) =>
+    opt_delete(Old, Options0, Options1),
+    merge_options([New], Options1, Options).
+apply_action(warning(Msg), Options0, Options) =>
+    Options = Options0,
+    print_message(warning, Msg).
+apply_action(error(Msg), _Options0, _Options) =>
+    print_message(error, Msg),
+    halt(1).
+
+opt_delete([], Options0, Options) =>
+    Options = Options0.
+opt_delete([H|T], Options0, Options), is_opt(H) =>
+    delete(Options0, H, Options1),
+    opt_delete(T, Options1, Options).
+opt_delete(Opt, Options0, Options), is_opt(Opt) =>
+    delete(Options0, Opt, Options).
+
+is_opt(Opt) :-
+    compound(Opt),
+    compound_name_arity(Opt, _, 1).
+
+opt_act(Options, Act) :-
+    b_setval(options, Options),
+    opt_rule(Act).
+
+opt(Opt) :-
+    b_getval(options, Opts),
+    option(Opt, Opts).
+
+%!  opt_rule(-Action) is nondet.
 %
-%     - tree(Detail)
+%   Option rules for s(CASP).  Processed using opt_process/2 above.
 
-default_tree_options(Options0, Options) :-
-    select_option(print_tree(true), Options0, Options1),
-    !,
-    details(Options1, print_tree, Options).
-default_tree_options(Options, Options).
+opt_rule(Action) :-
+    detail(print_tree, Action).
+opt_rule(Action) :-
+    detail(write_program, Action).
+opt_rule(Error) :-
+    at_most_one_of([verbose, human], Error).
+opt_rule(Error) :-
+    at_most_one_of([interactive, human], Error).
 
-default_write_program_options(Options0, Options) :-
-    select_option(write_program(true), Options0, Options1),
-    !,
-    details(Options1, write_program, Options).
-default_write_program_options(Options, Options).
-
-
-details(Options0, Name, [Opt|Options3]) :-
-    Opt =.. [Name,Detail],
-    select_option(short(Short), Options0, Options1, -),
-    select_option(mid(Mid),     Options1, Options2, -),
-    select_option(long(Long),   Options2, Options3, -),
+detail(Opt, Action) :-
+    True =.. [Opt,true],
+    opt(True),
+    (opt(short(Short)) -> true ; Short = '-'),
+    (opt(mid(Mid))     -> true ; Mid   = '-'),
+    (opt(long(Long))   -> true ; Long  = '-'),
     (   detail(Short, Mid, Long, Detail)
-    ->  true
-    ;   at_most_one_of([short,mid,long])
+    ->  Del =.. [Opt,_],
+        New =.. [Opt,Detail],
+        Action = replace([Del,short(_),mid(_),long(_)],
+                         New)
+    ;   Action = error(scasp(at_most_one_of([short,mid,long])))
     ).
 
 detail(true, -, -, short).
@@ -95,27 +153,17 @@ detail(-, true, -, mid).
 detail(-, -, true, long).
 detail(-, -, -,    mid).
 
-
-%!  check_options(+Options) is det.
-%
-%   Verify the consistency of the Options. Print a message and halt with
-%   status 1 if there is a conflict.
-
-check_options(Options) :-
-    option(verbose(true), Options),
-    option(human(true), Options),
+at_most_one_of(List, Error) :-
+    append(_, [First|Rest], List),
+    opt_true(First),
+    member(Second, Rest),
+    opt_true(Second),
     !,
-    at_most_one_of([verbose,human]).
-check_options(Options) :-
-    option(interactive(true), Options),
-    option(html(_), Options),
-    !,
-    at_most_one_of([interactive,html]).
-check_options(_).
+    Error = error(scasp(at_most_one_of(List))).
 
-at_most_one_of(List) :-
-    print_message(error, scasp(at_most_one_of(List))),
-    halt(1).
+opt_true(Name) :-
+    Opt =.. [Name,true],
+    opt(Opt).
 
 
 		 /*******************************
@@ -239,8 +287,7 @@ scasp_help :-
 parse_args(Argv, Sources, Options) :-
     argv_options(Argv, Sources, Options0),
     info_and_exit_option(Sources, Options0),
-    default_options(Options0, Options),
-    check_options(Options).
+    opt_process(Options0, Options).
 
 info_and_exit_option(_Sources, Options) :-
     info_option(Options),
