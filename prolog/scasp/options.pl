@@ -180,7 +180,7 @@ opt_type(i,           interactive,    boolean).
 opt_type(s,           answers,        nonneg).
 opt_type(n,           answers,        nonneg).
 
-opt_type(query,       query,          term).
+opt_type(query,       query,          term([variable_names(_)])).
 
 opt_type(compiled,    compiled,       boolean).
 opt_type(c,           compiled,       boolean).

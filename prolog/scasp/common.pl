@@ -199,6 +199,9 @@ scasp_wrapper(assume(_)).
 
 %!  intern_negation(+QIn, -QOut) is det.
 
+intern_negation(not(Q0), Q) =>
+    intern_negation(Q0, Q1),
+    Q = not(Q1).
 intern_negation(-Q0, Q) =>
     Q0 =.. [Name|Args],
     atom_concat(-, Name, NName),

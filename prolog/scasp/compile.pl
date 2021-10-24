@@ -37,6 +37,7 @@
 :- use_module(library(option)).
 :- use_module(library(prolog_code)).
 :- use_module(predicates).
+:- use_module(common).
 
 /** <module> s(ASP) Ungrounded Stable Models Solver
 
@@ -113,7 +114,7 @@ scasp_compile_guarded(M:Terms, Options) :-
 
 scasp_compile_query(M:Goal, M:Query, Options) :-
     conj_to_list(Goal, Q0),
-    maplist(capture_classical_neg, Q0, Q1),
+    maplist(intern_negation, Q0, Q1),
     add_nmr(Q1, Query, Options),
     maplist(check_existence(M), Query).
 
@@ -121,13 +122,6 @@ conj_to_list(true, []) :-
     !.
 conj_to_list(Conj, List) :-
     comma_list(Conj, List).
-
-capture_classical_neg(-S, N) =>
-    S =.. [Name|Args],
-    atom_concat('-', Name, NegName),
-    N =.. [NegName|Args].
-capture_classical_neg(S0, S) =>
-    S = S0.
 
 add_nmr(Q0, Q, Options) :-
     option(nmr(false), Options),

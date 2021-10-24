@@ -101,12 +101,8 @@ report_undef(PI) :-
 
 
 query(Query, Bindings, Options) :-
-    option(query(Term), Options),
+    option(query(Term-Bindings), Options),
     !,
-    (   prolog_load_context(variable_names, Bindings)
-    ->  true
-    ;   Bindings = []
-    ),
     scasp_compile_query(Term, Query, Options).
 query(Query, Bindings, Options) :-
     scasp_query(Query, Bindings, Options).
