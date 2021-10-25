@@ -8,8 +8,6 @@
 :- use_module(library(lists)).
 :- use_module(library(main)).
 :- use_module(library(option)).
-:- use_module(library(pairs)).
-:- use_module(library(terms)).
 :- use_module(library(test_cover)).
 :- use_module(library(time)).
 
@@ -31,10 +29,11 @@ user:file_search_path(library, scasp(prolog)).
 :- use_module(library(time), [call_with_time_limit/2]).
 
 :- use_module(library(scasp/ops)).
-:- use_module(library(scasp/variables)).
 :- use_module(library(scasp/compile)).
 :- use_module(library(scasp/solve)).
-:- use_module(library(scasp/io)).
+:- use_module(library(scasp/output)).
+:- use_module(library(scasp/stack)).
+:- use_module(library(scasp/model)).
 :- use_module(library(scasp/options)).
 :- use_module(diff).
 
@@ -84,21 +83,31 @@ quick_test(hanoi).
 %
 %   Default runs tests from `../test`
 
-main(['-q']) :-
-    !,
-    qtest_scasp.
 main(Argv) :-
     argv_options(Argv, Positional, Options),
-    test_files(Positional, Files),
-    (   option(cov(Cov), Options)
-    ->  cov_dir(Cov, Dir),
-        show_coverage(run_tests(Files, Options),
+    test_files(Positional, Files, Options),
+    (   option(cov(Dir), Options)
+    ->  show_coverage(run_tests(Files, Options),
                       [ dir(Dir) ])
     ;   run_tests(Files, Options)
     ).
 
-cov_dir(true, Dir) => Dir = cov.
-cov_dir(Dir0, Dir) => Dir = Dir0.
+opt_type(q,         quick,     boolean).
+opt_type(timeout,   timeout,   number).
+opt_type(save,      save,      boolean).
+opt_type(overwrite, overwrite, boolean).
+opt_type(pass,      pass,      boolean).
+opt_type(cov,       cov,       file).
+
+opt_help(quick,     "Only run fast tests").
+opt_help(timeout,   "Timeout per test in seconds").
+opt_help(save,      "Save pass data if not yet present").
+opt_help(overwrite, "Save pass data if test passed").
+opt_help(pass,      "Save pass data if test failed").
+opt_help(cov,       "Write coverage data").
+
+opt_meta(cov,     'DIRECTORY').
+opt_meta(timeout, 'SECONDS').
 
 run_tests(Files, Options) :-
     run_tests(Files, Failed, Options),
@@ -202,57 +211,6 @@ canonical_models(Models, CannModels) :-
     maplist(canonical_model, Models, Models1),
     sort(Models1, CannModels).
 
-%!  canonical_model(+Model, -CannModel) is det.
-%
-%   Make the model canonical. The model is a nested list of positive and
-%   negative atoms as well  as  terms   proved(_).  The  model  may also
-%   contain duplicates. First we flatten the model, remove the proven(_)
-%   terms and the duplicates.
-%
-%   Next, the variable ordering  may  be   different.  We  solve this by
-%   sorting the model disregarding the variables  and re-assign the VarN
-%   variable names.
-%
-%   @bug   This is no 100% guarantee that the model is canonical. It
-%          is probably good enough though.
-
-canonical_model(Model, CannModel) :-
-    flatten(Model, FlatModel),
-    exclude(nonmodel_term, FlatModel, Model1),
-    sort(Model1, Model2),               % Remove duplicates
-    sort_model(Model2, CannModel).
-
-nonmodel_term(proved(_)).
-
-sort_model(ModelIn, Model) :-
-    map_list_to_pairs(term_var_anon, ModelIn, Pairs),
-    keysort(Pairs, Sorted),
-    pairs_values(Sorted, Model1),
-    revar(Model1, Model, VarNames),
-    maplist(rebind_non_anon, VarNames),
-    term_variables(Model, Vars),
-    rename(Vars, 0).
-
-term_var_anon(Model, Key) :-
-    mapsubterms(var_anon, Model, Key).
-
-var_anon(V, '_') :-
-    is_var(V, Name),
-    sub_atom(Name, 0, _, _, 'Var').
-
-rebind_non_anon(Name=_Var) :-
-    sub_atom(Name, 0, _, _, 'Var'),
-    !.
-rebind_non_anon(Name=Var) :-
-    Var = $Name.
-
-rename([], _).
-rename([H|T], I) :-
-    H = $Name,
-    atom_concat('Var', I, Name),
-    I2 is I+1,
-    rename(T, I2).
-
 %!  pass_data(+TestFile, -PassFile, -PassData) is det.
 
 pass_data(File, PassFile, PassData) :-
@@ -279,33 +237,36 @@ save_test_data(Into, Result) :-
                    ]),
         close(Out)).
 
-%!  test_files(+Argv, -Files) is det.
+%!  test_files(+Argv, -Files, +Options) is det.
 
-test_files([], Files) :-
+test_files([], Files, Options) :-
     !,
-    absolute_file_name(scasp(test/programs), Dir,
-                       [ file_type(directory),
-                         access(read)
-                       ]),
-    test_files([Dir], Files).
-test_files(Spec, Files) :-
-    phrase(test_files(Spec), Files).
+    (   option(quick(true), Options)
+    ->  findall(File, quick_test_file(_, File), Files)
+    ;   absolute_file_name(scasp(test/programs), Dir,
+                           [ file_type(directory),
+                             access(read)
+                           ]),
+        test_files([Dir], Files, Options)
+    ).
+test_files(Spec, Files, _Options) :-
+    phrase(test_files_(Spec), Files).
 
-test_files([]) -->
+test_files_([]) -->
     [].
-test_files([Dir|T]) -->
+test_files_([Dir|T]) -->
     { exists_directory(Dir) },
     !,
     findall(File, dir_test_file(Dir,File)),
-    test_files(T).
-test_files([File|T]) -->
+    test_files_(T).
+test_files_([File|T]) -->
     { exists_file(File) },
     !,
     [File],
-    test_files(T).
-test_files([H|T]) -->
+    test_files_(T).
+test_files_([H|T]) -->
     { print_message(warning, error(existence_error(file, H),_)) },
-    test_files(T).
+    test_files_(T).
 
 dir_test_file(Dir, File) :-
     atom_concat(Dir, '/*.pl', Pattern),
@@ -317,16 +278,19 @@ dir_test_file(Dir, File) :-
 %
 %   Called from test.pl
 
-scasp_test(Args, Stacks-Models) :-
-    parse_args(Args, Options, Sources),
+scasp_test(Args, Trees-Models) :-
+    parse_args(Args, Sources, Options),
     set_options(Options),
     scasp_load(Sources, [undefined(silent)]),
-    scasp_query(Query, _Bindings, []),
-    findall(
-        Stack-Model,
-        ( solve(Query, [], StackOut, ModelOut),
-          pretty_term([], _, StackOut, Stack),
-          pretty_term([], _, ModelOut, Model)
-        ),
-        Pairs),
-    pairs_keys_values(Pairs, Stacks, Models).
+    scasp_query(Query, Bindings, []),
+    findall(Pair,solve(Query, Bindings, Pair), Pairs),
+    pairs_keys_values(Pairs, Trees, Models).
+
+solve(Query, Bindings, Tree-Model) :-
+    solve(Query, [], StackOut, ModelOut),
+    justification_tree(StackOut, Tree, []),
+    canonical_model(ModelOut, Model),
+    All = t(Bindings, Model, Tree),
+    ovar_set_bindings(Bindings),
+    ovar_analyze_term(All),
+    inline_constraints(All, []).
