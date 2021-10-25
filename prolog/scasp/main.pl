@@ -1,6 +1,7 @@
 :- module(scasp_main,
           [ main/1,                         % +Argv
 
+            op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]),
             op(900, fy, not),
             op(700, xfx, '\u2209')          % not element of
           ]).
@@ -387,8 +388,12 @@ print_binding(Name = Value, Options) :-
 user:portray(Rat) :-
     rational(Rat),
     current_prolog_flag(scasp_real, Decimals),
-    integer(Decimals),
-    format('~*f', [Decimals, Rat]).
+    (   integer(Decimals)
+    ->  format('~*f', [Decimals, Rat])
+    ;   Decimals == float
+    ->  Value is float(Rat),
+        write(Value)
+    ).
 
 
 %!  html_print_results(+Results:dict, +Options)

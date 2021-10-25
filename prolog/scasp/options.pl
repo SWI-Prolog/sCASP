@@ -189,7 +189,7 @@ opt_type(c,           compiled,       boolean).
 opt_type(plaindual,   plain_dual,     boolean).
 opt_type(d,           plain_dual,     boolean).
 
-opt_type(r,           real,           natural).
+opt_type(r,           real,           between(1,16)|oneof([float])).
 
 opt_type(code,        write_program,  boolean).
 opt_type(human,       human,          boolean).
@@ -242,7 +242,9 @@ opt_help(query,          "Query to run (overrules ?- query from program)").
 opt_help(compiled,       "Load compiled files (e.g. extracted using --code)").
 opt_help(write_program,  "Output the compiled program and exit").
 opt_help(plain_dual,     "Generate dual program with single-goal clauses").
-opt_help(real,           "Output rational numbers as real numbers").
+opt_help(real,           "Output rational numbers as decimal. \c
+                          An integer value specifies the number of decimals \c
+                          the value `float` simply converts to a float.").
 opt_help(code,           "Print program with dual clauses and exit").
 opt_help(human,          "Output code/justification tree in natural language").
 opt_help(tree,           "Print justification tree for each answer").

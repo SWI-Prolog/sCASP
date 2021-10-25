@@ -140,9 +140,13 @@ plain_term_json(Var, Dict), var_number(Var, Num) =>
 plain_term_json(Atom, Dict), atom(Atom) =>
     Dict = atom{type:atom, value:Atom}.
 plain_term_json(Num, Dict), rational(Num, N, D) =>
-    (   current_prolog_flag(scasp_rational, float)
-    ->  Value is float(Num),
-        Dict = prolog{type:number, value:Value}
+    (   current_prolog_flag(scasp_real, Decimals),
+        (   integer(Decimals)
+        ->  truncate(Num, Decimals, Value)
+        ;   Decimals == float
+        ->  Value is float(Num)
+        )
+    ->  Dict = prolog{type:number, value:Value}
     ;   Dict = prolog{type:rational, numerator:N, denominator:D}
     ).
 plain_term_json(Num, Dict), number(Num) =>
@@ -153,6 +157,11 @@ plain_term_json(Compound, Dict), compound(Compound) =>
     compound_name_arguments(Compound, Name, Arguments),
     Dict = prolog{type:compound, functor:Name, args:JArgs},
     maplist(plain_term_json, Arguments, JArgs).
+
+truncate(Rat, Decimals, Value) :-
+    Z is Rat * 10**Decimals,
+    ZA is truncate(Z),
+    Value is float(ZA / 10**Decimals).
 
 %!  constraints_json(+Term, -Dict) is det.
 
@@ -186,7 +195,7 @@ var_name('$VAR'(Name0), Name) =>
 var_name(Var, Name), ovar_var_name(Var, Name0) =>
     Name = Name0.
 
-clpq_json(Var, Term, Dict), Term =.. [Var, Op, Arg] =>
+clpq_json(Var, Term, Dict), Term =.. [Op, Var, Arg] =>
     Dict = constraint{type:  Op, value: JArg},
     plain_term_json(Arg, JArg).
 
