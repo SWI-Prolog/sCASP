@@ -1,1 +1,1 @@
-[[[],[],o_nmr_check,[],[],p(a,b),r(a,b)]]-[[r(a,b),[p(a,b),[]],o_nmr_check,[]]].
+[test_scasp:query-[r(a,b)-[p(a,b)-[]]]]-[[p(a,b),r(a,b)]].
