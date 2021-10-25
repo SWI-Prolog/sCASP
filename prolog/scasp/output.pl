@@ -4,6 +4,7 @@
             connector/3,                         % +Semantics,-Conn,+Options
             print_connector/2,
             ovar_analyze_term/1,                 % +Term
+            ovar_analyze_term/2,                 % +Term,+Options
             ovar_clean/1,                        % +Term
             ovar_is_singleton/1,                 % @Var
             ovar_var_name/2,                     % @Var, -Name
@@ -169,21 +170,34 @@ replace_var(_, _, _, _, _, _).
 		 *******************************/
 
 %!  ovar_analyze_term(+Term) is det.
+%!  ovar_analyze_term(+Term, +Options) is det.
 %
 %   Analyze variables in an  output  term.   Adds  attributes  to  these
 %   variables that indicate their status and make this available through
 %   ovar_is_singleton/1 and ovar_var_name/1.
 
 ovar_analyze_term(Tree) :-
+    ovar_analyze_term(Tree, []).
+
+ovar_analyze_term(Tree, Options) :-
     term_attvars(Tree, AttVars),
     convlist(ovar_var_name, AttVars, VarNames),
     term_singletons(Tree, Singletons),
     term_variables(Tree, AllVars),
-    maplist(mark_singleton, Singletons),
+    (   option(name_constraints(true), Options)
+    ->  maplist(mark_singleton_no_attvar, Singletons)
+    ;   maplist(mark_singleton, Singletons)
+    ),
     foldl(name_variable(VarNames), AllVars, 0, _).
 
 mark_singleton(Var) :-
     put_attr(Var, scasp_output, singleton).
+
+mark_singleton_no_attvar(Var) :-
+    (   attvar(Var)
+    ->  true
+    ;   put_attr(Var, scasp_output, singleton)
+    ).
 
 name_variable(Assigned, Var, N0, N) :-
     (   (   ovar_is_singleton(Var)

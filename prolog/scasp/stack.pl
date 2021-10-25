@@ -41,6 +41,8 @@
 %         Node was proven by co-induction ("it is assumed that ...")
 %       - proved(Node)
 %         Node was proven before ("justified above")
+%       - assume(Node)
+%         Node was assumed (matching chs(Node)).
 %
 %   The root node has the atom `query`  and has two children: the actual
 %   query  and  the  atom  `o_nmr_check`  which  represents  the  global

@@ -17,9 +17,11 @@
 :- use_module(listing).
 :- use_module(html).
 :- use_module(html_text).
+:- use_module(json).
 :- use_module(messages).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
+:- use_module(library(http/json)).
 :- use_module(library(dcg/high_order)).
 
 :- meta_predicate
@@ -64,7 +66,10 @@ main(Sources, Options) :-
     ->  '$toplevel':setup_readline,
         main_loop(Options)
     ;   query(Q, Bindings, Options)
-    ->  ignore(main_solve(Q, [variable_names(Bindings)|Options]))
+    ->  ignore(main_solve(Q, [ variable_names(Bindings),
+                               inputs(Sources)
+                             | Options
+                             ]))
     ).
 
 program_details(short, [query(true), user(true)]).
@@ -173,6 +178,48 @@ main_solve(Query, Options) :-
                             },
                        Options).
 main_solve(Query, Options) :-
+    option(json(Name), Options),
+    !,
+    option(answers(MaxAnswers), Options, 0),
+    option(variable_names(Bindings), Options, []),
+    option(inputs(Inputs), Options, []),
+
+    copy_term(Query-Bindings, QueryVar-QBindings),
+    ovar_set_bindings(QBindings),
+    inline_constraints(QueryVar, []),
+    ROptions = [inline_constraints(false)|Options],
+
+    statistics(cputime, T0),
+    (   MaxAnswers == 0
+    ->  findall(Result,
+                solve_results(Query, Bindings, Result, ROptions),
+                Results)
+    ;   findnsols(MaxAnswers, Result,
+                  solve_results(Query, Bindings, Result, ROptions),
+                  Results)
+    ->  true
+    ),
+    statistics(cputime, T1),
+    Time is T1-T0,
+
+    scasp_results_json(scasp{ query:QueryVar,
+                              cpu:Time,
+                              answers:Results,
+                              inputs:Inputs
+                            },
+                       Dict),
+    (   Name == '-'
+    ->  json_write_dict(current_output, Dict, Options),
+        format(current_output, '~N', [])
+    ;   ensure_extension(Name, json, File),
+        setup_call_cleanup(
+            open(File, write, Out, [encoding(utf8)]),
+            ( json_write_dict(Out, Dict, Options),
+              format(current_output, '~N', [])
+            ),
+            close(Out))
+    ).
+main_solve(Query, Options) :-
     option(answers(MaxAnswers), Options, -1),
     option(variable_names(Bindings), Options, []),
 
@@ -206,6 +253,8 @@ main_solve(Query, Options) :-
     ),
     !.
 
+%!  solve_results(+Query, +Bindings, -Result:dict) is nondet.
+
 solve_results(Query, Bindings,
               scasp{ query:Query,
                      answer:Counter,
@@ -215,14 +264,31 @@ solve_results(Query, Bindings,
                      time:Time
                    },
               Options) :-
+    option(tree(true), Options),
+    !,
     call_nth(call_time(solve(Query, [], StackOut, ModelOut), Time), Counter),
     justification_tree(StackOut, Tree, Options),
     canonical_model(ModelOut, Model),
-    All = t(Bindings, Model, StackOut),
-    ovar_set_bindings(Bindings),
-    ovar_analyze_term(All),
-    inline_constraints(All, []).
+    analyze_variables(t(Bindings, Model, StackOut), Bindings, Options).
+solve_results(Query, Bindings,
+              scasp{ query:Query,
+                     answer:Counter,
+                     bindings:Bindings,
+                     model:Model,
+                     time:Time
+                   },
+              Options) :-
+    call_nth(call_time(solve(Query, [], _, ModelOut), Time), Counter),
+    canonical_model(ModelOut, Model),
+    analyze_variables(t(Bindings, Model), Bindings, Options).
 
+analyze_variables(Term, Bindings, Options) :-
+    ovar_set_bindings(Bindings),
+    (   option(inline_constraints(false), Options)
+    ->  ovar_analyze_term(Term, [name_constraints(true)])
+    ;   ovar_analyze_term(Term, []),
+        inline_constraints(Term, [])
+    ).
 
 %!  print_answer(+Nth, +Resources:dict, +Options)
 

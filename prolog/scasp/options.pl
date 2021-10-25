@@ -1,7 +1,8 @@
 :- module(scasp_options,
           [ parse_args/3,                  % +Argv, -Sources, -Options
             scasp_help/0,
-            set_options/1                  % +Options
+            set_options/1,                 % +Options
+            scasp_version/1                % -Version
           ]).
 :- use_module(library(main)).
 
@@ -199,11 +200,13 @@ opt_type(short,       short,          boolean).
 opt_type(mid,         pos,            boolean).
 opt_type(long,        long,           boolean).
 
-
-opt_type(html,        html,           file).
+opt_type(html,        html,           file(write)).
 opt_type(css,         style,          boolean).
 opt_type(script,      script,         boolean).
 opt_type(collapse,    collapse_below, nonneg).
+
+opt_type(json,        json,           file(write)).
+opt_type(width,       width,          nonneg).
 
 opt_type(unicode,     unicode,        boolean).
 opt_type(u,           unicode,        boolean).
@@ -254,6 +257,9 @@ opt_help(html,           "Generate an HTML file (\"-\" for standard output)").
 opt_help(style,          "Include CSS in HTML output (default)").
 opt_help(script,         "Include JavaScript in HTML output (default)").
 opt_help(collapse_below, "Collapse HTML tree below this level (2)").
+opt_help(json,           "Generate a JSON file (\"-\" for standard output)").
+opt_help(width,          "Page width.  For JSON, 0 stops formatting the output").
+
 opt_help(unicode,        "Use Unicode symbols in output").
 opt_help(color,          "Use ANSI sequences to color terminal output").
 opt_help(verbose,        "Enable verbose progress messages").
@@ -276,6 +282,7 @@ opt_meta(real,           'DECIMALS').
 opt_meta(undefined,      'MODE').
 opt_meta(collapse_below, 'LEVELS').
 opt_meta(forall,	 'ALGORITHM').
+opt_meta(width,		 'WIDTH').
 
 %!  scasp_help
 %
