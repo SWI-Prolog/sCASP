@@ -303,7 +303,8 @@ get_cycle2(X, [A|P], [A|C], Ni, No) :-
 %   @arg PosIn Input list of paths with cycles and no negations.
 %   @arg PosOut Output list of paths with cycles and no negations.
 
-classify_cycle(0, C, Pc, Pc, Po, Po, Pr, [C|Pr]).
+classify_cycle(0, C, Pc, Pc, Po, Po, Pr, [C|Pr]) :-
+    !.
 classify_cycle(N, C, Pc, Pc, Po, [C|Po], Pr, Pr) :-
     N > 0,
     N mod 2 =:= 0,
