@@ -70,6 +70,7 @@ home(_Request) :-
 query_page -->
     html_requires(jquery),
     html_requires(scasp),
+    styles,
     html([ h4('Program'),
            textarea([id(data), rows(10), cols(80),
                      placeholder('s(CASP) program')], ''),
@@ -78,12 +79,32 @@ query_page -->
                              placeholder('Query')]),
            ' Limit ', input([type(number), min(1), id(limit), value(1),
                              placeholder('Empty means all answer sets')]),
+           \html_json_radio,
            h4(''),
            button(id(solve), 'Solve'),
            button(id(clear), 'Clear'),
            div(id(results), [])
          ]),
     button_actions.
+
+styles -->
+    html({|html||
+<style>
+div.html-json-switch { margin-top: 10px; margin-left: 2ex; }
+</style>
+         |}).
+
+
+html_json_radio -->
+    html(div(class('html-json-switch'),
+             [ 'Display results as: ',
+               input([type(radio), id(rhtml), name(format), value(html),
+                      checked(checked)]),
+               label(for(rhtml), 'HTML'),
+               input([type(radio), id(rjson), name(format), value(json)]),
+               label(for(rjson), 'JSON')
+             ])).
+
 
 button_actions -->
     { http_link_to_id(solve, [], SolveURL) },
@@ -94,11 +115,13 @@ $("#solve").on("click", function() {
   var data = $("#data").val();
   var query = $("#query").val();
   var limit = $("#limit").val();
+  var format = $('input[type="radio"][name="format"]:checked').val();
   $("#results").empty();
   $.get(SolveURL,
         { data: data,
           query: query,
-          limit: limit
+          limit: limit,
+          format: format
         },
         function(reply) {
           var results = $("#results");
@@ -127,7 +150,8 @@ solve(Request) :-
     http_parameters(Request,
                     [ data(Data, []),
                       query(QueryS, []),
-                      limit(Limit, [optional(true), integer])
+                      limit(Limit, [optional(true), integer]),
+                      format(Format, [default(html)])
                     ]),
     Error = error(Formal,_),
     catch(( setup_call_cleanup(
@@ -157,8 +181,7 @@ solve(Request) :-
                                          N),
                                 Results),
                         TotalTime),
-              reply_html_page([],
-                              \results(Results, TotalTime))
+              reply(Format, Results, TotalTime)
             ))
     ).
 
@@ -186,6 +209,17 @@ scasp(Query, Model, Justification) :-
     scasp(Query),
     scasp_model(M:Model),
     scasp_justification(M:Justification, []).
+
+%!  reply(+Format, +Results, +TotalTime)
+
+reply(html, Results, TotalTime) =>
+    reply_html_page([],
+                    \results(Results, TotalTime)).
+
+
+		 /*******************************
+		 *        HTML GENERATION	*
+		 *******************************/
 
 results([], Time) -->
     !,
