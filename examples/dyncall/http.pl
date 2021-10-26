@@ -17,15 +17,36 @@
 
 :- if((current_prolog_flag(unix,true),
        \+ stream_property(current_input, tty(true)))).
+
 :- format(user_error, '% Loading as Unix daemon~n', []).
 :- use_module(library(http/http_unix_daemon)).
+
 :- else.
-%!  server(+Port)
+
+:- initialization(main,main).
+
+main(Argv) :-
+    argv_options(Argv, _, Options),
+    server(Options),
+    thread_get_message(quit). % do not terminate
+
+opt_type(port, port, natural).
+opt_type(p,    port, natural).
+
+opt_help(port, "Port used by the server").
+
+opt_meta(port, 'PORT').
+
+
+%!  server(+Options)
 %
 %   Start HTTP server at the indicated port.
 
-server(Port) :-
-    http_server([port(Port)]).
+server(Options) :-
+    (   option(port(_), Options)
+    ->  http_server(Options)
+    ;   http_server([port(8080)|Options])
+    ).
 :- endif.
 
 :- multifile http:location/3.
