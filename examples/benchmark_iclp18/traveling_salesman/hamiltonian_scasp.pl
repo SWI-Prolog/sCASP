@@ -22,7 +22,7 @@ travel_path(Start, Length, Cycle) :- path(Start, Start, Start, Length, [], Cycle
 path(_, X, Y, D, Prev, [X,[D],Y|Prev]) :-
     cycle_dist(X, Y, D).
 path(Start, X, Y, D, Prev, Cycle) :-
-    D .=. D1 + D2,
+    D #= D1 + D2,
     cycle_dist(Z, Y, D1), Z \= Start,
     path(Start, X, Z, D2, [([D1],Y)|Prev], Cycle).
 
@@ -37,7 +37,7 @@ node(d).
 
 distance(b, c, 31/10).
 distance(c, d, L) :-
-    L .>. 8, L .<. 21/2.
+    L #> 8, L #< 21/2.
 distance(d, a, 1).
 distance(a, b, 1).
 distance(c, a, 1).
