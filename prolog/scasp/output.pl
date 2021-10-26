@@ -191,7 +191,10 @@ ovar_analyze_term(Tree, Options) :-
     foldl(name_variable(VarNames), AllVars, 0, _).
 
 mark_singleton(Var) :-
-    put_attr(Var, scasp_output, singleton).
+    (   ovar_var_name(Var, _)
+    ->  true
+    ;   put_attr(Var, scasp_output, singleton)
+    ).
 
 mark_singleton_no_attvar(Var) :-
     (   attvar(Var)
