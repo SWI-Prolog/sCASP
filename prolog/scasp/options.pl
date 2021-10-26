@@ -5,6 +5,7 @@
             scasp_version/1                % -Version
           ]).
 :- use_module(library(main)).
+:- use_module(library(strings)).
 
 /** <module> (Command line) option handling for sCASP
 
@@ -277,7 +278,18 @@ opt_help(variant,        "Do not fail in the presence of variant loops").
 opt_help(minimal,        "Collect only the minimal models (TABLING required)").
 opt_help(raw,            "Sort the clauses as s(ASP) does (use with --code)").
 
-opt_help(usage,          "[options] file ...").
+opt_help(help(header), [ansi(bold, '~w', [Header])]) :-
+    scasp_version(Version),
+    Header = {|string(Version)||
+              | s(CASP) version {Version}
+             |}.
+opt_help(help(usage), Usage) :-
+    Usage = {|string||
+             | [options] file ...
+             |
+             | s(CASP) computes stable models of predicate normal logic programs
+             | with contraints using a top-down evaluation algorihtm.
+            |}.
 
 opt_meta(answers,        'COUNT').
 opt_meta(real,           'DECIMALS').
