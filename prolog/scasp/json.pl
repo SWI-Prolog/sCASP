@@ -12,24 +12,56 @@
 
 %!  scasp_results_json(+Results, -Dict) is det.
 %
+%   Generate a JSON document from  the   results  of the s(CASP) solver.
+%   Results is a dict holding:
 %
+%     - query
+%       The query represented as a list.
+%     - answers
+%       A list of answers.  Each answer is a dict holding the keys
+%       below. This dict is normally created using scasp_solve/4.
+%       - query
+%       - answer
+%         Nth answer (1, 2, ...)
+%       - bindings
+%       - model
+%       - tree
+%         The justification tree.  Optional.
+%       - time
+%     - inputs
+%       Description of the input.  Typically a list of file names.
+%	Optional.
+%     - cpu
+%       COU time used to get all answers (optional).
 
 :- det(scasp_results_json/2).
 scasp_results_json(Result, Dict) :-
     _{ query: Query,
-       cpu: Time,
-       answers: Answers,
-       inputs: Inputs
+       answers: Answers
      } :< Result,
-    Dict = scasp_result{ solver: Version,
-                         query: JQuery,
-                         time: Time,
-                         answers: JAnswers,
-                         inputs: Inputs
+    Dict0 = scasp_result{ solver: Version,
+                          query: JQuery,
+                          answers: JAnswers
                        },
     scasp_version(Version),
     query_json(Query, JQuery),
-    maplist(answer_json, Answers, JAnswers).
+    maplist(answer_json, Answers, JAnswers),
+    copy_dict_slots([cpu-time, inputs], Dict0, Dict).
+
+copy_dict_slots(Slots, Dict0, Dict) :-
+    foldl(copy_dict_slot, Slots, Dict0, Dict).
+
+copy_dict_slot(Name, Dict0, Dict), atom(Name) =>
+    (   Value = Dict0.get(Name)
+    ->  Dict = Dict0.put(Name, Value)
+    ;   Dict0 = Dict
+    ).
+copy_dict_slot(Name-To, Dict0, Dict) =>
+    (   Value = Dict0.get(Name)
+    ->  Dict = Dict0.put(To, Value)
+    ;   Dict0 = Dict
+    ).
+
 
 :- meta_predicate query_json(:, -).
 :- det(query_json/2).
