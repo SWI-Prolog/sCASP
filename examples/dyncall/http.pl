@@ -165,6 +165,8 @@ solve(Request) :-
     solve(Request, #{ data:Data, format:json }).
 solve(Request) :-
     option(method(post), Request),
+    option(content_type(Type), Request),
+    sub_atom(Type, 0, _, _, 'application/json'),
     !,
     http_read_json(Request, Dict0, [json_object(dict)]),
     foldl(to_atom, [format], Dict0, Dict),
@@ -172,7 +174,7 @@ solve(Request) :-
 solve(Request) :-
     http_parameters(Request,
                     [ data(Data, []),
-                      query(QueryS, []),
+                      query(QueryS, [optional(true)]),
                       limit(Limit, [optional(true), integer]),
                       format(Format, [default(html)]),
                       tree(Tree, [boolean,optional(true)])
