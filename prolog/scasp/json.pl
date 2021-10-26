@@ -16,7 +16,7 @@
 %   Results is a dict holding:
 %
 %     - query
-%       The query represented as a list.
+%       The query represented as a list or as a conjunction.
 %     - answers
 %       A list of answers.  Each answer is a dict holding the keys
 %       below. This dict is normally created using scasp_solve/4.
@@ -65,11 +65,13 @@ copy_dict_slot(Name-To, Dict0, Dict) =>
 
 :- meta_predicate query_json(:, -).
 :- det(query_json/2).
-query_json(_:Query, JQuery) :-
+query_json(_:Query, JQuery), is_list(Query) =>
     delete(Query, o_nmr_check, Query1),
     delete(Query1, true, Query2),
     plain_term_json(Query2, JQuery).
-
+query_json(_:Query, JQuery) =>
+    comma_list(Query, List),
+    plain_term_json(List, JQuery).
 
 %!  answer_json(+Answer, -Dict) is det.
 
