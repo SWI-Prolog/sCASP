@@ -1,5 +1,6 @@
 :- module(scasp,
           [ scasp/1,                    % :Goal
+            scasp/2,                    % :Goal, +Options
             (?)/1,                      % :Query
             (??)/1,                     % :Query
 

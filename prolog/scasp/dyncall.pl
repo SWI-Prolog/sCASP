@@ -1,5 +1,6 @@
 :- module(scasp_dyncall,
           [ scasp/1,                    % :Query
+            scasp/2,                    % :Query, +Options
             scasp_query_clauses/2,      % :Query, -Clauses
             scasp_model/1,              % -Model
             scasp_justification/2,      % -Tree, +Options
@@ -39,6 +40,7 @@
 
 :- meta_predicate
     scasp(0),
+    scasp(0, +),
     scasp_query_clauses(:, -),
     scasp_dynamic(:),
     scasp_assert(:),
@@ -64,11 +66,14 @@ Issues:
 */
 
 scasp(Query) :-
+    scasp(Query, []).
+
+scasp(Query, Options) :-
     scasp_query_clauses(Query, Clauses),
     qualify(Query, _:QQuery),
     in_temporary_module(
         Module,
-        prepare(Clauses, Module, []),
+        prepare(Clauses, Module, Options),
         scasp_embed:scasp_call(Module:QQuery)).
 
 prepare(Clauses, Module, Options) :-
