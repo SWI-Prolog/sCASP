@@ -174,14 +174,12 @@ solve(Request) :-
             ( use_module(library(scasp)),
               maplist(add_to_program(M), Terms)
             ),
-            ( call_time(findall(result(N, Time, M, VNames, Model, Justification),
-                                call_nth(call_time(limit(Limit,
-                                                         scasp(M:Query, Model, Justification)),
-                                                   Time),
-                                         N),
+            ( call_time(findall(Result,
+                                scasp_result(M:Query, VNames, Result,
+                                             [tree(true)]),
                                 Results),
                         TotalTime),
-              reply(Format, Results, TotalTime)
+              reply(Format, M:Results, TotalTime)
             ))
     ).
 
@@ -204,46 +202,56 @@ add_to_program(M, (:- abducible Spec)) =>
 add_to_program(M, Term) =>
     scasp_assert(M:Term).
 
-scasp(Query, Model, Justification) :-
+scasp_result(Query,
+             Bindings,
+             scasp{ query:Query,
+                    answer:Counter,
+                    bindings:Bindings,
+                    model:Model,
+                    tree:Tree,
+                    time:Time
+                  },
+             Options) :-
+    option(tree(true), Options),
+    !,
     Query = M:_,
-    scasp(Query),
+    call_nth(call_time(scasp(Query), Time), Counter),
     scasp_model(M:Model),
-    scasp_justification(M:Justification, []).
+    scasp_justification(M:Tree, []),
+    analyze_variables(t(Bindings, Model, Tree), Bindings, Options).
 
-%!  reply(+Format, +Results, +TotalTime)
+analyze_variables(Term, Bindings, Options) :-
+    ovar_set_bindings(Bindings),
+    (   option(inline_constraints(false), Options)
+    ->  ovar_analyze_term(Term, [name_constraints(true)])
+    ;   ovar_analyze_term(Term, []),
+        inline_constraints(Term, [])
+    ).
 
-reply(html, Results, TotalTime) =>
+%!  reply(+Format, :Results, +TotalTime)
+
+reply(html, M:Results, TotalTime) =>
     reply_html_page([],
-                    \results(Results, TotalTime)).
+                    \results(Results, M, TotalTime)).
 
 
 		 /*******************************
 		 *        HTML GENERATION	*
 		 *******************************/
 
-results([], Time) -->
+results([], _, Time) -->
     !,
     html(h3('No models (~3f sec)'-[Time.cpu])).
-results(Results, _Time) -->
-    sequence(result, Results).
+results(Results, M, _Time) -->
+    sequence(result(M), Results).
 
-result(result(N, Time, M, Bindings, Model, Justification)) -->
-    { maplist(set_name, Bindings),
-      ovar_analyze_term(t(Bindings, Model, Justification)),
-      inline_constraints(Model+Justification, [])
-    },
+result(M, Result) -->
     html(div(class(result),
-             [ h3('Result #~D (~3f sec)'-[N, Time.cpu]),
-               \binding_section(Bindings),
-               \html_model(M:Model, [class('collapsable-content')]),
-               \html_justification_tree(M:Justification, [])
+             [ h3('Result #~D (~3f sec)'-[Result.answer, Result.time.cpu]),
+               \binding_section(Result.bindings),
+               \html_model(M:Result.model, [class('collapsable-content')]),
+               \html_justification_tree(M:Result.tree, [])
              ])).
-
-set_name(Name = Var) :-
-    (   var(Var)
-    ->  ovar_set_name(Var, Name)
-    ;   true
-    ).
 
 read_terms(In, Terms) :-
     read_one_term(In, Term0),
