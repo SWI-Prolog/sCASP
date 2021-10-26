@@ -1,6 +1,7 @@
 :- use_module(library(scasp)).
 :- use_module(library(scasp/html)).
 :- use_module(library(scasp/output)).
+:- use_module(library(scasp/json)).
 
 :- use_module(library(http/http_server)).
 :- use_module(library(http/html_write)).
@@ -11,6 +12,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(http/term_html)).
+:- use_module(library(http/http_json)).
 
 % Become Unix daemon process when on Unix and not attached to a
 % terminal.
@@ -83,7 +85,8 @@ query_page -->
            h4(''),
            button(id(solve), 'Solve'),
            button(id(clear), 'Clear'),
-           div(id(results), [])
+           div(id('results-html'), []),
+           pre(id('results-json'), [])
          ]),
     button_actions.
 
@@ -116,7 +119,8 @@ $("#solve").on("click", function() {
   var query = $("#query").val();
   var limit = $("#limit").val();
   var format = $('input[type="radio"][name="format"]:checked').val();
-  $("#results").empty();
+  $("#results-html").empty();
+  $("#results-json").empty();
   $.get(SolveURL,
         { data: data,
           query: query,
@@ -124,10 +128,15 @@ $("#solve").on("click", function() {
           format: format
         },
         function(reply) {
-          var results = $("#results");
 
-          results.html(reply);
-          results.sCASP('swish_answer');
+          if ( typeof(reply) == "string" ) {
+            var results = $("#results-html");
+            results.html(reply);
+            results.sCASP('swish_answer');
+          } else if ( typeof(reply) == "object" ) {
+            var results = $("#results-json");
+            results.text(JSON.stringify(reply, undefined, 2));
+          }
         })
   .fail(function(error) {
     if ( error.responseJSON ) {
@@ -147,12 +156,43 @@ $("#clear").on("click", function() {
 
 
 solve(Request) :-
+    option(method(post), Request),
+    !,
+    http_read_json(Request, Dict0, [json_object(dict)]),
+    foldl(to_atom, [format], Dict0, Dict),
+    solve(Request, Dict).
+solve(Request) :-
     http_parameters(Request,
                     [ data(Data, []),
                       query(QueryS, []),
                       limit(Limit, [optional(true), integer]),
-                      format(Format, [default(html)])
+                      format(Format, [default(html)]),
+                      tree(Tree, [boolean,optional(true)])
                     ]),
+    solve(Request,
+          #{ data:Data,
+             query:QueryS,
+             limit:Limit,
+             format:Format,
+             tree:Tree}).
+
+to_atom(Key, Dict0, Dict) :-
+    (   Value = Dict0.get(Key)
+    ->  atom_string(Atom, Value),
+        Dict = Dict0.put(Key, Atom)
+    ;   Dict = Dict0
+    ).
+
+solve(_Request, Dict) :-
+    _{ data:Data,
+       query:QueryS,
+       limit:Limit,
+       format:Format,
+       tree:Tree } >:< Dict,
+
+    ignore(Limit = infinite),
+    solve_options(Format, Tree, Options),
+
     Error = error(Formal,_),
     catch(( setup_call_cleanup(
                 open_string(Data, In),
@@ -175,17 +215,25 @@ solve(Request) :-
               maplist(add_to_program(M), Terms)
             ),
             ( call_time(findall(Result,
-                                scasp_result(M:Query, VNames, Result,
-                                             [tree(true)]),
+                                scasp_result(M:Query, VNames, Result, Options),
                                 Results),
                         TotalTime),
-              reply(Format, M:Results, TotalTime)
+              ovar_set_bindings(VNames),
+              ovar_analyze_term(Query, []),
+              inline_constraints(Query, []),
+              reply(Format, M:Query, TotalTime, Results)
             ))
     ).
 
 error(Error) -->
     { message_to_string(Error, Message) },
     html(div(class(error), Message)).
+
+solve_options(html, _, Options) =>
+    Options = [tree(true)].
+solve_options(json, Tree, Options) =>
+    ignore(Tree=true),
+    Options = [tree(Tree), inline_constraints(false)].
 
 %!  add_to_program(+Module, +Term)
 %
@@ -219,6 +267,19 @@ scasp_result(Query,
     scasp_model(M:Model),
     scasp_justification(M:Tree, []),
     analyze_variables(t(Bindings, Model, Tree), Bindings, Options).
+scasp_result(Query,
+             Bindings,
+             scasp{ query:Query,
+                    answer:Counter,
+                    bindings:Bindings,
+                    model:Model,
+                    time:Time
+                  },
+             Options) :-
+    Query = M:_,
+    call_nth(call_time(scasp(Query), Time), Counter),
+    scasp_model(M:Model),
+    analyze_variables(t(Bindings, Model), Bindings, Options).
 
 analyze_variables(Term, Bindings, Options) :-
     ovar_set_bindings(Bindings),
@@ -228,11 +289,17 @@ analyze_variables(Term, Bindings, Options) :-
         inline_constraints(Term, [])
     ).
 
-%!  reply(+Format, :Results, +TotalTime)
+%!  reply(+Format, :Query, +TotalTime, +Results)
 
-reply(html, M:Results, TotalTime) =>
+reply(html, M:_Query, TotalTime, Results) =>
     reply_html_page([],
                     \results(Results, M, TotalTime)).
+reply(json, Query, TotalTime, Results) =>
+    scasp_results_json(#{query:Query,
+                         answers:Results,
+                         cpu:TotalTime},
+                       JSON),
+    reply_json_dict(JSON, []).
 
 
 		 /*******************************
