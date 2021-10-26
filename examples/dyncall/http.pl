@@ -13,6 +13,7 @@
 :- use_module(library(dcg/high_order)).
 :- use_module(library(http/term_html)).
 :- use_module(library(http/http_json)).
+:- use_module(library(http/http_client)).
 
 % Become Unix daemon process when on Unix and not attached to a
 % terminal.
@@ -157,6 +158,13 @@ $("#clear").on("click", function() {
 
 solve(Request) :-
     option(method(post), Request),
+    option(content_type(Type), Request),
+    sub_atom(Type, 0, _, _, 'text/x-scasp'),
+    !,
+    http_read_data(Request, Data, [to(string)]),
+    solve(Request, #{ data:Data, format:json }).
+solve(Request) :-
+    option(method(post), Request),
     !,
     http_read_json(Request, Dict0, [json_object(dict)]),
     foldl(to_atom, [format], Dict0, Dict),
@@ -196,9 +204,9 @@ solve(_Request, Dict) :-
     Error = error(Formal,_),
     catch(( setup_call_cleanup(
                 open_string(Data, In),
-                read_terms(In, Terms),
+                read_terms(In, Terms0),
                 close(In)),
-            term_string(Query, QueryS, [variable_names(VNames)])
+            query(QueryS, Query, Bindings, Terms0, Terms)
           ),
           Error,
           true),
@@ -215,10 +223,10 @@ solve(_Request, Dict) :-
               maplist(add_to_program(M), Terms)
             ),
             ( call_time(findall(Result,
-                                scasp_result(M:Query, VNames, Result, Options),
+                                scasp_result(M:Query, Bindings, Result, Options),
                                 Results),
                         TotalTime),
-              ovar_set_bindings(VNames),
+              ovar_set_bindings(Bindings),
               ovar_analyze_term(Query, []),
               inline_constraints(Query, []),
               reply(Format, M:Query, TotalTime, Results)
@@ -249,6 +257,21 @@ add_to_program(M, (:- abducible Spec)) =>
     abducible(M:Spec).
 add_to_program(M, Term) =>
     scasp_assert(M:Term).
+
+query(QueryS, Query, Bindings, Terms, Terms) :-
+    atomic(QueryS), QueryS \== '',
+    !,
+    term_string(Query, QueryS, [variable_names(Bindings)]).
+query(_, Query, Bindings, TermsIn, TermsOut) :-
+    partition(is_query, TermsIn, Queries, TermsOut),
+    last(Queries, (?- Query0)),
+    !,
+    varnumbers_names(Query0, Query, Bindings).
+query(_, _, _, _, _) :-
+    existence_error(scasp_query, program).
+
+is_query((?-_)) => true.
+is_query(_) => false.
 
 scasp_result(Query,
              Bindings,
@@ -346,6 +369,8 @@ fixup_pred((#pred Atom :: _Template), Bindings) =>
     fixup_atom(Atom, Bindings).
 fixup_pred((:-pred Atom :: _Template), Bindings) =>
     fixup_atom(Atom, Bindings).
+fixup_pred((?- Query), Bindings) =>
+    fixup_atom(Query, Bindings).
 fixup_pred(_, _) =>
     true.
 
