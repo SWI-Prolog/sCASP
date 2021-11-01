@@ -126,6 +126,8 @@ selected(query, _) => true.
 selected(proved(_), _) => true.
 selected(chs(_), _) => true.
 selected(assume(_), _) => true.
+selected(not(-Goal), _) =>
+    \+ aux_predicate(Goal).
 selected(not(Goal), _) =>
     \+ aux_predicate(Goal).
 selected(-(Goal), M) =>
