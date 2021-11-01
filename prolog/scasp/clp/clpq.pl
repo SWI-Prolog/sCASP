@@ -147,7 +147,7 @@ store_entails(StoreA, StoreB) :-
 
 % Success if S >= Goal
 entail_terms(Goal, S) :-
-    \+ \+ Goal = S,
+    \+ Goal \= S,
     clp_varset(Goal, VsGoal),
     VsGoal \= [],
     clp_varset(S, VsS),
