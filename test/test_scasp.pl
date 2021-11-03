@@ -281,7 +281,7 @@ dir_test_file(Dir, File) :-
 scasp_test(Args, Trees-Models) :-
     parse_args(Args, Sources, Options),
     set_options(Options),
-    scasp_load(Sources, [undefined(silent)]),
+    scasp_load(Sources, [unknown(fail)]),
     scasp_query(Query, Bindings, []),
     findall(Pair,solve(Query, Bindings, Pair), Pairs),
     pairs_keys_values(Pairs, Trees, Models).

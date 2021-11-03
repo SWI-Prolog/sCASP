@@ -166,7 +166,7 @@ end_scasp(Clauses) :-
         scasp_pop_operators,
         '$style_check'(_, OldStyle),
         (   Exports == []
-        ->  Options = [undefined(silent)]
+        ->  Options = [unknown(fail)]
         ;   Options = []
         ),
         scasp_compile_unit(Unit, Options),

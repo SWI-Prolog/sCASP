@@ -227,7 +227,7 @@ opt_type(f,           trace_fails,    boolean).
 opt_type(nmr,         nmr,            boolean(false)).
 opt_type(olon,        olon,           boolean(false)).
 
-opt_type(undef,       undefined,      oneof([silent,warning,error])).
+opt_type(undef,       unknown,        oneof([fail,warning,error])).
 
 opt_type(warning,     warning,        boolean).
 opt_type(w,           warning,        boolean).
@@ -267,7 +267,7 @@ opt_help(unicode,        "Use Unicode symbols in output").
 opt_help(color,          "Use ANSI sequences to color terminal output").
 opt_help(verbose,        "Enable verbose progress messages").
 opt_help(trace_fails,    "Trace user-predicate failures").
-opt_help(undefined,      "Act on undefined predicates (silent,warning,error)").
+opt_help(unknown,        "Act on undefined predicates (silent,warning,error)").
 opt_help(forall,         "Forall algorithm to use (all, [all_c], prev)").
 opt_help(olon,           "Compile olon rules (--no-olon for debugging purposes)").
 opt_help(nmr,            "Compile NMR rules (--no-nmr for debugging purposes)").
@@ -293,7 +293,7 @@ opt_help(help(usage), Usage) :-
 
 opt_meta(answers,        'COUNT').
 opt_meta(real,           'DECIMALS').
-opt_meta(undefined,      'MODE').
+opt_meta(unknown,        'MODE').
 opt_meta(collapse_below, 'LEVELS').
 opt_meta(forall,	 'ALGORITHM').
 opt_meta(width,		 'WIDTH').

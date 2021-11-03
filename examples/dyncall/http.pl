@@ -300,10 +300,10 @@ error(Error) -->
     html(div(class(error), Message)).
 
 solve_options(html, _, Options) =>
-    Options = [tree(true), undefined(silent)].
+    Options = [tree(true), unknown(fail)].
 solve_options(json, Tree, Options) =>
     ignore(Tree=true),
-    Options = [tree(Tree), undefined(silent), inline_constraints(false)].
+    Options = [tree(Tree), unknown(fail), inline_constraints(false)].
 
 %!  read_terms(+In:stream, -Terms) is det.
 %

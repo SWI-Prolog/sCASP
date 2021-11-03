@@ -32,7 +32,6 @@
           ]).
 :- use_module(modules).
 
-
 /** <module> Output formatting and printing.
 
 Predicates related to formatting and printing output. This includes predicates
@@ -55,6 +54,9 @@ that may be used for warning and error output.
 
 :- meta_predicate
     generate_pr_rules(:, +).
+
+% fail,warning,error
+:- create_prolog_flag(scasp_unknown, warning, [keep(true)]).
 
 %!  format_term(+EntryIn:compound, -EntryOut:compound,
 %!              -Constraints:list, +Vars:compound) is det
@@ -382,8 +384,9 @@ assert_pr_user_predicate([P|Ps], M) :-
 %   Check that all referenced predicates are defined.
 
 check_existence(Options) :-
-    option(undefined(Mode), Options, warning),
-    (   Mode == silent
+    current_prolog_flag(scasp_unknown, DefaultMode),
+    option(unknown(Mode), Options, DefaultMode),
+    (   Mode == fail
     ->  true
     ;   defined_predicates(Preds),
         exclude(defined, Preds, Undef0),
