@@ -481,7 +481,8 @@ abducible_rules(Head,
                 [ (Head                 :- not AHead, abducible_1(Head)),
                   (AHead                :- not Head),
                   (abducible_1(Head)    :- not '_abducible_1'(Head)),
-                  ('_abducible_1'(Head) :- not abducible_1(Head))
+                  ('_abducible_1'(Head) :- not abducible_1(Head)),
+                  (:- discontiguous((abducible_1/1, '_abducible_1'/1)))
                 ]) :-
     Head =.. [F|Args],
     atom_concat('_', F, AF),
