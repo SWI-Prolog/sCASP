@@ -68,6 +68,13 @@ canonical_model(Model, CanModel) :-
 nonmodel_term(proved(_)).
 nonmodel_term(chs(_)).
 nonmodel_term(o_nmr_check).
+nonmodel_term(not(X)) :-
+    nonvar(X),
+    !,
+    nonmodel_term(X).
+nonmodel_term(Term) :-
+    functor(Term, Name, _),
+    sub_atom(Name, 0, _, _, o_).
 
 %!  sort_model(+ModelIn, -Sorted) is det.
 %
