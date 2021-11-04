@@ -133,7 +133,9 @@ selected(not(Goal), _) =>
 selected(-(Goal), M) =>
     selected(Goal, M).
 selected(Goal, M) =>
-    (   user_predicate(M:Goal)
+    (   aux_predicate(Goal)
+    ->  fail
+    ;   user_predicate(M:Goal)
     ->  true
     ;   is_global_constraint(Goal)
     ).
