@@ -65,6 +65,7 @@ canonical_model(Model, CanModel) :-
     sort_model(Raised, Sorted),
     simplify_model(Sorted, CanModel).
 
+nonmodel_term(abducible(_)).
 nonmodel_term(proved(_)).
 nonmodel_term(chs(_)).
 nonmodel_term(o_nmr_check).
