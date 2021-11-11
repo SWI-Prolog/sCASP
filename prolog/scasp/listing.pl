@@ -35,7 +35,9 @@ scasp_portray_program(M:Options) :-
     scasp_portray_program(M, Options).
 
 scasp_portray_program(M, Options) :-
-    scasp_query(M:Query, Bindings, Options),
+    catch(scasp_query(M:Query, Bindings, Options),
+          error(existence_error(scasp_query, _),_),
+          Query = []),
     MOptions = [module(M)|Options],
     VOptions = [variable_names(Bindings)|MOptions],
     findall(rule(Head,Body), M:pr_rule(Head,Body), Rules),

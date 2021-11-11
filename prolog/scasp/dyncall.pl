@@ -41,6 +41,7 @@
 :- meta_predicate
     scasp(0),
     scasp(0, +),
+    scasp_show(:, +),
     scasp_query_clauses(:, -),
     scasp_dynamic(:),
     scasp_assert(:),
