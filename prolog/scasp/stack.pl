@@ -132,6 +132,7 @@ selected(not(Goal), _) =>
     \+ aux_predicate(Goal).
 selected(-(Goal), M) =>
     selected(Goal, M).
+selected(is(_,_), _) => true.
 selected(Goal, M) =>
     (   aux_predicate(Goal)
     ->  fail

@@ -316,6 +316,12 @@ atom(Term, Options) -->            % #pred Term::Template
 atom(o_nmr_check, Options) -->
     !,
     utter(global_constraints_hold, Options).
+atom(is(Value,Expr), Options) -->
+    !,
+    { format(string(S), '~p is ~p', [Expr, Value]),
+      css_classes(Options, Classes)
+    },
+    emit(span(class([arithmetic|Classes]), S)).
 atom(Term, Options) -->
     utter(holds(Term), Options).
 
