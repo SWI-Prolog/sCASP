@@ -209,7 +209,7 @@ define([ "jquery" ],
 
   function collapseBelow(e, depth, options) {
     if ( depth < options.depth ) {
-      if ( e.hasClass("collapsed") )
+      if ( e.hasClass("collapsed") && !e.hasClass("always-collapsed") )
 	e[pluginName]('expand', options);
     } else {
       if ( !e.hasClass("collapsed") )
@@ -304,13 +304,15 @@ define([ "jquery" ],
       this.find(".scasp-model")
           .addClass("collapsable-content")
           .wrap("<div class='collapsable hm-switch "+def+"'></div>").parent()
-	  .prepend("<h4 class='collapsable-header'>s(CASP) model"+
+	  .prepend("<h4 class='collapsable-header'>" +
+		   model.title || "s(CASP) model" +
 		   "<span class='hm-switch'></span></h4>")
 	  .collapsable(model);
       this.find("div.scasp-justification")
 	  .addClass("collapsable-content")
 	  .wrap("<div class='collapsable hm-switch "+def+"'></div>").parent()
-	  .prepend("<h4 class='collapsable-header'>s(CASP) justification"+
+	  .prepend("<h4 class='collapsable-header'>" +
+		   just.title || "s(CASP) justification" +
 		   "<span class='hm-switch'></span></h4>")
 	  .collapsable(just);
       this.find("ul.scasp-justification")
@@ -326,6 +328,12 @@ define([ "jquery" ],
 	this.find("ul.scasp-justification")
 	    .collapsable('depth', {depth:just.collapse_below});
       }
+      if ( just.show_global_constraints == false )
+	this.find("li.scasp-global-constraints").remove();
+      else if ( just.show_global_constraints == "collapsed" )
+	this.find("li.scasp-global-constraints")
+		.addClass("always-collapsed")
+		.collapsable('collapse');
 
       this.find("span.hm-switch").click(function(ev) {
 	var div = $(ev.target).closest("div.hm-switch");

@@ -28,6 +28,8 @@ div.scasp-justification { padding-left: 1em; }
 div.scasp-model { padding-left: 1em; }
 div.scasp-tree-buttons { font-size: small; line-height: 1.8ex; }
 
+li.always-collapsed { opacity: 0.5; }
+
 /* The model */
 
 ul.scasp-model { list-style-type: "\027A2"; }
