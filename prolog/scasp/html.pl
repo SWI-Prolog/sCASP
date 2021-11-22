@@ -80,8 +80,13 @@ justification_tree(Term-[], Options) -->
                   ])
             ])).
 justification_tree(Term-Children, Options) -->
-    { incr_indent(Options, Options1) },
-    emit(li( class(collapsable),
+    { incr_indent(Options, Options1),
+      (   Term == o_nmr_check
+      ->  ExtraClasses = ['scasp-global-constraints']
+      ;   ExtraClasses = []
+      )
+    },
+    emit(li( class([collapsable|ExtraClasses]),
              [ div(class([node, 'collapsable-header']),
                   [ \tree_atom(Term, Options),
                     \connector(implies, Options)

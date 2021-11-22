@@ -147,6 +147,8 @@ aux_predicate(A) :-
     sub_atom(Name, 0, _, _, o_),
     \+ is_global_constraint(Name).
 
+is_global_constraint(o_nmr_check) :-
+    !.
 is_global_constraint(Atom) :-
     atom(Atom),
     atom_concat(o_chk_, NA, Atom),
