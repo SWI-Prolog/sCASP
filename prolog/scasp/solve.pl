@@ -576,16 +576,11 @@ type_loop(Goal, Stack, Type) :-
     NumberNegation = 0,
     type_loop_(Goal, Intervening, NumberNegation, Stack, Type).
 
-type_loop_(Goal, Iv, N, [[]|Ss], Type) :- !,
-    NewIv is Iv - 1,
-    type_loop_(Goal, NewIv, N, Ss, Type).
-type_loop_(Goal, Iv, N, [_S|Ss], Type) :-
-    Iv < 0,
-    !,
-    NewIv is Iv + 1,
-    type_loop_(Goal, NewIv, N, Ss, Type).
+type_loop_(Goal, Iv0, N, Stack0, Type) :-
+    type_loop_up(Iv0, Iv, Stack0, Stack),
+    type_loop_2(Goal, Iv, N, Stack, Type).
 
-type_loop_(Goal, 0, 0, [S|_], Type) :-
+type_loop_2(Goal, 0, 0, [S|_], Type) :-
     (   \+ \+ type_loop_fail_pos(Goal, S)
     ->  Type = fail_pos(S)
     ;   \+ Goal \= S
@@ -596,16 +591,30 @@ type_loop_(Goal, 0, 0, [S|_], Type) :-
 % It should be solved using tabling !!
 % type_loop_(not(Goal), 0, N, [not(S)|_],fail_pos(S)) :- Goal == S, N > 0, 0 is mod(N, 2).
 
-type_loop_(not(Goal), 0, _N, [not(S)|_], even) :- variant(Goal, S), Goal = S.
-type_loop_(Goal, 0, N, [S|_], even) :- Goal \= not(_), Goal == S, N > 0, 0 is mod(N, 2).
+type_loop_2(not(Goal), 0, _N, [not(S)|_], even) :- variant(Goal, S), Goal = S.
+type_loop_2(Goal, 0, N, [S|_], even) :- Goal \= not(_), Goal == S, N > 0, 0 is mod(N, 2).
 
-type_loop_(Goal, 0, N, [S|Ss], Type) :-
+type_loop_2(Goal, 0, N, [S|Ss], Type) :-
     Goal \== S,
     (   S = not(_)
     ->  NewN is N + 1,
         type_loop_(Goal, 0, NewN, Ss, Type)
     ;   type_loop_(Goal, 0, N, Ss, Type)
     ).
+
+type_loop_up(Iv0, Iv, [[]|S0], S) :-
+    !,
+    Iv1 is Iv0 - 1,
+    type_loop_up(Iv1, Iv, S0, S).
+type_loop_up(Iv0, Iv, S0, S) :-
+    (   Iv0 < 0
+    ->  S0 = [_|S1],
+        Iv1 is Iv0+1,
+        type_loop_up(Iv1, Iv, S1, S)
+    ;   S = S0,
+        Iv = Iv0
+    ).
+
 
 type_loop_fail_pos(Goal, S) :-
     Goal == S, !.
