@@ -81,12 +81,28 @@ scasp_info(_, _).
 %   predicate is executed when the flag `check_calls` is _on_. NOTE: use
 %   check_calls/0 to activate the flag
 
-print_check_calls_calling(Goal,I) :-
+:- det(print_check_calls_calling/2).
+
+print_check_calls_calling(Goal, I) :-
+    fail,                               % TBD: New Ciao -v mode
+    !,
+    identation(I, 0, Ident),
+    format('(~d) ~@~n', [Ident, print_goal(Goal)]).
+print_check_calls_calling(Goal, I) :-
     reverse(I,RI),
     format('\n--------------------- Calling: ~@ -------------',
            [print_goal(Goal)]),
     print_check_stack(RI,4), !,
     nl.
+
+identation([],Id,Id).
+identation([[]|I],Id1,Id) :- !,
+    Id2 is Id1 - 1,
+    identation(I,Id2,Id).
+identation([_|I],Id1,Id) :- !,
+    Id2 is Id1 + 1,
+    identation(I,Id2,Id).
+
 
 %!  print_check_stack(A, B)
 %

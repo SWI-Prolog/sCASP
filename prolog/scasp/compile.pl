@@ -90,9 +90,10 @@ to_list(List, List) :-
 to_list(One, [One]).
 
 scasp_load_guarded(M:Sources, Options) :-
+    clean_pr_program(M),
     load_source_files(Sources),
     comp_duals,
-    generate_nmr_check,
+    generate_nmr_check(M),
     generate_pr_rules(M:Sources, Options).
 
 %!  scasp_compile(:Terms, +Options) is det.
@@ -105,9 +106,10 @@ scasp_compile(M:Terms, Options) :-
         destroy_program).
 
 scasp_compile_guarded(M:Terms, Options) :-
+    clean_pr_program(M),
     scasp_load_terms(Terms, Options),
     comp_duals,
-    generate_nmr_check,
+    generate_nmr_check(M),
     generate_pr_rules(M:_Sources, Options). % ignored anyway
 
 %!  scasp_compile_query(:Goal, -Query, +Options) is det.

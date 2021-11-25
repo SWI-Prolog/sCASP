@@ -29,6 +29,8 @@
 %       Print the duals (default `false`)
 %     - constraints(Boolean)
 %       Print the global constraints (default `false`)
+%     - dcc(Boolean)
+%       Print the DCC rules (default `false`)
 
 :- det(scasp_portray_program/1).
 scasp_portray_program(M:Options) :-
@@ -43,10 +45,12 @@ scasp_portray_program(M, Options) :-
     findall(rule(Head,Body), M:pr_rule(Head,Body), Rules),
     filter(Rules, UserRules0, DualRules, NMRChecks0),
     remove_nmr_checks(NMRChecks0, UserRules0, NMRChecks, UserRules),
+    findall(rule(DccH,DccB), M:pr_dcc_predicate(DccH,DccB),DCCs),
     print_program(query,       Query,       Printed, VOptions),
     print_program(user,        UserRules,   Printed, MOptions),
     print_program(duals,       DualRules,   Printed, MOptions),
-    print_program(constraints, NMRChecks,   Printed, MOptions).
+    print_program(constraints, NMRChecks,   Printed, MOptions),
+    print_program(dcc,	       DCCs,	    Printed, MOptions).
 
 %!  filter(+Rules, -UserRules, -DualRules, -NMRChecks) is det.
 
@@ -99,6 +103,7 @@ code_section_title(query,       true,  'Query').
 code_section_title(user,        true,  'User Predicates').
 code_section_title(duals,       false, 'Dual Rules').
 code_section_title(constraints, false, 'Integrity Constraints').
+code_section_title(dcc,         false, 'Dynamic consistency checks').
 
 order_rules(duals, DualRules, R_DualRules) :-
     !,

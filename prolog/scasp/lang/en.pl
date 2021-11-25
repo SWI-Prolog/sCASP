@@ -74,6 +74,14 @@ scasp_message(trace_failure(Goal, Stack)) -->
     [ ansi(warning, 'FAILURE to prove the literal: ', []) ],
     goal(Goal).
 
+scasp_message(dcc_call(Goal, Stack)) -->
+    [ 'DCC of ' ], goal(Goal),
+    [ ' in ' ], print_stack(Stack).
+scasp_message(dcc_discard(Goal, BodyL)) -->
+    { comma_list(Body, BodyL) },
+    [ 'DCC discards '], goal(Goal),
+    [ ' when checking nmr ~p'-[ dcc(Goal) :- Body ] ].
+
 % Results
 
 scasp_message(no_models(CPU)) -->

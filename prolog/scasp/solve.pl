@@ -14,9 +14,11 @@
 /** <module> The sCASP solver
 */
 
-:- create_prolog_flag(scasp_no_fail_loop, false, []).
-:- create_prolog_flag(scasp_assume,       false, []).
-:- create_prolog_flag(scasp_forall,       all_c, []).
+:- create_prolog_flag(scasp_no_fail_loop, false, [keep(true)]).
+:- create_prolog_flag(scasp_assume,       false, [keep(true)]).
+:- create_prolog_flag(scasp_forall,       all_c, [keep(true)]).
+:- create_prolog_flag(scasp_dcc,	  false, [keep(true)]).
+:- create_prolog_flag(scasp_trace_dcc,	  false, [keep(true)]).
 
 %!  solve(:Goals, +StackIn, -StackOut, -Model)
 %
@@ -50,7 +52,14 @@ solve([Goal|Goals], M, StackIn, StackOut, Model) :-
 
 check_goal(Goal, M, StackIn, StackOut, Model) :-
     check_CHS(Goal, M, StackIn, Check), %% Check condition for coinductive success
-    check_goal_(Check, Goal, M, StackIn, StackOut, Model).
+    check_goal_(Check, Goal, M, StackIn, StackOut, Model),
+    (   current_prolog_flag(scasp_dcc, true),
+        (   Check == co_success
+        ;   Check == cont
+        )
+    ->  dynamic_consistency_check(Goal, M, StackIn)
+    ;   true
+    ).
 
 % coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, _M, StackIn, StackOut, Model) :-
@@ -80,6 +89,36 @@ check_goal_(co_failure, _Goal, _M, _StackIn, _StackOut, _Model) :-
 mark_prev_goal(Goal,[I|In],[assume(Goal)|In]) :- Goal == I, !.
 mark_prev_goal(Goal,[I|In],[I|Mk]) :- mark_prev_goal(Goal,In,Mk).
 mark_prev_goal(_Goal,[],[]).
+
+%!  dynamic_consistency_check(+Goal, +Module, +StackIn) is semidet.
+%
+%   Check that the resulting literal is consistent with the nmr.
+
+dynamic_consistency_check(Goal, M, StackIn) :-
+    user_predicate(M:Goal),
+    ground(Goal),
+    M:pr_dcc_predicate(dcc(Goal), Body),
+%   scasp_trace(scasp_trace_dcc, dcc_call(Goal, StackIn)),
+    dynamic_consistency_eval(Body, M, StackIn),
+    !,
+    scasp_trace(scasp_trace_dcc, dcc_discard(Goal, Body)),
+    fail.
+dynamic_consistency_check(_, _, _).
+
+
+dynamic_consistency_eval([], _, _).
+dynamic_consistency_eval([SubGoal|Bs], M, StackIn) :-
+    dynamic_consistency_eval_(SubGoal, M, StackIn),
+    dynamic_consistency_eval(Bs, M, StackIn).
+
+dynamic_consistency_eval_(not(SubGoal), M, StackIn) :-
+    user_predicate(M:SubGoal), !,
+    member(not(SubGoal), StackIn).
+dynamic_consistency_eval_(SubGoal, M, StackIn) :-
+    user_predicate(M:SubGoal), !,
+    member(SubGoal, StackIn).
+dynamic_consistency_eval_(SubGoal, _, _) :-
+    solve_goal_builtin(SubGoal, _, _, _).
 
 
 %!  solve_goal(+Goal, +Module, +StackIn, -StackOut, -GoalModel)
@@ -121,7 +160,8 @@ solve_goal(Goal, M, StackIn, StackOut, Model) :-
     user_predicate(M:Goal),
     (   solve_goal_predicate(Goal, M, [Goal|StackIn], StackOut, Model)
     *-> true
-    ;   shown_predicate(M:Goal),
+    ;   verbose(format(' FAIL~n')),
+        shown_predicate(M:Goal),
         scasp_trace(scasp_trace_failures,
                     trace_failure(Goal, [Goal|StackIn])),
         fail

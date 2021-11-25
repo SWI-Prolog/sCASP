@@ -5,7 +5,7 @@
             scasp_version/1                % -Version
           ]).
 :- use_module(library(main)).
-:- use_module(library(strings)).
+:- use_module(library(strings)).           % Quasi quotation
 
 /** <module> (Command line) option handling for sCASP
 
@@ -33,6 +33,8 @@ set_option(nmr(Bool)) =>
     set_prolog_flag(scasp_compile_nmr, Bool).
 set_option(olon(Bool)) =>
     set_prolog_flag(scasp_compile_olon, Bool).
+set_option(dcc(Bool)) =>
+    set_prolog_flag(scasp_dcc, Bool).
 % Presentation uptions
 set_option(unicode(Bool)) =>
     set_prolog_flag(scasp_unicode, Bool).
@@ -47,6 +49,8 @@ set_option(warning(Bool)) =>
     set_prolog_flag(scasp_warnings, Bool).
 set_option(trace_fails(Bool)) =>
     set_prolog_flag(scasp_trace_failures, Bool).
+set_option(trace_dcc(Bool)) =>
+    set_prolog_flag(scasp_trace_dcc, Bool).
 set_option(raw(Bool)) =>
     set_prolog_flag(scasp_list_raw, Bool).
 set_option(color(Bool)) =>
@@ -221,11 +225,14 @@ opt_type(version,     version,        boolean).
 
 opt_type(forall,      forall,         oneof([all,all_c,prev])).
 
-opt_type(tracefails,  trace_fails,    boolean).
+opt_type(trace_fails, trace_fails,    boolean).
 opt_type(f,           trace_fails,    boolean).
+
+opt_type(trace_dcc,   trace_dcc,      boolean).
 
 opt_type(nmr,         nmr,            boolean(false)).
 opt_type(olon,        olon,           boolean(false)).
+opt_type(dcc,         dcc,            boolean).
 
 opt_type(unknown,     unknown,        oneof([fail,warning,error])).
 
@@ -267,10 +274,12 @@ opt_help(unicode,        "Use Unicode symbols in output").
 opt_help(color,          "Use ANSI sequences to color terminal output").
 opt_help(verbose,        "Enable verbose progress messages").
 opt_help(trace_fails,    "Trace user-predicate failures").
+opt_help(trace_dcc,      "Trace DCC pruning").
 opt_help(unknown,        "Act on undefined predicates (fail,warning,error)").
 opt_help(forall,         "Forall algorithm to use (all, [all_c], prev)").
 opt_help(olon,           "Compile olon rules (--no-olon for debugging purposes)").
 opt_help(nmr,            "Compile NMR rules (--no-nmr for debugging purposes)").
+opt_help(dcc,            "Use Dynamic Consistency Checking").
 opt_help(warning,        "Enable warning messages (failures in variant \c
                           loops / disequality)").
 opt_help(version,        "Print version and exit").

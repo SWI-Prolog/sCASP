@@ -26,7 +26,7 @@
 */
 
 :- module(scasp_nmr_check,
-          [ generate_nmr_check/0
+          [ generate_nmr_check/1                              % +Module
           ]).
 
 /** <module> Detect OLON rules and construct nmr_check
@@ -60,23 +60,25 @@ Gopal Gupta, LOPSTR 2012 for details on the _NMR check_
 :- use_module(comp_duals).
 :- use_module(program).
 :- use_module(variables).
+:- use_module(library(apply)).
+:- use_module(library(debug)).
 
 :- create_prolog_flag(scasp_compile_olon, true, []).
 :- create_prolog_flag(scasp_compile_nmr,  true, []).
 
-%!  generate_nmr_check is det
+%!  generate_nmr_check(+Module) is det
 %
 %   Get the rules in the program containing   odd  loops and compute the
 %   NMR check. After this step, headless   rules  are useless, so remove
 %   them and add a fact for the   negation of the dummy head (_false_0).
 %   Call generate_nmr_check/0 instead of this.
 
-:- det(generate_nmr_check/0).
+:- det(generate_nmr_check/1).
 
-generate_nmr_check :-
+generate_nmr_check(M) :-
     debug(scasp(compile), 'Generating NMR check...', []),
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs), % get all rules
-    olon_rules(Rs, Rc),
+    olon_rules(Rs, M, Rc),
     nmr_check(Rc, Nmrchk),
     retractall(defined_rule('_false_0', _, _)), % remove headless rules
     negate_functor('_false_0', Nf),
@@ -98,7 +100,7 @@ nmr_check(Rc, Nmrchk) :-
     debug(scasp(compile), 'Creating sub-checks...', []),
     olon_chks(Rc, Nmrchk, 1).
 
-%!  olon_rules(+Rules:list, -OLONrules:list) is det
+%!  olon_rules(+Rules:list, +Module, -OLONrules:list) is det
 %
 %   Determine which of the original rules  are   part  of odd loops, and
 %   return them in a list.
@@ -106,19 +108,19 @@ nmr_check(Rc, Nmrchk) :-
 %   @arg RuleIn Input list of rules.
 %   @arg OLONrules Rules for which NMR sub-checks will need to be created.
 
-:- det(olon_rules/2).
+:- det(olon_rules/3).
 
-olon_rules(R, Rc) :-
+olon_rules(R, M, Rc) :-
     debug(scasp(compile), 'Detecting rules that contain odd loops over negation...', []),
     assign_unique_ids(R, R1),
     sort(R1, R2), % ensure that all rules with the same head are together
     debug(scasp(compile), 'Building call graph...', []),
     setup_call_cleanup(
         build_call_graph(R2, Ns), % build call graph, skipping duals.
-        olon_rules_(R2, Ns, Rc),
+        olon_rules_(R2, M, Ns, Rc),
         destroy_call_graph).
 
-olon_rules_(R2, Ns, Rc) :-
+olon_rules_(R2, M, Ns, Rc) :-
     dfs(Ns, Pc, _, _),
     (   current_prolog_flag(scasp_compile_olon, false)
     ->  Rc1 = []
@@ -127,7 +129,11 @@ olon_rules_(R2, Ns, Rc) :-
     ),
     (   current_prolog_flag(scasp_compile_nmr, false)
     ->  Rc = []
-    ;   get_headless_rules(R2, Rc1, Rc)
+    ;   get_headless_rules(R2, Rc1, Rc),
+        (   current_prolog_flag(scasp_dcc, true)
+        ->  create_dcc_rules(Rc, M)
+        ;   true
+        )
     ).
 
 
@@ -494,3 +500,43 @@ assign_unique_ids2([X|T], [X2|T2], C) :-
     X2 = -(X, C),
     C1 is C + 1,
     assign_unique_ids2(T, T2, C1).
+
+
+		 /*******************************
+		 *           DCC RULES		*
+		 *******************************/
+
+%!  create_dcc_rules(+Rc, +Module) is det
+%
+%   Create dcc rules to check consistency on-the-fly
+
+create_dcc_rules([], _).
+create_dcc_rules([-(-(_,_),Rule)|Rc], M) :-
+    maplist(remove_arity, Rule, Dcc),
+    revar(Dcc, RDcc, _),
+    assert_dcc_rule([], RDcc, M),
+    create_dcc_rules(Rc, M).
+
+remove_arity(not(R), not(D)) :- !,
+    remove_arity(R, D).
+remove_arity(R, D) :-
+    R =.. [RName|Args],
+    split_functor(RName, DName, _),
+    !,
+    D =.. [DName|Args].
+remove_arity(R, R).
+
+assert_dcc_rule(Prev, [A|Next], M) :-
+    !,
+    append(Prev, Next, Prev0),
+    (   skip_dcc(A)
+    ->  true
+    ;   assert(M:pr_dcc_predicate(dcc(A), Prev0)),
+        true
+    ),
+    append(Prev, [A], Prev1),
+    assert_dcc_rule(Prev1, Next, M).
+assert_dcc_rule(_, [], _).
+
+skip_dcc(forall(_,_)) => true.
+skip_dcc(A) => functor(A, Op, 2), operator(Op,_,_).

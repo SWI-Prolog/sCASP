@@ -75,7 +75,8 @@ main(Sources, Options) :-
 
 program_details(short, [query(true), user(true)]).
 program_details(mid,   [query(true), user(true), duals(true)]).
-program_details(long,  [query(true), user(true), duals(true), constraints(true)]).
+program_details(long,  [query(true), user(true), duals(true),
+                        constraints(true), dcc(true)]).
 
 load_sources([], _) :-
     !,

@@ -208,7 +208,6 @@ strip_prefixes(F, F).
 :- det(generate_pr_rules/2).
 
 generate_pr_rules(M:_Sources, Options) :-
-    clean_pr_program(M),
     check_existence(Options),
     findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
     format_term_list(Rs,Rs2),
@@ -436,4 +435,5 @@ clean_pr_program(M) :-
     retractall(M:pr_user_predicate(_)),
     retractall(M:pr_table_predicate(_)),
     retractall(M:pr_show_predicate(_)),
-    retractall(M:pr_pred_predicate(_)).
+    retractall(M:pr_pred_predicate(_)),
+    retractall(M:pr_dcc_predicate(_,_)).

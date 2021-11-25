@@ -87,6 +87,7 @@ main(Argv) :-
     set_prolog_flag(encoding, utf8),
     argv_options(Argv, Positional, Options),
     test_files(Positional, Files, Options),
+    maplist(set_option, Options),
     (   option(cov(Dir), Options)
     ->  show_coverage(run_tests(Files, Options),
                       [ dir(Dir) ])
@@ -99,6 +100,7 @@ opt_type(save,      save,      boolean).
 opt_type(overwrite, overwrite, boolean).
 opt_type(pass,      pass,      boolean).
 opt_type(cov,       cov,       file).
+opt_type(dcc,       dcc,       boolean).
 
 opt_help(quick,     "Only run fast tests").
 opt_help(timeout,   "Timeout per test in seconds").
@@ -106,9 +108,15 @@ opt_help(save,      "Save pass data if not yet present").
 opt_help(overwrite, "Save pass data if test passed").
 opt_help(pass,      "Save pass data if test failed").
 opt_help(cov,       "Write coverage data").
+opt_help(dcc,       "Enable dcc").
 
 opt_meta(cov,     'DIRECTORY').
 opt_meta(timeout, 'SECONDS').
+
+set_option(dcc(Bool)) =>
+    set_prolog_flag(scasp_dcc, Bool).
+set_option(_) => true.
+
 
 run_tests(Files, Options) :-
     run_tests(Files, Failed, Options),
