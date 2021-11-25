@@ -4,7 +4,7 @@
 # when using an older version.  It only makes the program a
 # little larger.
 all:
-	swipl --no-pce -O -o scasp -c prolog/scasp/main.pl
+	swipl --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
 
 check:
 	swipl test/test_scasp.pl -q
