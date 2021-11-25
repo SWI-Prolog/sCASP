@@ -55,6 +55,7 @@ s(CASP) programs in Prolog and query them from Prolog.
 
 :- use_module(scasp/embed).
 :- use_module(scasp/dyncall).
+:- use_module(scasp/messages).
 
 :- meta_predicate
     ?(:),
