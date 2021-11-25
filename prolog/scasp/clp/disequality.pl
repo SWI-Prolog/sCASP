@@ -12,6 +12,7 @@
           ]).
 :- use_module('../verbose').
 :- use_module(clpq).
+:- encoding(utf8).
 
 /** <module> Constraint solver for disequalities
 

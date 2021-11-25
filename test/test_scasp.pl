@@ -84,6 +84,7 @@ quick_test(hanoi).
 %   Default runs tests from `../test`
 
 main(Argv) :-
+    set_prolog_flag(encoding, utf8),
     argv_options(Argv, Positional, Options),
     test_files(Positional, Files, Options),
     (   option(cov(Dir), Options)
