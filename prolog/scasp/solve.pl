@@ -451,10 +451,7 @@ check_CHS_(Goal, M, I, _Cont) :-
 check_CHS_(Goal, _, I, cont) :-
     (   ground(Goal)
     ->  constrained_neg_in_stack(I, Goal)
-    ;   (   ground_neg_in_stack(Goal, I)
-        *-> true
-        ;   true
-        )
+    ;   ground_neg_in_stack(Goal, I)
     ).
 
 %!  neg_in_stack(+Goal, +Stack) is semidet.
@@ -484,60 +481,51 @@ is_negated_goal(Goal, Head) :-
         )
     ).
 
-% ground_neg_in_stack
+%!  ground_neg_in_stack(+Goal, +Stack) is det.
+%
+%   Propagate disequality constraints of Goal  through matching goals on
+%   the stack.
+
+:- det(ground_neg_in_stack/2).
+
 ground_neg_in_stack(Goal, S) :-
     verbose(format('Enter ground_neg_in_stack for ~@\n',
-                                       [print_goal(Goal)])),
-    ground_neg_in_stack_(Goal, S, 0, 0, Flag),
-    Flag == found,
-    %       ( Flag == found_dis ; Flag == found_clpq ),
+                   [print_goal(Goal)])),
+    ground_neg_in_stack_(Goal, S, 0, 0),
     verbose(format('\tThere exit the negation of ~@\n\n',
-                                       [print_goal(Goal)])).
+                   [print_goal(Goal)])).
 
-ground_neg_in_stack_(_, [], _, _, _Flag) :- !.
-ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter, Flag) :- !,
+ground_neg_in_stack_(_, [], _, _) :- !.
+ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :- !,
     NewInter is Intervening - 1,
-    ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter, Flag).
-ground_neg_in_stack_(Goal, [chs(not(NegGoal))|Ss], Intervening, MaxInter, found) :-
-    Intervening =< MaxInter,
-    same_functor(Goal, NegGoal), % limit output
+    ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter).
+ground_neg_in_stack_(TGoal, [SGoal|Ss], Intervening, MaxInter) :-
+    gn_match(TGoal, SGoal, Goal, NegGoal),
+    is_same_functor(Goal, NegGoal),
     verbose(format('\t\tCheck disequality of ~@ and ~@\n',
-                   [print_goal(Goal), print_goal(chs(not(NegGoal)))])),
-    \+ \+ Goal = NegGoal,
-    loop_term(Goal, NegGoal), !,
+                   [print_goal(TGoal), print_goal(SGoal)])),
+    \+ Goal \= NegGoal,
+    loop_term(Goal, NegGoal),
+    !,
     NewMaxInter is max(Intervening, MaxInter),
     NewInter is Intervening + 1,
-    ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, found).
-ground_neg_in_stack_(not(Goal), [chs(NegGoal)|Ss], Intervening, MaxInter, found) :-
-    Intervening =< MaxInter,
-    same_functor(Goal, NegGoal),
-    verbose(format('\t\tCheck disequality of ~@ and ~@\n',
-                   [print_goal(not(Goal)), print_goal(chs(NegGoal))])),
-    \+ \+ Goal = NegGoal,
-    loop_term(Goal, NegGoal), !,
+    ground_neg_in_stack_(TGoal, Ss, NewInter, NewMaxInter).
+ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter) :- !,
     NewMaxInter is max(Intervening, MaxInter),
     NewInter is Intervening + 1,
-    ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
-ground_neg_in_stack_(not(Goal), [NegGoal|Ss], Intervening, MaxInter, found) :-
-    Intervening =< MaxInter,
-    same_functor(Goal, NegGoal),
-    verbose(format('\t\tCheck disequality of ~@ and ~@\n',
-                   [print_goal(not(Goal)), print_goal(NegGoal)])),
-    \+ \+ Goal = NegGoal,
-    loop_term(Goal, NegGoal), !,
-    NewMaxInter is max(Intervening, MaxInter),
-    NewInter is Intervening + 1,
-    ground_neg_in_stack_(not(Goal), Ss, NewInter, NewMaxInter, found).
-ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
-    NewMaxInter is max(Intervening, MaxInter),
-    NewInter is Intervening + 1,
-    ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
+    ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter).
+
+gn_match(Goal, chs(not(NegGoal)), Goal, NegGoal) :- !.
+gn_match(not(Goal), chs(NegGoal), Goal, NegGoal) :- !.
+gn_match(not(Goal), NegGoal,      Goal, NegGoal) :- !.
 
 
 %!  constrained_neg_in_stack(+Stack, +Goal) is det.
 %
 %   Propagate the fact that we accept Goal into all other accepted goals
 %   in the stack.
+
+:- det(constrained_neg_in_stack/2).
 
 constrained_neg_in_stack([], _).
 constrained_neg_in_stack([Stack|T], Goal) :-
