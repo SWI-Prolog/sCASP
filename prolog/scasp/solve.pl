@@ -450,10 +450,7 @@ check_CHS_(Goal, M, I, _Cont) :-
 % coinduction does not succeed or fail <- the execution continues inductively
 check_CHS_(Goal, _, I, cont) :-
     (   ground(Goal)
-    ->  (   constrained_neg_in_stack(Goal, I)
-        *-> true
-        ;   true
-        )
+    ->  constrained_neg_in_stack(I, Goal)
     ;   (   ground_neg_in_stack(Goal, I)
         *-> true
         ;   true
@@ -537,26 +534,35 @@ ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter, Flag) :- !,
     ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter, Flag).
 
 
-% restrict even more the constrained in the stack
-constrained_neg_in_stack(_, []).
-constrained_neg_in_stack(not(Goal), [NegGoal|Ss]) :-
-    same_functor(Goal, NegGoal),
+%!  constrained_neg_in_stack(+Stack, +Goal) is det.
+%
+%   Propagate the fact that we accept Goal into all other accepted goals
+%   in the stack.
+
+constrained_neg_in_stack([], _).
+constrained_neg_in_stack([Stack|T], Goal) :-
+    contrained_neg(Goal, Stack),
+    constrained_neg_in_stack(T, Goal).
+
+contrained_neg(not(Goal), NegGoal) :-
+    is_same_functor(Goal, NegGoal),
     verbose(format('\t\tCheck if not(~@) is consistent with ~@\n',
                    [print_goal(Goal), print_goal(NegGoal)])), !,
-    loop_term(Goal, NegGoal), !,
-    verbose(format('\t\tOK\n', [])),
-    constrained_neg_in_stack(not(Goal), Ss).
-constrained_neg_in_stack(Goal, [not(NegGoal)|Ss]) :-
-    same_functor(Goal, NegGoal),
+    loop_term(Goal, NegGoal),
+    !,
+    verbose(format('\t\tOK\n', [])).
+contrained_neg(Goal, not(NegGoal)) :-
+    is_same_functor(Goal, NegGoal),
     verbose(format('\t\tCheck if not(~@) is consistent with ~@\n',
                    [print_goal(Goal), print_goal(NegGoal)])), !,
-    loop_term(Goal, NegGoal), !,
-    verbose(format('\t\tOK\n', [])),
-    constrained_neg_in_stack(Goal, Ss).
-constrained_neg_in_stack(Goal, [_|Ss]) :-
-    constrained_neg_in_stack(Goal, Ss).
+    loop_term(Goal, NegGoal),
+    !,
+    verbose(format('\t\tOK\n', [])).
+contrained_neg(_,_).
 
-
+is_same_functor(Term1, Term2) :-
+    functor(Term1, Name, Arity, Type),
+    functor(Term2, Name, Arity, Type).
 
 % proved_in_stack
 proved_in_stack(Goal, S) :-

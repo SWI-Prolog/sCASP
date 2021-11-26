@@ -10,8 +10,13 @@
             op(700, xfx, .\=.),
             op(700, xfx, '\u2209')      % Not an element of
           ]).
+:- use_module(library(debug)).
+:- use_module(library(lists)).
+:- use_module(library(ordsets)).
+
 :- use_module('../verbose').
 :- use_module(clpq).
+
 :- encoding(utf8).
 
 /** <module> Constraint solver for disequalities
@@ -126,7 +131,7 @@ not_unify(A, [X|Xs]) :-
 
 loop_term(Goal1, Goal2) :-
     functor(Goal1, Name, Arity),
-    functor(Goal2, Name, Arity),
+    assertion(functor(Goal2, Name, Arity)),
     loop_term(1, Arity, Goal1, Goal2).
 
 loop_term(I, Arity, Goal1, Goal2) :-
