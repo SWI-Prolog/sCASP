@@ -399,12 +399,14 @@ exec_neg_findall(Goal, _, _) :-
     fail.
 
 
-%!  check_CHS(+Goal, +Module, +StackIn, -Result) is semidet.
+%!  check_CHS(+Goal, +Module, +StackIn, -Result) is det.
 %
 %   Checks the StackIn and returns  in  Result   if  the  goal Goal is a
 %   coinductive success, a coinductive  failure   or  an  already proved
 %   goal. Otherwise it is constraint against  its negation atoms already
 %   visited.
+
+:- det(check_CHS/4).
 
 check_CHS(Goal, M, I, Result) :-
     (   user_predicate(M:Goal)
