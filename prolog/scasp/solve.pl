@@ -48,7 +48,13 @@ solve([Goal|Goals], M, StackIn, StackOut, Model) :-
 %   Call  check_CHS/3 to  check the  sub-goal Goal  against the  list of
 %   goals already visited StackIn to  determine if  it is  a coinductive
 %   success, a coinductive failure, an already proved sub-goal, or if it
-%   has to be evaluated
+%   has to be evaluated.
+%
+%   @arg StackOut is updated by repending one or more elements to StackIn.
+%
+%	  - [], chs(Goal)		Proved by co-induction
+%	  - [], proved(Goal)		Proved in a completed subtree
+%	  - From solve_goal/5		Continued execution
 
 check_goal(Goal, M, StackIn, StackOut, Model) :-
     check_CHS(Goal, M, StackIn, Check), %% Check condition for coinductive success
@@ -141,17 +147,30 @@ solve_goal(Goal, _, _, _, _) :-
     !,
     fail.
 solve_goal(Goal, M, StackIn, StackOut, Model) :-
-    Goal \= [], Goal \= [_|_], Goal \= builtin(_),
     table_predicate(M:Goal),
+    !,
     verbose(format('Solve the tabled goal ~p\n', [Goal])),
     AttStackIn <~ stack([Goal|StackIn]),
     solve_goal_table_predicate(Goal, M, AttStackIn, AttStackOut, AttModel),
     AttStackOut ~> stack(StackOut),
     AttModel ~> model(Model).
+solve_goal(call(Goal),M,StackIn,StackOut,[call(Goal)|Model]) :-
+    !,
+    solve_goal(Goal,M,StackIn,StackOut,Model).
+solve_goal(not(call(Goal)),M,StackIn,StackOut,[not(call(Goal))|Model]) :-
+    !,
+    solve_goal(not(Goal),M,StackIn,StackOut,Model).
+solve_goal(Goal, M, StackIn, StackOut, [Goal|Model]) :-
+    Goal = findall(_, _, _),
+    !,
+    exec_findall(Goal, M, StackIn, StackOut, Model).
+solve_goal(not(Goal), M, StackIn, StackIn, [not(Goal)]) :-
+    Goal = findall(_, _, _),
+    !,
+    exec_neg_findall(Goal, M, StackIn).
 solve_goal(Goal, M, StackIn, StackOut, Model) :-
-    Goal \= [], Goal \= [_|_], Goal \= builtin(_),
-    \+ table_predicate(M:Goal),
     user_predicate(M:Goal),
+    !,
     (   solve_goal_predicate(Goal, M, [Goal|StackIn], StackOut, Model)
     *-> true
     ;   verbose(format(' FAIL~n')),
@@ -160,19 +179,7 @@ solve_goal(Goal, M, StackIn, StackOut, Model) :-
                     trace_failure(Goal, [Goal|StackIn])),
         fail
     ).
-solve_goal(call(Goal),M,StackIn,StackOut,[call(Goal)|Model]) :- !,
-    solve_goal(Goal,M,StackIn,StackOut,Model).
-solve_goal(not(call(Goal)),M,StackIn,StackOut,[not(call(Goal))|Model]) :- !,
-    solve_goal(not(Goal),M,StackIn,StackOut,Model).
-solve_goal(Goal, M, StackIn, StackOut, [Goal|Model]) :-
-    Goal=findall(_, _, _), !,
-    exec_findall(Goal, M, StackIn, StackOut, Model).
-solve_goal(not(Goal), M, StackIn, StackIn, [not(Goal)]) :-
-    Goal=findall(_, _, _), !,
-    exec_neg_findall(Goal, M, StackIn).
-solve_goal(Goal, M, StackIn, [[], Goal|StackOut], Model) :-
-    Goal \= [], Goal \= [_|_], \+ user_predicate(M:Goal),
-    \+ table_predicate(M:Goal),
+solve_goal(Goal, _M, StackIn, [[], Goal|StackOut], Model) :-
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
 
