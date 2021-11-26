@@ -46,8 +46,8 @@ main(Argv) :-
                            [ warning(rational)
                            ]),
     catch_with_backtrace(
-        ( parse_args(Argv, Sources, Options),
-          set_options(Options),
+        ( scasp_parse_args(Argv, Sources, Options),
+          scasp_set_options(Options),
           main(Sources, Options)
         ),
         Error,

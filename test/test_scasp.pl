@@ -87,7 +87,7 @@ main(Argv) :-
     set_prolog_flag(encoding, utf8),
     argv_options(Argv, Positional, Options),
     test_files(Positional, Files, Options),
-    maplist(set_option, Options),
+    scasp_set_options(Options),
     (   option(cov(Dir), Options)
     ->  show_coverage(run_tests(Files, Options),
                       [ dir(Dir) ])
@@ -100,7 +100,8 @@ opt_type(save,      save,      boolean).
 opt_type(overwrite, overwrite, boolean).
 opt_type(pass,      pass,      boolean).
 opt_type(cov,       cov,       file).
-opt_type(dcc,       dcc,       boolean).
+opt_type(Flag, Option, Type) :-
+    scasp_opt_type(Flag, Option, Type).
 
 opt_help(quick,     "Only run fast tests").
 opt_help(timeout,   "Timeout per test in seconds").
@@ -108,15 +109,13 @@ opt_help(save,      "Save pass data if not yet present").
 opt_help(overwrite, "Save pass data if test passed").
 opt_help(pass,      "Save pass data if test failed").
 opt_help(cov,       "Write coverage data").
-opt_help(dcc,       "Enable dcc").
+opt_help(Option, Help) :-
+    scasp_opt_help(Option, Help).
 
 opt_meta(cov,     'DIRECTORY').
 opt_meta(timeout, 'SECONDS').
-
-set_option(dcc(Bool)) =>
-    set_prolog_flag(scasp_dcc, Bool).
-set_option(_) => true.
-
+opt_meta(Option, Meta) :-
+    scasp_opt_meta(Option, Meta).
 
 run_tests(Files, Options) :-
     run_tests(Files, Failed, Options),
@@ -158,7 +157,7 @@ run_test(File, Options) :-
     flush_output,
     option(timeout(Time), Options, 60),
     statistics(runtime, _),
-    catch(call_with_time_limit(Time, scasp_test([File], Stacks-Models)),
+    catch(call_with_time_limit(Time, scasp_test(File, Stacks-Models)),
           Error, true),
     statistics(runtime, [_,Used]),
     Result = Stacks-Models,
@@ -283,16 +282,14 @@ dir_test_file(Dir, File) :-
     member(File, Files).
 
 
-%!  scasp_test(+Argv, -StackModelPairs) is det.
+%!  scasp_test(+File, -StackModelPairs) is det.
 %
-%   Called from test.pl
+%   Test a single file
 
-scasp_test(Args, Trees-Models) :-
-    parse_args(Args, Sources, Options),
-    set_options(Options),
-    scasp_load(Sources, [unknown(fail)]),
+scasp_test(File, Trees-Models) :-
+    scasp_load(File, [unknown(fail)]),
     scasp_query(Query, Bindings, []),
-    findall(Pair,solve(Query, Bindings, Pair), Pairs),
+    findall(Pair, solve(Query, Bindings, Pair), Pairs),
     pairs_keys_values(Pairs, Trees, Models).
 
 solve(Query, Bindings, Tree-Model) :-

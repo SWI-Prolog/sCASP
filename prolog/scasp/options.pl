@@ -1,11 +1,18 @@
 :- module(scasp_options,
-          [ parse_args/3,                  % +Argv, -Sources, -Options
+          [ scasp_parse_args/3,            % +Argv, -Sources, -Options
             scasp_help/0,
-            set_options/1,                 % +Options
-            scasp_version/1                % -Version
+            scasp_set_options/1,           % +Options
+            scasp_set_options/2,           % +Options, -Unprocessed
+            scasp_version/1,               % -Version
+            scasp_opt_type/3,              % ?Flag, ?Option, ?Type
+            scasp_opt_help/2,              % +Option, -Help
+            scasp_opt_meta/2               % +Option, -Meta
           ]).
 :- use_module(library(main)).
 :- use_module(library(strings)).           % Quasi quotation
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+:- use_module(library(option)).
 
 /** <module> (Command line) option handling for sCASP
 
@@ -19,14 +26,19 @@
 %
 %   print the current version of s(CASP)
 
-scasp_version('swi.0.21.08.03').
+scasp_version('swi.0.21.11.26').
 
-%!  set_options(+Options) is det.
+%!  scasp_set_options(+Options) is det.
+%!  scasp_set_options(+Options, -Unprocessed) is det.
 %
 %   Set Prolog flags that control the solver from Options.
 
-set_options(Options) :-
-    maplist(set_option, Options).
+scasp_set_options(Options) :-
+    scasp_set_options(Options, _).
+
+scasp_set_options(Options, Left) :-
+    opt_process(Options, Options1),
+    exclude(set_option, Options1, Left).
 
 % Solver options
 set_option(nmr(Bool)) =>
@@ -57,7 +69,7 @@ set_option(color(Bool)) =>
     set_prolog_flag(color_term, Bool).
 % Ignore other well formed options.
 set_option(Term), compound(Term), functor(Term, _, 1) =>
-    true.
+    fail.
 
 		 /*******************************
 		 *        OPTION CHECKING	*
@@ -307,6 +319,22 @@ opt_meta(collapse_below, 'LEVELS').
 opt_meta(forall,	 'ALGORITHM').
 opt_meta(width,		 'WIDTH').
 
+%!  scasp_opt_type(?Flag, ?Option, ?Type).
+%!  scasp_opt_help(?Option, ?Help).
+%!  scasp_opt_meta(?Option, ?Meta).
+%
+%   Allow reusing scasp option processing
+
+scasp_opt_type(Flag, Option, Type) :-
+    opt_type(Flag, Option, Type).
+
+scasp_opt_help(Option, Help) :-
+    opt_help(Option, Help),
+    Option \= help(_).
+
+scasp_opt_meta(Option, Meta) :-
+    opt_meta(Option, Meta).
+
 %!  scasp_help
 %
 %   Print command line option help.
@@ -314,15 +342,16 @@ opt_meta(width,		 'WIDTH').
 scasp_help :-
     argv_usage(debug).
 
-%!  parse_args(+Args, -Sources, -Options)
+%!  scasp_parse_args(+Args, -Sources, -Options)
 %
 %   Select  from  the  list  of   arguments  in   Args  which   are  the
-%   user-options, Options and which are the program files, Sources
+%   user-options, Options and which are the program files, Sources.
+%
+%   This predicate calls halt/0 when called with ``--version``.
 
-parse_args(Argv, Sources, Options) :-
-    argv_options(Argv, Sources, Options0),
-    info_and_exit_option(Sources, Options0),
-    opt_process(Options0, Options).
+scasp_parse_args(Argv, Sources, Options) :-
+    argv_options(Argv, Sources, Options),
+    info_and_exit_option(Sources, Options).
 
 info_and_exit_option(_Sources, Options) :-
     info_option(Options),
