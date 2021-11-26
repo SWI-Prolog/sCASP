@@ -62,26 +62,20 @@ check_goal(Goal, M, StackIn, StackOut, Model) :-
     ).
 
 % coinduction success <- cycles containing even loops may succeed
-check_goal_(co_success, Goal, _M, StackIn, StackOut, Model) :-
+check_goal_(co_success, Goal, _M, StackIn, StackOut, [AddGoal]) :-
+    AddGoal = chs(Goal),
     (   current_prolog_flag(scasp_assume, true)
     ->  mark_prev_goal(Goal,StackIn, StackMark),
-        StackOut = [[],chs(Goal)|StackMark]
-    ;   StackOut = [[],chs(Goal)|StackIn]
-    ),
-    JGoal = [],
-    AddGoal = chs(Goal),
-    Model = [AddGoal|JGoal].
+        StackOut = [[],AddGoal|StackMark]
+    ;   StackOut = [[],AddGoal|StackIn]
+    ).
 % already proved in the stack
-check_goal_(proved, Goal, _M, StackIn, StackOut, Model) :-
-    StackOut = [[], proved(Goal)|StackIn],
-    JGoal = [],
+check_goal_(proved, Goal, _M, StackIn, StackOut, [AddGoal]) :-
     AddGoal = proved(Goal),
-    Model = [AddGoal|JGoal].
+    StackOut = [[], proved(Goal)|StackIn].
 % coinduction does neither success nor fails <- the execution continues inductively
 check_goal_(cont, Goal, M, StackIn, StackOut, Model) :-
-    solve_goal(Goal, M, StackIn, StackOut, Modelx), Modelx = [Goal|JGoal],
-    AddGoal = Goal,
-    Model = [AddGoal|JGoal].
+    solve_goal(Goal, M, StackIn, StackOut, Model).
 % coinduction fails <- the negation of a call unifies with a call in the call stack
 check_goal_(co_failure, _Goal, _M, _StackIn, _StackOut, _Model) :-
     fail.
