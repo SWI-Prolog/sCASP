@@ -460,20 +460,32 @@ check_CHS_(Goal, _, I, cont) :-
         )
     ).
 
-% check if the negation is in the stack -> coinductive failure
-% extended to check if the negation in the stack entails the current call -> failure
-neg_in_stack(not(Goal), [NegGoal|_]) :-
-    Goal == NegGoal, !.
-neg_in_stack(Goal, [not(NegGoal)|_]) :-
-    Goal == NegGoal, !.
-neg_in_stack(not(Goal), [NegGoal|_]) :-
-    variant(Goal, NegGoal), !,
-    scasp_warning(co_failing_in_negated_loop(Goal, NegGoal)).
-neg_in_stack(Goal, [not(NegGoal)|_]) :-
-    variant(Goal, NegGoal), !,
-    scasp_warning(co_failing_in_negated_loop(Goal, NegGoal)).
-neg_in_stack(Goal, [_|Ss]) :-
-    neg_in_stack(Goal, Ss).
+%!  neg_in_stack(+Goal, +Stack) is semidet.
+%
+%   True when the nagation of  Goal  is  in   Stack.  If  so  we  have a
+%   coinductive failure. Check on variants   which  requires tabling for
+%   proper results.
+
+neg_in_stack(Goal, [Head|Stack]) :-
+    (   is_negated_goal(Goal, Head)
+    ->  true
+    ;   neg_in_stack(Goal, Stack)
+    ).
+
+is_negated_goal(Goal, Head) :-
+    (   Goal = not(G)
+    ->  (   G == Head
+        ->  true
+        ;   G =@= Head
+        ->  scasp_warning(co_failing_in_negated_loop(G, Head))
+        )
+    ;   Head = not(NegGoal)
+    ->  (   Goal == NegGoal
+        ->  true
+        ;   Goal =@= NegGoal
+        ->  scasp_warning(co_failing_in_negated_loop(Goal, NegGoal))
+        )
+    ).
 
 % ground_neg_in_stack
 ground_neg_in_stack(Goal, S) :-
