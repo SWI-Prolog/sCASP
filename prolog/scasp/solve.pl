@@ -1,4 +1,4 @@
-:- module(casp_solve,
+:- module(scasp_solve,
           [ solve/4                   % :Goals, +StackIn, -StackOut, -Model
           ]).
 :- use_module(clp/call_stack).
@@ -217,7 +217,7 @@ solve_goal_forall(forall(Var, Goal), M, StackIn, [[]|StackOut], Model) :-
     ;   !,   %% Position of the cut in s(CASP) - remove answers in max.lp
         verbose(format('Executing ~@ with clp_disequality list = ~p\n',
                        [print_goal(Goal), List])),
-        exec_with_neg_list(NewVar2, NewGoal2,
+        exec_with_neg_list(NewVar2, NewGoal2, M,
                            List, StackMid, StackOut, ModelList),
         % !, %% Position of the cut in s(ASP) - remove answers in hamcycle_two.lp
              %% Without cuts the evaluation may loop - e.g. queens.lp
@@ -280,15 +280,15 @@ exec_with_clpq_constraints(Var, Goal, entry(ConVar, ConEntry),
                                Duals, StackOut02, StackOut, Model04),
     append(Model03, Model04, Model).
 
-exec_with_neg_list(_, _, [], StackIn, StackIn, []).
-exec_with_neg_list(Var, Goal, [Value|Vs], StackIn, StackOut, Model) :-
+exec_with_neg_list(_, _, _, [], StackIn, StackIn, []).
+exec_with_neg_list(Var, Goal, M, [Value|Vs], StackIn, StackOut, Model) :-
     my_copy_term(Var, [Goal, StackIn], NewVar, [NewGoal, NewStackIn]),
     NewVar = Value,
     verbose(format('Executing ~p with value ~p\n', [NewGoal, Value])),
-    solve([NewGoal], NewStackIn, [[]|NewStackMid], ModelMid),
+    solve([NewGoal], M, NewStackIn, [[]|NewStackMid], ModelMid),
     verbose(format('Success executing ~p with value ~p\n',
                    [NewGoal, Value])),
-    exec_with_neg_list(Var, Goal, Vs, NewStackMid, StackOut, Models),
+    exec_with_neg_list(Var, Goal, M, Vs, NewStackMid, StackOut, Models),
     append(ModelMid, Models, Model).
 
 %!  solve_goal_table_predicate(+Goal, +Module,
