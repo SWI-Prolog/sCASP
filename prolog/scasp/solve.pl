@@ -2,7 +2,6 @@
           [ solve/4                   % :Goals, +StackIn, -StackOut, -Model
           ]).
 :- use_module(clp/call_stack).
-:- use_module(options).
 :- use_module(predicates).
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
@@ -906,11 +905,13 @@ my_copy_vars(Vars0, Term0, Vars, Term) :-
     copy_term_nat(t(Vars0,Share0,Term0), t(Vars,Share,Term)),
     Share = Share0.
 
+%!  my_diff_term(+Term, +Vars, -Others) is det.
+%
+%   Others are variables in Term that do not appear in Vars.
+
 my_diff_term(Term, Vars, Others) :-
     term_variables(Term, Set),
     diff_vars(Set, Vars, Others).
-
-%!  diff_vars(+VarsIn, -Subtract, -VarsOut) is det.
 
 diff_vars([], _, []).
 diff_vars([H|T0], Vars, List) :-
