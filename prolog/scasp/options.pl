@@ -153,6 +153,13 @@ opt_rule(Error) :-
     at_most_one_of([verbose, human], Error).
 opt_rule(Error) :-
     at_most_one_of([interactive, human], Error).
+opt_rule(add(forall(prev))) :-
+    \+ opt(forall(_)),
+    opt_true(dcc).
+opt_rule(error(scasp(opt_dcc_prev_forall))) :-
+    opt(forall(Forall)),
+    Forall \== prev,
+    opt_true(dcc).
 
 detail(Opt, Action) :-
     True =.. [Opt,true],

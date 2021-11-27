@@ -44,6 +44,10 @@ scasp_message(at_most_one_of(List)) -->
     [ 'At most one of the options '-[] ],
     options(List),
     [ ' is allowed.'-[] ].
+scasp_message(opt_dcc_prev_forall) -->
+    [ 'Option --dcc can only be used with --forall=prev' ].
+scasp_message(opt_incompatible(Opt1, Opt2)) -->
+    [ 'Option ' ], opt(Opt1), [' is not compatible with '], opt(Opt2).
 
 % Solver messages
 
