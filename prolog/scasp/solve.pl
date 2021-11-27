@@ -186,8 +186,7 @@ solve_goal(Goal, _M, _Parents, StackIn, [[], Goal|StackOut], Model) :-
     solve_goal_builtin(Goal, StackIn, StackOut, Model).
 
 
-% ! solve_goal_forall(+Forall, +Module, +Parents, +StackIn, -StackOut,
-% -GoalModel)
+%!  solve_goal_forall(+Forall, +Module, +Parents, +StackIn, -StackOut, -Model)
 %
 %   Solve a sub-goal of the form `forall(Var,Goal)`  and success  if Var
 %   success in all its domain for the goal Goal. It calls solve/4
