@@ -35,6 +35,7 @@ user:file_search_path(library, scasp(prolog)).
 :- use_module(library(scasp/stack)).
 :- use_module(library(scasp/model)).
 :- use_module(library(scasp/options)).
+:- use_module(library(scasp/messages)).
 :- use_module(diff).
 
 :- initialization(main, main).
