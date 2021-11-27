@@ -28,6 +28,8 @@
 
 solve(M:Goals, StackIn, StackOut, Model) :-
     stack_parents(StackIn, Parents),
+    empty_assoc(Empty),
+    b_setval(scasp_proved, Empty),
     solve(Goals, M, Parents, StackIn, StackOut, Model).
 
 solve([], _, _, StackIn, [[]|StackIn], []).
@@ -42,6 +44,29 @@ solve([Goal|Goals], M, Parents, StackIn, StackOut, Model) :-
     ->  Model = [AddGoal, JGoal|JGoals]
     ;   Model = [JGoal|JGoals]
     ).
+
+
+:- det(register_proved/1).
+
+register_proved(not(Term)) =>
+    register_proved(Term).
+register_proved(chs(Term)) =>
+    register_proved(Term).
+register_proved(forall(_,_)) =>
+    true.
+register_proved(Term) =>
+    b_getval(scasp_proved, Assoc0),
+    functor(Term, Name, Arity),
+    (   get_assoc(Name/Arity, Assoc0, List, Assoc, [Term|List])
+    ->  true
+    ;   put_assoc(Name/Arity, Assoc0, [Term], Assoc)
+    ),
+    b_setval(scasp_proved, Assoc).
+
+proved_relatives(Goal, Relatives) :-
+    b_getval(scasp_proved, Assoc),
+    functor(Goal, Name, Arity),
+    get_assoc(Name/Arity, Assoc, Relatives).
 
 
 %!  check_goal(+Goal, +Module, +Parents, +StackIn, -StackOut, -Model)
@@ -72,6 +97,7 @@ check_goal(Goal, M, Parents, StackIn, StackOut, Model) :-
 % coinduction success <- cycles containing even loops may succeed
 check_goal_(co_success, Goal, _M, _, StackIn, StackOut, [AddGoal]) :-
     AddGoal = chs(Goal),
+    register_proved(AddGoal),
     (   current_prolog_flag(scasp_assume, true)
     ->  mark_prev_goal(Goal,StackIn, StackMark),
         StackOut = [[],AddGoal|StackMark]
@@ -80,6 +106,7 @@ check_goal_(co_success, Goal, _M, _, StackIn, StackOut, [AddGoal]) :-
 % already proved in the stack
 check_goal_(proved, Goal, _M, _, StackIn, StackOut, [AddGoal]) :-
     AddGoal = proved(Goal),
+    register_proved(AddGoal),
     StackOut = [[], proved(Goal)|StackIn].
 % coinduction does neither success nor fails <- the execution continues inductively
 check_goal_(cont, Goal, M, Parents, StackIn, StackOut, Model) :-
@@ -140,6 +167,7 @@ solve_goal(Goal, M, Parents, StackIn, StackOut, GoalModel) :-
     GoalModel = [Goal|Model].
 solve_goal(Goal, _M, _Parents, StackIn, [[], Goal|StackIn], GoalModel) :-
     Goal = not(is(V, Expresion)),
+    register_proved(Goal),
     !,
     NV is Expresion,
     V .\=. NV,
@@ -318,6 +346,7 @@ solve_goal_table_predicate(Goal, M, Parents, AttStackIn, AttStackOut, AttModel) 
 solve_goal_predicate(Goal, M, Parents, StackIn, StackOut, GoalModel) :-
     M:pr_rule(Goal, Body),
     solve(Body, M, Parents, StackIn, StackOut, BodyModel),
+    register_proved(Goal),
     GoalModel = [Goal|BodyModel].
 
 %!  solve_goal_builtin(+Goal, +StackIn, -StackOut, -AttModel)
