@@ -501,24 +501,23 @@ is_negated_goal(Goal, Head) :-
 ground_neg_in_stack(Goal, S) :-
     verbose(format('Enter ground_neg_in_stack for ~@\n',
                    [print_goal(Goal)])),
-    ground_neg_in_stack_(Goal, S),
-    verbose(format('\tThere exit the negation of ~@\n\n',
+    ground_neg_in_stack_(S, Goal),
+    verbose(format('\tExit ground_neg_in_stack for ~@\n\n',
                    [print_goal(Goal)])).
 
-ground_neg_in_stack_(_, []) :- !.
-ground_neg_in_stack_(Goal, [[]|Ss]) :- !,
-    ground_neg_in_stack_(Goal, Ss).
-ground_neg_in_stack_(TGoal, [SGoal|Ss]) :-
-    gn_match(TGoal, SGoal, Goal, NegGoal),
-    is_same_functor(Goal, NegGoal),
-    verbose(format('\t\tCheck disequality of ~@ and ~@\n',
-                   [print_goal(TGoal), print_goal(SGoal)])),
-    \+ Goal \= NegGoal,
-    loop_term(Goal, NegGoal),
-    !,
-    ground_neg_in_stack_(TGoal, Ss).
-ground_neg_in_stack_(Goal, [_|Ss]) :- !,
-    ground_neg_in_stack_(Goal, Ss).
+ground_neg_in_stack_([], _) :- !.
+ground_neg_in_stack_([SGoal|Stack], TGoal) :-
+    (   SGoal == []
+    ->  true
+    ;   gn_match(TGoal, SGoal, Goal, NegGoal),
+        \+ Goal \= NegGoal,
+        verbose(format('\t\tCheck disequality of ~@ and ~@\n',
+                       [print_goal(TGoal), print_goal(SGoal)])),
+        loop_term(Goal, NegGoal)
+    ->  true
+    ;   true
+    ),
+    ground_neg_in_stack_(Stack, TGoal).
 
 gn_match(Goal, chs(not(NegGoal)), Goal, NegGoal) :- !.
 gn_match(not(Goal), chs(NegGoal), Goal, NegGoal) :- !.
