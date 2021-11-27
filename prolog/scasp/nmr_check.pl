@@ -122,6 +122,11 @@ olon_rules(R, M, Rc) :-
 
 olon_rules_(R2, M, Ns, Rc) :-
     dfs(Ns, Pc, _, _),
+    (   current_prolog_flag(scasp_dcc, true)
+    ->  get_headless_rules(R2,[],Denials),
+        create_dcc_rules(Denials, M)
+    ;   true
+    ),
     (   current_prolog_flag(scasp_compile_olon, false)
     ->  Rc1 = []
     ;   extract_ids(Pc, Ic),
@@ -129,11 +134,7 @@ olon_rules_(R2, M, Ns, Rc) :-
     ),
     (   current_prolog_flag(scasp_compile_nmr, false)
     ->  Rc = []
-    ;   get_headless_rules(R2, Rc1, Rc),
-        (   current_prolog_flag(scasp_dcc, true)
-        ->  create_dcc_rules(Rc, M)
-        ;   true
-        )
+    ;   get_headless_rules(R2, Rc1, Rc)
     ).
 
 
