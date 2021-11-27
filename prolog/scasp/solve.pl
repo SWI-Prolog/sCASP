@@ -51,7 +51,8 @@ solve([Goal|Goals], M, Parents, StackIn, StackOut, Model) :-
 %   success, a coinductive failure, an already proved sub-goal, or if it
 %   has to be evaluated.
 %
-%   @arg StackOut is updated by repending one or more elements to StackIn.
+%   @arg StackOut is updated by prepending one or more elements to
+%   StackIn.
 %
 %	  - [], chs(Goal)		Proved by co-induction
 %	  - [], proved(Goal)		Proved in a completed subtree
