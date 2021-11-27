@@ -45,6 +45,7 @@
 :- use_module(output).
 
 :- meta_predicate
+    canonical_model(:, -),
     print_model(:, +).
 
 :- multifile
@@ -55,14 +56,15 @@
 
 */
 
-%!  canonical_model(+RawModel, -Canonical)
+%!  canonical_model(:RawModel, -Canonical)
 
-canonical_model(Model, CanModel) :-
+canonical_model(M:Model, CanModel) :-
     flatten(Model, FlatModel),
     exclude(nonmodel_term, FlatModel, Model1),
     sort(Model1, Unique),
     maplist(raise_negation, Unique, Raised),
-    sort_model(Raised, Sorted),
+    filter_shown(M, Raised, Filtered),
+    sort_model(Filtered, Sorted),
     simplify_model(Sorted, CanModel).
 
 nonmodel_term(abducible(_)).
@@ -76,6 +78,12 @@ nonmodel_term(not(X)) :-
 nonmodel_term(Term) :-
     functor(Term, Name, _),
     sub_atom(Name, 0, _, _, o_).
+
+filter_shown(M, Model, Shown) :-
+    clause(M:pr_show_predicate(_), _),
+    !,
+    include(M:pr_show_predicate, Model, Shown).
+filter_shown(_, Model, Model).
 
 %!  sort_model(+ModelIn, -Sorted) is det.
 %
