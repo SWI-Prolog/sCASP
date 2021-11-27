@@ -491,7 +491,7 @@ is_negated_goal(Goal, Head) :-
         )
     ).
 
-%!  ground_neg_in_stack(+Goal, +Stack) is det.
+%!  ground_neg_in_stack(++Goal, +Stack) is det.
 %
 %   Propagate disequality constraints of Goal  through matching goals on
 %   the stack.
@@ -501,15 +501,14 @@ is_negated_goal(Goal, Head) :-
 ground_neg_in_stack(Goal, S) :-
     verbose(format('Enter ground_neg_in_stack for ~@\n',
                    [print_goal(Goal)])),
-    ground_neg_in_stack_(Goal, S, 0, 0),
+    ground_neg_in_stack_(Goal, S),
     verbose(format('\tThere exit the negation of ~@\n\n',
                    [print_goal(Goal)])).
 
-ground_neg_in_stack_(_, [], _, _) :- !.
-ground_neg_in_stack_(Goal, [[]|Ss], Intervening, MaxInter) :- !,
-    NewInter is Intervening - 1,
-    ground_neg_in_stack_(Goal, Ss, NewInter, MaxInter).
-ground_neg_in_stack_(TGoal, [SGoal|Ss], Intervening, MaxInter) :-
+ground_neg_in_stack_(_, []) :- !.
+ground_neg_in_stack_(Goal, [[]|Ss]) :- !,
+    ground_neg_in_stack_(Goal, Ss).
+ground_neg_in_stack_(TGoal, [SGoal|Ss]) :-
     gn_match(TGoal, SGoal, Goal, NegGoal),
     is_same_functor(Goal, NegGoal),
     verbose(format('\t\tCheck disequality of ~@ and ~@\n',
@@ -517,13 +516,9 @@ ground_neg_in_stack_(TGoal, [SGoal|Ss], Intervening, MaxInter) :-
     \+ Goal \= NegGoal,
     loop_term(Goal, NegGoal),
     !,
-    NewMaxInter is max(Intervening, MaxInter),
-    NewInter is Intervening + 1,
-    ground_neg_in_stack_(TGoal, Ss, NewInter, NewMaxInter).
-ground_neg_in_stack_(Goal, [_|Ss], Intervening, MaxInter) :- !,
-    NewMaxInter is max(Intervening, MaxInter),
-    NewInter is Intervening + 1,
-    ground_neg_in_stack_(Goal, Ss, NewInter, NewMaxInter).
+    ground_neg_in_stack_(TGoal, Ss).
+ground_neg_in_stack_(Goal, [_|Ss]) :- !,
+    ground_neg_in_stack_(Goal, Ss).
 
 gn_match(Goal, chs(not(NegGoal)), Goal, NegGoal) :- !.
 gn_match(not(Goal), chs(NegGoal), Goal, NegGoal) :- !.
@@ -562,7 +557,11 @@ is_same_functor(Term1, Term2) :-
     functor(Term1, Name, Arity, Type),
     functor(Term2, Name, Arity, Type).
 
-% proved_in_stack
+%!  proved_in_stack(+Goal, +Stack) is semidet.
+%
+%   True when Goal appears in one of  the finished branches of the proof
+%   tree, i.e., it appears in Stack, but not as direct parent.
+
 proved_in_stack(Goal, S) :-
     proved_in_stack_(Goal, S, 0, -1),
     verbose(format('\tGoal ~@ is already in the stack\n',
@@ -583,8 +582,8 @@ proved_in_stack_(Goal, [Top|Ss], Intervening, MaxInter) :-
 
 %!  check_parents(+Goal, +Parents, -Type) is semidet.
 %
-%   Type is the coinductive result.  This is `even` if we have
-%   an even loop through negation or a simple positive match.
+%   Type is the coinductive result. This is   `even`  if we have an even
+%   loop through negation or a simple positive match.
 
 check_parents(not(Goal), Parents, Type) :-
     !,
