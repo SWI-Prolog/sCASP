@@ -481,14 +481,7 @@ check_CHS(Goal, M, Parents, I, Result) :-
 % inmediate success if the goal has already been proved.
 check_CHS_(Goal, _, _, I, proved) :-
     ground(Goal),
-    expect_same(proved_in_stack(Goal, I),
-                (   proved_relatives(Goal, Relatives),
-                    member(Relative, Relatives),
-                    (   Goal == Relative
-                    ;   Goal == chs(Relative)
-                    )
-                ->  true
-                )),
+    proved_in_stack(Goal, I),
     !.
 % coinduction success <- cycles containing even loops may succeed
 check_CHS_(Goal, _, Parents, _I, co_success) :-
@@ -620,6 +613,17 @@ is_same_functor(Term1, Term2) :-
 %   True when Goal appears in one of  the finished branches of the proof
 %   tree, i.e., it appears in Stack, but not as direct parent.
 
+:- if(true).
+proved_in_stack(Goal, _) :-
+    proved_relatives(Goal, Relatives),
+    member(Relative, Relatives),
+    (   Goal == Relative
+    ;   Goal == chs(Relative)
+    ),
+    !.
+
+:- else.
+
 proved_in_stack(Goal, S) :-
     proved_in_stack_(Goal, S, 0, -1),
     verbose(format('\tGoal ~@ is already in the stack\n',
@@ -637,6 +641,8 @@ proved_in_stack_(Goal, [Top|Ss], Intervening, MaxInter) :-
         NewInter is Intervening + 1,
         proved_in_stack_(Goal, Ss, NewInter, NewMaxInter)
     ).
+
+:- endif.
 
 %!  check_parents(+Goal, +Parents, -Type) is semidet.
 %
