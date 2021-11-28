@@ -28,8 +28,8 @@
 
 solve(M:Goals, StackIn, StackOut, Model) :-
     stack_parents(StackIn, Parents),
-    empty_assoc(Empty),
-    b_setval(scasp_proved, Empty),
+    stack_proved(StackIn, Proved),
+    b_setval(scasp_proved, Proved),
     solve(Goals, M, Parents, StackIn, StackOut, Model).
 
 solve([], _, _, StackIn, [[]|StackIn], []).
@@ -673,6 +673,49 @@ stack_parents([_|T], N, Parents) :-
     stack_parents(T, N1, Parents).
 stack_parents([H|T], N, [H|TP]) :-
     stack_parents(T, N, TP).
+
+%!  stack_proved(Stack, Proved:assoc) is det.
+%
+%   True when Proved is an assoc  holding   all  goals that have already
+%   been proved in Stack. This excludes  the   direct  parents of in the
+%   stack, i.e. only adds goals from already completed branches.
+%
+%   The code is based on  the   old  proved_in_stack/2. Effectively this
+%   extracts the other half than stack_parents/2,  so possibly we should
+%   sync the code with that.
+
+:- det(stack_proved/2).
+
+stack_proved(Stack, Proved) :-
+    empty_assoc(Proved0),
+    stack_proved(Stack, 0, -1, Proved0, Proved).
+
+stack_proved([], _, _, Proved, Proved).
+stack_proved([Top|Ss], Intervening, MaxInter, Proved0, Proved) :-
+    (   Top == []
+    ->  NewInter is Intervening - 1,
+        stack_proved(Ss, NewInter, MaxInter, Proved0, Proved)
+    ;   Intervening > MaxInter
+    ->  NewMaxInter is max(MaxInter, Intervening),
+        NewInter is Intervening + 1,
+        stack_proved(Ss, NewInter, NewMaxInter, Proved0, Proved)
+    ;   add_proved(Top, Proved0, Proved1),
+        stack_proved(Ss, Intervening, MaxInter, Proved1, Proved)
+    ).
+
+add_proved(Goal, Assoc0, Assoc) :-
+    add_proved(Goal, Goal, Assoc0, Assoc).
+
+add_proved(not(Term), Goal, Assoc0, Assoc) =>
+    add_proved(Term, Goal, Assoc0, Assoc).
+add_proved(chs(Term), Goal, Assoc0, Assoc) =>
+    add_proved(Term, Goal, Assoc0, Assoc).
+add_proved(Term, Goal, Assoc0, Assoc) =>
+    functor(Term, Name, Arity),
+    (   get_assoc(Name/Arity, Assoc0, List, Assoc, [Goal|List])
+    ->  true
+    ;   put_assoc(Name/Arity, Assoc0, [Goal], Assoc)
+    ).
 
 %!  solve_c_forall(+Forall, +Module, +Parents, +StackIn, -StackOut, -Model)
 %
