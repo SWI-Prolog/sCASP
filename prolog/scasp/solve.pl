@@ -510,10 +510,10 @@ check_CHS_(Goal, M, Parents, _I, _Cont) :-
         scasp_info(scasp_warn_pos_loops, pos_loop(continue, Goal, S))
     ), fail.
 % coinduction does not succeed or fail <- the execution continues inductively
-check_CHS_(Goal, _, _, I, cont) :-
+check_CHS_(Goal, _, Parents, I, cont) :-
     (   ground(Goal)
-    ->  constrained_neg_in_stack(I, Goal)
-    ;   ground_neg_in_stack(Goal, I)
+    ->  constrained_neg_in_stack(I, Parents, Goal)
+    ;   ground_neg_in_stack(Goal, Parents, I)
     ).
 
 %!  neg_in_stack(+Goal, +Parents, +Stack) is semidet.
@@ -547,14 +547,25 @@ is_negated_goal(Goal, Head) :-
         )
     ).
 
-%!  ground_neg_in_stack(++Goal, +Stack) is det.
+%!  ground_neg_in_stack(++Goal, +Parents, +Stack) is det.
 %
 %   Propagate disequality constraints of Goal  through matching goals on
 %   the stack.
 
 :- det(ground_neg_in_stack/2).
 
-ground_neg_in_stack(Goal, S) :-
+:- if(true).
+
+ground_neg_in_stack(Goal, Parents, _S) :-
+    (   proved_relatives(Goal, Relatives)
+    ->  maplist(ground_neg_in_stack(Goal), Relatives)
+    ;   true
+    ),
+    maplist(ground_neg_in_stack(Goal), Parents).
+
+:- else.
+
+ground_neg_in_stack(Goal, _Parents, S) :-
     verbose(format('Enter ground_neg_in_stack for ~@\n',
                    [print_goal(Goal)])),
     ground_neg_in_stack_(S, Goal),
@@ -565,32 +576,47 @@ ground_neg_in_stack_([], _) :- !.
 ground_neg_in_stack_([SGoal|Stack], TGoal) :-
     (   SGoal == []
     ->  true
-    ;   gn_match(TGoal, SGoal, Goal, NegGoal),
-        \+ Goal \= NegGoal,
-        verbose(format('\t\tCheck disequality of ~@ and ~@\n',
-                       [print_goal(TGoal), print_goal(SGoal)])),
-        loop_term(Goal, NegGoal)
-    ->  true
-    ;   true
+    ;   ground_neg_in_stack(TGoal, SGoal)
     ),
     ground_neg_in_stack_(Stack, TGoal).
+
+:- endif.
+
+ground_neg_in_stack(TGoal, SGoal) :-
+    gn_match(TGoal, SGoal, Goal, NegGoal),
+    \+ Goal \= NegGoal,
+    verbose(format('\t\tCheck disequality of ~@ and ~@\n',
+                   [print_goal(TGoal), print_goal(SGoal)])),
+    loop_term(Goal, NegGoal),
+    !.
+ground_neg_in_stack(_, _).
+
 
 gn_match(Goal, chs(not(NegGoal)), Goal, NegGoal) :- !.
 gn_match(not(Goal), chs(NegGoal), Goal, NegGoal) :- !.
 gn_match(not(Goal), NegGoal,      Goal, NegGoal) :- !.
 
 
-%!  constrained_neg_in_stack(+Stack, +Goal) is det.
+%!  constrained_neg_in_stack(+Stack, +Parents, +Goal) is det.
 %
 %   Propagate the fact that we accept Goal into all other accepted goals
 %   in the stack.
 
 :- det(constrained_neg_in_stack/2).
 
+:- if(true).
+constrained_neg_in_stack(_Stack, Parents, Goal) :-
+    (   proved_relatives(Goal, Relatives)
+    ->  maplist(contrained_neg(Goal), Relatives)
+    ;   true
+    ),
+    maplist(contrained_neg(Goal), Parents).
+:- else.
 constrained_neg_in_stack([], _).
 constrained_neg_in_stack([Stack|T], Goal) :-
     contrained_neg(Goal, Stack),
     constrained_neg_in_stack(T, Goal).
+:- endif.
 
 contrained_neg(not(Goal), NegGoal) :-
     is_same_functor(Goal, NegGoal),
