@@ -73,24 +73,6 @@ proved_relatives(Goal, Relatives) =>
     functor(Goal, Name, Arity),
     get_assoc(Name/Arity, Assoc, Relatives).
 
-:- meta_predicate
-    expect_same(0,0).
-
-expect_same(Ok, New) :-
-    Ok,
-    !,
-    (   New
-    ->  true
-    ;   gtrace, fail
-    ).
-expect_same(_, New) :-
-    (   New
-    ->  gtrace, fail
-    ;   fail
-    ).
-
-
-
 %!  check_goal(+Goal, +Module, +Parents, +StackIn, -StackOut, -Model)
 %
 %   Call  check_CHS/3 to  check the  sub-goal Goal  against the  list of
