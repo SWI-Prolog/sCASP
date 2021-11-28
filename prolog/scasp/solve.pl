@@ -552,9 +552,7 @@ is_negated_goal(Goal, Head) :-
 %   Propagate disequality constraints of Goal  through matching goals on
 %   the stack.
 
-:- det(ground_neg_in_stack/2).
-
-:- if(true).
+:- det(ground_neg_in_stack/3).
 
 ground_neg_in_stack(Goal, Parents, _S) :-
     (   proved_relatives(Goal, Relatives)
@@ -562,25 +560,6 @@ ground_neg_in_stack(Goal, Parents, _S) :-
     ;   true
     ),
     maplist(ground_neg_in_stack(Goal), Parents).
-
-:- else.
-
-ground_neg_in_stack(Goal, _Parents, S) :-
-    verbose(format('Enter ground_neg_in_stack for ~@\n',
-                   [print_goal(Goal)])),
-    ground_neg_in_stack_(S, Goal),
-    verbose(format('\tExit ground_neg_in_stack for ~@\n\n',
-                   [print_goal(Goal)])).
-
-ground_neg_in_stack_([], _) :- !.
-ground_neg_in_stack_([SGoal|Stack], TGoal) :-
-    (   SGoal == []
-    ->  true
-    ;   ground_neg_in_stack(TGoal, SGoal)
-    ),
-    ground_neg_in_stack_(Stack, TGoal).
-
-:- endif.
 
 ground_neg_in_stack(TGoal, SGoal) :-
     gn_match(TGoal, SGoal, Goal, NegGoal),
@@ -590,7 +569,6 @@ ground_neg_in_stack(TGoal, SGoal) :-
     loop_term(Goal, NegGoal),
     !.
 ground_neg_in_stack(_, _).
-
 
 gn_match(Goal, chs(not(NegGoal)), Goal, NegGoal) :- !.
 gn_match(not(Goal), chs(NegGoal), Goal, NegGoal) :- !.
@@ -602,21 +580,14 @@ gn_match(not(Goal), NegGoal,      Goal, NegGoal) :- !.
 %   Propagate the fact that we accept Goal into all other accepted goals
 %   in the stack.
 
-:- det(constrained_neg_in_stack/2).
+:- det(constrained_neg_in_stack/3).
 
-:- if(true).
 constrained_neg_in_stack(_Stack, Parents, Goal) :-
     (   proved_relatives(Goal, Relatives)
     ->  maplist(contrained_neg(Goal), Relatives)
     ;   true
     ),
     maplist(contrained_neg(Goal), Parents).
-:- else.
-constrained_neg_in_stack([], _).
-constrained_neg_in_stack([Stack|T], Goal) :-
-    contrained_neg(Goal, Stack),
-    constrained_neg_in_stack(T, Goal).
-:- endif.
 
 contrained_neg(not(Goal), NegGoal) :-
     is_same_functor(Goal, NegGoal),
@@ -643,7 +614,6 @@ is_same_functor(Term1, Term2) :-
 %   True when Goal appears in one of  the finished branches of the proof
 %   tree, i.e., it appears in Stack, but not as direct parent.
 
-:- if(true).
 proved_in_stack(Goal, _) :-
     proved_relatives(Goal, Relatives),
     member(Relative, Relatives),
@@ -651,28 +621,6 @@ proved_in_stack(Goal, _) :-
     ;   Goal == chs(Relative)
     ),
     !.
-
-:- else.
-
-proved_in_stack(Goal, S) :-
-    proved_in_stack_(Goal, S, 0, -1),
-    verbose(format('\tGoal ~@ is already in the stack\n',
-                   [print_goal(Goal)])).
-
-proved_in_stack_(Goal, [Top|Ss], Intervening, MaxInter) :-
-    (   Top == []
-    ->  NewInter is Intervening - 1,
-        proved_in_stack_(Goal, Ss, NewInter, MaxInter)
-    ;   Goal == Top
-    ->  Intervening =< MaxInter
-    ;   Top == chs(Goal)
-    ->  Intervening =< MaxInter
-    ;   NewMaxInter is max(MaxInter, Intervening),
-        NewInter is Intervening + 1,
-        proved_in_stack_(Goal, Ss, NewInter, NewMaxInter)
-    ).
-
-:- endif.
 
 %!  check_parents(+Goal, +Parents, -Type) is semidet.
 %
