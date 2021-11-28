@@ -48,25 +48,47 @@ solve([Goal|Goals], M, Parents, StackIn, StackOut, Model) :-
 
 :- det(register_proved/1).
 
-register_proved(not(Term)) =>
-    register_proved(Term).
-register_proved(chs(Term)) =>
-    register_proved(Term).
-register_proved(forall(_,_)) =>
-    true.
 register_proved(Term) =>
+    register_proved(Term, Term).
+
+register_proved(not(Term), Goal) =>
+    register_proved(Term, Goal).
+register_proved(chs(Term), Goal) =>
+    register_proved(Term, Goal).
+register_proved(forall(_,_), _) =>
+    true.
+register_proved(Term, Goal) =>
     b_getval(scasp_proved, Assoc0),
     functor(Term, Name, Arity),
-    (   get_assoc(Name/Arity, Assoc0, List, Assoc, [Term|List])
+    (   get_assoc(Name/Arity, Assoc0, List, Assoc, [Goal|List])
     ->  true
-    ;   put_assoc(Name/Arity, Assoc0, [Term], Assoc)
+    ;   put_assoc(Name/Arity, Assoc0, [Goal], Assoc)
     ),
     b_setval(scasp_proved, Assoc).
 
-proved_relatives(Goal, Relatives) :-
+proved_relatives(not(Goal), Relatives) =>
+    proved_relatives(Goal, Relatives).
+proved_relatives(Goal, Relatives) =>
     b_getval(scasp_proved, Assoc),
     functor(Goal, Name, Arity),
     get_assoc(Name/Arity, Assoc, Relatives).
+
+:- meta_predicate
+    expect_same(0,0).
+
+expect_same(Ok, New) :-
+    Ok,
+    !,
+    (   New
+    ->  true
+    ;   gtrace, fail
+    ).
+expect_same(_, New) :-
+    (   New
+    ->  gtrace, fail
+    ;   fail
+    ).
+
 
 
 %!  check_goal(+Goal, +Module, +Parents, +StackIn, -StackOut, -Model)
@@ -459,7 +481,15 @@ check_CHS(Goal, M, Parents, I, Result) :-
 % inmediate success if the goal has already been proved.
 check_CHS_(Goal, _, _, I, proved) :-
     ground(Goal),
-    \+ \+ proved_in_stack(Goal, I), !.
+    expect_same(proved_in_stack(Goal, I),
+                (   proved_relatives(Goal, Relatives),
+                    member(Relative, Relatives),
+                    (   Goal == Relative
+                    ;   Goal == chs(Relative)
+                    )
+                ->  true
+                )),
+    !.
 % coinduction success <- cycles containing even loops may succeed
 check_CHS_(Goal, _, Parents, _I, co_success) :-
     check_parents(Goal, Parents, even),
