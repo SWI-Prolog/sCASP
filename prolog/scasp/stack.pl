@@ -52,38 +52,33 @@
 
 justification_tree(M:Stack, M:JustificationTree, Options) :-
     reverse(Stack, RevStack),
-    enumerate([query|RevStack],EnumStack,1,1),
-    collect_children(EnumStack, Children, 1),
-    filter_tree(Children, M, [JustificationTree], Options).
+    stack_tree([query|RevStack], Trees),
+    filter_tree(Trees, M, [JustificationTree], Options).
 
-%!  enumerate(+StackOut, -EnumStack, +Parent, +Order)
+%!  stack_tree(+Stack, -Tree) is det.
 %
-%   Give each node in the stack a rank, which is a I-J-K-... term that+M
-%   represents its position in the top-down/left-right layout of the
-%   tree.
+%   Translate the solver  Stack  into  a   tree.  The  solver  stack  is
+%   represented as a flat list  of   proved  goals  where `[]` indicates
+%   _this branch is complete_.  Here are some examples
 %
-%   @arg EnumStack is a list `Term=Place`
-
-enumerate([],[],_,_) :- !.
-enumerate([[]],[],_,_) :- !.
-enumerate([[]|Stack], Enum, P-PO, _) :- !,
-    NO is PO + 1,
-    enumerate(Stack, Enum, P, NO).
-enumerate([Term|Stack], [Term=P-O|Enum], P, O) :-
-    enumerate(Stack, Enum, P-O, 1).
-
-
-%!  collect_children(+EnumStack, -Tree, +ParentId) is det.
+%     [p, []]				p-[]
+%     [p, q, [], []]			p-[q-[]]
+%     [p, q, [], r, [], []]		p-[q-[],r-[]]
 %
-%   Process the enumerated tree into a proper tree.  The tree takes
-%   the shape `Node - Children`
+%     We main a stack of  difference  lists   in  the  4th  argument. On
+%     encountering a `[]` we pop this stack.
 
-collect_children([], [], _) :- !.
-collect_children([Term=PId-O|Stack], [Term-Children | Cs], PId) :- !,
-    collect_children(Stack, Cs, PId),
-    collect_children(Stack, Children, PId-O).
-collect_children([_|Stack], Cs, PId) :-
-    collect_children(Stack, Cs, PId).
+stack_tree(Stack, Tree) :-
+    stack_tree(Stack, Tree, [], []).
+
+stack_tree([], Children0, Children, []) =>
+    Children = Children0.
+stack_tree([[]|Stack], Children0, Children, [T0/T|Parents]) =>
+    Children = Children0,
+    stack_tree(Stack, T0, T, Parents).
+stack_tree([H|Stack], Tree, T, Parents) =>
+    Tree = [H-Children|T0],
+    stack_tree(Stack, Children, [], [T0/T|Parents]).
 
 
 %!  filter_tree(+Children, +Module, -FilteredChildren, +Options)
