@@ -405,9 +405,12 @@ scasp_result(Query,
     option(tree(true), Options),
     !,
     Query = M:_,
-    call_nth(call_time(scasp(Query, Options), Time), Counter),
-    scasp_model(M:Model),
-    scasp_justification(M:Tree, []),
+    call_nth(call_time(scasp(Query,
+                             [ model(M:Model),
+                               tree(M:Tree)
+                             | Options
+                             ]),
+                       Time), Counter),
     analyze_variables(t(Bindings, Model, Tree), Bindings, Options).
 scasp_result(Query,
              Bindings,
@@ -419,8 +422,11 @@ scasp_result(Query,
                   },
              Options) :-
     Query = M:_,
-    call_nth(call_time(scasp(Query, Options), Time), Counter),
-    scasp_model(M:Model),
+    call_nth(call_time(scasp(Query,
+                             [ model(M:Model)
+                             | Options
+                             ]), Time),
+             Counter),
     analyze_variables(t(Bindings, Model), Bindings, Options).
 
 analyze_variables(Term, Bindings, Options) :-
