@@ -66,6 +66,30 @@ Issues:
       name.   Disadvantage is that we need scasp_assert/1, etc.
 */
 
+%!  scasp(:Query) is nondet.
+%!  scasp(:Query, +Options) is nondet.
+%
+%   Prove query using s(CASP)  semantics.   This  performs the following
+%   steps:
+%
+%     - Collect (transitively) all clauses that are reachable from
+%       Query.
+%     - Collect all global constraints whose call-tree overlaps with
+%       the query call tree.
+%     - Establish the compiled s(CASP) representation in a _temporary
+%       module_
+%     - Run the s(CASP) solver
+%     - Optionally extract the model and justification tree.
+%
+%   Options are passed to scasp_compile/2.  Other options processed:
+%
+%     - model(-Model)
+%       Unify Model with the s(CASP) model, a list of model terms.
+%       See scasp_model/1.
+%     - tree(-Tree)
+%       Unify Tree with the s(CASP) justification tree.  See
+%       scasp_justification/2 for details.
+
 scasp(Query) :-
     scasp(Query, []).
 
@@ -75,7 +99,7 @@ scasp(Query, Options) :-
     in_temporary_module(
         Module,
         prepare(Clauses, Module, Options),
-        scasp_embed:scasp_call(Module:QQuery)).
+        scasp_call_and_results(Module:QQuery, Options)).
 
 prepare(Clauses, Module, Options) :-
     scasp_compile(Module:Clauses, Options),
@@ -87,6 +111,18 @@ prepare(Clauses, Module, Options) :-
 qualify(M:Q0, M:Q) :-
     qualify(Q0, M, Q1),
     intern_negation(Q1, Q).
+
+scasp_call_and_results(Query, Options) :-
+    Query = M:_,
+    scasp_embed:scasp_call(Query),
+    (   option(model(Model), Options)
+    ->  scasp_model(M:Model)
+    ;   true
+    ),
+    (   option(tree(Tree), Options)
+    ->  scasp_justification(M:Tree, Options)
+    ;   true
+    ).
 
 %!  scasp_show(:Query, +What)
 %
