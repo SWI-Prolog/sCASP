@@ -7,12 +7,6 @@ all:
 	swipl --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
 
 check:
-	swipl test/test_scasp.pl -q
-
-check-dcc:
-	swipl test/test_scasp.pl --dcc test/programs/dcc
-
-check-all:
 	swipl test/test_scasp.pl test/programs test/programs/sasp
 	swipl test/test_scasp.pl --dcc test/programs/dcc
 
