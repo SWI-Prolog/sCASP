@@ -305,14 +305,14 @@ define([ "jquery" ],
           .addClass("collapsable-content")
           .wrap("<div class='collapsable hm-switch "+def+"'></div>").parent()
 	  .prepend("<h4 class='collapsable-header'>" +
-		   model.title || "s(CASP) model" +
+		   (model.title || "s(CASP) model") +
 		   "<span class='hm-switch'></span></h4>")
 	  .collapsable(model);
       this.find("div.scasp-justification")
 	  .addClass("collapsable-content")
 	  .wrap("<div class='collapsable hm-switch "+def+"'></div>").parent()
 	  .prepend("<h4 class='collapsable-header'>" +
-		   just.title || "s(CASP) justification" +
+		   (just.title || "s(CASP) justification") +
 		   "<span class='hm-switch'></span></h4>")
 	  .collapsable(just);
       this.find("ul.scasp-justification")
