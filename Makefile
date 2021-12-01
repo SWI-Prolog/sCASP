@@ -1,4 +1,4 @@
-.PHONY: clean lpdoc_clean
+.PHONY: clean distclean
 
 # --no-pce is only supported in the latest git build.  Remove
 # when using an older version.  It only makes the program a
@@ -21,25 +21,7 @@ install:
 	@echo "Warning: Could not install the scasp executable"
 endif
 
-clean: lpdoc_clean
-	@$(MAKE) lpdoc_clean
-	@-ciao clean-tree .
+clean:
 	@-find . -name "*~" -type f -delete
-	@-find . -name "flymd.html" -type f -delete
-	@-find . -name "flymd.md" -type f -delete
-	@rm -fr scasp
 
-lpdoc:
-	@cd doc;\
-	lpdoc -t html SETTINGS.pl >/dev/null 2>&1;\
-	lpdoc --view -t html SETTINGS.pl;\
-	cd ..;
-
-lpdoc_clean:
-	@cd doc;\
-	lpdoc --realclean SETTINGS.pl;\
-	cd ..;
-
-# github:
-#	git remote origin 'https://github.com/Xuaco/sCASP'
-#	git
+distclean: clean
