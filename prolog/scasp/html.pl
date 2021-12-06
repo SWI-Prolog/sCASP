@@ -60,8 +60,37 @@ html_justification_tree(M:Tree, Options) -->
                                     | Options
                                     ])))).
 
-%!  justification_tree(+FilterChildren, +Options)//
+%!  justification_tree(+Tree, +Options)//
+%
+%   Emit  HTML  for  Tree.  Tree  is  of   the  format  as  returned  by
+%   justification_tree/3, a term of the   shape Atom-ListOfChildren. The
+%   first clause deals with mapping subtrees  to human descriptions. The
+%   remainder deals with  special  cases  where   there  are  no  global
+%   constraints.  normal_justification_tree/2  deals  with  the  general
+%   case.
 
+justification_tree(Tree, Options) -->
+    { \+ option(show(machine), Options),
+      option(module(M), Options),
+      human_expression(M:Tree, Children, Actions)
+    },
+    (   {Children == []}
+    ->  human_atom(Tree, Actions, Options)
+    ;   { incr_indent(Options, Options1),
+          (   Tree == o_nmr_check
+          ->  ExtraClasses = ['scasp-global-constraints']
+          ;   ExtraClasses = []
+          )
+        },
+        emit(li( class([collapsable|ExtraClasses]),
+             [ div(class([node, 'collapsable-header']),
+                   [ \human_atom(Tree, Actions, Options),
+                     \connector(implies, Options)
+                   ]),
+               ul(class('collapsable-content'),
+                  \justification_tree_children(Children, Options1))
+            ]))
+    ).
 justification_tree(query-[Query,o_nmr_check-[]], Options) -->
     !,
     justification_tree(Query, Options),
@@ -72,14 +101,17 @@ justification_tree(query-Children, Options) -->
     full_stop(Options).
 justification_tree(o_nmr_check-[], _Options) -->
     !.
-justification_tree(Term-[], Options) -->
+justification_tree(Tree, Options) -->
+    normal_justification_tree(Tree, Options).
+
+normal_justification_tree(Term-[], Options) -->
     !,
     emit(li([ div(class(node),
                   [ \tree_atom(Term, Options),
                     \connect(Options)
                   ])
             ])).
-justification_tree(Term-Children, Options) -->
+normal_justification_tree(Term-Children, Options) -->
     { incr_indent(Options, Options1),
       (   Term == o_nmr_check
       ->  ExtraClasses = ['scasp-global-constraints']
@@ -108,6 +140,21 @@ connect(Options) -->
 connect(_) -->
     [].
 
+human_atom(Tree, Actions, Options) -->
+    { css_classes(Options, Classes)
+    },
+    emit(span(class('scasp-tree'),
+              [ span(class(human),
+                     span(class(Classes), \actions(Actions, Options))),
+                span(class(machine),
+                     \justification_tree(Tree, [show(machine)|Options]))
+              ])).
+
+tree_atom(Atom, Options) -->
+    { option(show(machine), Options) },
+    !,
+    emit(span(class(['scasp-atom']),
+              span(class(machine), \machine_atom(Atom, Options)))).
 tree_atom(Atom, Options) -->
     { scasp_atom_string(Atom, String)
     },
@@ -311,13 +358,6 @@ atom(M:Term, Options) -->
     { atom(M) },
     !,
     atom(Term, [module(M)|Options]).
-atom(Term, Options) -->            % #pred Term::Template
-    { option(module(M), Options),       % Used existing translation
-      human_expression(M:Term, Actions),
-      css_classes(Options, Classes)
-    },
-    !,
-    emit(span(class(Classes), \actions(Actions, Options))).
 atom(o_nmr_check, Options) -->
     !,
     utter(global_constraints_hold, Options).

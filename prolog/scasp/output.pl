@@ -10,7 +10,7 @@
             ovar_var_name/2,                     % @Var, -Name
             ovar_set_name/2,                     % +Var, +Name
             ovar_set_bindings/1,                 % +Bindings
-            human_expression/2                   % :Atom, -Actions
+            human_expression/3                   % :Tree, -Children, -Actions
           ]).
 :- use_module(library(ansi_term)).
 :- use_module(library(apply)).
@@ -20,7 +20,7 @@
 :- use_module(clp/clpq).
 
 :- meta_predicate
-    human_expression(:, -).
+    human_expression(:, -, -).
 
 
 /** <module> Emit sCASP terms
@@ -274,13 +274,13 @@ ovar_var_name(Var, Name) :-
 		 *         HUMAN (#PRED)	*
 		 *******************************/
 
-%!  human_expression(:Atom, -Actions) is semidet.
+%!  human_expression(:Tree, -Children, -Actions) is semidet.
 %
 %   If there is a human print rule  for   Atom,  return a list of format
 %   actions as Actions. Actions is currently  a list of text(String) and
 %   `@(Var:Type)`, where `Type` can be the empty atom.
 
-human_expression(M:Atom, Actions) :-
+human_expression(M:(Atom-Children), Children, Actions) :-
     current_predicate(M:pr_pred_predicate/1),
     \+ predicate_property(M:pr_pred_predicate(_), imported_from(_)),
     M:pr_pred_predicate(::(Atom,format(Fmt, Args))),
