@@ -281,9 +281,9 @@ ovar_var_name(Var, Name) :-
 %   `@(Var:Type)`, where `Type` can be the empty atom.
 
 human_expression(M:(Atom-Children), Children, Actions) :-
-    current_predicate(M:pr_pred_predicate/1),
-    \+ predicate_property(M:pr_pred_predicate(_), imported_from(_)),
-    M:pr_pred_predicate(::(Atom,format(Fmt, Args))),
+    current_predicate(M:pr_pred_predicate/2),
+    \+ predicate_property(M:pr_pred_predicate(_,_), imported_from(_)),
+    M:pr_pred_predicate(Atom, format(Fmt, Args)),
     parse_fmt(Fmt, Args, Actions).
 
 %!  parse_fmt(+Fmt, +Args, -Actions) is det.

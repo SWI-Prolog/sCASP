@@ -27,7 +27,7 @@
 
 :- module(scasp_pr_rules,
           [ generate_pr_rules/2,        % +Sources, +Options
-            process_pr_pred/2,          % +Spec, -Pred
+            process_pr_pred/3,          % +Spec, -Match, -Human
             clean_pr_program/1          % +Module
           ]).
 :- use_module(modules).
@@ -203,7 +203,7 @@ strip_prefixes(F, F).
 %     - pr_user_predicate/1
 %     - pr_table_predicate/1
 %     - pr_show_predicate/1
-%     - pr_pred_predicate/1.
+%     - pr_pred_predicate/2.
 
 :- det(generate_pr_rules/2).
 
@@ -284,10 +284,10 @@ assert_pr_pred((H,T), M) =>
     assert_pr_pred(H, M),
     assert_pr_pred(T, M).
 assert_pr_pred(T, M) =>
-    process_pr_pred(T,RT),
-    assert(M:pr_pred_predicate(RT)).
+    process_pr_pred(T, Match, Human),
+    assert(M:pr_pred_predicate(Match, Human)).
 
-%!  process_pr_pred(+Spec, -Pred) is det.
+%!  process_pr_pred(+Spec, -Match, -Human) is det.
 %
 %   Process a ``#pred Atom :: Template.`` directive.
 %
@@ -299,9 +299,9 @@ assert_pr_pred(T, M) =>
 %   ~p and the arguments are of the shape `@($(Var):Type)`, which is
 %   printed as ``"<Var>, a <Type>"``
 
-:- det(process_pr_pred/2).
+:- det(process_pr_pred/3).
 
-process_pr_pred(A0::B,A::format(Fmt,Args)) :-
+process_pr_pred(A0::B, A, format(Fmt,Args)) :-
     atom_codes(B, Chars),
     phrase(pr_pred(FmtChars, Args, A0, A), Chars),
     atom_codes(Fmt, FmtChars).

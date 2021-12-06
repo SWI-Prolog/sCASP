@@ -88,6 +88,6 @@ scasp_compiled(pr_query(_Query)).
 scasp_compiled(pr_user_predicate(_Pred)).
 scasp_compiled(pr_table_predicate(_Pred)).
 scasp_compiled(pr_show_predicate(_Pred)).
-scasp_compiled(pr_pred_predicate(_Pred)).
+scasp_compiled(pr_pred_predicate(_Tree, _Human)).
 
 
