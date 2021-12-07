@@ -41,6 +41,7 @@
 :- use_module(library(http/js_write)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/http_path)).
+:- use_module(library(http/http_error)).
 :- use_module(library(http/jquery)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(dcg/high_order)).
@@ -64,15 +65,28 @@
 
 main(Argv) :-
     argv_options(Argv, _, Options),
-    server(Options),
-    thread_get_message(quit). % do not terminate
+    (   select_option(examples(Ex), Options, Options1)
+    ->  attach_examples(Ex)
+    ;   true
+    ),
+    server(Options1),
+    (   option(interactive(true), Options1)
+    ->  cli_enable_development_system
+    ;   thread_get_message(quit)  % do not terminate
+    ).
 
-opt_type(port, port, natural).
-opt_type(p,    port, natural).
+opt_type(port,     port,        natural).
+opt_type(p,        port,        natural).
+opt_type(examples, examples,    atom).
+opt_type(i,        interactive, boolean).
 
-opt_help(port, "Port used by the server").
+opt_help(port,        "Port used by the server").
+opt_help(interactive, "Start interactive toplevel").
+opt_help(examples,    "':' separated list of files and directories from \c
+                       which to load examples").
 
-opt_meta(port, 'PORT').
+opt_meta(port,     'PORT').
+opt_meta(examples, 'DIRECTORY').
 
 %!  server(+Options)
 %
@@ -92,10 +106,11 @@ http:location(scasp, root(scasp), []).
 http:location(js,    scasp(js),   []).
 http:location(css,   scasp(css),  []).
 
-:- http_handler(root(.),      http_redirect(see_other, scasp(.)), []).
-:- http_handler(scasp(.),     home,        []).
-:- http_handler(scasp(solve), solve,       [id(solve)]).
-:- http_handler(scasp(help),  scasp_help,  [id(help)]).
+:- http_handler(root(.),        http_redirect(see_other, scasp(.)), []).
+:- http_handler(scasp(.),       home,         []).
+:- http_handler(scasp(solve),   solve,        [id(solve)]).
+:- http_handler(scasp(help),    scasp_help,   [id(help)]).
+:- http_handler(scasp(example), example_data, [id(example_data)]).
 
 		 /*******************************
 		 *        HTML FORM PAGE	*
@@ -118,13 +133,16 @@ query_page -->
     html_requires(jquery),
     html_requires(scasp),
     styles,
-    html([ h4('Program'),
-           textarea([id(data), rows(10), cols(80),
-                     placeholder('s(CASP) program')], ''),
+    html([ div(class(section),
+               [ div(class(select), \example_data),
+                 textarea([id(data), rows(10), cols(80),
+                           placeholder('s(CASP) program')], '')
+               ]),
            h4('Query'),
-           '?- ',     input([id(query),
+           '?- ',     input([id(query), size(50),
                              placeholder('Query')]),
            ' Limit ', input([type(number), min(1), id(limit), value(1),
+                             size(3),
                              placeholder('Empty means all answer sets')]),
            \html_json_radio,
            h4(''),
@@ -134,6 +152,54 @@ query_page -->
            pre(id('results-json'), [])
          ]),
     button_actions.
+
+%!  example_data
+%
+%   Fill the example data
+
+example_data -->
+    { \+ example(_,_,_) },
+    !.
+example_data -->
+    { findall(Id-Comment, example(Id,_File,Comment), Pairs),
+      http_link_to_id(example_data, [], ExDataURL)
+    },
+    html([ select([name(example), id(example)],
+                  \sequence(example_option, Pairs))
+         ]),
+    js_script({|javascript(ExDataURL)||
+$(function() {
+$("#example").change(function() {
+  var ex = $(this).val();
+
+  $.get(ExDataURL,
+        {"example": ex},
+        function(reply) {
+            var rows = reply.data.split("\n").length + 1;
+            if ( rows > 20 ) rows = 20;
+            $("#data").val(reply.data)
+                      .attr("rows", rows);
+            $("#query").val(reply.query || "");
+        });
+});
+
+});
+               |}).
+
+example_option(Id-Comment) -->
+    html(option(value(Id), Comment)).
+
+example_data(Request) :-
+    http_parameters(Request, [example(Id, [atom])]),
+    example(Id, File, Comment),
+    read_file_to_string(File, Data, []),
+    Reply0 = _{comment:Comment, data:Data},
+    (   re_matchsub('^\\?-\\s*(.*?)\\.($|\\s)'/m, Data, Dict, [])
+    ->  Query = Dict.1,
+        Reply = Reply0.put(query, Query)
+    ;   Reply = Reply0
+    ),
+    reply_json(Reply).
 
 styles -->
     html({|html||
@@ -663,3 +729,51 @@ formats:
   </ul>
          |}).
 
+
+		 /*******************************
+		 *           EXAMPLES		*
+		 *******************************/
+
+:- dynamic
+    example/3.
+
+attach_examples(Spec) :-
+    atomic_list_concat(Ex, ':', Spec),
+    maplist(attach_example, Ex).
+
+attach_example(Dir) :-
+    exists_directory(Dir),
+    !,
+    forall(directory_member(Dir, File,
+                            [ recursive(true),
+                              extensions([pl]),
+                              access(read)
+                            ]),
+           attach_ex(File)).
+attach_example(File) :-
+    exists_file(File),
+    !,
+    attach_ex(File).
+attach_example(File) :-
+    print_message(warning, error(existence_error(file, File),_)).
+
+attach_ex(File) :-
+    variant_sha1(File, Id),
+    ex_comment(File, Comment),
+    assertz(example(Id, File, Comment)).
+
+
+ex_comment(File, Comment) :-
+    setup_call_cleanup(
+        open(File, read, In),
+        ( read_line_to_string(In, Line),
+          sub_atom(Line, 0, _, _, '%'),
+          sub_atom(Line, 1, _, 0, Comment0),
+          split_string(Comment0, "", " \t%", [Title])
+        ),
+        close(In)),
+    !,
+    file_base_name(File, Base),
+    format(string(Comment), '~w -- ~w', [Base, Title]).
+ex_comment(File, Comment) :-
+    file_base_name(File, Comment).

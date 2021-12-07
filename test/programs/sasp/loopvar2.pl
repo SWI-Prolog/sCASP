@@ -1,4 +1,4 @@
-
+% Even loop through negation with inequality (version II)
 
 p(1,X) :- not q(1,X).
 q(1,X) :- not p(1,X).

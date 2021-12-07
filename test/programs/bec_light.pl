@@ -1,4 +1,4 @@
-
+% Basic Event Calculus
 
 %% Include the BASIC EVENT CALCULUS THEORY
 #include 'bec_theory.incl'.

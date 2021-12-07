@@ -1,11 +1,16 @@
-% { ancestor(bob,sam), ancestor(jill,sam), ... }
-%-parent(bob,Y) :- not father(bob,Y), not mother(bob,Y), not new(bob).
-%-parent(ted,Z).
+% A simple family database
+
+% An unrelated program. As full server this is solved. Using the dynamic
+% calling we only consider  predicates  reachable   from  the  query and
+% global constraints whose call-tree overlaps with the query.
+
 test1(X) :- not test2(X, Y).
 test1(X).
 test2(X, Y) :- (Y \= 1, not test3(X)).
 test2(X, 1) :- not test3(X).
 test3(X) :- not test1(X).
+
+% The family
 
 male(bob).
 male(bo).

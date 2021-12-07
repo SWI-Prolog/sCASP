@@ -1,5 +1,4 @@
-
-
+% Path in graph
 
 %#table path/2.
 

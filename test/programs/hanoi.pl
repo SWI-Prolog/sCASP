@@ -1,4 +1,4 @@
-
+% Tower of Hanoi, 8 pegs
 
 % Move N disks in T moves.
 hanoi(N, T) :-

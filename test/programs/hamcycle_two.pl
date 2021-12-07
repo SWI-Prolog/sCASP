@@ -1,3 +1,5 @@
+% Hamiltonian cycle (version II)
+
 % fact for each vertex(N).
 vertex(0).
 vertex(1).

@@ -1,3 +1,5 @@
+% Natural numbers (piano representation)
+
 s(0).
 s(s(X)) :-
     s(X).
