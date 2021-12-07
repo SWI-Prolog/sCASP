@@ -372,6 +372,13 @@ atom(is(Value,Expr), Options) -->
     },
     emit(span(class([arithmetic|Classes]), S)).
 atom(Term, Options) -->
+    { option(module(M), Options),
+      human_expression(M:(Term-[]), [], Actions),
+      !,
+      css_classes(Options, Classes)
+    },
+    emit(span(class(Classes), \actions(Actions, Options))).
+atom(Term, Options) -->
     utter(holds(Term), Options).
 
 %!  utter(+Exppression, +Options)
