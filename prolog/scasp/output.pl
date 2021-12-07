@@ -287,7 +287,8 @@ human_expression(M:Tree, Children, Actions) :-
     parse_fmt(Fmt, Args, Actions).
 
 human_utterance(Atom-Children, M, Children, Format) :-
-    M:pr_pred_predicate(Atom, Format).
+    M:pr_pred_predicate(Atom, Format),
+    !.
 human_utterance(Atom-Children0, M, Children, Format) :-
     M:pr_pred_predicate(Atom-ChildSpec, Format),
     match_children(ChildSpec, Children0, Children).
@@ -295,8 +296,9 @@ human_utterance(Atom-Children0, M, Children, Format) :-
 match_children(*, _, Children) =>
     Children = [].
 match_children([H|T], Children0, Children) =>
-    selectchk(H, Children0, Children1),
-    match_children(T, Children1, Children).
+    selectchk(H-C, Children0, Children1),
+    append(Children1, C, Children2),
+    match_children(T, Children2, Children).
 match_children([], Children0, Children) =>
     Children = Children0.
 
