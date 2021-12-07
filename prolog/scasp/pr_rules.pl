@@ -50,7 +50,7 @@ that may be used for warning and error output.
 :- use_module(program).
 :- use_module(variables).
 
-:- op(700, xfx, ::).
+:- op(950, xfx, ::).
 
 :- meta_predicate
     generate_pr_rules(:, +).
@@ -435,5 +435,5 @@ clean_pr_program(M) :-
     retractall(M:pr_user_predicate(_)),
     retractall(M:pr_table_predicate(_)),
     retractall(M:pr_show_predicate(_)),
-    retractall(M:pr_pred_predicate(_)),
+    retractall(M:pr_pred_predicate(_,_)),
     retractall(M:pr_dcc_predicate(_,_)).

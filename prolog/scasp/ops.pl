@@ -1,10 +1,10 @@
 :- module(scasp_ops,
           [ op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]),
-            op(700, xfx, [::]),
-            op(700, xfx, ['| ']),
+            op(950, xfx, ::),
+            op(700, xfx, '| '),
             op(700, xfx, [~>, <~]),
-            op(900, fy,  [not]),
-            op(700, xfx, ['\u2209']),
+            op(900, fy,  not),
+            op(700, xfx, '\u2209'),
 
             scasp_push_operators/0,
             scasp_push_operators/1,             % +Module
@@ -30,7 +30,7 @@ term_expansion(scasp_op(Pri, Ass, List), Ops) :-
 mkop(Pri, Ass, Op, scasp_op(Pri, Ass, Op)).
 
 scasp_op(700, xfx, [#= , #<>, #< , #> , #=<, #>= ]).
-scasp_op(700, xfx, [::]).
+scasp_op(950, xfx, [::]).
 scasp_op(700, xfx, ['| ']).
 scasp_op(700, xfx, [~>, <~]).
 scasp_op(900, fy,  [not]).
@@ -38,6 +38,5 @@ scasp_op(700, xfx, ['\u2209']).
 
 % from input.pl
 scasp_op(1200, fx,  #).
-scasp_op(300, xfx, ::).
-scasp_op(350, fx,  [include, pred, compute, abducible]).
-scasp_op(1150, fx, [table, show]).
+scasp_op(350, fx,  [include, compute, abducible]).
+scasp_op(1150, fx, [table, show, pred]).

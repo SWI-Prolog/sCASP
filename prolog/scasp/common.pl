@@ -254,7 +254,7 @@ operator(#>, xfx, 700).
 operator(#>=, xfx, 700).
 operator(#=<, xfx, 700).
 % operator for human output
-operator(::, xfx, 700).
+operator(::, xfx, 950).
 
 
 
