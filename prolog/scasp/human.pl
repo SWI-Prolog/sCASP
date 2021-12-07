@@ -72,7 +72,7 @@ defined in html_text.pl.
 :- det(human_justification_tree/2).
 
 human_justification_tree(M:Tree, Options) :-
-    phrase(human_output(Tree,
+    phrase(human_output(M:Tree,
                         [ depth(0),
                           module(M)
                         | Options
@@ -80,7 +80,7 @@ human_justification_tree(M:Tree, Options) :-
     fixup_layout(Tokens0, Tokens),
     print_message_lines(current_output, '', Tokens).
 
-%!  human_output(+FilterChildren, +Options)
+%!  human_output(:FilterChildren, +Options)
 
 human_output(Tree, Options) -->
     !,
@@ -116,7 +116,7 @@ emit_model(Model, Options) -->
 %!  human_query(:Query, +Options)
 
 human_query(M:Query, Options) :-
-    phrase(emit_query(Query,
+    phrase(emit_query(M:Query,
                       [ module(M)
                       | Options
                       ]), Tokens0),
