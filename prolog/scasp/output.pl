@@ -280,11 +280,25 @@ ovar_var_name(Var, Name) :-
 %   actions as Actions. Actions is currently  a list of text(String) and
 %   `@(Var:Type)`, where `Type` can be the empty atom.
 
-human_expression(M:(Atom-Children), Children, Actions) :-
+human_expression(M:Tree, Children, Actions) :-
     current_predicate(M:pr_pred_predicate/2),
     \+ predicate_property(M:pr_pred_predicate(_,_), imported_from(_)),
-    M:pr_pred_predicate(Atom, format(Fmt, Args)),
+    human_utterance(Tree, M, Children, format(Fmt, Args)),
     parse_fmt(Fmt, Args, Actions).
+
+human_utterance(Atom-Children, M, Children, Format) :-
+    M:pr_pred_predicate(Atom, Format).
+human_utterance(Atom-Children0, M, Children, Format) :-
+    M:pr_pred_predicate(Atom-ChildSpec, Format),
+    match_children(ChildSpec, Children0, Children).
+
+match_children(*, _, Children) =>
+    Children = [].
+match_children([H|T], Children0, Children) =>
+    selectchk(H, Children0, Children1),
+    match_children(T, Children1, Children).
+match_children([], Children0, Children) =>
+    Children = Children0.
 
 %!  parse_fmt(+Fmt, +Args, -Actions) is det.
 %

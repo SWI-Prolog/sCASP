@@ -140,6 +140,10 @@ connect(Options) -->
 connect(_) -->
     [].
 
+%!  human_atom(+Tree, +Human, +Options)// is det.
+%
+%   @tbd Deal with Human == '', deleting the node.
+
 human_atom(Tree, Actions, Options) -->
     { css_classes(Options, Classes)
     },
