@@ -75,7 +75,11 @@ justification_tree(Tree, Options) -->
       human_expression(M:Tree, Children, Actions)
     },
     (   {Children == []}
-    ->  human_atom(Tree, Actions, Options)
+    ->  emit(li([ div(class(node),
+                      [ \human_atom(Tree, Actions, Options),
+                        \connect(Options)
+                      ])
+                ]))
     ;   { incr_indent(Options, Options1),
           (   Tree == o_nmr_check
           ->  ExtraClasses = ['scasp-global-constraints']
@@ -118,8 +122,8 @@ normal_justification_tree(Term-Children, Options) -->
       ;   ExtraClasses = []
       )
     },
-    emit(li( class([collapsable|ExtraClasses]),
-             [ div(class([node, 'collapsable-header']),
+    emit(li(class([collapsable|ExtraClasses]),
+            [ div(class([node, 'collapsable-header']),
                   [ \tree_atom(Term, Options),
                     \connector(implies, Options)
                   ]),
@@ -144,14 +148,14 @@ connect(_) -->
 %
 %   @tbd Deal with Human == '', deleting the node.
 
-human_atom(Tree, Actions, Options) -->
-    { css_classes(Options, Classes)
+human_atom(Atom-_Children, Actions, Options) -->
+    { css_classes(Options, Classes),
+      scasp_atom_string(Atom, String)
     },
-    emit(span(class('scasp-tree'),
-              [ span(class(human),
+    emit(span(class('scasp-atom'),
+              [ span([class(human), title(String)],
                      span(class(Classes), \actions(Actions, Options))),
-                span(class(machine),
-                     \justification_tree(Tree, [show(machine)|Options]))
+                span(class(machine), \machine_atom(Atom, Options))
               ])).
 
 tree_atom(Atom, Options) -->

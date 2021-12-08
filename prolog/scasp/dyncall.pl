@@ -480,7 +480,7 @@ scasp_abolish(M:(Name/Arity)) =>
 
 pred(M:(Atom :: Template)) =>
     process_pr_pred(Atom :: Template, Match, Human),
-    assertz(M:pr_pred_predicate(Atom, Match, Human)).
+    assertz(M:pr_pred_predicate(Match, Human)).
 
 show(M:PIs) =>
     phrase(show(PIs), Clauses),

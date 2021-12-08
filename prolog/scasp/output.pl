@@ -280,27 +280,40 @@ ovar_var_name(Var, Name) :-
 %   actions as Actions. Actions is currently  a list of text(String) and
 %   `@(Var:Type)`, where `Type` can be the empty atom.
 
-human_expression(M:Tree, Children, Actions) :-
+human_expression(Tree, Children, Actions) :-
+    tree_atom_children(Tree, M, Atom, ChildrenIn),
     current_predicate(M:pr_pred_predicate/2),
     \+ predicate_property(M:pr_pred_predicate(_,_), imported_from(_)),
-    human_utterance(Tree, M, Children, format(Fmt, Args)),
+    human_utterance(Atom, ChildrenIn, M, Children, format(Fmt, Args)),
     parse_fmt(Fmt, Args, Actions).
 
-human_utterance(Atom-Children, M, Children, Format) :-
+tree_atom_children(M0:(not(Atom0)-Children), M, not(Atom), Children) :-
+    strip_module(M0:Atom0, M, Atom).
+tree_atom_children(M0:(Atom0-Children), M, Atom, Children) :-
+    strip_module(M0:Atom0, M, Atom).
+
+human_utterance(Atom, Children, M, Children, Format) :-
     M:pr_pred_predicate(Atom, Format),
     !.
-human_utterance(Atom-Children0, M, Children, Format) :-
+human_utterance(Atom, Children0, M, Children, Format) :-
     M:pr_pred_predicate(Atom-ChildSpec, Format),
-    match_children(ChildSpec, Children0, Children).
+    match_children(ChildSpec, M, Children0, Children).
 
-match_children(*, _, Children) =>
+match_children(*, _, _, Children) =>
     Children = [].
-match_children([H|T], Children0, Children) =>
-    selectchk(H-C, Children0, Children1),
+match_children([H|T], M, Children0, Children) =>
+    select(Atom-C, Children0, Children1),
+    match_node(H, M, Atom),
+    !,
     append(Children1, C, Children2),
-    match_children(T, Children2, Children).
-match_children([], Children0, Children) =>
+    match_children(T, M, Children2, Children).
+match_children([], _, Children0, Children) =>
     Children = Children0.
+
+match_node(Node,      _M, Node).
+match_node(not(Node),  M,  not(M:Node)).
+match_node(Node,       M, M:Node).
+
 
 %!  parse_fmt(+Fmt, +Args, -Actions) is det.
 %
