@@ -289,6 +289,8 @@ predicate_calls(Head0, PI) :-
     body_calls(Body, M, Callee),
     pi_head(PI, Callee).
 
+body_calls(Goal, _M, _), var(Goal) =>
+    instantiation_error(Goal).
 body_calls(true, _M, _) => fail.
 body_calls((A,B), M, Callee) =>
     (   body_calls(A, M, Callee)
