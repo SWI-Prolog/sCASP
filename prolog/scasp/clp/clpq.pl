@@ -70,18 +70,15 @@ clpqr_meta_list([A|As]) :- !,
         clpqr_meta(A),
         clpqr_meta_list(As).
 
-translate_meta_clp(A#=B)  => to_rat(A, AR), to_rat(B, BR), {AR =:= BR}.
-translate_meta_clp(A#<>B) => to_rat(A, AR), to_rat(B, BR), {AR =\= BR}.
-translate_meta_clp(A#<B)  => to_rat(A, AR), to_rat(B, BR), {AR  <  BR}.
-translate_meta_clp(A#=<B) => to_rat(A, AR), to_rat(B, BR), {AR =<  BR}.
-translate_meta_clp(A#>B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
-translate_meta_clp(A#>=B) => to_rat(A, AR), to_rat(B, BR), {AR  >= BR}.
+translate_meta_clp(A#=B)  =>  {A =:= B}.
+translate_meta_clp(A#<>B) =>  {A =\= B}.
+translate_meta_clp(A#<B)  =>  {A  <  B}.
+translate_meta_clp(A#=<B) =>  {A =<  B}.
+translate_meta_clp(A#>B)  =>  {A  >  B}.
+translate_meta_clp(A#>=B) =>  {A  >= B}.
 % for bec_light.pl
-translate_meta_clp(A < B)  => to_rat(A, AR), to_rat(B, BR), {AR  <  BR}.
-translate_meta_clp(A > B)  => to_rat(A, AR), to_rat(B, BR), {AR  >  BR}.
-
-to_rat(rat(N,D), Rat) => Rat = N/D.
-to_rat(Term,     Rat) => Rat = Term.
+translate_meta_clp(A < B)  =>  {A  <  B}.
+translate_meta_clp(A > B)  =>  {A  >  B}.
 
 %!  is_clpq_var(@Term) is semidet.
 %
@@ -179,8 +176,6 @@ pretty_print_(nonzero(Var), X) =>
     ->  format('nonzero(\u2627)')
     ;   write(nonzero(Var))
     ).
-pretty_print_(rat(A,B), _)     =>
-    format('~w/~w', [A, B]).
 pretty_print_(C, X), compound(C), C =.. [Op, A, B] =>
     (   pretty_op(Op, Pretty)
     ->  true

@@ -383,8 +383,7 @@ solve_goal_predicate(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
 %   Used to evaluate builtin predicates predicate
 
 solve_goal_builtin(is(X, Exp), Model) :-
-    capture_rational(Exp, CaptExp), !, %% If it fails later the call(Goal) will also fail...
-    exec_goal(is(X, CaptExp)),
+    exec_goal(is(X, Exp)),
     Model = [is(X, Exp)]. %% the Model should 'Start' with the Goal
 solve_goal_builtin(builtin(Goal), Model) :- !,
     exec_goal(Goal),
@@ -430,15 +429,6 @@ exec_goal(Goal) :-
         verbose(format('ok   goal ~@ \n', [print_goal(Goal)]))
     ;   catch(call(Goal), error(_,_), fail)
     ).
-
-capture_rational(G, A/B) :- ground(G), G=rat(A, B), !.
-capture_rational(St, NSt) :-
-    St =.. [Op, A, B], !,
-    capture_rational(A, Na),
-    capture_rational(B, Nb),
-    NSt =.. [Op, Na, Nb].
-capture_rational(A, A) :- ground(A).
-
 
 % TODO: Pending StackOut to carry the literal involved in the findall
 % (if needed)
