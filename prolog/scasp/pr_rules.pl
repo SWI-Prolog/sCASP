@@ -27,7 +27,7 @@
 
 :- module(scasp_pr_rules,
           [ generate_pr_rules/2,        % +Sources, +Options
-            process_pr_pred/3,          % +Spec, -Match, -Human
+            process_pr_pred/4,          % +Spec, -Match, -Cond, -Human
             clean_pr_program/1          % +Module
           ]).
 :- use_module(modules).
@@ -203,7 +203,7 @@ strip_prefixes(F, F).
 %     - pr_user_predicate/1
 %     - pr_table_predicate/1
 %     - pr_show_predicate/1
-%     - pr_pred_predicate/2.
+%     - pr_pred_predicate/3.
 
 :- det(generate_pr_rules/2).
 
@@ -284,10 +284,10 @@ assert_pr_pred((H,T), M) =>
     assert_pr_pred(H, M),
     assert_pr_pred(T, M).
 assert_pr_pred(T, M) =>
-    process_pr_pred(T, Match, Human),
-    assert(M:pr_pred_predicate(Match, Human)).
+    process_pr_pred(T, Match, Cond, Human),
+    assert(M:pr_pred_predicate(Match, Cond, Human)).
 
-%!  process_pr_pred(+Spec, -Match, -Human) is det.
+%!  process_pr_pred(+Spec, -Match, -Condition, -Human) is det.
 %
 %   Process a ``#pred Atom :: Template.`` directive.
 %
@@ -299,13 +299,14 @@ assert_pr_pred(T, M) =>
 %   ~p and the arguments are of the shape `@($(Var):Type)`, which is
 %   printed as ``"<Var>, a <Type>"``
 
-:- det(process_pr_pred/3).
+:- det(process_pr_pred/4).
 
-process_pr_pred(A0::B, A, format(Fmt,Args)) :-
+process_pr_pred(A0::B, A, Cond, format(Fmt,Args)) :-
     atom_codes(B, Chars),
     phrase(pr_pred(FmtChars, Args, A0, A1), Chars),
-    revar(A1, A, _),                    % need for s(CASP) input with vars
-    atom_codes(Fmt, FmtChars).          % not in template
+    atom_codes(Fmt, FmtChars),
+    revar(A1, A2, _),                   % need for s(CASP) input with vars
+    atom_cond(A2, A, Cond).             % not in template
 
 pr_pred([0'~,0'p|Fmt], [@(Var:Type)|Args], A0, A) -->
     temp_var_start(Style), prolog_var_name(VarName),
@@ -356,6 +357,38 @@ insert_var(In, Out, _, _) =>
 
 insert_var_r(Name, Var, In, Out) :-
     insert_var(In, Out, Name, Var).
+
+%!  atom_cond(+AtomAndCond, -Atom, -Condition) is det.
+
+:- det(atom_cond/3).
+
+atom_cond(Atom0-Children0, Atom-Children, Cond) =>
+    atom_cond(Atom0, Atom, Cond0),
+    atom_cond_list(Children0, Children, Cond0, Cond).
+atom_cond((Atom0,Cond0), Atom, Cond) =>
+    Atom = Atom0,
+    inline_cond(Cond0, Cond).
+atom_cond(Atom0, Atom, Cond) =>
+    Atom = Atom0,
+    Cond = true.
+
+atom_cond_list([], [], Cond, Cond).
+atom_cond_list([H0|T0], [H|T], Cond0, Cond) :-
+    atom_cond(H0, H, Cond1),
+    mkconj(Cond0, Cond1, Cond2),
+    atom_cond_list(T0, T, Cond2, Cond).
+
+inline_cond(var(X), Cond) =>
+    Cond = (var(X)->true;X = '$VAR'(_)).
+inline_cond(nonvar(X), Cond) =>
+    Cond = (var(X)->false;X \= '$VAR'(_)).
+inline_cond((C0,C1), Cond) =>
+    inline_cond(C0, D0),
+    inline_cond(C1, D1),
+    mkconj(D0,D1, Cond).
+inline_cond(C, Cond) =>
+    Cond = C.
+
 
 %!  assert_pr_rules(+Rules:list, +Module) is det.
 
@@ -436,5 +469,5 @@ clean_pr_program(M) :-
     retractall(M:pr_user_predicate(_)),
     retractall(M:pr_table_predicate(_)),
     retractall(M:pr_show_predicate(_)),
-    retractall(M:pr_pred_predicate(_,_)),
+    retractall(M:pr_pred_predicate(_,_,_)),
     retractall(M:pr_dcc_predicate(_,_)).

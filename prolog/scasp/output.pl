@@ -286,8 +286,8 @@ ovar_var_name(Var, Name) :-
 
 human_expression(Tree, Children, Actions) :-
     tree_atom_children(Tree, M, Atom, ChildrenIn),
-    current_predicate(M:pr_pred_predicate/2),
-    \+ predicate_property(M:pr_pred_predicate(_,_), imported_from(_)),
+    current_predicate(M:pr_pred_predicate/3),
+    \+ predicate_property(M:pr_pred_predicate(_,_,_), imported_from(_)),
     human_utterance(Atom, ChildrenIn, M, Children, format(Fmt, Args)),
     parse_fmt(Fmt, Args, Actions).
 
@@ -297,11 +297,14 @@ tree_atom_children(M0:(Atom0-Children), M, Atom, Children) :-
     strip_module(M0:Atom0, M, Atom).
 
 human_utterance(Atom, Children, M, Children, Format) :-
-    M:pr_pred_predicate(Atom, Format),
+    M:pr_pred_predicate(Atom, Cond, Format),
+    call(Cond),
     !.
 human_utterance(Atom, Children0, M, Children, Format) :-
-    M:pr_pred_predicate(Atom-ChildSpec, Format),
-    match_children(ChildSpec, M, Children0, Children).
+    M:pr_pred_predicate(Atom-ChildSpec, Cond, Format),
+    match_children(ChildSpec, M, Children0, Children),
+    call(Cond),
+    !.
 
 match_children(*, _, _, Children) =>
     Children = [].

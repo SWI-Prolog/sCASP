@@ -479,8 +479,8 @@ scasp_abolish(M:(Name/Arity)) =>
 #(M:abducible(Spec)) => abducible(M:Spec).
 
 pred(M:(Atom :: Template)) =>
-    process_pr_pred(Atom :: Template, Match, Human),
-    assertz(M:pr_pred_predicate(Match, Human)).
+    process_pr_pred(Atom :: Template, Match, Cond, Human),
+    assertz(M:pr_pred_predicate(Match, Cond, Human)).
 
 show(M:PIs) =>
     phrase(show(PIs), Clauses),
@@ -557,14 +557,14 @@ user:term_expansion((-Head :- Body), (MHead :- Body)) :-
     callable(Head),
     intern_negation(-Head, MHead).
 user:term_expansion((false :- Body), ((-) :- Body)).
-user:term_expansion((:- pred(SpecIn)), pr_pred_predicate(Match, Human)) :-
-    process_pr_pred(SpecIn, Match, Human).
+user:term_expansion((:- pred(SpecIn)), pr_pred_predicate(Match, Cond, Human)) :-
+    process_pr_pred(SpecIn, Match, Cond, Human).
 user:term_expansion((:- show(SpecIn)), Clauses) :-
     phrase(show(SpecIn), Clauses).
 user:term_expansion((:- abducible(SpecIn)), Clauses) :-
     phrase(abducible(SpecIn), Clauses).
-user:term_expansion((# pred(SpecIn)), pr_pred_predicate(Match, Human)) :-
-    process_pr_pred(SpecIn, Match, Human).
+user:term_expansion((# pred(SpecIn)), pr_pred_predicate(Match, Cond, Human)) :-
+    process_pr_pred(SpecIn, Match, Cond, Human).
 user:term_expansion((# show(SpecIn)), Clauses) :-
     phrase(show(SpecIn), Clauses).
 user:term_expansion((# abducible(SpecIn)), Clauses) :-
