@@ -15,6 +15,9 @@
 :- use_module(library(http/html_head)).
 :- use_module(library(http/http_server_files)).
 :- use_module(library(dcg/high_order)).
+:- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(prolog_code)).
 
 :- meta_predicate
     html_model(:, +, ?, ?),
@@ -45,9 +48,10 @@ user:file_search_path(css, library(scasp/web/css)).
 %   Convert the tree to HTML. The  caller should use ovar_analyze_term/1
 %   on Tree to name variables and identify  singletons. This is not done
 %   in this predicate as the user may or  may not wish to combin the the
-%   variable analysis with the bindings and/or model.
+%   variable analysis with the bindings and/or model. Options processed:
 %
-%   @see print_message/2.
+%     - pred(Boolean)
+%       When `false` (default `true`), ignore user pred/1 rules.
 
 :- det(html_justification_tree//2).
 
@@ -71,6 +75,7 @@ html_justification_tree(M:Tree, Options) -->
 
 justification_tree(Tree, Options) -->
     { \+ option(show(machine), Options),
+      option(pred(true), Options, true),
       option(module(M), Options),
       human_expression(M:Tree, Children, Actions)
     },
@@ -376,7 +381,8 @@ atom(is(Value,Expr), Options) -->
     },
     emit(span(class([arithmetic|Classes]), S)).
 atom(Term, Options) -->
-    { option(module(M), Options),
+    { option(pred(true), Options, true),
+      option(module(M), Options),
       human_expression(M:(Term-[]), [], Actions),
       !,
       css_classes(Options, Classes)
