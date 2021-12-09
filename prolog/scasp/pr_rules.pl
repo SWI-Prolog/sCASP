@@ -27,7 +27,7 @@
 
 :- module(scasp_pr_rules,
           [ generate_pr_rules/2,        % +Sources, +Options
-            process_pr_pred/4,          % +Spec, -Match, -Cond, -Human
+            process_pr_pred/5,          % +Spec, -Atom, -Children, -Cond, -Human
             clean_pr_program/1          % +Module
           ]).
 :- use_module(modules).
@@ -203,7 +203,7 @@ strip_prefixes(F, F).
 %     - pr_user_predicate/1
 %     - pr_table_predicate/1
 %     - pr_show_predicate/1
-%     - pr_pred_predicate/3.
+%     - pr_pred_predicate/4.
 
 :- det(generate_pr_rules/2).
 
@@ -284,12 +284,12 @@ assert_pr_pred((H,T), M) =>
     assert_pr_pred(H, M),
     assert_pr_pred(T, M).
 assert_pr_pred(T, M) =>
-    process_pr_pred(T, Match, Cond, Human),
-    assert(M:pr_pred_predicate(Match, Cond, Human)).
+    process_pr_pred(T, Atom, Children, Cond, Human),
+    assert(M:pr_pred_predicate(Atom, Children, Cond, Human)).
 
-%!  process_pr_pred(+Spec, -Match, -Condition, -Human) is det.
+%!  process_pr_pred(+Spec, -Atom, -Children, -Condition, -Human) is det.
 %
-%   Process a ``#pred Atom :: Template.`` directive.
+%   Process a ``#pred Spec :: Template.`` directive.
 %
 %   @arg Spec is a term Head::Template,  where   Head  is  an sCASP atom
 %   where the variables are represented  as   $(Name)  and Template is a
@@ -301,12 +301,12 @@ assert_pr_pred(T, M) =>
 
 :- det(process_pr_pred/4).
 
-process_pr_pred(A0::B, A, Cond, format(Fmt,Args)) :-
+process_pr_pred(Spec::B, A, Children, Cond, format(Fmt,Args)) :-
     atom_codes(B, Chars),
-    phrase(pr_pred(FmtChars, Args, A0, A1), Chars),
+    phrase(pr_pred(FmtChars, Args, Spec, Spec1), Chars),
     atom_codes(Fmt, FmtChars),
-    revar(A1, A2, _),                   % need for s(CASP) input with vars
-    atom_cond(A2, A, Cond).             % not in template
+    revar(Spec1, Spec2, _),             % need for s(CASP) input with vars
+    atom_cond(Spec2, A, Children, Cond).   % not in template
 
 pr_pred([0'~,0'p|Fmt], [@(Var:Type)|Args], A0, A) -->
     temp_var_start(Style), prolog_var_name(VarName),
@@ -358,13 +358,17 @@ insert_var(In, Out, _, _) =>
 insert_var_r(Name, Var, In, Out) :-
     insert_var(In, Out, Name, Var).
 
-%!  atom_cond(+AtomAndCond, -Atom, -Condition) is det.
+%!  atom_cond(+Spec, -Atom, -Children, -Condition) is det.
 
 :- det(atom_cond/3).
 
-atom_cond(Atom0-Children0, Atom-Children, Cond) =>
+atom_cond(Atom0-Children0, Atom, Children, Cond) =>
     atom_cond(Atom0, Atom, Cond0),
     atom_cond_list(Children0, Children, Cond0, Cond).
+atom_cond(Atom0, Atom, Children, Cond) =>
+    Children = '*',
+    atom_cond(Atom0, Atom, Cond).
+
 atom_cond((Atom0,Cond0), Atom, Cond) =>
     Atom = Atom0,
     inline_cond(Cond0, Cond).
@@ -469,5 +473,5 @@ clean_pr_program(M) :-
     retractall(M:pr_user_predicate(_)),
     retractall(M:pr_table_predicate(_)),
     retractall(M:pr_show_predicate(_)),
-    retractall(M:pr_pred_predicate(_,_,_)),
+    retractall(M:pr_pred_predicate(_,_,_,_)),
     retractall(M:pr_dcc_predicate(_,_)).
