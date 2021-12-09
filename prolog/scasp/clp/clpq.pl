@@ -51,34 +51,45 @@ ciao_constraint(A>=B,    Ciao) => Ciao = (A#>=B).
 ciao_constraint(A<B,     Ciao) => Ciao = (A#<B).
 ciao_constraint(A=<B,    Ciao) => Ciao = (A#=<B).
 
-clpq_entailed(C) :-
-    entailed(C).
+clpq_entailed(Ciao) :-
+    trans_meta_clp(Ciao, ClpQ),
+    entailed(ClpQ).
+
 clpq_meta(C) :-
     clpqr_meta(C).
 
 % from Ciao library/clpqr/clpqr_meta.pl
-clpqr_meta(A) :- var(A), !, fail.
-clpqr_meta((A,B)) :- !, clpqr_meta(A), clpqr_meta(B).
-clpqr_meta((A;B)) :- !, ( clpqr_meta(A) ; clpqr_meta(B) ).
-clpqr_meta([]) :- !.
-clpqr_meta(X) :- X = [_|_], !, clpqr_meta_list(X).
-clpqr_meta(A) :-
-        translate_meta_clp(A).
+clpqr_meta(Ciao) :-
+    trans_meta_clp(Ciao, ClpQ),
+    {ClpQ}.
 
-clpqr_meta_list([]) :- !.
-clpqr_meta_list([A|As]) :- !,
-        clpqr_meta(A),
-        clpqr_meta_list(As).
+%!  trans_meta_clp(+Ciao, -ClpQ)
+%
+%   Translate Ciao style clp(Q) constraints into an expression
+%   that can be handled by clp(Q) `{Goal}`.
 
-translate_meta_clp(A#=B)  =>  {A =:= B}.
-translate_meta_clp(A#<>B) =>  {A =\= B}.
-translate_meta_clp(A#<B)  =>  {A  <  B}.
-translate_meta_clp(A#=<B) =>  {A =<  B}.
-translate_meta_clp(A#>B)  =>  {A  >  B}.
-translate_meta_clp(A#>=B) =>  {A  >= B}.
+trans_meta_clp((A,B), ClpQ) =>
+    trans_meta_clp(A, AR),
+    trans_meta_clp(B, BR),
+    ClpQ = (AR,BR).
+trans_meta_clp((A;B), ClpQ) =>
+    trans_meta_clp(A, AR),
+    trans_meta_clp(B, BR),
+    ClpQ = (AR;BR).
+trans_meta_clp([], _) =>
+    assertion(fail).
+trans_meta_clp(List, ClpQ), is_list(List) =>
+    comma_list(Conj, List),
+    trans_meta_clp(Conj, ClpQ).
+trans_meta_clp(A#=B,  ClpQ) =>  ClpQ = (A =:= B).
+trans_meta_clp(A#<>B, ClpQ) =>  ClpQ = (A =\= B).
+trans_meta_clp(A#<B,  ClpQ) =>  ClpQ = (A  <  B).
+trans_meta_clp(A#=<B, ClpQ) =>  ClpQ = (A =<  B).
+trans_meta_clp(A#>B,  ClpQ) =>  ClpQ = (A  >  B).
+trans_meta_clp(A#>=B, ClpQ) =>  ClpQ = (A  >= B).
 % for bec_light.pl
-translate_meta_clp(A < B)  =>  {A  <  B}.
-translate_meta_clp(A > B)  =>  {A  >  B}.
+trans_meta_clp(A < B, ClpQ) =>  ClpQ = (A  <  B).
+trans_meta_clp(A > B, ClpQ) =>  ClpQ = (A  >  B).
 
 %!  is_clpq_var(@Term) is semidet.
 %
