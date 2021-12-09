@@ -15,6 +15,10 @@
 :- use_module(library(ansi_term)).
 :- use_module(library(apply)).
 :- use_module(library(option)).
+:- use_module(library(lists)).
+:- use_module(library(prolog_code)).
+:- use_module(library(prolog_format)).
+:- use_module(library(terms)).
 
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
@@ -302,10 +306,10 @@ human_utterance(Atom, Children0, M, Children, Format) :-
 match_children(*, _, _, Children) =>
     Children = [].
 match_children([H|T], M, Children0, Children) =>
-    select(Atom-C, Children0, Children1),
+    append(Pre, [Atom-C|Post], Children0),
     match_node(H, M, Atom),
     !,
-    append(Children1, C, Children2),
+    append([Pre,C,Post], Children2),
     match_children(T, M, Children2, Children).
 match_children([], _, Children0, Children) =>
     Children = Children0.
