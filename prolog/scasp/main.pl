@@ -73,6 +73,7 @@ main(Sources, Options) :-
                              ]))
     ).
 
+:- det(program_details/2).
 program_details(short, [query(true), user(true)]).
 program_details(mid,   [query(true), user(true), duals(true)]).
 program_details(long,  [query(true), user(true), duals(true),

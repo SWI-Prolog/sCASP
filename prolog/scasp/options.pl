@@ -357,7 +357,8 @@ scasp_help :-
 %   This predicate calls halt/0 when called with ``--version``.
 
 scasp_parse_args(Argv, Sources, Options) :-
-    argv_options(Argv, Sources, Options),
+    argv_options(Argv, Sources, Options0),
+    opt_process(Options0, Options),
     info_and_exit_option(Sources, Options).
 
 info_and_exit_option(_Sources, Options) :-
