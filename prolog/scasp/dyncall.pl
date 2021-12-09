@@ -36,7 +36,7 @@
 :- use_module(common).
 :- use_module(modules).
 :- use_module(listing).
-:- use_module(pr_rules, [process_pr_pred/3]).
+:- use_module(pr_rules, [process_pr_pred/5]).
 
 :- meta_predicate
     scasp(0),
