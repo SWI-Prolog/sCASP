@@ -128,6 +128,10 @@ selected(not(Goal), _) =>
 selected(-(Goal), M) =>
     selected(Goal, M).
 selected(is(_,_), _) => true.
+selected(_>_, _) => true.
+selected(_>=_, _) => true.
+selected(_<_, _) => true.
+selected(_=<_, _) => true.
 selected(Goal, M) =>
     (   aux_predicate(Goal)
     ->  fail

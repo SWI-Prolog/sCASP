@@ -380,6 +380,15 @@ atom(is(Value,Expr), Options) -->
       css_classes(Options, Classes)
     },
     emit(span(class([arithmetic|Classes]), S)).
+atom(Comp, Options) -->
+    { comp(Comp, Text),
+      !,
+      Comp =.. [_,Left,Right]
+    },
+    { format(string(S), '~p ~w ~p', [Left,Text,Right]),
+      css_classes(Options, Classes)
+    },
+    emit(span(class([arithmetic|Classes]), S)).
 atom(Term, Options) -->
     { option(pred(true), Options, true),
       option(module(M), Options),
@@ -390,6 +399,11 @@ atom(Term, Options) -->
     emit(span(class(Classes), \actions(Actions, Options))).
 atom(Term, Options) -->
     utter(holds(Term), Options).
+
+comp(_>_, 'is greater than').
+comp(_>=_, 'is greater than or equal to').
+comp(_<_, 'is less than').
+comp(_=<_, 'is less than or equal to').
 
 %!  utter(+Exppression, +Options)
 
