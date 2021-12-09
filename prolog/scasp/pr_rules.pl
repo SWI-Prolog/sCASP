@@ -303,8 +303,9 @@ assert_pr_pred(T, M) =>
 
 process_pr_pred(A0::B, A, format(Fmt,Args)) :-
     atom_codes(B, Chars),
-    phrase(pr_pred(FmtChars, Args, A0, A), Chars),
-    atom_codes(Fmt, FmtChars).
+    phrase(pr_pred(FmtChars, Args, A0, A1), Chars),
+    revar(A1, A, _),                    % need for s(CASP) input with vars
+    atom_codes(Fmt, FmtChars).          % not in template
 
 pr_pred([0'~,0'p|Fmt], [@(Var:Type)|Args], A0, A) -->
     temp_var_start(Style), prolog_var_name(VarName),
