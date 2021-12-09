@@ -299,7 +299,7 @@ assert_pr_pred(T, M) =>
 %   ~p and the arguments are of the shape `@($(Var):Type)`, which is
 %   printed as ``"<Var>, a <Type>"``
 
-:- det(process_pr_pred/4).
+:- det(process_pr_pred/5).
 
 process_pr_pred(Spec::B, A, Children, Cond, format(Fmt,Args)) :-
     atom_codes(B, Chars),
