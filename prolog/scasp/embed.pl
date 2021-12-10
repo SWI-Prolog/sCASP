@@ -368,7 +368,9 @@ scasp_model(M:Model, _Options) :-
     unqualify_model(Model1, M, Model).
 
 save_stack(Stack) :-
-    b_setval(scasp_stack, Stack).
+    b_setval(scasp_stack, Stack),
+    justification_tree(Stack, Tree, []),
+    b_setval(scasp_tree, Tree).
 
 %!  scasp_stack(-Stack) is det.
 %
@@ -385,10 +387,8 @@ scasp_stack(Stack) :-
 %
 %   Justification for the current sCASP answer.
 
-scasp_justification(M:Tree, Options) :-
-    scasp_stack(Stack),
-    Stack \== [],
-    justification_tree(Stack, Tree0, Options),
+scasp_justification(M:Tree, _Options) :-
+    nb_current(scasp_tree, Tree0),
     unqualify_justitication_tree(Tree0, M, Tree).
 
 %!  scasp_listing(+Unit, +Options)
