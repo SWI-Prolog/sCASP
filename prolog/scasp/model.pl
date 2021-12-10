@@ -79,11 +79,32 @@ nonmodel_term(Term) :-
     functor(Term, Name, _),
     sub_atom(Name, 0, _, _, o_).
 
+%!  filter_shown(+Module, +Model, -Shown) is det.
+%
+%   Handle the show/1 directives.  All  terms   are  shown  for a target
+%   module if pr_show_predicate/1  is  not   defined  for  that  module.
+%   Otherwise the terms associated with the   module  are filtered using
+%   pr_show_predicate/1.
+
 filter_shown(M, Model, Shown) :-
-    clause(M:pr_show_predicate(_), _),
-    !,
-    include(M:pr_show_predicate, Model, Shown).
-filter_shown(_, Model, Model).
+    maplist(tag_module(M), Model, Tagged),
+    maplist(arg(1), Tagged, Modules),
+    sort(Modules, Unique),
+    include(has_shown, Unique, Filter),
+    convlist(do_show(Filter), Tagged, Shown).
+
+tag_module(M, Term, t(Q, Unqualified, Term)) :-
+    model_term_module(M:Term, Q),
+    unqualify_model_term(Q, Term, Unqualified).
+
+has_shown(Module) :-
+    current_predicate(Module:pr_show_predicate/1).
+
+do_show(Filter, t(M,Unqualified,Term), Term) :-
+    (   memberchk(M, Filter)
+    ->  M:pr_show_predicate(Unqualified)
+    ;   true
+    ).
 
 %!  sort_model(+ModelIn, -Sorted) is det.
 %

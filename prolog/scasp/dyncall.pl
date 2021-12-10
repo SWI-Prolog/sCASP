@@ -499,10 +499,10 @@ show((A,B)) -->
     show(B).
 show(not(PI)) -->
     { pi_head(PI, Head) },
-    [ pr_show_prdicate(not(Head)) ].
+    [ pr_show_predicate(not(Head)) ].
 show(PI) -->
     { pi_head(PI, Head) },
-    [ pr_show_prdicate(Head) ].
+    [ pr_show_predicate(Head) ].
 
 %!  abducible(:Spec)
 %

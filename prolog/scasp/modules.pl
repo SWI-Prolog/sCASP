@@ -1,7 +1,8 @@
 :- module(scasp_modules,
           [ scasp_encoded_module_term/2, % ?MTerm, ?QTerm
-            encoded_module_term/2,       % ?TermIn,?TermOut
-            unqualify_model_term/3       % +Module,+TermIn,-TermOut
+            encoded_module_term/2,       % ?TermIn, ?TermOut
+            unqualify_model_term/3,      % +Module, +TermIn, -TermOut
+            model_term_module/2          % :Term, -Module
           ]).
 
 /** <module> Encode modules
@@ -15,6 +16,9 @@ returning results, but avoids overhead in   the compilation and solving.
 As notably the solver is the slow part   it is likely that interning the
 module into the names is both simpler and faster.
 */
+
+:- meta_predicate
+    model_term_module(:, -).
 
 %!  encoded_module_name(?QTerm, ?QName) is det.
 %
@@ -95,3 +99,21 @@ model_wrapper(not).
 model_wrapper(chs).
 model_wrapper(proved).
 model_wrapper(assume).
+
+%!  model_term_module(:Term, -Module) is det.
+
+:- det(model_term_module/2).
+model_term_module(M0:Term, M) :-
+    model_term_module(Term, M0, M).
+
+model_term_module(Term, M0, M),
+    functor(Term, Name, 1), model_wrapper(Name) =>
+    arg(1, Term, A),
+    model_term_module(A, M0, M).
+model_term_module(M:_Term, _, Q) =>
+    Q = M.
+model_term_module(Term, M0, M) =>
+    (   encoded_module_term(Q:_, Term)
+    ->  M = Q
+    ;   M = M0
+    ).
