@@ -135,7 +135,10 @@ selected(_=<_, _) => true.
 selected(Goal, M) =>
     (   aux_predicate(Goal)
     ->  fail
-    ;   user_predicate(M:Goal)
+    ;   (   current_predicate(M:pr_user_predicate/1)
+        ->  user_predicate(M:Goal)
+        ;   true
+        )
     ->  true
     ;   is_global_constraint(Goal)
     ).
