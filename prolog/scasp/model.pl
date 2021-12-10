@@ -91,14 +91,18 @@ filter_shown(M, Model, Shown) :-
     maplist(arg(1), Tagged, Modules),
     sort(Modules, Unique),
     include(has_shown, Unique, Filter),
-    convlist(do_show(Filter), Tagged, Shown).
+    (   Filter == []
+    ->  Shown = Model
+    ;   convlist(do_show(Filter), Tagged, Shown)
+    ).
 
 tag_module(M, Term, t(Q, Unqualified, Term)) :-
     model_term_module(M:Term, Q),
     unqualify_model_term(Q, Term, Unqualified).
 
 has_shown(Module) :-
-    current_predicate(Module:pr_show_predicate/1).
+    clause(Module:pr_show_predicate(_), _),
+    !.
 
 do_show(Filter, t(M,Unqualified,Term), Term) :-
     (   memberchk(M, Filter)
