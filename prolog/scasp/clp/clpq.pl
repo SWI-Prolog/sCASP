@@ -120,12 +120,11 @@ dump_clpq_var(Var, NewVar, Constraints) :-
 dual_clpq([Unique], [Dual]) :-
     dual_clpq_(Unique, Dual).
 dual_clpq([Init, Next|Is], Dual) :-
-    (
-        dual_clpq([Init], Dual)
-    ;
-        dual_clpq([Next|Is], NextDual),
+    (   dual_clpq([Init], Dual)
+    ;   dual_clpq([Next|Is], NextDual),
         Dual = [Init|NextDual]
     ).
+
 dual_clpq_(A #< B, A #>= B).
 dual_clpq_(A #=< B, A #> B).
 dual_clpq_(A #> B, A #=< B).
