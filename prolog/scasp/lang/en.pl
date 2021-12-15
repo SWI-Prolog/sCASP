@@ -119,8 +119,8 @@ eq_goals(Goal, PrevGoal) -->
 
 curr_prev_goals(Goal, NegGoal) -->
     [ nl,
-      '    Current call:  ~@'-[] ], goal(Goal), [ nl,
-      '    Previous call: ~@'-[] ], goal(NegGoal).
+      '    Current call:  '-[] ], goal(Goal), [ nl,
+      '    Previous call: '-[] ], goal(NegGoal).
 
 goal(Goal) -->
     [ ansi(code, '~@', [scasp_verbose:print_goal(Goal)]) ].
