@@ -293,6 +293,10 @@ human_expression(Tree, Children, Actions) :-
 
 tree_atom_children(M0:(not(Atom0)-Children), M, not(Atom), Children) :-
     strip_module(M0:Atom0, M, Atom).
+tree_atom_children(M0:(not(-Atom0)-Children), M, not(-Atom), Children) :-
+    strip_module(M0:Atom0, M, Atom).
+tree_atom_children(M0:(-(Atom0)-Children), M, -(Atom), Children) :-
+    strip_module(M0:Atom0, M, Atom).
 tree_atom_children(M0:(Atom0-Children), M, Atom, Children) :-
     strip_module(M0:Atom0, M, Atom).
 
