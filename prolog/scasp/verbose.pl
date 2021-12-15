@@ -32,7 +32,8 @@ compatible format such tha we can compare   the traces created by
 
 verbose(Goal) :-
     current_prolog_flag(scasp_verbose, true),
-    call(Goal).
+    !,
+    with_output_to(user_error, call(Goal)).
 verbose(_).
 
 %!  scasp_warning(+Term) is det.
