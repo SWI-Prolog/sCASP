@@ -827,6 +827,22 @@ solve_other_forall(Goal, M, Parents, ProvedIn, ProvedOutExit,
         OtherVars = OtherVars2
     ).
 
+%!  solve_var_forall_(+Goal, +Module, +Parents, +ProvedIn, -ProvedOut,
+%!                    +Entry, +Duals, +OtherVars,
+%!                    +StackIn, -StackOut, -Model) is nondet.
+%
+%   Implements the _forall_ algorithm as described   in section 2.3 from
+%   "Constraint Answer Set Programming  without   Grounding"  by Joaquin
+%   Arias et all. It works different though.
+%
+%     - For each step  we  copy  the   Goal,  solve  it  and compute the
+%       instantiations created by Goal. From these instantiations we
+%       compute the _duals_.
+%     - Continue until all duals are proved.
+%
+%   Note that the constraints on the   _forall variables_ are maintained
+%   explicitly.
+
 solve_var_forall_(_Goal, _M, _Parents, Proved, Proved, _, dual(_, []),
                   _OtherVars, StackIn, StackIn, []) :- !.
 solve_var_forall_(Goal, M, Parents, ProvedIn, ProvedOut,
