@@ -847,7 +847,7 @@ solve_var_forall_(Goal, M, Parents, ProvedIn, ProvedOut,
     (   %verbose(format('apply_const_store ~@\n',[print_goal(C_St)])),
         apply_const_store(C_St) % apply a Dual
     ->  solve([Goal], M, Parents, ProvedIn, ProvedOut1, StackIn, [[]|StackOut1], Model1),
-        find_duals(C_Vars-C_Vars1, OtherVars, Duals),       %% New Duals
+        find_duals(C_Vars, C_Vars1, OtherVars, Duals),       %% New Duals
         verbose(format('Duals = \t ~p\n',[Duals])),
         append_set(Prev_Store1, C_St1, Current_Store1),
         solve_var_forall_(Goal1, M, Parents, ProvedOut1, ProvedOut2,
@@ -894,16 +894,22 @@ apply_constraint(A = B) =>
 apply_constraint(CLPConstraint) =>
     apply_clpq_constraints(CLPConstraint).
 
-%!  find_duals(+C_VarsPairC_Vars1, +OtherVars, -Duals)
+%!  find_duals(+C_Vars, +C_Vars1, +OtherVars, -Duals)
 %
-%   We C_VarsPairC_Vars1 is a Pair   C_Vars-C_Vars1.  Before solve/4, we
-%   copied C_Vars to C_Vars1. This  predicate   is  called after solve/4
-%   succeeds. So, C_Vars contains the  instantiation relative to C_Vars1
-%   created by solve/4.
+%   C_Vars is the list of forall variables   after solve/4. C_Vars1 is a
+%   copy of this list before calling solve/4.   Our  task is to create a
+%   _dual_ model from the instantiation. If   subsequently  we can prove
+%   the dual model to be true then  we   proved  the forall is true. For
+%   example, if solve  succeeded  with  [X]   -->  [q],  it  created the
+%   instantiation X=q. It we now can prove X\=q, we proved solve is true
+%   for all X.
 %
-%   Our task is to create a dual list of all pending constraints.
+%   @see Section 2.3 from  "Constraint   Answer  Set Programming without
+%   Grounding" by Joaquin Arias et all.
+%   @tbd JW: it is not clear to me why OtherVars is needed and why it is
+%   not copied.
 
-find_duals(C_Vars-C_Vars1, OtherVars, Duals) :-
+find_duals(C_Vars, C_Vars1, OtherVars, Duals) :-
     % disequality and clp for numbers
     dump_constraint(C_Vars, C_Vars1, Dump, []-[], Pending-Pending1), !,
     clp_vars_in(OtherVars, OtherCLPVars),		% clp(Q) vars
