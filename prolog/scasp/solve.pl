@@ -1014,6 +1014,16 @@ collect_vars_(forall(Var, Forall), V0, V1, Goal) :-
 %   copy of the term Term but  it   only  replaces with a fresh variable
 %   NewVar the occurrences of Var
 
+:- if(current_predicate(copy_term_nat/4)).
+
+my_copy_term(Var0, Term0, Var, Term) :-
+    copy_term_nat(Var0, Term0, Var, Term).
+
+my_copy_vars(Vars0, Term0, Vars, Term) :-
+    copy_term_nat(Vars0, Term0, Vars, Term).
+
+:- else.
+
 my_copy_term(Var0, Term0, Var, Term) :-
     term_variables(Term0, AllVars),
     delete_var(AllVars, Var0, Share0),
@@ -1035,6 +1045,8 @@ my_copy_vars(Vars0, Term0, Vars, Term) :-
     ord_subtract(AllVarsSorted, Vars0Sorted, Share0),
     copy_term_nat(t(Vars0,Share0,Term0), t(Vars,Share,Term)),
     Share = Share0.
+
+:- endif.
 
 %!  my_diff_term(+Term, +Vars, -Others) is det.
 %
