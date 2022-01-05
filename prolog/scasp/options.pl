@@ -45,6 +45,8 @@ set_option(nmr(Bool)) =>
     set_prolog_flag(scasp_compile_nmr, Bool).
 set_option(olon(Bool)) =>
     set_prolog_flag(scasp_compile_olon, Bool).
+set_option(forall(Algorithm)) =>
+    set_prolog_flag(scasp_forall, Algorithm).
 set_option(dcc(Bool)) =>
     set_prolog_flag(scasp_dcc, Bool).
 % Presentation uptions
