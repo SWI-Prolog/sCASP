@@ -103,8 +103,8 @@ scasp(Query, Options) :-
 
 prepare(Clauses, Module, Options) :-
     scasp_compile(Module:Clauses, Options),
-    (   debugging(scasp(code))
-    ->  scasp_portray_program(Module:[])
+    (   option(write_program(_), Options)
+    ->  scasp_portray_program(Module:Options)
     ;   true
     ).
 

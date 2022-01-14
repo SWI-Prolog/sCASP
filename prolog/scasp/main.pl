@@ -58,10 +58,8 @@ main(Sources, Options) :-
     set_prolog_flag(prefer_rationals, true),
 
     load_sources(Sources, Options),
-    (   option(write_program(Detail), Options)
-    ->  program_details(Detail, DetailOptions),
-        merge_options(Options, DetailOptions, ProgramOptions),
-        scasp_portray_program(ProgramOptions),
+    (   option(write_program(_), Options)
+    ->  scasp_portray_program(Options),
         halt
     ;   option(interactive(true), Options)
     ->  '$toplevel':setup_readline,
@@ -72,12 +70,6 @@ main(Sources, Options) :-
                              | Options
                              ]))
     ).
-
-:- det(program_details/2).
-program_details(short, [query(true), user(true)]).
-program_details(mid,   [query(true), user(true), duals(true)]).
-program_details(long,  [query(true), user(true), duals(true),
-                        constraints(true), dcc(true)]).
 
 load_sources([], _) :-
     !,

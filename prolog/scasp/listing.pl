@@ -31,10 +31,33 @@
 %       Print the global constraints (default `false`)
 %     - dcc(Boolean)
 %       Print the DCC rules (default `false`)
+%     - write_program(+Detail)
+%       Set defaults for the above to handle the ``--code`` commandline
+%       option.
+%     - code_file(+Name)
+%       Dump code to file Name instead of current output
 
 :- det(scasp_portray_program/1).
 scasp_portray_program(M:Options) :-
-    scasp_portray_program(M, Options).
+    (   option(write_program(Detail), Options)
+    ->  program_details(Detail, DetailOptions),
+        merge_options(Options, DetailOptions, WriteOptons)
+    ;   WriteOptons = Options
+    ),
+    (   option(code_file(File), Options)
+    ->  setup_call_cleanup(
+            open(File, write, Out),
+            with_output_to(Out,
+                           scasp_portray_program(M, WriteOptons)),
+            close(Out))
+    ;   scasp_portray_program(M, WriteOptons)
+    ).
+
+:- det(program_details/2).
+program_details(short, [query(true), user(true)]).
+program_details(mid,   [query(true), user(true), duals(true)]).
+program_details(long,  [query(true), user(true), duals(true),
+                        constraints(true), dcc(true)]).
 
 scasp_portray_program(M, Options) :-
     catch(scasp_query(M:Query, Bindings, Options),
