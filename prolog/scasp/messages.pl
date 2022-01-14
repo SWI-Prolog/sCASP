@@ -35,6 +35,7 @@ clean_encoding(Lang0, Lang) :-
     ).
 
 msg_language(Lang) :-
+    \+ current_prolog_flag(windows, true),
     setlocale(messages, Lang, Lang).
 msg_language(Lang) :-
     getenv('LANG', Lang).
