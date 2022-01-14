@@ -95,11 +95,12 @@ scasp(Query) :-
 
 scasp(Query, Options) :-
     scasp_query_clauses(Query, Clauses),
-    qualify(Query, _:QQuery),
+    qualify(Query, SrcModule:QQuery),
+    expand_program(SrcModule, Clauses, Clauses1, QQuery, QQuery1),
     in_temporary_module(
         Module,
-        prepare(Clauses, Module, Options),
-        scasp_call_and_results(Module:QQuery, Options)).
+        prepare(Clauses1, Module, Options),
+        scasp_call_and_results(Module:QQuery1, Options)).
 
 prepare(Clauses, Module, Options) :-
     scasp_compile(Module:Clauses, Options),
@@ -111,6 +112,13 @@ prepare(Clauses, Module, Options) :-
 qualify(M:Q0, M:Q) :-
     qualify(Q0, M, Q1),
     intern_negation(Q1, Q).
+
+expand_program(SrcModule, Clauses, Clauses1, QQuery, QQuery1) :-
+    current_predicate(SrcModule:scasp_expand_program/4),
+    SrcModule:scasp_expand_program(Clauses, Clauses1, QQuery, QQuery1),
+    !.
+expand_program(_, Clauses, Clauses, QQuery, QQuery).
+
 
 scasp_call_and_results(Query, Options) :-
     Query = M:_,
