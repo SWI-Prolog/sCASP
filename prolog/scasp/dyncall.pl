@@ -101,7 +101,7 @@ scasp(Query, Options) :-
     in_temporary_module(
         Module,
         prepare(Clauses1, Module, Options),
-        scasp_call_and_results(Module:QQuery1, Options)).
+        scasp_call_and_results(Module:QQuery1, SrcModule, Options)).
 
 prepare(Clauses, Module, Options) :-
     scasp_compile(Module:Clauses, Options),
@@ -121,15 +121,14 @@ expand_program(SrcModule, Clauses, Clauses1, QQuery, QQuery1) :-
 expand_program(_, Clauses, Clauses, QQuery, QQuery).
 
 
-scasp_call_and_results(Query, Options) :-
-    Query = M:_,
+scasp_call_and_results(Query, SrcModule, Options) :-
     scasp_embed:scasp_call(Query),
     (   option(model(Model), Options)
-    ->  scasp_model(M:Model)
+    ->  scasp_model(SrcModule:Model)
     ;   true
     ),
     (   option(tree(Tree), Options)
-    ->  scasp_justification(M:Tree, Options)
+    ->  scasp_justification(SrcModule:Tree, Options)
     ;   true
     ).
 
