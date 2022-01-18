@@ -134,6 +134,14 @@ add_nmr(Q0, Q, _Options) :-
 check_existence(M, G) :-
     shown_predicate(M:G),
     !.
+check_existence(_,G) :-
+    prolog_builtin(G),
+    !.
+check_existence(_,G) :-
+    clp_builtin(G),
+    !.
+check_existence(_,_ is _) :-
+    !.
 check_existence(_, G) :-
     scasp_pi(G, PI),
     existence_error(scasp_predicate, PI).
