@@ -52,6 +52,7 @@ shown_predicate(Goal) :-
 
 prolog_builtin(true).
 prolog_builtin(fail).
+prolog_builtin(false).
 prolog_builtin(_ = _).
 prolog_builtin(_ \= _).
 prolog_builtin(_ < _).
