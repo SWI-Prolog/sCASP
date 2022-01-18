@@ -37,6 +37,7 @@
 :- use_module(modules).
 :- use_module(listing).
 :- use_module(pr_rules, [process_pr_pred/5]).
+:- use_module(predicates, [prolog_builtin/1, clp_builtin/1]).
 
 :- meta_predicate
     scasp(0),
@@ -326,20 +327,10 @@ body_calls(G, M, CalleePM), callable(G) =>
 body_calls(G, _, _) =>
     type_error(callable, G).
 
-built_in(_<_).
-built_in(_=<_).
-built_in(_>_).
-built_in(_>=_).
-built_in(_=_).
-
-built_in(_#<_).
-built_in(_#=<_).
-built_in(_#>_).
-built_in(_#>=_).
-built_in(_#=_).
-built_in(_#<>_).
-
-built_in(_\=_).
+built_in(Head) :-
+    prolog_builtin(Head).
+built_in(Head) :-
+    clp_builtin(Head).
 built_in(_ is _).
 
 rm_classic_negation(-Goal, Goal) :-
