@@ -67,7 +67,7 @@ main(Argv) :-
     argv_options(Argv, _, Options),
     (   select_option(examples(Ex), Options, Options1)
     ->  attach_examples(Ex)
-    ;   true
+    ;   Options1 = Options
     ),
     server(Options1),
     (   option(interactive(true), Options1)
