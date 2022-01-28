@@ -7,9 +7,17 @@
 ## About the SWI-Prolog port
 
 The SWI-Prolog port is fully functional and from the solver prespective
-fully compatible with the Ciao original. Running requires __SWI-Prolog
-8.5.6 or later__. The `scasp` executable can be build on POSIX systems by
-running `make` in the toplevel of the sCASP directory. On Windows
+fully compatible with the Ciao original. The SWI-Prolog port provides
+two significant optimizations: (1) a more low level implementation for
+the term copying required for _forall_ constructs that result from
+_dual_ rules for clauses that introduce variables in the body as well as
+for _global constraint_ and (2) an index to speedup finding loops and
+already proved literals. This often leads to about 10 times better
+performance.
+
+Running requires __SWI-Prolog 8.5.6 or later__. The `scasp` executable
+can be build on POSIX systems by running `make` in the toplevel of the
+sCASP directory. On Windows
 
   - Add the `bin` directory of SWI-Prolog to `%PATH%`, so you can run
     `swipl.exe` and the swipl DLLs can be found.
