@@ -4,18 +4,60 @@
 > It provides a quick and dirty port of this interesting work to
 > SWI-Prolog __in the branch `swipl`__.
 
-## Status of the SWI-Prolog port
+## About the SWI-Prolog port
 
-The source is currently being refactored extensively.  Done:
+The SWI-Prolog port is fully functional and from the solver prespective
+fully compatible with the Ciao original. Running requires __SWI-Prolog
+8.5.6 or later__. The `scasp` executable can be build on POSIX systems by
+running `make` in the toplevel of the sCASP directory. On Windows
 
-  - Avoid the need for the Ciao emulation add-on.
-  - Make comments and layout consistent (incomplete).
-  - Migrate all printing to format/1-3 (incomplete)
-  - Get rid of global operators.  Use SWI-Prolog operator
-    import/export.
-  - Enhance small trivial things.
+  - Add the `bin` directory of SWI-Prolog to `%PATH%`, so you can run
+    `swipl.exe` and the swipl DLLs can be found.
+  - run this to create `scasp.exe`
 
-# s(CASP)
+	swipl.exe --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
+
+The command line arguments are similar, but with small differences due
+to the use of SWI-Prolog's commandline parser.  Run `scasp -h` for details.
+The output is different, using Unicode and, if possible, color to simplify
+reading the model and justification.
+
+Next to using the s(CASP) executable, s(CASP)  can be used as a library.
+For this, activate the  sCASP  directory  as   a  SWI-Prolog  add  on by
+starting SWI-Prolog in the top directory and run
+
+    ?- pack_install(.).
+
+Now you can load scasp using
+
+    :- use_module(library(scasp)).
+
+Running s(CASP) queries take a normal Prolog program that can be made
+available in the usual way: by consulting a file, asserting, etc. The
+program must respect the sCASP restrictions. Using any built-in or
+control structure that is not known to s(CASP) results in an error.
+
+The query is executed using `?/1`, `??/1` or scasp/2.   Notably
+
+    ?- scasp(goal(X), [model(M), tree(T)]).
+
+returns the model as a list of terms and the justification as a tree structure.
+
+SWI-Prolog s(CASP) can also be used in your browser using
+[SWISH](https://swish.swi-prolog.org/example/scasp.swinb).
+
+Finally, there is a simple [web
+server](https://dev.swi-prolog.org/scasp/). This server can also be
+deployed locally using the command below. Add `-h` for options.
+
+    swipl examples/dyncall/http.pl
+
+The web server lets you post s(CASP) programs and get their results as
+HTML or JSON. See [Help](https://dev.swi-prolog.org/scasp/help) for
+details.
+
+
+# About s(CASP)
 
 The `s(CASP)` system is a top-down interpreter for ASP programs with
 constraints.
