@@ -77,7 +77,10 @@ nonmodel_term(not(X)) :-
     nonmodel_term(X).
 nonmodel_term(Term) :-
     functor(Term, Name, _),
-    sub_atom(Name, 0, _, _, o_).
+    (   sub_atom(Name, 0, _, _, 'o_')
+    ->  true
+    ;   sub_atom(Name, _, _, 0, '$')
+    ).
 
 %!  filter_shown(+Module, +Model, -Shown) is det.
 %
