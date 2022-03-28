@@ -2,14 +2,14 @@
 
 ## Running the system without building
 
-    swipl src/scasp.pl -- [scasp-options] test/familty.pl
-    swipl src/test_scasp.pl [test options] [dir ...] [file ...]
+    swipl prolog/scasp/main.pl -- [scasp-options] test/programs/familty.pl
+    swipl test/test_scasp.pl -- [test options] [dir ...] [file ...]
 
 ## Loading for debugging
 
-    swipl -l src/scasp.pl
+    swipl -l prolog/scasp/main.pl -- [scasp options and program]
     <prepare debugging>
-    ?- main(['--tree', 'test/familty.pl']).
+    ?- scasp_main:main.
 
 ## Trace something
 
@@ -17,9 +17,9 @@ gspy/1 starts the graphical debugger. The   argument  is flexible. If no
 module is specified a spy point is set  on any matching predicate in any
 module.  Likewise if the arity is omitted all existing arities are used.
 
-    swipl -l src/scasp.pl
+    swipl -l prolog/scasp/main.pl -- test/programs/family.pl
     ?- gspy(solve/4).
-    ?- main(['--tree', 'test/familty.pl']).
+    ?- scasp_main:main.
 
 ### Complicated conditional debugging
 
@@ -47,14 +47,13 @@ counts).
 
 #### Command line
 
-Get  https://github.com/JanWielemaker/my-prolog-lib  and    install   as
-described in the README.  After that you can do e.g.
+    ?- gtrap(_).
+    ?- scasp_main:main.
 
-    ?- gtrap(error(_,_)).
-    ?- main(...).
+The   argument   to   gtrap/1   is   the     _formal_    part   of   the
+error(Formal,ImplDep) term. Thus, to trap only instantiation errors use:
 
-(will be added to the core system later).
-
+    ?- gtrap(instantiation_error).
 
 ## Reloading code and check for undefined predicates
 
@@ -68,21 +67,21 @@ search for undefined predicates and their call sites.
 Create annotated coverage file in _dir_ (default `cov`). Requires 8.3.27
 or later.
 
-    swipl src/test_scasp.pl --cov[=dir] test/familty.pl
+    swipl test/test_scasp.pl --cov=dir test/programs/family.pl
 
 ## Profiling
 
-    swipl -l src/scasp.pl
-    ?- profile(main(['test/familty.pl']).
+    swipl -l prolog/scasp/main.pl -- test/programs/family.pl
+    ?- profile(scasp_main:main).
 
 ## Cross referencing
 
-    swipl -l src/scasp.pl
+    swipl -l prolog/scasp/main.pl
     ?- gxref.
 
 ## Documentation
 
-    swipl --pldoc -l src/scasp.pl
+    swipl --pldoc -l prolog/scasp/main.pl
 
-(better from the `src` dir as you  get   the  files from the current dir
-rather than the main README.md as entry point).
+(better from the `prolog/scasp` dir  as  you   get  the  files  from the
+current dir rather than the main README.md as entry point).
