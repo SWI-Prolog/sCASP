@@ -193,6 +193,9 @@ add_statements(New, Tail, [New|Tail]).
 
 :- det(sasp_statement/5).
 
+sasp_statement(clause(Ref, Term), VarNames, clause(Ref, SASP), Pos, Options) :-
+    !,
+    sasp_statement(Term, VarNames, SASP, Pos, Options).
 sasp_statement(Term, VarNames, SASP, Pos, Options) :-
     maplist(bind_var,VarNames),
     term_variables(Term, Vars),

@@ -74,7 +74,7 @@ comp_dual(X) :-
     scasp_builtin(X),		% skip dual of scasp builtins
     !.
 comp_dual(X) :-
-    findall(R, (defined_rule(X, H, B), c_rule(R, H, B)), Rs), % get rules for a single predicate
+    findall(R, (defined_rule(X, H, B, _), c_rule(R, H, B)), Rs), % get rules for a single predicate
     comp_duals3(X, Rs).
 
 %!  comp_duals3(+Predicate:atom, +Rules:list) is det
@@ -94,13 +94,13 @@ comp_duals3(P, []) :-
     predicate(H, P, []), % create a dummy predicate for outer_dual_head/2.
     outer_dual_head(H, Hd),
     c_rule(Rd, Hd, []),
-    assert_rule(Rd).
+    assert_rule(dual(Rd)).
 comp_duals3(P, R) :- % predicate is defined by one or more rules.
     predicate(H, P, []), % create a dummy predicate for P.
     outer_dual_head(H, Hd),
     comp_dual(Hd, R, Db, 1),
     c_rule(Rd, Hd, Db),
-    assert_rule(Rd).
+    assert_rule(dual(Rd)).
 
 %!  comp_dual(+DualHead:compound, +Rules:list, -DualBody:list, +Count:int) is det
 %
@@ -163,7 +163,7 @@ comp_dual2(Hn, Bg, Bv) :-
     define_forall(Hn2, G, Bv), % get the call to the innermost dual
     comp_dual3(Hn2, Bg, []), % create innermost duals
     c_rule(Rd, Hn, [G]), % create dual
-    assert_rule(Rd).
+    assert_rule(dual(Rd)).
 
 %!  comp_dual3(+DualHead:compound, +Body:list, +UsedGoals:list) is det
 %
@@ -195,7 +195,7 @@ comp_dual3(Hn, [X|T], U) :-
     ;   append(U, [X2], Db) % Keep all goals prior to the dual one.
     ),
     c_rule(Rd, Hn, Db), % Clause for negation of body goal
-    assert_rule(Rd),
+    assert_rule(dual(Rd)),
     append(U, [X], U2),
     comp_dual3(Hn, T, U2).
 

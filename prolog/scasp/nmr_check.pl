@@ -77,14 +77,14 @@ Gopal Gupta, LOPSTR 2012 for details on the _NMR check_
 
 generate_nmr_check(M) :-
     debug(scasp(compile), 'Generating NMR check...', []),
-    findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs), % get all rules
+    findall(R, (defined_rule(_, H, B, _), c_rule(R, H, B)), Rs), % get all rules
     olon_rules(Rs, M, Rc),
     nmr_check(Rc, Nmrchk),
-    retractall(defined_rule('_false_0', _, _)), % remove headless rules
+    retractall(defined_rule('_false_0', _, _, _)), % remove headless rules
     negate_functor('_false_0', Nf),
     predicate(Np, Nf, []),
     c_rule(Nr, Np, []),
-    assert_rule(Nr), % assert fact for negation of dummy head.
+    assert_rule(nmr(Nr)), % assert fact for negation of dummy head.
     assert_nmr_check(Nmrchk).
 
 %!  nmr_check(+OLONrules:list, -NmrCheck:list) is det

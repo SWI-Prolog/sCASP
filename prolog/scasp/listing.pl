@@ -65,7 +65,7 @@ scasp_portray_program(M, Options) :-
           Query = []),
     MOptions = [module(M)|Options],
     VOptions = [variable_names(Bindings)|MOptions],
-    findall(rule(Head,Body), M:pr_rule(Head,Body), Rules),
+    findall(rule(Head,Body), M:pr_rule(_Origin, Head, Body), Rules),
     filter(Rules, UserRules0, DualRules, NMRChecks0),
     remove_nmr_checks(NMRChecks0, UserRules0, NMRChecks, UserRules),
     findall(rule(DccH,DccB), M:pr_dcc_predicate(DccH,DccB),DCCs),

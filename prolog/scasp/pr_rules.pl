@@ -198,7 +198,7 @@ strip_prefixes(F, F).
 %   predicates  for  sCASP.  It  creates    clauses  for  the  following
 %   predicates in the target module:
 %
-%     - pr_rule/2
+%     - pr_rule/3
 %     - pr_query/1
 %     - pr_user_predicate/1
 %     - pr_table_predicate/1
@@ -209,8 +209,10 @@ strip_prefixes(F, F).
 
 generate_pr_rules(M:_Sources, Options) :-
     check_existence(Options),
-    findall(R, (defined_rule(_, H, B), c_rule(R, H, B)), Rs),
-    format_term_list(Rs,Rs2),
+    findall(O-R, (defined_rule(_, H, B, O), c_rule(R, H, B)), Rs),
+    maplist([O-R, O, R]>>true, Rs, Origins, Rs1),
+    format_term_list(Rs1,Rs2),
+    maplist([O, H-B, c(O, H, B)]>>true, Origins, Rs2, Rs3),
     (   defined_nmr_check(NMR)
     ->  format_term_list(NMR, NMR2)
     ;   NMR2 = []
@@ -224,8 +226,8 @@ generate_pr_rules(M:_Sources, Options) :-
     handle_table_directives(M),
     handle_show_directives(M),
     handle_pred_directives(M),
-    assert_pr_rules(Rs2, M),
-    assert_pr_rules(['global_constraints'-NMR2], M).
+    assert_pr_rules(Rs3, M),
+    assert_pr_rules([c(generated(nmr), 'global_constraints', NMR2)], M).
 
 :- det((handle_table_directives/1,
         handle_show_directives/1,
@@ -397,11 +399,13 @@ inline_cond(C, Cond) =>
 %!  assert_pr_rules(+Rules:list, +Module) is det.
 
 assert_pr_rules([], _).
-assert_pr_rules([Head-Body|Rs], M) :-
+assert_pr_rules([c(Origin, Head, Body)|Rs], M) :-
+    !,
     revar(Head-Body,H-B, _),
-    assert(M:pr_rule(H,B)),
+    assert(M:pr_rule(Origin, H, B)),
     assert_pr_user_predicate([H], M),
     assert_pr_rules(Rs, M).
+
 
 assert_pr_query(M:Q) :-
     assert(M:pr_query(Q)).
@@ -440,7 +444,7 @@ defined('_false_0').
 defined(true_0).
 defined(false_0).
 defined(Name) :-
-    defined_rule(Name, _, _).
+    defined_rule(Name, _, _, _).
 
 scasp_pred_pi(DecoratedName, Name/Arity) :-
     split_functor(DecoratedName, PrefixedName, Arity),
@@ -471,7 +475,7 @@ scasp_is_defined(QName/Arity) :-
 
 clean_pr_program(M) :-
     retractall(M:pr_query(_)),
-    retractall(M:pr_rule(_,_)),
+    retractall(M:pr_rule(_,_,_)),
     retractall(M:pr_user_predicate(_)),
     retractall(M:pr_table_predicate(_)),
     retractall(M:pr_show_predicate(_)),

@@ -168,10 +168,10 @@ scasp_query_clauses(Query, Clauses) :-
     findall(Clause, scasp_clause(Callees, Clause), Clauses, QConstraints),
     maplist(mkconstraint, Constraints, QConstraints).
 
-scasp_clause(Callees, Clause) :-
+scasp_clause(Callees, clause(ClauseRef, Clause)) :-
     member(PI, Callees),
     pi_head(PI, M:Head),
-    @(clause(Head, Body), M),
+    @(clause(Head, Body, ClauseRef), M),
     mkclause(Head, Body, M, Clause).
 
 mkclause(Head, true, M, Clause) =>

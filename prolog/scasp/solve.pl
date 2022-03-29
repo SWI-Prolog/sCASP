@@ -359,7 +359,7 @@ exec_with_neg_list(Var, Goal, M, [Value|Vs],
 %   defined in the program using the directive _#table pred/n._
 
 solve_goal_table_predicate(Goal, M, Parents, ProvedIn, ProvedOut, AttStackIn, AttStackOut, AttModel) :-
-    M:pr_rule(Goal, Body),
+    M:pr_rule(_Origin, Goal, Body),
     AttStackIn ~> stack(StackIn),
     solve(Body, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model),
     AttStackOut <~ stack(StackOut),
@@ -373,7 +373,7 @@ solve_goal_table_predicate(Goal, M, Parents, ProvedIn, ProvedOut, AttStackIn, At
 
 solve_goal_predicate(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
                      GoalModel) :-
-    M:pr_rule(Goal, Body),
+    M:pr_rule(_Origin, Goal, Body),
     solve(Body, M, Parents, ProvedIn, ProvedMid, StackIn, StackOut, BodyModel),
     add_proved(Goal, ProvedMid, ProvedOut),
     GoalModel = [Goal|BodyModel].

@@ -84,7 +84,7 @@ clp_interval(sup(_Expr, _Inf)).
 %
 %   True when Head is part of the transformed representation.
 
-scasp_compiled(pr_rule(_Head, _Body)).
+scasp_compiled(pr_rule(_Origin, _Head, _Body)).
 scasp_compiled(pr_query(_Query)).
 scasp_compiled(pr_user_predicate(_Pred)).
 scasp_compiled(pr_table_predicate(_Pred)).

@@ -26,7 +26,7 @@
 */
 
 :- module(scasp_program,
-          [ defined_rule/3,
+          [ defined_rule/4,
             defined_query/2,
             defined_predicates/1,
             defined_nmr_check/1,
@@ -58,13 +58,17 @@ the resulting dynamic predicates.
 :- use_module(common).
 :- use_module(variables).
 
-%!  defined_rule(+Name:atom, +FullHead:compound, -Body:list) is nondet
+%!  defined_rule(+Name:atom, +FullHead:compound, -Body:list, -Origin:compound) is nondet
 %
 %   Dynamic predicate for asserted rules.
 %
 %   @arg Head Head predicate has head/arity (no args).
 %   @arg FullHead A predicate struct containing the head predicate with args.
 %   @arg Body list of body goals.
+%   @arg Origin A term describing the origin of this rule. One of
+%   `clause(ClauseRef)` for rule derived from clauses, and `generated(Why)`
+%   for compiler generated rules, where `Why` is one of `neg` for classical negation,
+%   `nmr` for NMR checks, and `dual` for dual rules.
 
 %!  defined_query(-Goals:list, -SolCount:int) is det
 %
@@ -91,7 +95,7 @@ the resulting dynamic predicates.
 % Body terms contains variables as e.g. `'X'`.
 
 :- thread_local
-    defined_rule/3,		% Name, Head, Body
+    defined_rule/4,		% Name, Head, Body, Origin
     defined_query/2,            % Body, Count
     defined_predicates/1,       % list(Name) (1 clause)
     defined_nmr_check/1,
@@ -181,10 +185,9 @@ non_printable(Name) :-
 %
 %    - defined_predicates(List) with a list of predicate identifiers,
 %      atoms encoded as <name>_<arity>, e.g., `parent_2` for parent/2.
-%    - defined_rule(Name, Head, Body) where Name is the functor name
+%    - defined_rule(Name, Head, Body, Origin) where Name is the functor name
 %      of Head and Body represents the conjunction of the body as a
-%      list. Variables are Prolog atoms that satisfy the Prolog variable
-%      syntax.
+%      list, and Origin denotes the source of the rule's definition.
 %    - defined_query(List, Count)
 %      List is like Body above, expressing the query and Count is the
 %      number of answer sets to generate by default (based on the
@@ -243,11 +246,11 @@ format_program(X, P) :-
 
 :- det(sort_by_type/5).
 
-sort_by_type([X|T], [X|R], D, Ci, Co) :-
+sort_by_type([clause(Ref, X)|T], [clause(Ref, X)|R], D, Ci, Co) :-
     c_rule(X, _, _),
     !,
     sort_by_type(T, R, D, Ci, Co).
-sort_by_type([X|T], R, D, _, Co) :-
+sort_by_type([clause(_Ref, X)|T], R, D, _, Co) :-
     X = c(N, Q),
     query(C, Q, _, N),
     !,
@@ -282,6 +285,9 @@ rules_predicates(Rules, Preds) :-
     append(Preds0, Preds1),
     list_to_set(Preds1, Preds).
 
+rule_predicates(clause(_Ref, R), Preds) :-
+    !,
+    rule_predicates(R, Preds).
 rule_predicates(R, Preds) :-
     c_rule(R, H, B),
     atom_predicate(H, F),
@@ -315,7 +321,7 @@ handle_classical_negation(X) :-
     Xn2 =.. [Xn|A],
     predicate(H, '_false_0', []), % dummy head for headless rules
     c_rule(R, H, [X2, Xn2]),
-    assert_rule(R).
+    assert_rule(neg(R)).
 handle_classical_negation(_).
 
 %!  assert_program_struct(+Program:compound) is det
@@ -336,10 +342,22 @@ assert_program_struct(P) :-
 %
 %   @arg Rule A rule struct.
 
-assert_rule(R) :-
-    c_rule(R, H2, B),
+:- det(assert_rule/1).
+
+assert_rule(Rule) :-
+    rule_origin(Rule, Origin, R),
+    assert_rule_(R, Origin).
+
+assert_rule_(Rule, Origin) :-
+    c_rule(Rule, H2, B),
     predicate(H2, H, _), % get the head without args
-    assertz(defined_rule(H, H2, B)).
+    assertz(defined_rule(H, H2, B, Origin)).
+
+rule_origin(clause(Ref, Rule), clause(Ref), Rule).
+rule_origin(neg(Rule), generated(neg), Rule).
+rule_origin(nmr(Rule), generated(nmr), Rule).
+rule_origin(dual(Rule), generated(dual), Rule).
+
 
 %!  assert_directive(+Directive) is det
 %
@@ -368,7 +386,7 @@ assert_query(Q) :-
 
 assert_nmr_check(NMR) :-
     c_rule(R, '_nmr_check_0', NMR),
-    assert_rule(R),
+    assert_rule(nmr(R)),
     assertz(defined_nmr_check(['_nmr_check_0'])).
 
 %!  assert_predicates(+Predicates:list) is det.
@@ -386,7 +404,7 @@ assert_predicates(Ps) :-
 %   programs.
 
 destroy_program :-
-    retractall(defined_rule(_, _, _)),
+    retractall(defined_rule(_, _, _, _)),
     retractall(defined_query(_, _)),
     retractall(defined_predicates(_)),
     retractall(defined_nmr_check(_)),

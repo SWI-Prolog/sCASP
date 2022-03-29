@@ -69,7 +69,7 @@ results.
 %   Load the files from Sources.   Steps taken:
 %
 %     - Parse input and assert in dynamic predicates with
-%       program.pl (defined_rule/3, etc,)
+%       program.pl (defined_rule/4, etc,)
 %     - Enrich the program in the same format (comp_duals/0,
 %       generate_nmr_check/0).
 %     - Transform into _pr_ rules (generate_pr_rules/1)
