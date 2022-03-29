@@ -65,10 +65,13 @@ the resulting dynamic predicates.
 %   @arg Head Head predicate has head/arity (no args).
 %   @arg FullHead A predicate struct containing the head predicate with args.
 %   @arg Body list of body goals.
-%   @arg Origin A term describing the origin of this rule. One of
-%   `clause(ClauseRef)` for rule derived from clauses, and `generated(Why)`
-%   for compiler generated rules, where `Why` is one of `neg` for classical negation,
-%   `nmr` for NMR checks, and `dual` for dual rules.
+%   @arg Origin A term describing the origin of this rule. For rules that are derived
+%   from loaded clauses, Origin is set to `clause(ClauseRef)`; for compiler
+%   generated rules, Origin is set to `generated(Why)` where `Why` is one
+%   of `neg` for classical negation, `nmr` for NMR checks, and `dual` for dual rules;
+%   for rules read directly as s(CASP) with e.g. `load_source_files/1`, Origin is set
+%   to `source(Path, Pos)` where `Path` is the path of the source file,
+%   and `Pos` is a term describing the postition and layout of the rule in the file.
 
 %!  defined_query(-Goals:list, -SolCount:int) is det
 %
@@ -255,7 +258,16 @@ sort_by_type([clause(_Ref, X)|T], R, D, _, Co) :-
     query(C, Q, _, N),
     !,
     sort_by_type(T, R, D, C, Co).
-sort_by_type([:-(Directive)|T], R, [Directive|D], C, Co) :-
+sort_by_type([source(Path, Pos, X)|T], [source(Path, Pos, X)|R], D, Ci, Co) :-
+    c_rule(X, _, _),
+    !,
+    sort_by_type(T, R, D, Ci, Co).
+sort_by_type([source(_, _, X)|T], R, D, _, Co) :-
+    X = c(N, Q),
+    query(C, Q, _, N),
+    !,
+    sort_by_type(T, R, D, C, Co).
+sort_by_type([source(_, _, (:-(Directive)))|T], R, [Directive|D], C, Co) :-
     !,
     sort_by_type(T, R, D, C, Co).
 sort_by_type([], [], [], C, C).
@@ -286,6 +298,9 @@ rules_predicates(Rules, Preds) :-
     list_to_set(Preds1, Preds).
 
 rule_predicates(clause(_Ref, R), Preds) :-
+    !,
+    rule_predicates(R, Preds).
+rule_predicates(source(_, _, R), Preds) :-
     !,
     rule_predicates(R, Preds).
 rule_predicates(R, Preds) :-
@@ -354,6 +369,7 @@ assert_rule_(Rule, Origin) :-
     assertz(defined_rule(H, H2, B, Origin)).
 
 rule_origin(clause(Ref, Rule), clause(Ref), Rule).
+rule_origin(source(Path, Pos, Rule), source(Path, Pos), Rule).
 rule_origin(neg(Rule), generated(neg), Rule).
 rule_origin(nmr(Rule), generated(nmr), Rule).
 rule_origin(dual(Rule), generated(dual), Rule).

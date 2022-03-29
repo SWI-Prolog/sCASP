@@ -114,17 +114,17 @@ sasp_read(File, Statements, Options) :-
                        ]),
     setup_call_cleanup(
         open(Path, read, In),
-        sasp_read_stream_raw(In, Statements,
+        sasp_read_stream_raw(Path, In, Statements,
                              [ base(Path),
                                stream(In)
                              | Options
                              ]),
         close(In)).
 
-sasp_read_stream_raw(In, Statements, Options) :-
+sasp_read_stream_raw(Path, In, Statements, Options) :-
     setup_call_cleanup(
         prep_read(Undo),
-        sasp_read_stream(In, Statements, Options),
+        sasp_read_stream(Path, In, Statements, Options),
         call(Undo)).
 
 %!  prep_read(-Undo)
@@ -152,7 +152,7 @@ update_flag(Flag-Value, set_prolog_flag(Flag, Old)) :-
 %
 %   Read the content of the stream In into a list of sCASP statements.
 
-sasp_read_stream(In, Statements, Options) :-
+sasp_read_stream(Path, In, Statements, Options) :-
     context_module(M),
     read_term(In, Term,
               [ module(M),
@@ -165,13 +165,17 @@ sasp_read_stream(In, Statements, Options) :-
     ->  Statements = []
     ;   Term = (:- use_module(library(File))),
         nonvar(File)
-    ->  sasp_read_stream(In, Statements, Options)
-    ;   sasp_statement(Term, VarNames, New, Pos, Options),
+    ->  sasp_read_stream(Path, In, Statements, Options)
+    ;   sasp_statement(source(Path, Term), VarNames, New, Pos, Options),
         add_statements(New, Tail, Statements),
-        sasp_read_stream(In, Tail, Options)
+        sasp_read_stream(Path, In, Tail, Options)
     ).
 
-add_statements(New, Tail, Statements) :-
+add_statements(clause(_, New), Tail, Statements) :-
+    is_list(New),
+    !,
+    append(New, Tail, Statements).
+add_statements(source(_, _, New), Tail, Statements) :-
     is_list(New),
     !,
     append(New, Tail, Statements).
@@ -195,8 +199,11 @@ add_statements(New, Tail, [New|Tail]).
 
 sasp_statement(clause(Ref, Term), VarNames, clause(Ref, SASP), Pos, Options) :-
     !,
-    sasp_statement(Term, VarNames, SASP, Pos, Options).
-sasp_statement(Term, VarNames, SASP, Pos, Options) :-
+    sasp_statement_(Term, VarNames, SASP, Pos, Options).
+sasp_statement(source(Path, Term), VarNames, source(Path, Pos, SASP), Pos, Options) :-
+    !,
+    sasp_statement_(Term, VarNames, SASP, Pos, Options).
+sasp_statement_(Term, VarNames, SASP, Pos, Options) :-
     maplist(bind_var,VarNames),
     term_variables(Term, Vars),
     bind_anon(Vars, 0),
