@@ -202,7 +202,7 @@ sasp_statement(clause(Ref, Term), VarNames, clause(Ref, SASP), Pos, Options) :-
     sasp_statement_(Term, VarNames, SASP, Pos, Options).
 sasp_statement(source(Path, Term), VarNames, source(Path, Pos, SASP), Pos, Options) :-
     !,
-    sasp_statement_(Term, VarNames, SASP, Pos, Options).
+    sasp_statement_(Term, VarNames, SASP, Pos, [source(Path-Pos)|Options]).
 sasp_statement_(Term, VarNames, SASP, Pos, Options) :-
     maplist(bind_var,VarNames),
     term_variables(Term, Vars),
@@ -370,17 +370,18 @@ directive(pred(Pred::Template), Statements, Pos, Options) =>
     Statements = (:- pred(SASPPred::Template)).
 directive(abducible(Pred), Rules, Pos, Options) =>
     sasp_predicate(Pred, ASPPred, Pos, Options),
-    abducible_rules(ASPPred, Rules).
+    abducible_rules(ASPPred, Rules, Options).
 directive(Directive, Statements, Pos, Options) =>
     sasp_syntax_error(invalid_directive(Directive), Pos, Options),
     Statements = [].
 
 abducible_rules(Head,
-                [ Head                 - [ not AHead, abducible_1(Head) ],
-                  AHead                - [ not Head ],
-                  abducible_1(Head)    - [ not '_abducible_1'(Head) ],
-                  '_abducible_1'(Head) - [ not abducible_1(Head) ]
-                ]) :-
+                [ source(Path, Pos, Head                 - [ not AHead, abducible_1(Head) ]),
+                  source(Path, Pos, AHead                - [ not Head                     ]),
+                  source(Path, Pos, abducible_1(Head)    - [ not '_abducible_1'(Head)     ]),
+                  source(Path, Pos, '_abducible_1'(Head) - [ not abducible_1(Head)        ])
+                ], Options) :-
+    option(source(Path-Pos), Options, no_path-no_position),
     Head =.. [F|Args],
     atom_concat('_', F, AF),
     AHead =.. [AF|Args].
