@@ -402,7 +402,7 @@ assert_pr_rules([], _).
 assert_pr_rules([c(Origin, Head, Body)|Rs], M) :-
     !,
     revar(Head-Body,H-B, _),
-    assert(M:pr_rule(Origin, H, B)),
+    assert(M:pr_rule(H, B, Origin)),
     assert_pr_user_predicate([H], M),
     assert_pr_rules(Rs, M).
 
