@@ -600,3 +600,4 @@ user:goal_expansion(-Goal, MGoal) :-
 % lists:member(...),
 
 sandbox:safe_meta(scasp_dyncall:scasp(_), []).
+sandbox:safe_meta(scasp_dyncall:scasp(_, _), []).
