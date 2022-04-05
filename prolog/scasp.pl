@@ -84,4 +84,14 @@ s(CASP) programs in Prolog and query them from Prolog.
         set_prolog_flag(scasp_show_justification, Old)).
 
 
+		 /*******************************
+		 *            SANDBOX		*
+		 *******************************/
+
+:- multifile
+    sandbox:safe_meta_predicate/1.
+
+sandbox:safe_meta(scasp:(? _), []).
+sandbox:safe_meta(scasp:(?? _), []).
+
 
