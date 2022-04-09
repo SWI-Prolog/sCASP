@@ -1,0 +1,61 @@
+:-module('escrow-scasp', []).
+source_lang(en).
+% s(CASP) Programming 
+:- use_module(library(scasp)).
+% Uncomment to suppress warnings
+%:- style_check(-discontiguous).
+:- style_check(-singleton).
+:- set_prolog_flag(scasp_forall, prev).
+:- dynamic sets_up_for_to_pay_to_and_deduct/6, has_for_to_pay_to_and_deduct/6, of_has_been_paid_out_to/3, pays_out_of_to/4, pays_back_of_to/4, has_paid_itself/2.
+#include 'bec_theory.incl'.
+#pred sets_up_for_to_pay_to_and_deduct(B,C,D,E,F,G) :: ' @(B:payer)  sets  up  @(C:escrow)  for  @(D:agent)  to  pay  @(E:amount)  to  @(F:payee) and deduct  @(G:fee) '.
+#pred has_for_to_pay_to_and_deduct(B,C,D,E,F,G) :: ' @(B:payer)  has  @(C:escrow)  for  @(D:agent)  to  pay  @(E:amount)  to  @(F:payee) and deduct  @(G:fee) '.
+#pred of_has_been_paid_out_to(B,C,D) :: ' @(B:escrow)  of  @(C:amount)  has  been  paid  out  to  @(D:payee) '.
+#pred pays_out_of_to(B,C,D,E) :: ' @(B:agent)  pays  out  @(C:amount)  of  @(D:escrow)  to  @(E:payee) '.
+#pred pays_back_of_to(B,C,D,E) :: ' @(B:agent)  pays  back  @(C:amount)  of  @(D:escrow)  to  @(E:payer) '.
+#pred has_paid_itself(B,C) :: ' @(B:agent)  has  paid  itself  @(C:fee) '.
+initiates(sets_up_for_to_pay_to_and_deduct(A, B, C, D, E, F), has_for_to_pay_to_and_deduct(A, B, C, D, E, F), _).
+initiates(pays_out_of_to(A, B, C, D), of_has_been_paid_out_to(C, B, D), E) :-
+    holdsAt(has_for_to_pay_to_and_deduct(_,
+                                       C,
+                                       A,
+                                       F,
+                                       D,
+                                       G),
+          E),
+    has_paid_itself(A, G),
+    B is F-G.
+terminates(pays_out_of_to(A, B, C, D), has_for_to_pay_to_and_deduct(E, C, A, F, D, G), H) :-
+    holdsAt(has_for_to_pay_to_and_deduct(E,
+                                       C,
+                                       A,
+                                       F,
+                                       D,
+                                       G),
+          H),
+    has_paid_itself(A, G),
+    B is F-G.
+terminates(pays_back_of_to(A, B, C, D), has_for_to_pay_to_and_deduct(D, C, A, E, F, G), H) :-
+    holdsAt(has_for_to_pay_to_and_deduct(D,
+                                       C,
+                                       A,
+                                       E,
+                                       F,
+                                       G),
+          H),
+    has_paid_itself(A, G),
+    B is E-G.
+happens(sets_up_for_to_pay_to_and_deduct(the_payer, the_escrow, the_agent, 500, the_payee, 5), 1).
+/* Scenario clause one */
+has_paid_itself(the_agent, _).
+happens(pays_out_of_to(the_agent, 495, the_escrow, the_payee), 5).
+% */ 
+/* Scenario clause two
+has_paid_itself(the_agent, _).
+happens(pays_back_of_to(the_agent, 495, the_escrow, the_payee), 5).
+% */ 
+/** <examples> */
+?- holdsAt(has_for_to_pay_to_and_deduct(_374220,_374222,_374224,_374226,_374228,_374230),2).
+/** ?- ? holds(has_for_to_pay_to_and_deduct(_374194,_374196,_374198,_374200,_374202,_374204),8).
+?- ? happens(pays_back_of_to(_374172,_374174,_374176,_374178),_374168).
+**/
