@@ -52,6 +52,9 @@ user:file_search_path(css, library(scasp/web/css)).
 %
 %     - pred(Boolean)
 %       When `false` (default `true`), ignore user pred/1 rules.
+%     - justify_nmr(Boolean)
+%       When `false` (default `true`), do not omit a justification for
+%       the global constraints.
 
 :- det(html_justification_tree//2).
 
@@ -120,6 +123,9 @@ normal_justification_tree(Term-[], Options) -->
                     \connect(Options)
                   ])
             ])).
+normal_justification_tree(o_nmr_check-_, Options) -->
+    { option(justify_nmr(false), Options) },
+    !.
 normal_justification_tree(Term-Children, Options) -->
     { incr_indent(Options, Options1),
       (   Term == o_nmr_check
