@@ -11,7 +11,7 @@
 :- multifile
     scasp_lang_module/2.
 
-:- dynamic lang_module_cache/1 as volatile.
+:- thread_local lang_module_cache/1 as volatile.
 
 %!  lang_module(-M) is multi.
 %
