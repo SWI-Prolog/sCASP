@@ -2,6 +2,7 @@
           [ scasp_message//1
           ]).
 :- use_module(library(dcg/high_order)).
+:- use_module('../ops', [op(_,_,_)]).
 
 :- multifile
     scasp_messages:scasp_lang_module/2.
@@ -103,6 +104,12 @@ scasp_message(_>_)       --> ['is groter dan'].
 scasp_message(_>=_)      --> ['is groter dan of gelijk aan'].
 scasp_message(_<_)       --> ['is kleiner dan'].
 scasp_message(_=<_)      --> ['is kleiner dan of gelijk aan'].
+scasp_message(_#=_)      --> ['gelijk aan'].
+scasp_message(_#<>_)     --> ['ongelijk aan'].
+scasp_message(_#>_)      --> ['groter dan'].
+scasp_message(_#>=_)     --> ['groter dan of gelijk aan'].
+scasp_message(_#<_)      --> ['kleiner dan'].
+scasp_message(_#=<_)     --> ['kleiner dan of gelijk aan'].
 scasp_message(global_constraints_hold) -->
     [ 'Aan alle globale restricties is voldaan' ].
 scasp_message(global_constraint(N)) -->

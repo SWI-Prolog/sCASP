@@ -550,9 +550,9 @@ inlined_var(Var, Constraints, Options) -->
 
 clpq(Var, [Constraint|More], Options) -->
     { compound(Constraint),
-      Constraint =.. [Op,A,B],
+      Constraint =.. [_,A,B],
       Var == A,
-      cmp_op(Op, Text),
+      human_connector(Constraint, Text),
       (   nonvar(Var),
           Var = '$VAR'(Name)
       ->  Id = var(Name)
@@ -569,9 +569,9 @@ clpq(Var, [Constraint|More], Options) -->
 
 clpq_and([Constraint|More], Var, Options) -->
     { compound(Constraint),
-      Constraint =.. [Op,A,B],
+      Constraint =.. [_,A,B],
       A == Var,
-      cmp_op(Op, Text)
+      human_connector(Constraint, Text)
     },
     emit([Text, ' ']),
     scasp_term(B, Options),
@@ -580,14 +580,6 @@ clpq_and([Constraint|More], Var, Options) -->
     ;   emit(' and '),
         clpq_and(More, Var, Options)
     ).
-
-cmp_op(#>,  'larger than').
-cmp_op(#>=, 'larger than or equal to').
-cmp_op(#<,  'smaller than').
-cmp_op(#=<, 'smaller than or equal to').
-cmp_op(#=,  'equal to').
-cmp_op(#<>, 'not equal to').
-
 
 %!  typed_var(@Var, +Type, +Options)//
 

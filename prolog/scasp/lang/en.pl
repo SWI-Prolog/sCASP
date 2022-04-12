@@ -2,6 +2,7 @@
           [ scasp_message//1
           ]).
 :- use_module(library(dcg/high_order)).
+:- use_module('../ops', [op(_,_,_)]).
 
 :- multifile
     scasp_messages:scasp_lang_module/2.
@@ -111,6 +112,12 @@ scasp_message(_>_)       --> ['is greater than'].
 scasp_message(_>=_)      --> ['is greater than or equal to'].
 scasp_message(_<_)       --> ['is less than'].
 scasp_message(_=<_)      --> ['is less than or equal to'].
+scasp_message(_#=_)      --> ['equal to'].
+scasp_message(_#<>_)     --> ['not equal to'].
+scasp_message(_#>_)      --> ['greater than'].
+scasp_message(_#>=_)     --> ['greater than or equal to'].
+scasp_message(_#<_)      --> ['less than'].
+scasp_message(_#=<_)     --> ['less than or equal to'].
 scasp_message(global_constraints_hold) -->
     [ 'The global constraints hold' ].
 scasp_message(global_constraint(N)) -->
