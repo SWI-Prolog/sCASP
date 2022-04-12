@@ -95,6 +95,7 @@ s(CASP) programs in Prolog and query them from Prolog.
 sandbox:safe_meta(scasp:(? _), []).
 sandbox:safe_meta(scasp:(?? _), []).
 
+sandbox:safe_prolog_flag(scasp_lang, _).
 sandbox:safe_prolog_flag(scasp_unknown, _).
 sandbox:safe_prolog_flag(scasp_plain_dual, _).
 sandbox:safe_prolog_flag(scasp_compile_olon, _).
