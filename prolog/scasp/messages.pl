@@ -3,6 +3,7 @@
             scasp_justification_message//1       % +Term
           ]).
 :- use_module(lang/en, []).
+:- use_module(lang/nl, []).                      % Dynamic?
 :- use_module(library(solution_sequences)).
 
 :- create_prolog_flag(scasp_lang, default, [keep(true)]).
@@ -46,10 +47,15 @@ scasp_lang(Lang),
     current_prolog_flag(scasp_lang, Lang0),
     Lang0 \== default =>
     Lang = Lang0.
+:- if(current_prolog_flag(windows, true)).
 scasp_lang(Lang),
-    \+ current_prolog_flag(windows, true),
-    setlocale(messages, Lang0, Lang0) =>
+    win_get_user_preferred_ui_languages(name, [Lang0|_]) =>
     Lang = Lang0.
+:- else.
+scasp_lang(Lang),
+    catch(setlocale(messages, Lang0, Lang0),_,fail) =>
+    Lang = Lang0.
+:- endif.
 scasp_lang(Lang),
     getenv('LANG', Lang0) =>
     Lang = Lang0.
@@ -61,9 +67,9 @@ longest_id(Lang, Id) :-
     longest_prefix(Components, Taken),
     atomic_list_concat(Taken, '_', Id).
 
-longest_prefix(List, List).
-longest_prefix([_|T], Prefix) :-
-    longest_prefix(T, Prefix).
+longest_prefix([H|T0], [H|T]) :-
+    longest_prefix(T0, T).
+longest_prefix(_, []).
 
 :- multifile
     prolog:message//1.

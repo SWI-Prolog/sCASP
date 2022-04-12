@@ -419,26 +419,33 @@ utter(global_constraints_hold, _Options) -->
 utter(global_constraint(N), _Options) -->
     emit('the global constraint number ~p holds'-[N]).
 utter(not(Atom), Options) -->
-    emit('there is no evidence that '),
+    { human_connector(not, Text) },
+    emit(Text),
     atom(Atom, Options).
 utter(-(Atom), Options) -->
-    emit('it is not the case that '),
+    { human_connector(-, Text) },
+    emit(Text),
     atom(Atom, Options).
 utter(proved(Atom), Options) -->
+    { human_connector(proved, Text) },
     atom(Atom, Options),
-    emit(', justified above').
+    emit(Text).
 utter(chs(Atom), Options) -->
-    emit('it is assumed that '),
+    { human_connector(chs, Text) },
+    emit(Text),
     atom(Atom, Options).
 utter(assume(Atom), Options) -->
-    emit('we assume that '),
+    { human_connector(assume, Text) },
+    emit(Text),
     atom(Atom, Options).
 utter(holds(Atom), Options) -->
     { css_classes(Options, Classes) },
     (   { atom(Atom) }
-    ->  emit([span(class(Classes), Atom), ' holds'])
+    ->  { human_connector(holds, Text) },
+        emit([span(class(Classes), Atom), Text])
     ;   { Atom =.. [Name|Args] }
-    ->  emit([span(class(Classes), Name), ' holds for ']),
+    ->  { human_connector(holds_for, Text) },
+        emit([span(class(Classes), Name), Text]),
         list(Args, Options)
     ).
 
