@@ -4,9 +4,9 @@
 :- use_module(library(dcg/high_order)).
 
 :- multifile
-    scasp_messages:scasp_lang/2.
+    scasp_messages:scasp_lang_module/2.
 
-scasp_messages:scasp_lang(en, casp_lang_en).
+scasp_messages:scasp_lang_module(en, casp_lang_en).
 
 :- multifile
     prolog:error_message//1.
@@ -90,6 +90,20 @@ scasp_message(dcc_discard(Goal, BodyL)) -->
 
 scasp_message(no_models(CPU)) -->
     [ 'No models (~3f seconds)'-[CPU] ].
+
+
+% Justifications
+
+scasp_message(and)     --> [ ', and' ].
+scasp_message(not)     --> [ 'there is no evidence that ' ].
+scasp_message(-)       --> [ 'it is not the case that ' ].
+scasp_message(implies) --> [ ', because' ].
+scasp_message(?)       --> [ '?' ].
+
+
+		 /*******************************
+		 *       GOALS AND STACKS	*
+		 *******************************/
 
 print_check_calls_calling(Goal, Stack) -->
     [ansi(bold, '~`-t Calling: ~@ ~`-t~72|', [scasp_verbose:print_goal(Goal)]), nl],
