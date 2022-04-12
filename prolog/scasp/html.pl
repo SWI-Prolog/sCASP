@@ -410,9 +410,11 @@ atom(Term, Options) -->
 %!  utter(+Exppression, +Options)
 
 utter(global_constraints_hold, _Options) -->
-    emit('The global constraints hold').
+    { human_connector(global_constraints_hold, Text) },
+    emit(Text).
 utter(global_constraint(N), _Options) -->
-    emit('the global constraint number ~p holds'-[N]).
+    { human_connector(global_constraint(N), Text) },
+    emit(Text).
 utter(not(Atom), Options) -->
     { human_connector(not, Text) },
     emit([Text, ' ']),
@@ -533,10 +535,10 @@ inlined_var(Var, Constraints, Options) -->
     !,
     (   {List = [One]}
     ->  {human_connector(neq, Text)},
-        emit([var(Name), Text]),
+        emit([var(Name), ' ', Text, ' ']),
         scasp_term(One, Options)
     ;   {human_connector(not_in, Text)},
-        emit([var(Name), Text]),
+        emit([var(Name), ' ', Text, ' ']),
         list(List, [last_connector(or)|Options])
     ).
 inlined_var(Var, Constraints, Options) -->
@@ -698,8 +700,12 @@ connector('.', _Options) -->
     emit([ span(class('full-stop'), '.')
          ]).
 
-human_connector(Term, String) :-
-    phrase(scasp_justification_message(Term), [String]).
+human_connector(Term, Connector) :-
+    phrase(scasp_justification_message(Term), List),
+    (   List = [Connector]
+    ->  true
+    ;   Connector = List
+    ).
 
 full_stop(_Options) -->
     emit('\u220e').                     % QED block
