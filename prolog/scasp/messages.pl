@@ -55,7 +55,6 @@ scasp_lang(Lang),
 scasp_lang(Lang),
     catch(setlocale(messages, _, ''), _, fail) =>
     setlocale(messages, Lang0, Lang0),
-    writeln(Lang0),
     Lang = Lang0.
 :- endif.
 scasp_lang(Lang),
