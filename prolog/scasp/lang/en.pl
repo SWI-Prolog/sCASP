@@ -94,16 +94,23 @@ scasp_message(no_models(CPU)) -->
 
 % Justifications
 
-scasp_message(and)       --> [ ', and' ].
-scasp_message(not)       --> [ 'there is no evidence that ' ].
-scasp_message(-)         --> [ 'it is not the case that ' ].
-scasp_message(implies)   --> [ ', because' ].
+scasp_message(and)       --> [ 'and' ].
+scasp_message(or)        --> [ 'or' ].
+scasp_message(not)       --> [ 'there is no evidence that' ].
+scasp_message(-)         --> [ 'it is not the case that' ].
+scasp_message(implies)   --> [ 'because' ].
 scasp_message(?)         --> [ '?' ].
-scasp_message(proved)    --> [', justified above'].
-scasp_message(chs)       --> ['it is assumed that '].
-scasp_message(assume)    --> ['we assume that '].
+scasp_message(proved)    --> ['justified above'].
+scasp_message(chs)       --> ['it is assumed that'].
+scasp_message(assume)    --> ['we assume that'].
 scasp_message(holds)     --> [' holds'].
 scasp_message(holds_for) --> [' holds for '].
+scasp_message(not_in)    --> [' not '].
+scasp_message(neq)       --> [' not equal to'].
+scasp_message(_>_)       --> ['is greater than'].
+scasp_message(_>=_)      --> ['is greater than or equal to'].
+scasp_message(_<_)       --> ['is less than'].
+scasp_message(_=<_)      --> ['is less than or equal to'].
 
 
 		 /*******************************

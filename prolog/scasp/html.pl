@@ -388,7 +388,7 @@ atom(is(Value,Expr), Options) -->
     },
     emit(span(class([arithmetic|Classes]), S)).
 atom(Comp, Options) -->
-    { comp(Comp, Text),
+    { human_connector(Comp, Text),
       !,
       Comp =.. [_,Left,Right]
     },
@@ -407,11 +407,6 @@ atom(Term, Options) -->
 atom(Term, Options) -->
     utter(holds(Term), Options).
 
-comp(_>_, 'is greater than').
-comp(_>=_, 'is greater than or equal to').
-comp(_<_, 'is less than').
-comp(_=<_, 'is less than or equal to').
-
 %!  utter(+Exppression, +Options)
 
 utter(global_constraints_hold, _Options) -->
@@ -420,23 +415,23 @@ utter(global_constraint(N), _Options) -->
     emit('the global constraint number ~p holds'-[N]).
 utter(not(Atom), Options) -->
     { human_connector(not, Text) },
-    emit(Text),
+    emit([Text, ' ']),
     atom(Atom, Options).
 utter(-(Atom), Options) -->
     { human_connector(-, Text) },
-    emit(Text),
+    emit([Text, ' ']),
     atom(Atom, Options).
 utter(proved(Atom), Options) -->
     { human_connector(proved, Text) },
     atom(Atom, Options),
-    emit(Text).
+    emit([', ', Text]).
 utter(chs(Atom), Options) -->
     { human_connector(chs, Text) },
-    emit(Text),
+    emit([Text, ' ']),
     atom(Atom, Options).
 utter(assume(Atom), Options) -->
     { human_connector(assume, Text) },
-    emit(Text),
+    emit([Text, ' ']),
     atom(Atom, Options).
 utter(holds(Atom), Options) -->
     { css_classes(Options, Classes) },
@@ -537,9 +532,11 @@ inlined_var(Var, Constraints, Options) -->
     },
     !,
     (   {List = [One]}
-    ->  emit([var(Name), ' other than ']),
+    ->  {human_connector(neq, Text)},
+        emit([var(Name), Text]),
         scasp_term(One, Options)
-    ;   emit([var(Name), ' not ']),
+    ;   {human_connector(not_in, Text)},
+        emit([var(Name), Text]),
         list(List, [last_connector(or)|Options])
     ).
 inlined_var(Var, Constraints, Options) -->
@@ -643,9 +640,11 @@ inlined_typed_var(Var, Type, Constraints, Options) --> % TBD: include type in NL
 
 list([L1,L], Options) -->
     !,
-    { option(last_connector(Conn), Options, 'and') },
+    { option(last_connector(Conn), Options, and),
+      human_connector(Conn, Text)
+    },
     scasp_term(L1, Options),
-    emit(', ~w '-[Conn]),
+    emit(', ~w '-[Text]),
     scasp_term(L, Options).
 list([H|T], Options) -->
     scasp_term(H, Options),
@@ -672,22 +671,22 @@ action(Term, Options) -->
 
 connector(and, _Options) -->
     { human_connector(and, Text) },
-    emit([ span(class(human), Text),
+    emit([ span(class(human), [', ', Text]),
            span(class(machine), ',')
          ]).
 connector(not, _Options) -->
     { human_connector(not, Text) },
-    emit([ span(class(human), Text),
+    emit([ span(class(human), [Text, ' ']),
            span(class(machine), 'not ')
          ]).
 connector(-, _Options) -->
     { human_connector(-, Text) },
-    emit([ span(class(human), Text),
+    emit([ span(class(human), [Text, ' ']),
            span(class(machine), '\u00ac ')
          ]).
 connector(implies, _Options) -->
     { human_connector(implies, Text) },
-    emit([ span(class(human), Text),
+    emit([ span(class(human), [', ', Text]),
            span(class(machine), ' \u2190')
          ]).
 connector(?, _Options) -->

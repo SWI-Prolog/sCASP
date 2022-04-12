@@ -86,16 +86,23 @@ scasp_message(no_models(CPU)) -->
 
 % Justifications
 
-scasp_message(and)     --> [ ', en' ].
-scasp_message(not)     --> [ 'er is geen bewijs dat ' ].
-scasp_message(-)       --> [ 'het is niet het geval dat ' ].
-scasp_message(implies) --> [ ', omdat' ].
-scasp_message(?)       --> [ '?' ].
-scasp_message(proved)    --> [', als hierboven aangetoond'].
-scasp_message(chs)       --> ['Het is aangenomen dat '].
-scasp_message(assume)    --> ['We nemen aan dat '].
+scasp_message(and)       --> [ 'en' ].
+scasp_message(or)        --> [ 'of' ].
+scasp_message(not)       --> [ 'er is geen bewijs dat' ].
+scasp_message(-)         --> [ 'het is niet het geval dat' ].
+scasp_message(implies)   --> [ 'omdat' ].
+scasp_message(?)         --> [ '?' ].
+scasp_message(proved)    --> ['als hierboven aangetoond'].
+scasp_message(chs)       --> ['het is aangenomen dat'].
+scasp_message(assume)    --> ['we nemen aan dat'].
 scasp_message(holds)     --> [' is waar'].
 scasp_message(holds_for) --> [' is waar voor '].
+scasp_message(not_in)    --> [' niet zijnde '].
+scasp_message(neq)       --> [' ongelijk aan'].
+scasp_message(_>_)       --> ['is groter dan'].
+scasp_message(_>=_)      --> ['is groter dan of gelijk aan'].
+scasp_message(_<_)       --> ['is kleiner dan'].
+scasp_message(_=<_)      --> ['is kleiner dan of gelijk aan'].
 
 
 		 /*******************************
