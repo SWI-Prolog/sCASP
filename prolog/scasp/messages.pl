@@ -3,6 +3,8 @@
 :- use_module(lang/en, []).
 :- use_module(library(solution_sequences)).
 
+:- create_prolog_flag(scasp_lang, default, [keep(true)]).
+
 :- multifile
     scasp_lang/2.
 
@@ -34,11 +36,23 @@ clean_encoding(Lang0, Lang) :-
     ;   Lang = Lang0
     ).
 
-msg_language(Lang) :-
+%!  msg_language(-Lang) is det.
+%
+%   Get the current language for messages.
+
+msg_language(Lang),
+    current_prolog_flag(scasp_lang, Lang0),
+    Lang0 \== default =>
+    Lang = Lang0.
+msg_language(Lang),
     \+ current_prolog_flag(windows, true),
-    setlocale(messages, Lang, Lang).
-msg_language(Lang) :-
-    getenv('LANG', Lang).
+    setlocale(messages, Lang0, Lang0) =>
+    Lang = Lang0.
+msg_language(Lang),
+    getenv('LANG', Lang0) =>
+    Lang = Lang0.
+msg_language(Lang) =>
+    Lang = en.
 
 longest_id(Lang, Id) :-
     split_string(Lang, "_-", "", Components),
