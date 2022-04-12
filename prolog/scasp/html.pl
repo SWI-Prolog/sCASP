@@ -662,29 +662,60 @@ action(Term, Options) -->
 %
 %   Emit a logical connector.
 
-connector(and, _Options) -->
-    emit([ span(class(human), ', and'),
+connector(Meaning, Options) -->
+    { language(Lang, Options) },
+    connector(Meaning, Lang, Options).
+
+connector(and, Lang, _Options) -->
+    { human_connector(and, Lang, Text) },
+    emit([ span(class(human), Text),
            span(class(machine), ',')
          ]).
-connector(not, _Options) -->
-    emit([ span(class(human), 'there is no evidence that '),
+connector(not, Lang, _Options) -->
+    { human_connector(not, Lang, Text) },
+    emit([ span(class(human), Text),
            span(class(machine), 'not ')
          ]).
-connector(-, _Options) -->
-    emit([ span(class(human), 'it is not the case that '),
+connector(-, Lang, _Options) -->
+    { human_connector(-, Lang, Text) },
+    emit([ span(class(human), Text),
            span(class(machine), '\u00ac ')
          ]).
-connector(implies, _Options) -->
-    emit([ span(class(human), ', because'),
+connector(implies, Lang, _Options) -->
+    { human_connector(implies, Lang, Text) },
+    emit([ span(class(human), Text),
            span(class(machine), ' \u2190')
          ]).
-connector(?, _Options) -->
-    emit([ span(class(human), '?'),
+connector(?, Lang, _Options) -->
+    { human_connector(?, Lang, Text) },
+    emit([ span(class(human), Text),
            span(class(machine), '.')
          ]).
-connector(., _Options) -->
+connector('.', _Lang, _Options) -->
     emit([ span(class('full-stop'), '.')
          ]).
+
+human_connector(implies, es, ', porque').
+human_connector(and,     _,  ', and').
+human_connector(not,     _,  'there is no evidence that ').
+human_connector(-,       _,  'it is not the case that ').
+human_connector(implies, _,  ', because').
+human_connector(?,       _,  '?').
+
+%!  language(-Lang, +Options) is det.
+%
+%   Establish the langauge for the output.   Currently  uses the Logical
+%   English conventions. Might be better to use a Prolog flag? Note that
+%   we already have a flag that controls whether we use Unicode symbols.
+
+language(Lang, Options) :-
+    (   option(module(M), Options),
+        current_predicate(M:source_lang/1),
+        M:source_lang(Lang0)
+    ->  true
+    ;   Lang0 = en
+    ),
+    Lang = Lang0.
 
 full_stop(_Options) -->
     emit('\u220e').                     % QED block
