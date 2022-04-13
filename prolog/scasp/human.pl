@@ -78,6 +78,7 @@ human_justification_tree(M:Tree, Options) :-
                         | Options
                         ]), Tokens0),
     fixup_layout(Tokens0, Tokens),
+    format(current_output, '~N', []),
     print_message_lines(current_output, '', Tokens).
 
 %!  human_output(:FilterChildren, +Options)
