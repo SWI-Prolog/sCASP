@@ -1,8 +1,7 @@
 # SWI-Prolog port (swipl branch)
 
 > This is a fork from https://gitlab.software.imdea.org/ciao-lang/sCASP.
-> It provides a quick and dirty port of this interesting work to
-> SWI-Prolog __in the branch `swipl`__.
+> It provides a port of s(CASP) to SWI-Prolog __in the branch `swipl`__.
 
 ## About the SWI-Prolog port
 
@@ -45,7 +44,27 @@ available in the usual way: by consulting a file, asserting, etc. The
 program must respect the sCASP restrictions. Using any built-in or
 control structure that is not known to s(CASP) results in an error.
 
-The query is executed using `?/1`, `??/1` or scasp/2.   Notably
+From the toplevel REPL loop, s(CASP) queries are executed by prefixing
+them with one of the 7 operators below.
+
+  | Op   | Description                                   |
+  |------|-----------------------------------------------|
+  | ?--  | Prove and only show the bindings              |
+  | ?+-  | Prove, show bindings and model                |
+  | ?-+  | Prove, show bindings and justification (tree) |
+  | ?++  | Prove, show bindings model and justification) |
+  | ??+- | As above, but using _human_ language output   |
+  | ??-+ |						 |
+  | ??++ |						 |
+
+? and ?? are backward compatible aliases for ?+- and ?++.  For example:
+
+    ?- ? p(X).
+
+
+
+
+
 
     ?- scasp(goal(X), [model(M), tree(T)]).
 

@@ -599,6 +599,16 @@ user:goal_expansion(-Goal, MGoal) :-
 		 *              CLP		*
 		 *******************************/
 
+%!  #=(?A, ?B).
+%!  #<>(?A, ?B).
+%!  #<(?A, ?B).
+%!  #>(?A, ?B).
+%!  #>=(?A, ?B).
+%!  #=<(?A, ?B).
+%
+%   Implementation of the s(CASP) constraints.   This  implementation is
+%   normally not used and mostly makes the program analysis work.
+
 A #=  B :- apply_clpq_constraints(A #=  B).
 A #<> B :- apply_clpq_constraints(A #<> B).
 A #<  B :- apply_clpq_constraints(A #<  B).
