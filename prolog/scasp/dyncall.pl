@@ -17,6 +17,13 @@
             (show)/1,
             (abducible)/1,
 
+            (#=)/2,
+            (#<>)/2,
+            (#<)/2,
+            (#>)/2,
+            (#=<)/2,
+            (#>=)/2,
+
             op(900, fy, not),
             op(950, xfx, ::),           % pred not x :: "...".
             op(1200, fx, #),
@@ -36,6 +43,7 @@
 :- use_module(common).
 :- use_module(modules).
 :- use_module(listing).
+:- use_module(clp/clpq, [apply_clpq_constraints/1]).
 :- use_module(pr_rules, [process_pr_pred/5]).
 :- use_module(predicates, [prolog_builtin/1, clp_builtin/1]).
 
@@ -585,6 +593,18 @@ user:term_expansion((# abducible(SpecIn)), Clauses) :-
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),
     intern_negation(-Goal, MGoal).
+
+
+		 /*******************************
+		 *              CLP		*
+		 *******************************/
+
+A #=  B :- apply_clpq_constraints(A #=  B).
+A #<> B :- apply_clpq_constraints(A #<> B).
+A #<  B :- apply_clpq_constraints(A #<  B).
+A #>  B :- apply_clpq_constraints(A #>  B).
+A #=< B :- apply_clpq_constraints(A #=< B).
+A #>= B :- apply_clpq_constraints(A #>= B).
 
 
 		 /*******************************
