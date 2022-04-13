@@ -3,6 +3,13 @@
             scasp/2,                    % :Goal, +Options
             (?)/1,                      % :Query
             (??)/1,                     % :Query
+            (?--)/1,                    % :Query
+            (?+-)/1,                    % :Query
+            (?-+)/1,                    % :Query
+            (?++)/1,                    % :Query
+            (??+-)/1,                   % :Query
+            (??-+)/1,                   % :Query
+            (??++)/1,                   % :Query
 
             scasp_show/2,               % :Query,+What
 
@@ -35,8 +42,15 @@
 
             op(900,  fy, not),
             op(700, xfx, '\u2209'),     % not element of
-            op(1150, fx, ??),
-            op(1150, fx, ?),
+            op(1150, fx, ??),           % same as ?++
+            op(1150, fx, ?),            % same as ?+-
+            op(1150, fx, ?--),          % bindings only
+            op(1150, fx, ?+-),          % bindings + model
+            op(1150, fx, ?-+),          % bindings + tree
+            op(1150, fx, ?++),          % bindings + model + tree
+            op(1150, fx, ??+-),         % Human versions of the above
+            op(1150, fx, ??-+),
+            op(1150, fx, ??++),
             op(950, xfx, ::),           % pred not x :: "...".
             op(1200, fx, #),
             op(1150, fx, pred),
@@ -66,29 +80,53 @@ s(CASP) programs in Prolog and query them from Prolog.
 
 :- meta_predicate
     ?(:),
-    ??(:).
+    ??(:),
+    ?--(:),
+    ?+-(:),
+    ?-+(:),
+    ?++(:),
+    ??+-(:),
+    ??-+(:),
+    ??++(:).
 
-%!  ??(:Query)
+%!  ?--(:Query).
+%!  ?+-(:Query).
+%!  ?-+(:Query).
+%!  ?++(:Query).
+%!  ??+-(:Query).
+%!  ??-+(:Query).
+%!  ??++(:Query).
 %
-%   Shorcut for scasp/1 that prints the justification.
+%   Shortcuts for scasp/1 that control printing   the  model and/or tree
+%   and the format. The +/- control whether   the  model and/or tree are
+%   printed (in that order). The ?? versions print the human version.
 
-?? Q :-
-    current_prolog_flag(scasp_show_justification, Old),
+?   Q :- scasp_and_show(Q, unicode, false).
+??  Q :- scasp_and_show(Q, unicode, unicode).
+
+?--  Q :- scasp_and_show(Q, false, false).
+?-+  Q :- scasp_and_show(Q, false, unicode).
+?+-  Q :- scasp_and_show(Q, unicode, false).
+?++  Q :- scasp_and_show(Q, unicode, unicode).
+??-+ Q :- scasp_and_show(Q, false, human).
+??+- Q :- scasp_and_show(Q, human, false).
+??++ Q :- scasp_and_show(Q, human, human).
+
+scasp_and_show(Q, Model, Tree) :-
+    scasp_mode(M0, T0),
     setup_call_cleanup(
-        set_prolog_flag(scasp_show_justification, true),
+        set_scasp_mode(Model, Tree),
         scasp(Q),
-        set_prolog_flag(scasp_show_justification, Old)).
+        set_scasp_mode(M0, T0)).
 
-%!  ?(:Query)
-%
-%   Shorcut for scasp/1 that only prints the model.
+scasp_mode(M, T) :-
+    current_prolog_flag(scasp_show_model, M),
+    current_prolog_flag(scasp_show_justification, T).
 
-? Q :-
-    current_prolog_flag(scasp_show_justification, Old),
-    setup_call_cleanup(
-        set_prolog_flag(scasp_show_justification, false),
-        scasp(Q),
-        set_prolog_flag(scasp_show_justification, Old)).
+set_scasp_mode(M, T) :-
+    set_prolog_flag(scasp_show_model, M),
+    set_prolog_flag(scasp_show_justification, T).
+
 
 
 		 /*******************************
@@ -101,6 +139,13 @@ s(CASP) programs in Prolog and query them from Prolog.
 
 sandbox:safe_meta(scasp:(? _), []).
 sandbox:safe_meta(scasp:(?? _), []).
+sandbox:safe_meta(scasp:(?-- _), []).
+sandbox:safe_meta(scasp:(?+- _), []).
+sandbox:safe_meta(scasp:(?-+ _), []).
+sandbox:safe_meta(scasp:(?++ _), []).
+sandbox:safe_meta(scasp:(??+- _), []).
+sandbox:safe_meta(scasp:(??-+ _), []).
+sandbox:safe_meta(scasp:(??++ _), []).
 
 sandbox:safe_prolog_flag(scasp_lang, _).
 sandbox:safe_prolog_flag(scasp_unknown, _).
