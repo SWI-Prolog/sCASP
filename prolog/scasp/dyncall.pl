@@ -1,6 +1,5 @@
 :- module(scasp_dyncall,
-          [ scasp/1,                    % :Query
-            scasp/2,                    % :Query, +Options
+          [ scasp/2,                    % :Query, +Options
             scasp_query_clauses/2,      % :Query, -Clauses
             scasp_model/1,              % -Model
             scasp_justification/2,      % -Tree, +Options
@@ -48,7 +47,6 @@
 :- use_module(predicates, [prolog_builtin/1, clp_builtin/1]).
 
 :- meta_predicate
-    scasp(0),
     scasp(0, +),
     scasp_show(:, +),
     scasp_query_clauses(:, -),
@@ -98,9 +96,6 @@ Issues:
 %     - tree(-Tree)
 %       Unify Tree with the s(CASP) justification tree.  See
 %       scasp_justification/2 for details.
-
-scasp(Query) :-
-    scasp(Query, []).
 
 scasp(Query, Options) :-
     scasp_query_clauses(Query, Clauses),
@@ -629,5 +624,4 @@ A #>= B :- apply_clpq_constraints(A #>= B).
 % member/2. s(CASP) does not allow for calling _qualified goals,
 % lists:member(...),
 
-sandbox:safe_meta(scasp_dyncall:scasp(_), []).
 sandbox:safe_meta(scasp_dyncall:scasp(_, _), []).

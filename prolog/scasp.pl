@@ -1,6 +1,5 @@
 :- module(scasp,
-          [ scasp/1,                    % :Goal
-            scasp/2,                    % :Goal, +Options
+          [ scasp/2,                    % :Goal, +Options
             (?)/1,                      % :Query
             (??)/1,                     % :Query
             (?--)/1,                    % :Query
@@ -116,7 +115,9 @@ scasp_and_show(Q, Model, Tree) :-
     scasp_mode(M0, T0),
     setup_call_cleanup(
         set_scasp_mode(Model, Tree),
-        scasp(Q),
+        (   scasp(Q, [])
+        ;   false                       % make always nondet.
+        ),
         set_scasp_mode(M0, T0)).
 
 scasp_mode(M, T) :-

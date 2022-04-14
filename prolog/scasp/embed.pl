@@ -68,12 +68,13 @@
     not(0),
     -(:).
 
+% one of `false`, `true`, `unicode` or `human`
 :- create_prolog_flag(scasp_show_model,
-                      unicode,
-                      [keep(true)]).
+                      false,
+                      [keep(true), type(atom)]).
 :- create_prolog_flag(scasp_show_justification,
-                      unicode,
-                      [keep(true)]).
+                      false,
+                      [keep(true), type(atom)]).
 
 /** <module>  Embed sCASP programs in Prolog sources
 
