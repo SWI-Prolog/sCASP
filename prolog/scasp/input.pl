@@ -175,7 +175,7 @@ add_statements(clause(_, New), Tail, Statements) :-
     is_list(New),
     !,
     append(New, Tail, Statements).
-add_statements(source(_, _, New), Tail, Statements) :-
+add_statements(source(_, New), Tail, Statements) :-
     is_list(New),
     !,
     append(New, Tail, Statements).
@@ -200,14 +200,28 @@ add_statements(New, Tail, [New|Tail]).
 sasp_statement(clause(Ref, Term), VarNames, clause(Ref, SASP), Pos, Options) :-
     !,
     sasp_statement_(Term, VarNames, SASP, Pos, Options).
-sasp_statement(source(Path, Term), VarNames, source(Path, Pos, SASP), Pos, Options) :-
+sasp_statement(source(Path, Term), VarNames, source(Ref, SASP), Pos, Options) :-
     !,
-    sasp_statement_(Term, VarNames, SASP, Pos, [source(Path-Pos)|Options]).
+    assert_sasp_source_reference(Path, Pos, Ref),
+    sasp_statement_(Term, VarNames, SASP, Pos, [source(Ref)|Options]).
 sasp_statement_(Term, VarNames, SASP, Pos, Options) :-
     maplist(bind_var,VarNames),
     term_variables(Term, Vars),
     bind_anon(Vars, 0),
     sasp_statement(Term, SASP, Pos, Options).
+
+
+:- dynamic sasp_source_reference/3.
+
+:- det(assert_sasp_source_reference/3).
+assert_sasp_source_reference(Path, Pos, Ref) :-
+    sasp_source_reference(Ref, Path, Pos), !.
+assert_sasp_source_reference(Path, Pos, Ref) :-
+    (   sasp_source_reference(Ref0, _, _)
+    ->  Ref is Ref0 + 1
+    ;   Ref is 1
+    ),
+    asserta(sasp_source_reference(Ref, Path, Pos)).
 
 bind_var(Name=Var) :-
     Var = $Name.
@@ -376,12 +390,12 @@ directive(Directive, Statements, Pos, Options) =>
     Statements = [].
 
 abducible_rules(Head,
-                [ source(Path, Pos, Head                 - [ not AHead, abducible_1(Head) ]),
-                  source(Path, Pos, AHead                - [ not Head                     ]),
-                  source(Path, Pos, abducible_1(Head)    - [ not '_abducible_1'(Head)     ]),
-                  source(Path, Pos, '_abducible_1'(Head) - [ not abducible_1(Head)        ])
+                [ source(Ref, Head                 - [ not AHead, abducible_1(Head) ]),
+                  source(Ref, AHead                - [ not Head                     ]),
+                  source(Ref, abducible_1(Head)    - [ not '_abducible_1'(Head)     ]),
+                  source(Ref, '_abducible_1'(Head) - [ not abducible_1(Head)        ])
                 ], Options) :-
-    option(source(Path-Pos), Options, no_path-no_position),
+    option(source(Ref), Options, no_path-no_position),
     Head =.. [F|Args],
     atom_concat('_', F, AF),
     AHead =.. [AF|Args].

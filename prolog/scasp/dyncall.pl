@@ -246,7 +246,8 @@ include_global_constraint(Callees0, Constraints, Callees) :-
     include_global_constraint(Callees0, Callees, [], Constraints).
 
 include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
-    global_constraint(Body),
+    global_constraint(Constraint),
+    arg(2, Constraint, Body),
     \+ ( member(Body0, Constraints0),
          Body =@= Body0
        ),
@@ -255,7 +256,7 @@ include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
     !,
     ord_union(Callees0, Called, Callees1),
     include_global_constraint(Callees1, Callees,
-                              [Body|Constraints0], Constraints).
+                              [Constraint|Constraints0], Constraints).
 include_global_constraint(Callees, Callees, Constraints, Constraints).
 
 
