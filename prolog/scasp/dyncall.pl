@@ -168,7 +168,7 @@ scasp_query_clauses(Query, Clauses) :-
     findall(Clause, scasp_clause(Callees, Clause), Clauses, QConstraints),
     maplist(mkconstraint, Constraints, QConstraints).
 
-scasp_clause(Callees, clause(ClauseRef, Clause)) :-
+scasp_clause(Callees, source(ClauseRef, Clause)) :-
     member(PI, Callees),
     pi_head(PI, M:Head),
     @(clause(Head, Body, ClauseRef), M),
@@ -179,11 +179,7 @@ mkclause(Head, true, M, Clause) =>
 mkclause(Head, Body, M, Clause) =>
     qualify((Head:-Body), M, Clause).
 
-mkconstraint(clause(Ref, M:Body), Con) =>
-    Con = clause(Ref, (:- Constraint)),
-    qualify(Body, M, Constraint).
-mkconstraint(source(Ref, M:Body), Con) =>
-    Con = source(Ref, (:- Constraint)),
+mkconstraint(source(Ref, M:Body), source(Ref, (:- Constraint))) :-
     qualify(Body, M, Constraint).
 
 qualify(-(Head), M, Q) =>
@@ -251,9 +247,8 @@ include_global_constraint(Callees0, Constraints, Callees) :-
 
 include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
     global_constraint(Constraint),
-    Constraint = clause(_, Body),
-    \+ ( member(Con0, Constraints0),
-         arg(2, Con0, Body0),
+    Constraint = source(_, Body),
+    \+ ( member(source(_, Body0), Constraints0),
          Body =@= Body0
        ),
     query_callees(Body, Called),
@@ -265,7 +260,7 @@ include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
 include_global_constraint(Callees, Callees, Constraints, Constraints).
 
 
-global_constraint(clause(Ref, M:Body)) :-
+global_constraint(source(Ref, M:Body)) :-
     (   current_temporary_module(M)
     ;   current_module(M)
     ),

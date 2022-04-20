@@ -171,10 +171,6 @@ sasp_read_stream(Path, In, Statements, Options) :-
         sasp_read_stream(Path, In, Tail, Options)
     ).
 
-add_statements(clause(_, New), Tail, Statements) :-
-    is_list(New),
-    !,
-    append(New, Tail, Statements).
 add_statements(source(_, New), Tail, Statements) :-
     is_list(New),
     !,
@@ -197,9 +193,6 @@ add_statements(New, Tail, [New|Tail]).
 
 :- det(sasp_statement/5).
 
-sasp_statement(clause(Ref, Term), VarNames, clause(Ref, SASP), Pos, Options) :-
-    !,
-    sasp_statement_(Term, VarNames, SASP, Pos, Options).
 sasp_statement(source(Path, Term), VarNames, source(Ref, SASP), Pos, Options) :-
     !,
     assert_sasp_source_reference(Path, Pos, Ref),

@@ -249,15 +249,6 @@ format_program(X, P) :-
 
 :- det(sort_by_type/5).
 
-sort_by_type([clause(Ref, X)|T], [clause(Ref, X)|R], D, Ci, Co) :-
-    c_rule(X, _, _),
-    !,
-    sort_by_type(T, R, D, Ci, Co).
-sort_by_type([clause(_Ref, X)|T], R, D, _, Co) :-
-    X = c(N, Q),
-    query(C, Q, _, N),
-    !,
-    sort_by_type(T, R, D, C, Co).
 sort_by_type([source(Ref, X)|T], [source(Ref, X)|R], D, Ci, Co) :-
     c_rule(X, _, _),
     !,
@@ -297,9 +288,6 @@ rules_predicates(Rules, Preds) :-
     append(Preds0, Preds1),
     list_to_set(Preds1, Preds).
 
-rule_predicates(clause(_Ref, R), Preds) :-
-    !,
-    rule_predicates(R, Preds).
 rule_predicates(source(_, R), Preds) :-
     !,
     rule_predicates(R, Preds).
@@ -368,7 +356,6 @@ assert_rule_(Rule, Origin) :-
     predicate(H2, H, _), % get the head without args
     assertz(defined_rule(H, H2, B, Origin)).
 
-rule_origin(clause(Ref, Rule), clause(Ref), Rule).
 rule_origin(source(Ref, Rule), source(Ref), Rule).
 rule_origin(neg(Rule), generated(neg), Rule).
 rule_origin(nmr(Rule), generated(nmr), Rule).

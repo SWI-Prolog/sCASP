@@ -689,7 +689,7 @@ stack_parents([_|T], N, Parents) :-
     !,
     N1 is N+1,
     stack_parents(T, N1, Parents).
-stack_parents([goal_origin(H)|T], N, [H|TP]) :-
+stack_parents([goal_origin(H, _)|T], N, [H|TP]) :-
     stack_parents(T, N, TP).
 
 %!  stack_proved(Stack, Proved:assoc) is det.
