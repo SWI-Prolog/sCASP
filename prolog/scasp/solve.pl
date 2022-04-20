@@ -1,6 +1,5 @@
 :- module(scasp_solve,
-          [ solve/4,                  % :Goals, +StackIn, -StackOut, -Model
-            solve/5                   % :Goals, +Origin, +StackIn, -StackOut, -Model
+          [ solve/4                   % :Goals, +StackIn, -StackOut, -Model
           ]).
 :- use_module(clp/call_stack).
 :- use_module(predicates).
@@ -28,20 +27,18 @@
 %   the sub-goals.
 
 solve(M:Goals, StackIn, StackOut, Model) :-
-    solve(M:Goals, query, StackIn, StackOut, Model).
-solve(M:Goals, Origin, StackIn, StackOut, Model) :-
     stack_parents(StackIn, Parents),
     stack_proved(StackIn, ProvedIn),
-    solve(Goals, M, Origin, Parents, ProvedIn, _ProvedOout, StackIn, StackOut, Model).
+    solve(Goals, M, Parents, ProvedIn, _ProvedOut, StackIn, StackOut, Model).
 
-solve([], _, _, _, Proved, Proved, StackIn, [[]|StackIn], []).
-solve([Goal|Goals], M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
+solve([], _, _, Proved, Proved, StackIn, [[]|StackIn], []).
+solve([Goal|Goals], M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     verbose(print_check_calls_calling(Goal, StackIn)),
-    check_goal(Goal, M, Origin, Parents, ProvedIn, ProvedMid, StackIn, StackMid, Modelx),
+    check_goal(Goal, M, Parents, ProvedIn, ProvedMid, StackIn, StackMid, Modelx),
     verbose(format('Check ~@\n', [print_goal(Goal)])),
     Modelx = [AddGoal|JGoal],
     verbose(format('Success ~@\n', [print_goal(Goal)])),
-    solve(Goals, M, Origin, Parents, ProvedMid, ProvedOut, StackMid, StackOut, Modelxs),
+    solve(Goals, M, Parents, ProvedMid, ProvedOut, StackMid, StackOut, Modelxs),
     Modelxs = JGoals,
     (   shown_predicate(M:Goal)
     ->  Model = [AddGoal, JGoal|JGoals]
@@ -55,7 +52,7 @@ proved_relatives(Goal, Proved, Relatives) =>
     functor(Goal, Name, Arity),
     get_assoc(Name/Arity, Proved, Relatives).
 
-%!  check_goal(+Goal, +Module, +Origin, +Parents, +ProvedIn, -ProvedOut,
+%!  check_goal(+Goal, +Module, +Parents, +ProvedIn, -ProvedOut,
 %!              +StackIn, -StackOut, -Model)
 %
 %   Call  check_CHS/3 to  check the  sub-goal Goal  against the  list of
@@ -70,9 +67,9 @@ proved_relatives(Goal, Proved, Relatives) =>
 %	  - [], proved(Goal)		Proved in a completed subtree
 %	  - From solve_goal/5		Continued execution
 
-check_goal(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
+check_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     check_CHS(Goal, M, Parents, ProvedIn, StackIn, Check),
-    check_goal_(Check, Goal, M, Origin,
+    check_goal_(Check, Goal, M,
                 Parents, ProvedIn, ProvedOut, StackIn, StackOut,
                 Model),
     (   current_prolog_flag(scasp_dcc, true),
@@ -84,39 +81,39 @@ check_goal(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Mod
     ).
 
 % coinduction success <- cycles containing even loops may succeed
-check_goal_(co_success, Goal, _M, Origin,
+check_goal_(co_success, Goal, _M,
             _Parents, ProvedIn, ProvedOut, StackIn, StackOut,
             [AddGoal]) :-
     AddGoal = chs(Goal),
     add_proved(AddGoal, ProvedIn, ProvedOut),
     (   current_prolog_flag(scasp_assume, true)
-    ->  mark_prev_goal(Goal, Origin, StackIn, StackMark),
-        StackOut = [[],goal_origin(AddGoal, Origin)|StackMark]
-    ;   StackOut = [[],goal_origin(AddGoal, Origin)|StackIn]
+    ->  mark_prev_goal(Goal, StackIn, StackMark),
+        StackOut = [[],AddGoal|StackMark]
+    ;   StackOut = [[],AddGoal|StackIn]
     ).
 % already proved in the stack
-check_goal_(proved, Goal, _M, Origin,
+check_goal_(proved, Goal, _M,
             _Parents, ProvedIn, ProvedOut, StackIn, StackOut,
             [AddGoal]) :-
     AddGoal = proved(Goal),
     add_proved(AddGoal, ProvedIn, ProvedOut),
-    StackOut = [[], goal_origin(proved(Goal), Origin)|StackIn].
+    StackOut = [[], proved(Goal)|StackIn].
 % coinduction does neither success nor fails <- the execution continues inductively
-check_goal_(cont, Goal, M, Origin,
+check_goal_(cont, Goal, M,
             Parents, ProvedIn, ProvedOut, StackIn, StackOut,
             Model) :-
-    solve_goal(Goal, M, Origin,
+    solve_goal(Goal, M,
                [Goal|Parents], ProvedIn, ProvedOut, StackIn, StackOut,
                Model).
 % coinduction fails <- the negation of a call unifies with a call in the call stack
-check_goal_(co_failure, _Goal, _M, _Origin,
+check_goal_(co_failure, _Goal, _M,
             _Parents, _ProvedIn, _ProvedOut, _StackIn, _StackOut,
             _Model) :-
     fail.
 
-mark_prev_goal(Goal, Origin, [I|In], [goal_origin(assume(Goal), Origin)|In]) :- Goal == I, !.
-mark_prev_goal(Goal, Origin, [I|In], [goal_origin(I, Origin)|Mk]) :- mark_prev_goal(Goal,Origin,In,Mk).
-mark_prev_goal(_Goal,_Origin,[],[]).
+mark_prev_goal(Goal, [I|In], [assume(Goal)|In]) :-  Goal == I, !.
+mark_prev_goal(Goal, [I|In], [I|Mk]) :- mark_prev_goal(Goal,In,Mk).
+mark_prev_goal(_Goal,[],[]).
 
 %!  dynamic_consistency_check(+Goal, +Module, +StackIn) is semidet.
 %
@@ -149,7 +146,7 @@ dynamic_consistency_eval_(SubGoal, _, _) :-
     solve_goal_builtin(SubGoal, _).
 
 
-%!  solve_goal(+Goal, +Module, +Origin,
+%!  solve_goal(+Goal, +Module,
 %!             +Parents, +ProvedIn, -ProvedOut, +StackIn, -StackOut,
 %!             -Model)
 %
@@ -158,20 +155,20 @@ dynamic_consistency_eval_(SubGoal, _, _) :-
 %   prove  the  sub-goals  and  in  `Model` the  model with  support the
 %   sub-goals
 
-solve_goal(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, GoalModel) :-
+solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
     !,
     (   current_prolog_flag(scasp_forall, prev)
-    ->  solve_goal_forall(Goal, M, Origin,
-                          Parents, ProvedIn, ProvedOut, [goal_origin(Goal, Origin)|StackIn], StackOut,
+    ->  solve_goal_forall(Goal, M,
+                          Parents, ProvedIn, ProvedOut, [Goal|StackIn], StackOut,
                           Model)
-    ;   solve_c_forall(Goal, M, Origin,
-                       Parents, ProvedIn, ProvedOut, [goal_origin(Goal, Origin)|StackIn], StackOut,
+    ;   solve_c_forall(Goal, M,
+                       Parents, ProvedIn, ProvedOut, [Goal|StackIn], StackOut,
                        Model)
     ),
     GoalModel = [Goal|Model].
-solve_goal(Goal, _M, Origin,
-           _Parents, ProvedIn, ProvedOut, StackIn, [[], goal_origin(Goal, Origin)|StackIn],
+solve_goal(Goal, _M,
+           _Parents, ProvedIn, ProvedOut, StackIn, [[], Goal|StackIn],
            GoalModel) :-
     Goal = not(is(V, Expresion)),
     add_proved(Goal, ProvedIn, ProvedOut),
@@ -179,56 +176,59 @@ solve_goal(Goal, _M, Origin,
     NV is Expresion,
     V .\=. NV,
     GoalModel = [Goal].
-solve_goal(Goal, _, _, _, _, _, _, _, _) :-
+solve_goal(Goal, _, _, _, _, _, _, _) :-
     Goal = not(true),
     !,
     fail.
-solve_goal(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
+solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     table_predicate(M:Goal),
     !,
     verbose(format('Solve the tabled goal ~p\n', [Goal])),
-    AttStackIn <~ stack([goal_origin(Goal, Origin)|StackIn]),
+    AttStackIn <~ stack([Goal|StackIn]),
     solve_goal_table_predicate(Goal, M, Parents, ProvedIn, ProvedOut,
                                AttStackIn, AttStackOut, AttModel),
     AttStackOut ~> stack(StackOut),
     AttModel ~> model(Model).
-solve_goal(call(Goal), M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
+solve_goal(call(Goal), M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
            [call(Goal)|Model]) :-
     !,
-    solve_goal(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model).
-solve_goal(not(call(Goal)), M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
+    solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model).
+solve_goal(not(call(Goal)), M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
            [not(call(Goal))|Model]) :-
     !,
-    solve_goal(not(Goal), M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
+    solve_goal(not(Goal), M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
                Model).
-solve_goal(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
+solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
            [Goal|Model]) :-
     Goal = findall(_, _, _),
     !,
-    exec_findall(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model).
-solve_goal(not(Goal), M, Origin, Parents, ProvedIn, ProvedIn, StackIn, StackIn,
+    exec_findall(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model).
+solve_goal(not(Goal), M, Parents, ProvedIn, ProvedIn, StackIn, StackIn,
            [not(Goal)]) :-
     Goal = findall(_, _, _),
     !,
-    exec_neg_findall(Goal, M, Origin, Parents, ProvedIn, StackIn).
-solve_goal(Goal, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
+    exec_neg_findall(Goal, M, Parents, ProvedIn, StackIn).
+solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     user_predicate(M:Goal),
     !,
     (   solve_goal_predicate(Goal, M, Parents, ProvedIn, ProvedOut,
-                             [goal_origin(Goal, NewOrigin)|StackIn], StackOut, Model, NewOrigin)
-    *-> true
+                             [NewGoal|StackIn], StackOut, Model, NewOrigin)
+    *-> mkgoal(Goal, NewOrigin, NewGoal)
     ;   verbose(format(' FAIL~n')),
         shown_predicate(M:Goal),
         scasp_trace(scasp_trace_failures,
-                    trace_failure(Goal, [goal_origin(Goal, Origin)|StackIn])),
+                    trace_failure(Goal, [Goal|StackIn])),
         fail
     ).
-solve_goal(Goal, _M, _Origin, _Parents, ProvedIn, ProvedIn, StackIn, [[], Goal|StackIn],
+solve_goal(Goal, _M, _Parents, ProvedIn, ProvedIn, StackIn, [[], Goal|StackIn],
            Model) :-
     solve_goal_builtin(Goal, Model).
 
 
-%!  solve_goal_forall(+Forall, +Module, +Origin,
+mkgoal(Goal, generated(_), Goal                     ) :- !.
+mkgoal(Goal, Origin      , goal_origin(Goal, Origin)).
+
+%!  solve_goal_forall(+Forall, +Module,
 %!                    +Parents, +ProvedIn, -ProvedOut, +StackIn, -StackOut,
 %!                    -Model)
 %
@@ -237,12 +237,12 @@ solve_goal(Goal, _M, _Origin, _Parents, ProvedIn, ProvedIn, StackIn, [[], Goal|S
 %
 %   @arg Forall is a term forall(?Var, ?Goal)
 
-solve_goal_forall(forall(Var, Goal), M, Origin,
+solve_goal_forall(forall(Var, Goal), M,
                   Parents, ProvedIn, ProvedOut, StackIn, [[]|StackOut],
                   Model) :-
     my_copy_term(Var, Goal, NewVar, NewGoal),
     my_copy_term(Var, Goal, NewVar2, NewGoal2),
-    solve([NewGoal], M, Origin, Parents, ProvedIn, ProvedMid, StackIn, [[]|StackMid],
+    solve([NewGoal], M, Parents, ProvedIn, ProvedMid, StackIn, [[]|StackMid],
           ModelMid),
     verbose(format('\tSuccess solve ~@\n\t\t for the ~@\n',
                    [print_goal(NewGoal), print_goal(forall(Var, Goal))])),
@@ -261,7 +261,7 @@ solve_goal_forall(forall(Var, Goal), M, Origin,
                 DualList),
         verbose(format('Executing ~@ with clpq ConstraintList = ~p\n',
                        [print_goal(Goal), DualList])),
-        exec_with_clpq_constraints(NewVar2, NewGoal2, M, Origin,
+        exec_with_clpq_constraints(NewVar2, NewGoal2, M,
                                    entry(NewVar3, []),
                                    DualList,
                                    Parents, ProvedMid, ProvedOut,
@@ -271,7 +271,7 @@ solve_goal_forall(forall(Var, Goal), M, Origin,
     ;   !,   %% Position of the cut in s(CASP) - remove answers in max.lp
         verbose(format('Executing ~@ with clp_disequality list = ~p\n',
                        [print_goal(Goal), List])),
-        exec_with_neg_list(NewVar2, NewGoal2, M, Origin,
+        exec_with_neg_list(NewVar2, NewGoal2, M,
                            List, Parents, ProvedMid, ProvedOut,
                            StackMid, StackOut, ModelList),
         % !, %% Position of the cut in s(ASP) - remove answers in hamcycle_two.lp
@@ -289,9 +289,9 @@ check_unbound(Var, 'clpq'(NewVar, Constraints)) :-
 check_unbound(Var, []) :-
     var(Var), !.
 
-exec_with_clpq_constraints(_Var, _Goal, _M, _Origin, _, [],
+exec_with_clpq_constraints(_Var, _Goal, _M, _, [],
                            _Parents, ProvedIn, ProvedIn, StackIn, StackIn, []).
-exec_with_clpq_constraints(Var, Goal, M, Origin, entry(ConVar, ConEntry),
+exec_with_clpq_constraints(Var, Goal, M, entry(ConVar, ConEntry),
                            [dual(ConVar, ConDual)|Duals],
                            Parents, ProvedIn, ProvedOut, StackIn, StackOut,
                            Model) :-
@@ -305,7 +305,7 @@ exec_with_clpq_constraints(Var, Goal, M, Origin, entry(ConVar, ConEntry),
     (   apply_clpq_constraints(Con)
     ->  verbose(format('Executing ~p with clpq_constrains ~p\n',
                        [Goal01, Con])),
-        solve([Goal01], M, Origin, Parents01, ProvedIn01, ProvedOut01, StackIn01, [[]|StackOut01], Model01),
+        solve([Goal01], M, Parents01, ProvedIn01, ProvedOut01, StackIn01, [[]|StackOut01], Model01),
         verbose(format('Success executing ~p with constrains ~p\n',
                        [Goal01, Con])),
         verbose(format('Check entails Var = ~p with const ~p and ~p\n',
@@ -321,7 +321,7 @@ exec_with_clpq_constraints(Var, Goal, M, Origin, entry(ConVar, ConEntry),
                     DualList),
             verbose(format('Executing ~p with clpq ConstraintList = ~p\n',
                            [Goal, DualList])),
-            exec_with_clpq_constraints(Var, Goal, M, Origin, entry(ConVar01, Con01),
+            exec_with_clpq_constraints(Var, Goal, M, entry(ConVar01, Con01),
                                        DualList,
                                        Parents01, ProvedOut01, ProvedOut02,
                                        StackOut01, StackOut02, Model02),
@@ -335,24 +335,24 @@ exec_with_clpq_constraints(Var, Goal, M, Origin, entry(ConVar, ConEntry),
     ),
     verbose(format('Executing ~p with clpq ConstraintList = ~p\n',
                    [Goal, Duals])),
-    exec_with_clpq_constraints(Var02, Goal02, M, Origin,
+    exec_with_clpq_constraints(Var02, Goal02, M,
                                entry(ConVar02, ConEntry02),
                                Duals, Parents, ProvedOut02, ProvedOut,
                                StackOut02, StackOut, Model04),
     append(Model03, Model04, Model).
 
-exec_with_neg_list(_, _, _, _, [], _, ProvedIn, ProvedIn, StackIn, StackIn, []).
-exec_with_neg_list(Var, Goal, M, Origin, [Value|Vs],
+exec_with_neg_list(_, _, _, [], _, ProvedIn, ProvedIn, StackIn, StackIn, []).
+exec_with_neg_list(Var, Goal, M, [Value|Vs],
                    Parents, ProvedIn, ProvedOut, StackIn, StackOut,
                    Model) :-
     my_copy_term(Var, [Goal, StackIn], NewVar, [NewGoal, NewStackIn]),
     NewVar = Value,
     verbose(format('Executing ~p with value ~p\n', [NewGoal, Value])),
-    solve([NewGoal], M, Origin, Parents,
+    solve([NewGoal], M, Parents,
           ProvedIn, ProvedMid, NewStackIn, [[]|NewStackMid], ModelMid),
     verbose(format('Success executing ~p with value ~p\n',
                    [NewGoal, Value])),
-    exec_with_neg_list(Var, Goal, M, Origin, Vs, Parents,
+    exec_with_neg_list(Var, Goal, M, Vs, Parents,
                        ProvedMid, ProvedOut, NewStackMid, StackOut, Models),
     append(ModelMid, Models, Model).
 
@@ -363,9 +363,9 @@ exec_with_neg_list(Var, Goal, M, Origin, [Value|Vs],
 %   defined in the program using the directive _#table pred/n._
 
 solve_goal_table_predicate(Goal, M, Parents, ProvedIn, ProvedOut, AttStackIn, AttStackOut, AttModel) :-
-    M:pr_rule(Goal, Body, Origin),
+    M:pr_rule(Goal, Body, _Origin),
     AttStackIn ~> stack(StackIn),
-    solve(Body, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model),
+    solve(Body, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model),
     AttStackOut <~ stack(StackOut),
     AttModel <~ model([Goal|Model]).
 
@@ -378,7 +378,7 @@ solve_goal_table_predicate(Goal, M, Parents, ProvedIn, ProvedOut, AttStackIn, At
 solve_goal_predicate(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
                      GoalModel, Origin) :-
     M:pr_rule(Goal, Body, Origin),
-    solve(Body, M, Origin, Parents, ProvedIn, ProvedMid, StackIn, StackOut, BodyModel),
+    solve(Body, M, Parents, ProvedIn, ProvedMid, StackIn, StackOut, BodyModel),
     add_proved(Goal, ProvedMid, ProvedOut),
     GoalModel = [Goal|BodyModel].
 
@@ -437,15 +437,15 @@ exec_goal(Goal) :-
 % TODO: Pending StackOut to carry the literal involved in the findall
 % (if needed)
 % TODO: Handling of ProvedIn/ProvedOut
-exec_findall(findall(Var, Call, List), M, Origin,
+exec_findall(findall(Var, Call, List), M,
              Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     verbose(format('execution of findall(~p, ~p, _) \n', [Var, Call])),
     findall(t(Var, S, M), (
-            solve([Call], M, Origin, Parents, ProvedIn, ProvedOut, StackIn, S0, M),
+            solve([Call], M, Parents, ProvedIn, ProvedOut, StackIn, S0, M),
             append(S, StackIn, S0)
         ), VSMList),
     process_vsmlist(VSMList, List, SOut, Model),
-    append(SOut, [goal_origin(findall(Var, Call, List), Origin)|StackIn], StackOut),
+    append(SOut, [findall(Var, Call, List)|StackIn], StackOut),
     verbose(format('Result execution = ~p \n', [List])).
 
 process_vsmlist(VSMList, List, [[]|StackOut], Model) :-
@@ -458,7 +458,7 @@ process_vsmlist_([t(V, [[]|S], M)|Rs], [V|Vs], S1, M1) :-
     append(M, M0, M1).
 
 % TODO: What to do with the negation of findall/3 (if required)
-exec_neg_findall(Goal, _, _, _, _, _) :-
+exec_neg_findall(Goal, _, _, _, _) :-
     verbose(format('PENDING: execution of not ~p \n', [Goal])),
     fail.
 
@@ -690,6 +690,9 @@ stack_parents([_|T], N, Parents) :-
     N1 is N+1,
     stack_parents(T, N1, Parents).
 stack_parents([goal_origin(H, _)|T], N, [H|TP]) :-
+    !,
+    stack_parents(T, N, TP).
+stack_parents([H|T], N, [H|TP]) :-
     stack_parents(T, N, TP).
 
 %!  stack_proved(Stack, Proved:assoc) is det.
@@ -739,7 +742,7 @@ add_proved(Term, Goal, Assoc0, Assoc) =>
     ;   put_assoc(Name/Arity, Assoc0, [Goal], Assoc)
     ).
 
-%!  solve_c_forall(+Forall, +Module, +Origin,
+%!  solve_c_forall(+Forall, +Module,
 %!                 +Parents, +ProvedIn, -ProvedOut, +StackIn, -StackOut,
 %!                 -Model)
 %
@@ -751,7 +754,7 @@ add_proved(Term, Goal, Assoc0, Assoc) =>
 %   @tbd Improve the efficiency by removing redundant justifications w.o.
 %   losing solutions.
 
-solve_c_forall(Forall, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, [[]|StackOut],
+solve_c_forall(Forall, M, Parents, ProvedIn, ProvedOut, StackIn, [[]|StackOut],
                Model) :-
     collect_vars(Forall, c_forall(Vars0, Goal0)),    % c_forall([F,G], not q_1(F,G))
 
@@ -761,17 +764,17 @@ solve_c_forall(Forall, M, Origin, Parents, ProvedIn, ProvedOut, StackIn, [[]|Sta
     my_diff_term(Goal1, Vars1, OtherVars),
     Initial_Const = [],                              % Constraint store = top
     (   current_prolog_flag(scasp_forall, all)
-    ->  solve_var_forall_(Goal1, M, Origin, Parents, ProvedIn, ProvedOut,
+    ->  solve_var_forall_(Goal1, M, Parents, ProvedIn, ProvedOut,
                           entry(Vars1, Initial_Const),
                           dual(Vars1, [Initial_Const]),
                           OtherVars, StackIn, StackOut, Model)
-    ;   solve_other_forall(Goal1, M, Origin, Parents, ProvedIn, ProvedOut,
+    ;   solve_other_forall(Goal1, M, Parents, ProvedIn, ProvedOut,
                            entry(Vars1, Initial_Const),
                            dual(Vars1, [Initial_Const]),
                            OtherVars, StackIn, StackOut, Model)
     ).
 
-solve_other_forall(Goal, M, Origin, Parents, ProvedIn, ProvedOutExit,
+solve_other_forall(Goal, M, Parents, ProvedIn, ProvedOutExit,
                    entry(Vars, Initial_Const),
                    dual(Vars, [Initial_Const]),
                    OtherVars, StackIn, StackOutExit, ModelExit) :-
@@ -804,7 +807,7 @@ solve_other_forall(Goal, M, Origin, Parents, ProvedIn, ProvedOutExit,
     apply_const_store(Constraints1),
     !,
 
-    solve_var_forall_(Goal1, M, Origin, Parents1, ProvedIn1, ProvedOut,
+    solve_var_forall_(Goal1, M, Parents1, ProvedIn1, ProvedOut,
                       entry(Vars1, Initial_Const),
                       dual(Vars1, [Initial_Const]), OtherVars1,
                       StackIn1, StackOut, Model),
@@ -822,14 +825,14 @@ solve_other_forall(Goal, M, Origin, Parents, ProvedIn, ProvedOutExit,
         make_duals(AnsConstraints2, Duals),
         member(Dual, Duals),
         apply_const_store(Dual),
-        solve_other_forall(Goal2, M, Origin, Parents2, ProvedIn2, ProvedOutExit,
+        solve_other_forall(Goal2, M, Parents2, ProvedIn2, ProvedOutExit,
                            entry(Vars2, Initial_Const),
                            dual(Vars2, [Initial_Const]),
                            OtherVars2, StackIn2, StackOutExit, ModelExit), !,
         OtherVars = OtherVars2
     ).
 
-%!  solve_var_forall_(+Goal, +Module, +Origin, +Parents, +ProvedIn, -ProvedOut,
+%!  solve_var_forall_(+Goal, +Module, +Parents, +ProvedIn, -ProvedOut,
 %!                    +Entry, +Duals, +OtherVars,
 %!                    +StackIn, -StackOut, -Model) is nondet.
 %
@@ -845,9 +848,9 @@ solve_other_forall(Goal, M, Origin, Parents, ProvedIn, ProvedOutExit,
 %   Note that the constraints on the   _forall variables_ are maintained
 %   explicitly.
 
-solve_var_forall_(_Goal, _M, _Origin, _Parents, Proved, Proved, _, dual(_, []),
+solve_var_forall_(_Goal, _M, _Parents, Proved, Proved, _, dual(_, []),
                   _OtherVars, StackIn, StackIn, []) :- !.
-solve_var_forall_(Goal, M, Origin, Parents, ProvedIn, ProvedOut,
+solve_var_forall_(Goal, M, Parents, ProvedIn, ProvedOut,
                   entry(C_Vars, Prev_Store),
                   dual(C_Vars, [C_St|C_Stores]),
                   OtherVars, StackIn, StackOut, Model) :-
@@ -864,11 +867,11 @@ solve_var_forall_(Goal, M, Origin, Parents, ProvedIn, ProvedOut,
     apply_const_store(Prev_Store),
     (   %verbose(format('apply_const_store ~@\n',[print_goal(C_St)])),
         apply_const_store(C_St) % apply a Dual
-    ->  solve([Goal], M, Origin, Parents, ProvedIn, ProvedOut1, StackIn, [[]|StackOut1], Model1),
+    ->  solve([Goal], M, Parents, ProvedIn, ProvedOut1, StackIn, [[]|StackOut1], Model1),
         find_duals(C_Vars, C_Vars1, OtherVars, Duals),       %% New Duals
         verbose(format('Duals = \t ~p\n',[Duals])),
         append_set(Prev_Store1, C_St1, Current_Store1),
-        solve_var_forall_(Goal1, M, Origin, Parents, ProvedOut1, ProvedOut2,
+        solve_var_forall_(Goal1, M, Parents, ProvedOut1, ProvedOut2,
                           entry(C_Vars1, Current_Store1),
                           dual(C_Vars1, Duals),
                           OtherVars, StackOut1, StackOut2, Model2),
@@ -880,7 +883,7 @@ solve_var_forall_(Goal, M, Origin, Parents, ProvedIn, ProvedOut,
         StackOut2 = StackIn,
         Model3 = []
     ),
-    solve_var_forall_(Goal2, M, Origin, Parents, ProvedOut2, ProvedOut,
+    solve_var_forall_(Goal2, M, Parents, ProvedOut2, ProvedOut,
                       entry(C_Vars2, Prev_Store2),
                       dual(C_Vars2, C_Stores2),
                       OtherVars, StackOut2, StackOut, Model4),
@@ -1071,5 +1074,5 @@ member_var(Vars, Var) :-
     Var == V,
     !.
 
-member_stack(Goal, Stack) :- member_stack(Goal, Stack, _).
-member_stack(Goal, Stack, Origin) :- member(goal_origin(Goal, Origin), Stack).
+member_stack(Goal, Stack) :- member(goal_origin(Goal, _), Stack).
+member_stack(Goal, Stack) :- member(Goal, Stack).

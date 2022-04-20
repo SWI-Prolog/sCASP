@@ -147,6 +147,11 @@ print_stack([[]|As],I) -->
     { I1 is I - 4 },
     print_stack(As, I1).
 print_stack([goal_origin(A, _)|As],I) -->
+    !,
+    ['~t~*|'-[I]], goal(A), [ nl ],
+    { I1 is I + 4 },
+    print_stack(As,I1).
+print_stack([A|As],I) -->
     ['~t~*|'-[I]], goal(A), [ nl ],
     { I1 is I + 4 },
     print_stack(As,I1).

@@ -126,6 +126,8 @@ print_check_stack([A|As],I) :-
 %   that we can compare traces created   using  ``scasp -v``. The second
 %   uses default notation for constraints.
 
+print_goal(goal_origin(Goal, _)) :- !,
+    print_goal(Goal).
 print_goal(Goal) :- !,
     ciao_goal(Goal, Ciao),
     print(Ciao).

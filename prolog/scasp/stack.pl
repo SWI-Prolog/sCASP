@@ -52,7 +52,7 @@
 
 justification_tree(M:Stack, M:JustificationTree, Options) :-
     reverse(Stack, RevStack),
-    stack_tree([goal_origin(query, query)|RevStack], Trees),
+    stack_tree([query|RevStack], Trees),
     filter_tree(Trees, M, [JustificationTree], Options).
 
 %!  stack_tree(+Stack, -Tree) is det.
@@ -91,7 +91,10 @@ stack_tree([H|Stack], Tree, T, Parents) =>
 %        Remove all not(_) nodes from the tree.
 
 filter_tree([],_,[], _).
-filter_tree([goal_origin(Term0,_)-Children|Cs], M, Tree, Options) :-
+filter_tree([goal_origin(Term,_)-Children|Cs], M, Tree, Options) :-
+    !,
+    filter_tree([Term-Children|Cs], M, Tree, Options).
+filter_tree([Term0-Children|Cs], M, Tree, Options) :-
     filter_pos(Term0, Options),
     raise_negation(Term0, Term),
     selected(Term, M), !,
