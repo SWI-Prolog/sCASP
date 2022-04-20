@@ -212,8 +212,8 @@ solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     user_predicate(M:Goal),
     !,
     (   solve_goal_predicate(Goal, M, Parents, ProvedIn, ProvedOut,
-                             [NewGoal|StackIn], StackOut, Model, NewOrigin)
-    *-> mkgoal(Goal, NewOrigin, NewGoal)
+                             StackIn, StackOut, Model)
+    *-> true
     ;   verbose(format(' FAIL~n')),
         shown_predicate(M:Goal),
         scasp_trace(scasp_trace_failures,
@@ -371,14 +371,15 @@ solve_goal_table_predicate(Goal, M, Parents, ProvedIn, ProvedOut, AttStackIn, At
 
 %!  solve_goal_predicate(+Goal, +Module,
 %!                       +Parents, +ProvedIn, -ProvedOut, +StackIn, -StackOut,
-%!                       -Model, -Origin)
+%!                       -Model)
 %
 %   Used to evaluate a user predicate
 
 solve_goal_predicate(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut,
-                     GoalModel, Origin) :-
+                     GoalModel) :-
     M:pr_rule(Goal, Body, Origin),
-    solve(Body, M, Parents, ProvedIn, ProvedMid, StackIn, StackOut, BodyModel),
+    mkgoal(Goal, Origin, StackGoal),
+    solve(Body, M, Parents, ProvedIn, ProvedMid, [StackGoal|StackIn], StackOut, BodyModel),
     add_proved(Goal, ProvedMid, ProvedOut),
     GoalModel = [Goal|BodyModel].
 

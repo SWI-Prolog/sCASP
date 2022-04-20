@@ -356,7 +356,7 @@ assert_rule_(Rule, Origin) :-
     predicate(H2, H, _), % get the head without args
     assertz(defined_rule(H, H2, B, Origin)).
 
-rule_origin(source(Ref, Rule), source(Ref), Rule).
+rule_origin(source(Ref, Rule), Ref, Rule).
 rule_origin(neg(Rule), generated(neg), Rule).
 rule_origin(nmr(Rule), generated(nmr), Rule).
 rule_origin(dual(Rule), generated(dual), Rule).
