@@ -193,6 +193,10 @@ add_statements(New, Tail, [New|Tail]).
 
 :- det(sasp_statement/5).
 
+sasp_statement(source(Ref, Term), VarNames, source(Ref, SASP), Pos, Options) :-
+    blob(Ref, clause),
+    !,
+    sasp_statement_(Term, VarNames, SASP, Pos, [source(Ref)|Options]).
 sasp_statement(source(Path, Term), VarNames, source(Ref, SASP), Pos, Options) :-
     !,
     assert_sasp_source_reference(Path, Pos, Ref),
