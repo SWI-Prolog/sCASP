@@ -27,6 +27,6 @@ minus(X1, [X2|R], P, F) :-
 append([], X, X).
 append([U|X], Y, [U|Z]) :- append(X,Y,Z). 
 
-%?- subset(X, [1,2,3]).
+?- subset(X, [1,2,3]).
 
-?- superset([1,2], L). 
+%?- superset([1,2], L). 
