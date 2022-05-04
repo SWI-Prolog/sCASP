@@ -83,6 +83,7 @@ justification_tree(Tree, Options) -->
       option(module(M), Options),
       human_expression(M:Tree, Children, Actions)
     },
+    !,
     (   {Children == []}
     ->  emit(li([ div(class(node),
                       [ \human_atom(Tree, Actions, Options),
@@ -144,6 +145,7 @@ normal_justification_tree(Term-Children, Options) -->
             ])).
 
 justification_tree_children([A,B|Rs], Options) -->
+    !,
     justification_tree(A, [connect(and)|Options]),
     justification_tree_children([B|Rs], Options).
 justification_tree_children([A], Options) -->
