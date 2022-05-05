@@ -348,8 +348,6 @@ prolog_cover:report_hook(Succeeded, Failed) :-
     append(STagged, FTagged, Tagged),
     sort(1, =<, Tagged, Which),       % Sort by line
     length(Which, N),
-    format("\nFile ~w covers ~d clauses\n", [Test, N]),
-    format("~n~`=t~78|~n", []),
     assertz(covers(Test, N, Which)).
 
 tag_clause(Module, File, Symbol, Clause, cov(Line, Symbol, PI)) :-
@@ -365,7 +363,8 @@ covering_clauses(Options) :-
     files_list(MinimalSetFiles, Files),
     sep_line,
     format("Running tests on this lot\n"),
-    run_tests(Files, Options),
+    select_option(cov_by_test(_), Options, Options1, false),
+    run_tests(Files, Options1),
     sep_line,
     format("List of Clauses \nClause ~`.t State~72|~n", []),
     covered_clauses(CoveredClauses),
