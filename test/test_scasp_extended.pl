@@ -10,7 +10,7 @@
 :- use_module(library(option)).
 :- use_module(library(test_cover)).
 :- use_module(library(time)).
-:- use_module('./read_cov.pl'). 
+:- use_module('./read_cov.pl').
 
 scasp_dir(SCASPDir) :-
     source_file(scasp_dir(_), File),
@@ -38,12 +38,12 @@ user:file_search_path(library, scasp(prolog)).
 :- use_module(library(scasp/options)).
 :- use_module(library(scasp/messages)).
 :- use_module(diff).
-%:- include('clauses_solve.pl'). 
+%:- include('clauses_solve.pl').
 
 :- initialization(main, main).
 
 test_scasp :-
-    main([]). 
+    main([]).
 
 qtest_scasp :-
     findall(File, quick_test_file(_, File), Files),
@@ -106,7 +106,7 @@ opt_type(save,      save,      boolean).
 opt_type(overwrite, overwrite, boolean).
 opt_type(pass,      pass,      boolean).
 opt_type(cov,       cov,       file).
-%opt_type(target,    target,    file). 
+%opt_type(target,    target,    file).
 opt_type(Flag, Option, Type) :-
     scasp_opt_type(Flag, Option, Type).
 
@@ -172,14 +172,14 @@ run_test(File, Options) :-
     format("~w ~`.t ~45|", [Base]),
     flush_output,
     option(timeout(Time), Options, 60),
-    statistics(runtime, _), 
+    statistics(runtime, _),
     catch(call_with_time_limit(Time, scasp_test(File, Stacks-Models)),
-          Error, true), 
+          Error, true),
     %(   option(cov(Dir), Options)
-    %->  %option(target(Target), Options), 
+    %->  %option(target(Target), Options),
     %    atom_concat(Dir, '/solve.pl', FileToSave),
     %    atom_concat(FileToSave, '.cov', FileSaved),
-    %    format("Coverage focus on ~w\n", FileSaved) ), % now load that info  
+    %    format("Coverage focus on ~w\n", FileSaved) ), % now load that info
     statistics(runtime, [_,Used]),
     Result = Stacks-Models,
     pass_data(File, PassFile, PassResult),
@@ -307,92 +307,77 @@ dir_test_file(Dir, File) :-
 %
 %   Test a single file
 
-scasp_test(File, Trees-Models) :-  %format("File ~w \n", [File]), 
+scasp_test(File, Trees-Models) :-  %format("File ~w \n", [File]),
     scasp_load(File, [unknown(fail)]),
     scasp_query(Query, Bindings, []),
     findall(Pair, solve(Query, Bindings, Pair), Pairs),
-    pairs_keys_values(Pairs, Trees, Models). 
+    pairs_keys_values(Pairs, Trees, Models).
 
-solve(Query, Bindings, Tree-Model) :-  
+solve(Query, Bindings, Tree-Model) :-
     solve(Query, [], StackOut, ModelOut),
-    justification_tree(StackOut, Tree, []), 
-    %write("Tree:"), pp_tree(Tree),
+    justification_tree(StackOut, Tree, []),
     canonical_model(ModelOut, Model),
     All = t(Bindings, Model, Tree),
     ovar_set_bindings(Bindings),
     ovar_analyze_term(All),
     inline_constraints(All, []).
 
-pp_tree(M:Q-Tree) :- nl, write(M), write(':'), write(Q), write('--\n['), 
-    pp_tree(0, Tree), write('\n]--\n').
-
-pp_tree(N, []) :- 
-    NN is N + 1, 
-    indent(NN), write('[]').
-pp_tree(N, [Node-Children|RestNodes]) :- 
-    NN is N + 1, 
-    indent(NN), write(Node),
-    pp_tree(NN, Children),
-    pp_tree(N, RestNodes). 
-
-indent(N) :- I=N*10, swritef(S, '\n%r', [' ', I]), write(S).
-
-which_passed(File) :- 
+which_passed(File) :-
     (read_cov:clauseAt(_,_,_) -> retractall(read_cov:clauseAt(_,_,_)); true),
-    load_cover('./dir/solve.pl.cov'), 
+    load_cover('./dir/solve.pl.cov'),
     setof((Line, Type, Pred), (read_cov:clauseAt(Line, Type, Pred), Type\='#'), Which),
-    length(Which, N), 
+    length(Which, N),
     format("\nFile ~w covers ~d clauses\n", [File, N]),
-    format("\n==============================================================================\n", []), 
-    assertz(covers(File, N, Which)).  
+    format("\n==============================================================================\n", []),
+    assertz(covers(File, N, Which)).
 
 covering_clauses(Options) :-
-    minimal_set_of_files(CoveredClauses, MinimalSetFiles), 
+    minimal_set_of_files(CoveredClauses, MinimalSetFiles),
     retractall(covers(_,_,_)),
-    format("\n==============================================================================\n", []),  
+    format("\n==============================================================================\n", []),
     format("Minimal Set of Files to obtain this coverage\n"),
-    files_list(MinimalSetFiles, Files), 
-    format("\n==============================================================================\n", []), 
-    format("Running tests on this lot\n"), 
-    run_tests(Files, Options), 
+    files_list(MinimalSetFiles, Files),
+    format("\n==============================================================================\n", []),
+    format("Running tests on this lot\n"),
+    run_tests(Files, Options),
     (read_cov:clauseAt(_,_,_) -> retractall(read_cov:clauseAt(_,_,_)); true),
-    load_cover('./dir/solve.pl.cov'), 
+    load_cover('./dir/solve.pl.cov'),
     findall((L,T,P), read_cov:clauseAt(L, T, P), AllClauses),
-    format("\n==============================================================================\n", []),      
-    format("List of Clauses \nClause ~46t State~72|~n", []),  
+    format("\n==============================================================================\n", []),
+    format("List of Clauses \nClause ~46t State~72|~n", []),
     covered_clauses(AllClauses, CoveredClauses),
-    %length(AllClauses, AllN), 
+    %length(AllClauses, AllN),
     %length(CoveredClauses, CN),
-    %format("\n ~d clauses covered out of ~d. End of report\n", [CN, AllN]). 
-    format("\nEnd of the report\n", []).  
+    %format("\n ~d clauses covered out of ~d. End of report\n", [CN, AllN]).
+    format("\nEnd of the report\n", []).
 
 files_list([], []).
 files_list([(N,File)|Rest], [File|RRest]) :-
-	format("~d ~46t ~w~72|~n", [N,File]), 
-	files_list(Rest, RRest). 
-	
-covered_clauses([], _). 
-covered_clauses([(L,T,P)|RestC], Covered ) :- 
-	(  (member((L,T,P), Covered), T == '+')   
-    -> Message = 'COVERED' 
-    ;   (member((L,T,P), Covered), T == '-')   
-        ->  Message = 'NEG COVERED' 
-        ;   Message = 'NO'  ),    
-	format("~q ~46t ~w~72|~n", [(L,P), Message]), 
-	covered_clauses(RestC, Covered). 
+	format("~d ~46t ~w~72|~n", [N,File]),
+	files_list(Rest, RRest).
+
+covered_clauses([], _).
+covered_clauses([(L,T,P)|RestC], Covered ) :-
+	(  (member((L,T,P), Covered), T == '+')
+    -> Message = 'COVERED'
+    ;   (member((L,T,P), Covered), T == '-')
+        ->  Message = 'NEG COVERED'
+        ;   Message = 'NO'  ),
+	format("~q ~46t ~w~72|~n", [(L,P), Message]),
+	covered_clauses(RestC, Covered).
 
 minimal_set_of_files(SetOfClauses, Minimal) :-
     findall((N,File,Which), covers(File, N, Which), Covering),
     sort(0, @>, Covering, Ordered),
-    %format("Ordered: ~q\n", [Ordered]), 
+    %format("Ordered: ~q\n", [Ordered]),
     Ordered = [(N0, F0, S0)|RestF],
     grow_minimal_set(RestF, S0, [(N0,F0)], SClausesCovered, Minimal ),
-    list_to_set(SClausesCovered, SetOfClauses). 
+    list_to_set(SClausesCovered, SetOfClauses).
 
-grow_minimal_set([], S, F, S, F). 
+grow_minimal_set([], S, F, S, F).
 grow_minimal_set([(N1, F1, S1)|RestF], InClauses, InFiles, OutClauses, OutFiles) :-
-    ( subset(S1, InClauses) -> 
-        NextClauses = InClauses, NextFiles = InFiles  
-    ;   append(InClauses, S1, NextClauses), NextFiles = [(N1,F1)|InFiles] ),  
-    grow_minimal_set(RestF, NextClauses, NextFiles, OutClauses, OutFiles). 
+    ( subset(S1, InClauses) ->
+        NextClauses = InClauses, NextFiles = InFiles
+    ;   append(InClauses, S1, NextClauses), NextFiles = [(N1,F1)|InFiles] ),
+    grow_minimal_set(RestF, NextClauses, NextFiles, OutClauses, OutFiles).
 
