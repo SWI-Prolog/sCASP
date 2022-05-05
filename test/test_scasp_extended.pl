@@ -304,10 +304,7 @@ dir_test_file(Dir, File) :-
 scasp_test(File, Result, Options) :-
     option(cov_by_test(true), Options),
     !,
-    setup_call_cleanup(
-        asserta(scasp_current_test(File), Ref),
-        show_coverage(scasp_test(File, Result), []),
-        erase(Ref)).
+    collect_coverage(scasp_test(File, Result), File).
 scasp_test(File, Result, _Options) :-
     scasp_test(File, Result).
 
@@ -330,42 +327,48 @@ solve(Query, Bindings, Tree-Model) :-
 		 *        COVERAGE BY FILE	*
 		 *******************************/
 
+:- meta_predicate
+    collect_coverage(0, +).
+
+collect_coverage(Goal, Test) :-
+    setup_call_cleanup(
+        asserta(scasp_current_test(Test), Ref),
+        show_coverage(Goal, []),
+        erase(Ref)).
+
 :- multifile
     prolog_cover:report_hook/2.
 
 prolog_cover:report_hook(Succeeded, Failed) :-
     scasp_current_test(Test),
-    module_property(scasp_solve, file(Target)),
-    convlist(tag_clause(Target, +), Succeeded, STagged),
-    convlist(tag_clause(Target, -), Failed,    FTagged),
+    Module = scasp_solve,
+    module_property(Module, file(Target)),
+    convlist(tag_clause(Module, Target, +), Succeeded, STagged),
+    convlist(tag_clause(Module, Target, -), Failed,    FTagged),
     append(STagged, FTagged, Tagged),
-    sort(1, >=, Tagged, Which),       % Sort by line
+    sort(1, =<, Tagged, Which),       % Sort by line
     length(Which, N),
-    format("\nFile ~w covers ~d clauses\n", [Target, N]),
+    format("\nFile ~w covers ~d clauses\n", [Test, N]),
     format("~n~`=t~78|~n", []),
     assertz(covers(Test, N, Which)).
 
-tag_clause(File, Symbol, Clause, cov(Line, Symbol, PI)) :-
+tag_clause(Module, File, Symbol, Clause, cov(Line, Symbol, PI)) :-
     clause_property(Clause, file(File)),
     clause_property(Clause, line_count(Line)),
-    clause_property(Clause, predicate(PI)).
+    clause_property(Clause, predicate(Module:PI)).
 
 covering_clauses(Options) :-
     minimal_set_of_files(CoveredClauses, MinimalSetFiles),
     retractall(covers(_,_,_)),
     sep_line,
     format("Minimal Set of Files to obtain this coverage\n"),
-gtrace,
     files_list(MinimalSetFiles, Files),
     sep_line,
     format("Running tests on this lot\n"),
     run_tests(Files, Options),
-    (read_cov:clauseAt(_,_,_) -> retractall(read_cov:clauseAt(_,_,_)); true),
-    load_cover('./dir/solve.pl.cov'),
-    findall((L,T,P), read_cov:clauseAt(L, T, P), AllClauses),
     sep_line,
     format("List of Clauses \nClause ~`.t State~72|~n", []),
-    covered_clauses(AllClauses, CoveredClauses),
+    covered_clauses(CoveredClauses),
     format("\nEnd of the report\n", []).
 
 sep_line :-
@@ -376,15 +379,28 @@ files_list([(N,File)|Rest], [File|RRest]) :-
     format("~d ~46t ~w~72|~n", [N,File]),
     files_list(Rest, RRest).
 
+covered_clauses(CoveredClauses) :-
+    findall(CIF, clause_in_module(scasp_solve, CIF), CIFs),
+    sort(1, =<, CIFs, OCIFs),
+    covered_clauses(OCIFs, CoveredClauses).
+
+clause_in_module(Module, cif(Line, PI)) :-
+    module_property(Module, file(File)),
+    prolog_cover:clause_source(Clause, File, Line),
+    clause_property(Clause, predicate(Module:PI)),
+    \+ ( PI = (Name/_Arity),
+         sub_atom(Name, 0, _, _, $)
+       ).
+
 covered_clauses([], _).
-covered_clauses([(L,T,P)|RestC], Covered ) :-
-    (   member((L,+,P), Covered)
+covered_clauses([cif(L, P)|RestC], Covered) :-
+    (   memberchk(cov(L,+,P), Covered)
     ->  Message = 'COVERED'
-    ;   member((L,-,P), Covered)
+    ;   memberchk(cov(L,-,P), Covered)
     ->  Message = 'NEG COVERED'
     ;   Message = 'NO'
     ),
-    format("~q ~46t ~w~72|~n", [(L,P), Message]),
+    format("~t~d~4| ~q ~46t ~w~72|~n", [L, P, Message]),
     covered_clauses(RestC, Covered).
 
 minimal_set_of_files(SetOfClauses, Minimal) :-
