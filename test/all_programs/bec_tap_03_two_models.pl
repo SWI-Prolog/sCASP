@@ -1,7 +1,7 @@
 
 
 %% Include the BASIC EVENT CALCULUS THEORY
-#include  '../bec_theory'.
+#include  'bec_theory.incl'.
 
 % The domain comprises a TapOn event, which initiates a flow of liquid
 % into the vessel.  The fluent Filling holds while water is flowing
@@ -62,7 +62,7 @@ trajectory(spilling,T1,leak(X),T2) :-
 % The next formulae ensures the Overflow event is triggered when it
 % should be.
 
-happens(overflow,T).                            
+happens(overflow,T).
 
 % Here’s a simple narrative. The level is initially 0, and the tap is
 % turned on at time 5.
@@ -80,10 +80,10 @@ happens(tapOff,20).         %% Option A - the tap is on 15 seconds ->
 
 % ?- holdsAt(level(H),15/2).   % From paper
 ?- holdsAt(level(5/2), T).  % From paper
-% ?- holdsAt(level(7),T).   % -> T = 12s / 12s "            
-% ?- holdsAt(level(12),T).  % -> no      / 17s "           
-% ?- holdsAt(spilling,T).   % -> T > 15s / no  "            
-% ?- holdsAt(leak(L),13).   % -> no      / no  "                    
-% ?- holdsAt(leak(L),16).   % -> L = 1   / no  "                    
+% ?- holdsAt(level(7),T).   % -> T = 12s / 12s "
+% ?- holdsAt(level(12),T).  % -> no      / 17s "
+% ?- holdsAt(spilling,T).   % -> T > 15s / no  "
+% ?- holdsAt(leak(L),13).   % -> no      / no  "
+% ?- holdsAt(leak(L),16).   % -> L = 1   / no  "
 % ?- holdsAt(level(H),19), max_level(Max).   %  ->  H = overlimit, Max = 10 / H = 14, Max = 16"
 

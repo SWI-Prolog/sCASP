@@ -1,9 +1,9 @@
 % Basic Event Calculus
 
 %% Include the BASIC EVENT CALCULUS THEORY
-#include '../bec_theory.pl'.
+#include '../all_programs/bec_theory.incl'.
 
-is_1_day_after(B, A) :- B #= A + 1. 
+is_1_day_after(B, A) :- B #= A + 1.
 
 %% based on the loan agreement example in Logical English
 initiates(ends(A), it_is(B), _) :-
