@@ -83,7 +83,6 @@ quick_test(hanoi).
 %     | --pass         | Overwrite .pass after we failed     |
 %     | --cov[=Dir]    | Dump coverage data in Dir (`cov`)   |
 %     | --cov-by-test  | Get coverage informatuion by test   |
-%     | --target=File  | Coverage report for File            |
 %
 %   Default runs tests from `../test`
 
@@ -180,11 +179,11 @@ run_test(File, Options) :-
     ),
     (   nonvar(Error)
     ->  message_to_string(Error, Msg),
-        format("ERROR: ~s ~|~t~d ms~8+\n", [Msg,Used]),
+        format("ERROR: ~s ~|~t~d ms~8+~n", [Msg,Used]),
         fail
     ;   var(PassStacks)
     ->  length(Models, ModelCount),
-        format("~D models ~|~t~d ms~8+\n", [ModelCount,Used]),
+        format("~|~t~D models~9+~t~d ms~8+~n", [ModelCount,Used]),
         (   option(save(true), Options)
         ->  save_test_data(PassFile, Result)
         ;   true
@@ -346,7 +345,7 @@ prolog_cover:report_hook(Succeeded, Failed) :-
     convlist(tag_clause(Module, Target, +), Succeeded, STagged),
     convlist(tag_clause(Module, Target, -), Failed,    FTagged),
     append(STagged, FTagged, Tagged),
-    sort(1, =<, Tagged, Which),       % Sort by line
+    sort(Tagged, Which),                % Sort by line
     length(Which, N),
     assertz(covers(Test, N, Which)).
 
@@ -356,12 +355,15 @@ tag_clause(Module, File, Symbol, Clause, cov(Line, Symbol, PI)) :-
     clause_property(Clause, predicate(Module:PI)).
 
 covering_clauses(Options) :-
-    minimal_set_of_files(CoveredClauses, MinimalSetFiles),
+    minimal_set_of_files(CoveredClauses, CoverContributions),
     retractall(covers(_,_,_)),
     sep_line,
-    format("Minimal Set of Files to obtain this coverage\n"),
-    files_list(MinimalSetFiles, Files),
+    format("Coverage contribution by file\n"),
+    format("~w ~`.t ~w~66| ~t~w~72|~n", ['File','Covers','New']),
+    maplist(list_contribution, CoverContributions),
     sep_line,
+    include(contributes, CoverContributions, MinimalSetFiles),
+    maplist(arg(1), MinimalSetFiles, Files),
     format("Running tests on this lot\n"),
     select_option(cov_by_test(_), Options, Options1, false),
     run_tests(Files, Options1),
@@ -373,10 +375,14 @@ covering_clauses(Options) :-
 sep_line :-
     format("~n~`=t~78|~n", []).
 
-files_list([], []).
-files_list([(N,File)|Rest], [File|RRest]) :-
-    format("~d ~46t ~w~72|~n", [N,File]),
-    files_list(Rest, RRest).
+contributes(test(_File,_Covers,New)) :- New > 0.
+
+list_contribution(test(File,Covers,New)) :-
+    contrib_style(New, Style),
+    ansi_format(Style, "~w ~`.t ~d~66| ~t~d~72|~n", [File,Covers,New]).
+
+contrib_style(0, fg(127,127,127)) :- !.
+contrib_style(_, []).
 
 covered_clauses(CoveredClauses) :-
     findall(CIF, clause_in_module(scasp_solve, CIF), CIFs),
@@ -402,18 +408,22 @@ covered_clauses([cif(L, P)|RestC], Covered) :-
     format("~t~d~4| ~q ~46t ~w~72|~n", [L, P, Message]),
     covered_clauses(RestC, Covered).
 
-minimal_set_of_files(SetOfClauses, Minimal) :-
-    findall((N,File,Which), covers(File, N, Which), Covering),
-    sort(0, @>, Covering, Ordered),
-    Ordered = [(N0, F0, S0)|RestF],
-    grow_minimal_set(RestF, S0, [(N0,F0)], SClausesCovered, Minimal),
-    list_to_set(SClausesCovered, SetOfClauses).
+%!  minimal_set_of_files(-SetOfClauses, -Minimal) is det.
+%
+%   @arg SetOfClauses is a set of cov(Line,Symbol,PI)
+%   @arg Minimal is a list of test(File,CoveredCount,NewCoveredCount)
 
-grow_minimal_set([], S, F, S, F).
-grow_minimal_set([(N1,F1,S1)|RestF], InClauses, InFiles, OutClauses, OutFiles) :-
-    (   subset(S1, InClauses)
-    ->  NextClauses = InClauses, NextFiles = InFiles
-    ;   append(InClauses, S1, NextClauses), NextFiles = [(N1,F1)|InFiles]
-    ),
-    grow_minimal_set(RestF, NextClauses, NextFiles, OutClauses, OutFiles).
+minimal_set_of_files(SetOfClauses, [test(F0,N0,N0)|CFiles]) :-
+    findall(t(N,File,Which), covers(File, N, Which), Covering),
+    sort(Covering, [t(N0, F0, S0)|RestF]),
+    grow_minimal_set(RestF, CFiles, S0, SClausesCovered),
+    sort(SClausesCovered, SetOfClauses).
+
+grow_minimal_set([], [], S, S).
+grow_minimal_set([t(N1,F1,S1)|RestF], [test(F1,N1,NewCount)|CFiles],
+                 Clauses0, Clauses) :-
+    ord_subtract(S1, Clauses0, New),
+    length(New, NewCount),
+    ord_union(S1, Clauses0, Clauses1),
+    grow_minimal_set(RestF, CFiles, Clauses1, Clauses).
 
