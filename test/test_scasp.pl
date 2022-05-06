@@ -81,6 +81,7 @@ quick_test(hanoi).
 %     | --overwrite    | Overwrite .pass after we passed     |
 %     | --pass         | Overwrite .pass after we failed     |
 %     | --cov[=Dir]    | Dump coverage data in Dir (`cov`)   |
+%     | --cov-by-test  | Get coverage informatuion by test   |
 %
 %   Default runs tests from `../test`
 
@@ -92,24 +93,30 @@ main(Argv) :-
     (   option(cov(Dir), Options)
     ->  show_coverage(run_tests(Files, Options),
                       [ dir(Dir) ])
-    ;   run_tests(Files, Options)
+    ;   run_tests(Files, Options),
+        (   option(cov_by_test(true), Options)
+        ->  covering_clauses(Options)
+        ;   true
+        )
     ).
 
-opt_type(q,         quick,     boolean).
-opt_type(timeout,   timeout,   number).
-opt_type(save,      save,      boolean).
-opt_type(overwrite, overwrite, boolean).
-opt_type(pass,      pass,      boolean).
-opt_type(cov,       cov,       file).
+opt_type(q,           quick,       boolean).
+opt_type(timeout,     timeout,     number).
+opt_type(save,        save,        boolean).
+opt_type(overwrite,   overwrite,   boolean).
+opt_type(pass,        pass,        boolean).
+opt_type(cov,         cov,         file).
+opt_type(cov_by_test, cov_by_test, boolean).
 opt_type(Flag, Option, Type) :-
     scasp_opt_type(Flag, Option, Type).
 
-opt_help(quick,     "Only run fast tests").
-opt_help(timeout,   "Timeout per test in seconds").
-opt_help(save,      "Save pass data if not yet present").
-opt_help(overwrite, "Save pass data if test passed").
-opt_help(pass,      "Save pass data if test failed").
-opt_help(cov,       "Write coverage data").
+opt_help(quick,       "Only run fast tests").
+opt_help(timeout,     "Timeout per test in seconds").
+opt_help(save,        "Save pass data if not yet present").
+opt_help(overwrite,   "Save pass data if test passed").
+opt_help(pass,        "Save pass data if test failed").
+opt_help(cov,         "Write coverage data").
+opt_help(cov_by_test, "Analyse coverage by test and compare").
 opt_help(Option, Help) :-
     scasp_opt_help(Option, Help).
 
@@ -158,7 +165,9 @@ run_test(File, Options) :-
     flush_output,
     option(timeout(Time), Options, 60),
     statistics(runtime, _),
-    catch(call_with_time_limit(Time, scasp_test(File, Stacks-Models)),
+    catch(call_with_time_limit(
+              Time,
+              scasp_test(File, Stacks-Models, Options)),
           Error, true),
     statistics(runtime, [_,Used]),
     Result = Stacks-Models,
@@ -169,11 +178,11 @@ run_test(File, Options) :-
     ),
     (   nonvar(Error)
     ->  message_to_string(Error, Msg),
-        format("ERROR: ~s ~|~t~d ms~8+\n", [Msg,Used]),
+        format("ERROR: ~s ~|~t~d ms~8+~n", [Msg,Used]),
         fail
     ;   var(PassStacks)
     ->  length(Models, ModelCount),
-        format("~D models ~|~t~d ms~8+\n", [ModelCount,Used]),
+        format("~|~t~D models~9+~t~d ms~8+~n", [ModelCount,Used]),
         (   option(save(true), Options)
         ->  save_test_data(PassFile, Result)
         ;   true
@@ -283,9 +292,19 @@ dir_test_file(Dir, File) :-
     member(File, Files).
 
 
-%!  scasp_test(+File, -StackModelPairs) is det.
+%!  scasp_test(+File, -StackModelPairs, +Options) is det.
 %
 %   Test a single file
+
+:- dynamic
+    scasp_current_test/1.
+
+scasp_test(File, Result, Options) :-
+    option(cov_by_test(true), Options),
+    !,
+    collect_coverage(scasp_test(File, Result), File).
+scasp_test(File, Result, _Options) :-
+    scasp_test(File, Result).
 
 scasp_test(File, Trees-Models) :-
     scasp_load(File, [unknown(fail)]),
@@ -301,3 +320,111 @@ solve(Query, Bindings, Tree-Model) :-
     ovar_set_bindings(Bindings),
     ovar_analyze_term(All),
     inline_constraints(All, []).
+
+		 /*******************************
+		 *        COVERAGE BY FILE	*
+		 *******************************/
+
+:- dynamic covers/3.
+
+:- meta_predicate
+    collect_coverage(0, +).
+
+collect_coverage(Goal, Test) :-
+    setup_call_cleanup(
+        asserta(scasp_current_test(Test), Ref),
+        show_coverage(Goal, []),
+        erase(Ref)).
+
+:- multifile
+    prolog_cover:report_hook/2.
+
+prolog_cover:report_hook(Succeeded, Failed) :-
+    scasp_current_test(Test),
+    Module = scasp_solve,
+    module_property(Module, file(Target)),
+    convlist(tag_clause(Module, Target, +), Succeeded, STagged),
+    convlist(tag_clause(Module, Target, -), Failed,    FTagged),
+    append(STagged, FTagged, Tagged),
+    sort(Tagged, Which),                % Sort by line
+    length(Which, N),
+    assertz(covers(Test, N, Which)).
+
+tag_clause(Module, File, Symbol, Clause, cov(Line, Symbol, PI)) :-
+    clause_property(Clause, file(File)),
+    clause_property(Clause, line_count(Line)),
+    clause_property(Clause, predicate(Module:PI)).
+
+covering_clauses(Options) :-
+    minimal_set_of_files(CoveredClauses, CoverContributions),
+    retractall(covers(_,_,_)),
+    sep_line,
+    format("Coverage contribution by file\n"),
+    format("~w ~`.t ~w~66| ~t~w~72|~n", ['File','Covers','New']),
+    maplist(list_contribution, CoverContributions),
+    sep_line,
+    include(contributes, CoverContributions, MinimalSetFiles),
+    maplist(arg(1), MinimalSetFiles, Files),
+    format("Running tests on this lot\n"),
+    select_option(cov_by_test(_), Options, Options1, false),
+    run_tests(Files, Options1),
+    sep_line,
+    format("List of Clauses \nClause ~`.t State~72|~n", []),
+    covered_clauses(CoveredClauses),
+    format("\nEnd of the report\n", []).
+
+sep_line :-
+    format("~n~`=t~78|~n", []).
+
+contributes(test(_File,_Covers,New)) :- New > 0.
+
+list_contribution(test(File,Covers,New)) :-
+    contrib_style(New, Style),
+    ansi_format(Style, "~w ~`.t ~d~66| ~t~d~72|~n", [File,Covers,New]).
+
+contrib_style(0, fg(127,127,127)) :- !.
+contrib_style(_, []).
+
+covered_clauses(CoveredClauses) :-
+    findall(CIF, clause_in_module(scasp_solve, CIF), CIFs),
+    sort(1, =<, CIFs, OCIFs),
+    covered_clauses(OCIFs, CoveredClauses).
+
+clause_in_module(Module, cif(Line, PI)) :-
+    module_property(Module, file(File)),
+    prolog_cover:clause_source(Clause, File, Line),
+    clause_property(Clause, predicate(Module:PI)),
+    \+ ( PI = (Name/_Arity),
+         sub_atom(Name, 0, _, _, $)
+       ).
+
+covered_clauses([], _).
+covered_clauses([cif(L, P)|RestC], Covered) :-
+    (   memberchk(cov(L,+,P), Covered)
+    ->  Message = 'COVERED'
+    ;   memberchk(cov(L,-,P), Covered)
+    ->  Message = 'NEG COVERED'
+    ;   Message = 'NO'
+    ),
+    format("~t~d~4| ~q ~46t ~w~72|~n", [L, P, Message]),
+    covered_clauses(RestC, Covered).
+
+%!  minimal_set_of_files(-SetOfClauses, -Minimal) is det.
+%
+%   @arg SetOfClauses is a set of cov(Line,Symbol,PI)
+%   @arg Minimal is a list of test(File,CoveredCount,NewCoveredCount)
+
+minimal_set_of_files(SetOfClauses, [test(F0,N0,N0)|CFiles]) :-
+    findall(t(N,File,Which), covers(File, N, Which), Covering),
+    sort(Covering, [t(N0, F0, S0)|RestF]),
+    grow_minimal_set(RestF, CFiles, S0, SClausesCovered),
+    sort(SClausesCovered, SetOfClauses).
+
+grow_minimal_set([], [], S, S).
+grow_minimal_set([t(N1,F1,S1)|RestF], [test(F1,N1,NewCount)|CFiles],
+                 Clauses0, Clauses) :-
+    ord_subtract(S1, Clauses0, New),
+    length(New, NewCount),
+    ord_union(S1, Clauses0, Clauses1),
+    grow_minimal_set(RestF, CFiles, Clauses1, Clauses).
+
