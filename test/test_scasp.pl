@@ -67,6 +67,8 @@ quick_test(hamcycle).
 quick_test(hamcycle_two).
 quick_test(hanoi).
 
+:- dynamic cov_module/1.
+cov_module(scasp_solve).
 
 %!  main(+Argv)
 %
@@ -82,13 +84,15 @@ quick_test(hanoi).
 %     | --overwrite    | Overwrite .pass after we passed       |
 %     | --pass         | Overwrite .pass after we failed       |
 %     | --cov=Dir      | Dump coverage data in Dir             |
-%     | --cov-by-test  | Get coverage informatuion by test     |
+%     | --cov-by-test  | Get coverage information by test      |
+%     | --cov-module=M | Module to analyse for --cov-by-test   |
 
 main(Argv) :-
     set_prolog_flag(encoding, utf8),
     argv_options(Argv, Positional, Options),
     test_files(Positional, Files, Options),
     scasp_set_options(Options),
+    maplist(set_option, Options),
     (   option(cov(Dir), Options)
     ->  show_coverage(run_tests(Files, Options),
                       [ dir(Dir) ])
@@ -107,6 +111,7 @@ opt_type(overwrite,   overwrite,   boolean).
 opt_type(pass,        pass,        boolean).
 opt_type(cov,         cov,         file).
 opt_type(cov_by_test, cov_by_test, boolean).
+opt_type(cov_module,  cov_module,  atom).
 opt_type(Flag, Option, Type) :-
     scasp_opt_type(Flag, Option, Type).
 
@@ -118,13 +123,26 @@ opt_help(overwrite,   "Save pass data if test passed").
 opt_help(pass,        "Save pass data if test failed").
 opt_help(cov,         "Write coverage data").
 opt_help(cov_by_test, "Analyse coverage by test and compare").
+opt_help(cov_module,  "Module to for --cov-by-test analysis").
 opt_help(Option, Help) :-
     scasp_opt_help(Option, Help).
 
-opt_meta(cov,     'DIRECTORY').
-opt_meta(timeout, 'SECONDS').
+opt_meta(cov,        'DIRECTORY').
+opt_meta(timeout,    'SECONDS').
+opt_meta(cov_module, 'MODULE').
 opt_meta(Option, Meta) :-
     scasp_opt_meta(Option, Meta).
+
+set_option(cov_module(Module)) =>
+    retractall(cov_module(_)),
+    asserta(cov_module(Module)).
+set_option(_) =>
+    true.
+
+%!  run_tests(+Files, +Options)
+%
+%   Run the tests.  Return  to  the   toplevel  when  interactive,  else
+%   terminate the process using state 1 if tested failed.
 
 run_tests(Files, Options) :-
     run_tests(Files, Failed, Options),
@@ -350,7 +368,7 @@ collect_coverage(Goal, Test) :-
 
 prolog_cover:report_hook(Succeeded, Failed) :-
     scasp_current_test(Test),
-    Module = scasp_solve,
+    cov_module(Module),
     module_property(Module, file(Target)),
     convlist(tag_clause(Module, Target, +), Succeeded, STagged),
     convlist(tag_clause(Module, Target, -), Failed,    FTagged),
@@ -395,7 +413,8 @@ contrib_style(0, fg(127,127,127)) :- !.
 contrib_style(_, []).
 
 covered_clauses(CoveredClauses) :-
-    findall(CIF, clause_in_module(scasp_solve, CIF), CIFs),
+    cov_module(Module),
+    findall(CIF, clause_in_module(Module, CIF), CIFs),
     sort(1, =<, CIFs, OCIFs),
     covered_clauses(OCIFs, CoveredClauses).
 
