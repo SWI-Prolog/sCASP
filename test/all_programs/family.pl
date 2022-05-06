@@ -3,13 +3,15 @@
 % An unrelated program. As full server this is solved. Using the dynamic
 % calling we only consider  predicates  reachable   from  the  query and
 % global constraints whose call-tree overlaps with the query.
-test(X) :- not test2(X, Y).
-test(X).
+
+test1(X) :- not test2(X, Y).
+test1(X).
 test2(X, Y) :- (Y \= 1, not test3(X)).
 test2(X, 1) :- not test3(X).
-test3(X) :- not test(X).
+test3(X) :- not test1(X).
 
 % The family
+
 male(bob).
 male(bo).
 male(ben).

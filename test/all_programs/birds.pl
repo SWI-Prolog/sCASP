@@ -8,10 +8,11 @@ wounded_bird(john). % john is wounded
 #pred bird(X) :: '@(X) is a bird'.
 bird(tweety). % tweety is just a bird
 % penguines and wounded birds are still birds
-bird(X) :- penguin(X).
+bird(X) :- penguin(X,Y), s(C).
 bird(X) :- wounded_bird(X).
 
-#pred ab(X) :: '@(X:bird) is abnormal'.
+%% #pred ab(X) :: '@(X) is abnormal'.
+%% #pred not ab(X) :: '@(X) is not abnormal'.
 % penguins and wounded birds are abnormal
 ab(X) :- penguin(X).
 ab(X) :- wounded_bird(X).
