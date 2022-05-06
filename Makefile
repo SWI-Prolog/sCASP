@@ -1,14 +1,13 @@
 .PHONY: clean distclean
 
-# --no-pce is only supported in the latest git build.  Remove
-# when using an older version.  It only makes the program a
-# little larger.
 all:
 	swipl --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
 
+TEST_SCAP=swipl test/test_scasp.pl --passed
+
 check:
-	swipl test/test_scasp.pl test/programs test/programs/sasp
-	swipl test/test_scasp.pl --dcc test/programs/dcc
+	$(TEST_SCAP) test/all_programs test/all_programs/sasp
+	$(TEST_SCAP) --dcc test/all_programs/dcc
 
 ifneq ($(strip $(PREFIX)),)
 install:

@@ -74,16 +74,15 @@ quick_test(hanoi).
 %
 %   Options:
 %
-%     |----------------|-------------------------------------|
-%     | -q             | Only run the _quick_ tests          |
-%     | --timeout=Secs | Run tests with timeout (default 60) |
-%     | --save         | Save result if no .pass file exists |
-%     | --overwrite    | Overwrite .pass after we passed     |
-%     | --pass         | Overwrite .pass after we failed     |
-%     | --cov[=Dir]    | Dump coverage data in Dir (`cov`)   |
-%     | --cov-by-test  | Get coverage informatuion by test   |
-%
-%   Default runs tests from `../test`
+%     |----------------|---------------------------------------|
+%     | -q             | Only run the _quick_ tests            |
+%     | --timeout=Secs | Run tests with timeout (default 60)   |
+%     | --passed       | Only run tests that have a .pass file |
+%     | --save         | Save result if no .pass file exists   |
+%     | --overwrite    | Overwrite .pass after we passed       |
+%     | --pass         | Overwrite .pass after we failed       |
+%     | --cov=Dir      | Dump coverage data in Dir             |
+%     | --cov-by-test  | Get coverage informatuion by test     |
 
 main(Argv) :-
     set_prolog_flag(encoding, utf8),
@@ -102,6 +101,7 @@ main(Argv) :-
 
 opt_type(q,           quick,       boolean).
 opt_type(timeout,     timeout,     number).
+opt_type(passed,      passed,      boolean).
 opt_type(save,        save,        boolean).
 opt_type(overwrite,   overwrite,   boolean).
 opt_type(pass,        pass,        boolean).
@@ -110,6 +110,7 @@ opt_type(cov_by_test, cov_by_test, boolean).
 opt_type(Flag, Option, Type) :-
     scasp_opt_type(Flag, Option, Type).
 
+opt_help(passed,      "Only run tests that have a .pass file").
 opt_help(quick,       "Only run fast tests").
 opt_help(timeout,     "Timeout per test in seconds").
 opt_help(save,        "Save pass data if not yet present").
@@ -232,8 +233,7 @@ canonical_models(Models, CannModels) :-
 %!  pass_data(+TestFile, -PassFile, -PassData) is det.
 
 pass_data(File, PassFile, PassData) :-
-    file_name_extension(Base, _, File),
-    file_name_extension(Base, pass, PassFile),
+    pass_file(File, PassFile),
     (   exists_file(PassFile)
     ->  setup_call_cleanup(
             open(PassFile, read, In),
@@ -243,6 +243,10 @@ pass_data(File, PassFile, PassData) :-
             close(In))
     ;   true
     ).
+
+pass_file(File, PassFile) :-
+    file_name_extension(Base, _, File),
+    file_name_extension(Base, pass, PassFile).
 
 save_test_data(Into, Result) :-
     setup_call_cleanup(
@@ -261,35 +265,40 @@ test_files([], Files, Options) :-
     !,
     (   option(quick(true), Options)
     ->  findall(File, quick_test_file(_, File), Files)
-    ;   absolute_file_name(scasp(test/programs), Dir,
+    ;   absolute_file_name(scasp(test/all_programs), Dir,
                            [ file_type(directory),
                              access(read)
                            ]),
         test_files([Dir], Files, Options)
     ).
-test_files(Spec, Files, _Options) :-
-    phrase(test_files_(Spec), Files).
+test_files(Spec, Files, Options) :-
+    phrase(test_files_(Spec, Options), Files).
 
-test_files_([]) -->
+test_files_([], _) -->
     [].
-test_files_([Dir|T]) -->
+test_files_([Dir|T], Options) -->
     { exists_directory(Dir) },
     !,
-    findall(File, dir_test_file(Dir,File)),
-    test_files_(T).
-test_files_([File|T]) -->
+    findall(File, dir_test_file(Dir,File, Options)),
+    test_files_(T, Options).
+test_files_([File|T], Options) -->
     { exists_file(File) },
     !,
     [File],
-    test_files_(T).
-test_files_([H|T]) -->
+    test_files_(T, Options).
+test_files_([H|T], Options) -->
     { print_message(warning, error(existence_error(file, H),_)) },
-    test_files_(T).
+    test_files_(T, Options).
 
-dir_test_file(Dir, File) :-
+dir_test_file(Dir, File, Options) :-
     atom_concat(Dir, '/*.pl', Pattern),
     expand_file_name(Pattern, Files),
-    member(File, Files).
+    member(File, Files),
+    (   option(passed(true), Options)
+    ->  pass_file(File, PassFile),
+        exists_file(PassFile)
+    ;   true
+    ).
 
 
 %!  scasp_test(+File, -StackModelPairs, +Options) is det.
