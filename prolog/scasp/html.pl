@@ -125,6 +125,13 @@ normal_justification_tree(Term-[], Options) -->
                     \connect(Options)
                   ])
             ])).
+normal_justification_tree('abducible$'(Term)-_, Options) -->
+    !,
+    emit(li([ div(class(node),
+                  [ \tree_atom(abducible(Term), Options),
+                    \connect(Options)
+                  ])
+            ])).
 normal_justification_tree(o_nmr_check-_, Options) -->
     { option(justify_nmr(false), Options) },
     !.
@@ -376,6 +383,9 @@ atom(assume(Term), Options) -->
 atom(chs(Term), Options) -->
     !,
     utter(chs(Term), [class(chs)|Options]).
+atom(abducible(Term), Options) -->
+    !,
+    utter(abducible(Term), [class(abducible)|Options]).
 atom(M:Term, Options) -->
     { atom(M) },
     !,
@@ -431,6 +441,10 @@ utter(proved(Atom), Options) -->
     emit([', ', Text]).
 utter(chs(Atom), Options) -->
     { human_connector(chs, Text) },
+    emit([Text, ' ']),
+    atom(Atom, Options).
+utter(abducible(Atom), Options) -->
+    { human_connector(abducible, Text) },
     emit([Text, ' ']),
     atom(Atom, Options).
 utter(assume(Atom), Options) -->
