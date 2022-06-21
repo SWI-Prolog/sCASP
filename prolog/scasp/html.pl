@@ -127,11 +127,10 @@ normal_justification_tree(Term-[], Options) -->
             ])).
 normal_justification_tree('abducible$'(Term)-_, Options) -->
     !,
-    emit(li([ div(class(node),
-                  [ \tree_atom(abducible(Term), Options),
-                    \connect(Options)
-                  ])
-            ])).
+    abducible_just(Term, Options).
+normal_justification_tree(abducible(Term)-_, Options) -->
+    !,
+    abducible_just(Term, Options).
 normal_justification_tree(o_nmr_check-_, Options) -->
     { option(justify_nmr(false), Options) },
     !.
@@ -200,6 +199,13 @@ print_model_term_v(Atom, Options) :-
     \+ \+ ( inline_constraints(Atom, Options),
             print_model_term(Atom, Options)
           ).
+
+abducible_just(Term, Options) -->
+    emit(li([ div(class(node),
+                  [ \tree_atom(abducible(Term), Options),
+                    \connect(Options)
+                  ])
+            ])).
 
 
 %!  html_model(:Model, +Options)// is det.

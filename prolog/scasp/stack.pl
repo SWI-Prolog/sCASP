@@ -200,6 +200,9 @@ plain_output(Term-[], Options) :-
     Indent is D*3,
     nl_indent(Indent),
     term(Term, Options).
+plain_output(abducible(Term)-_, Options) :-
+    !,
+    plain_output(abducible(Term)-[], Options).
 plain_output(Term-Children, Options) :-
     !,
     select_option(depth(D), Options, Options1),
