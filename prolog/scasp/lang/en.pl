@@ -122,7 +122,7 @@ scasp_message(global_constraints_hold) -->
     [ 'The global constraints hold' ].
 scasp_message(global_constraint(N)) -->
     [ 'the global constraint number ', N, ' holds' ].
-scasp_message(abducible) --> [ 'it is abducible that' ].
+scasp_message(abducible) --> [ 'by abduction we conclude that' ].
 
 
 		 /*******************************
