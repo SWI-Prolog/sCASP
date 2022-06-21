@@ -99,6 +99,7 @@ model_wrapper(not).
 model_wrapper(chs).
 model_wrapper(proved).
 model_wrapper(assume).
+model_wrapper(abduced).
 
 %!  model_term_module(:Term, -Module) is det.
 

@@ -125,12 +125,6 @@ normal_justification_tree(Term-[], Options) -->
                     \connect(Options)
                   ])
             ])).
-normal_justification_tree('abducible$'(Term)-_, Options) -->
-    !,
-    abducible_just(Term, Options).
-normal_justification_tree(abducible(Term)-_, Options) -->
-    !,
-    abducible_just(Term, Options).
 normal_justification_tree(o_nmr_check-_, Options) -->
     { option(justify_nmr(false), Options) },
     !.
@@ -199,13 +193,6 @@ print_model_term_v(Atom, Options) :-
     \+ \+ ( inline_constraints(Atom, Options),
             print_model_term(Atom, Options)
           ).
-
-abducible_just(Term, Options) -->
-    emit(li([ div(class(node),
-                  [ \tree_atom(abducible(Term), Options),
-                    \connect(Options)
-                  ])
-            ])).
 
 
 %!  html_model(:Model, +Options)// is det.
@@ -389,9 +376,9 @@ atom(assume(Term), Options) -->
 atom(chs(Term), Options) -->
     !,
     utter(chs(Term), [class(chs)|Options]).
-atom(abducible(Term), Options) -->
+atom(abduced(Term), Options) -->
     !,
-    utter(abducible(Term), [class(abducible)|Options]).
+    utter(abduced(Term), [class(abducible)|Options]).
 atom(M:Term, Options) -->
     { atom(M) },
     !,
@@ -449,7 +436,7 @@ utter(chs(Atom), Options) -->
     { human_connector(chs, Text) },
     emit([Text, ' ']),
     atom(Atom, Options).
-utter(abducible(Atom), Options) -->
+utter(abduced(Atom), Options) -->
     { human_connector(abducible, Text) },
     emit([Text, ' ']),
     atom(Atom, Options).

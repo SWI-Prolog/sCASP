@@ -94,6 +94,12 @@ filter_tree([],_,[], _).
 filter_tree([goal_origin(Term,_)-Children|Cs], M, Tree, Options) :-
     !,
     filter_tree([Term-Children|Cs], M, Tree, Options).
+filter_tree([Abduced-_], _M, [abduced(Term)-[]], _Options) :-
+    Abduced =.. [F, Term],
+    (   sub_atom(F, _, _, 0, 'abducible$')
+    ;   F == abducible
+    ),
+    !.
 filter_tree([Term0-Children|Cs], M, Tree, Options) :-
     filter_pos(Term0, Options),
     raise_negation(Term0, Term),
@@ -200,9 +206,6 @@ plain_output(Term-[], Options) :-
     Indent is D*3,
     nl_indent(Indent),
     term(Term, Options).
-plain_output(abducible(Term)-_, Options) :-
-    !,
-    plain_output(abducible(Term)-[], Options).
 plain_output(Term-Children, Options) :-
     !,
     select_option(depth(D), Options, Options1),
