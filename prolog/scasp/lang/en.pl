@@ -107,6 +107,7 @@ scasp_message(assume)    --> ['we assume that'].
 scasp_message(holds)     --> [' holds'].
 scasp_message(holds_for) --> [' holds for '].
 scasp_message(not_in)    --> ['not'].
+scasp_message('\u2209'(_,_)) --> ['not'].
 scasp_message(neq)       --> ['not equal to'].
 scasp_message(_>_)       --> ['is greater than'].
 scasp_message(_>=_)      --> ['is greater than or equal to'].
