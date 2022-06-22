@@ -94,12 +94,13 @@ filter_tree([],_,[], _).
 filter_tree([goal_origin(Term,_)-Children|Cs], M, Tree, Options) :-
     !,
     filter_tree([Term-Children|Cs], M, Tree, Options).
-filter_tree([Abduced-_], _M, [abduced(Term)-[]], _Options) :-
-    Abduced =.. [F, Term],
+filter_tree([Term-[_,goal_origin(Abduced, _)-_]|Cs], M, [abduced(Term)-[]|Fs], Options) :-
+    Abduced =.. [F, _],
     (   sub_atom(F, _, _, 0, 'abducible$')
     ;   F == abducible
     ),
-    !.
+    !,
+    filter_tree(Cs, M, Fs, Options).
 filter_tree([Term0-Children|Cs], M, Tree, Options) :-
     filter_pos(Term0, Options),
     raise_negation(Term0, Term),
