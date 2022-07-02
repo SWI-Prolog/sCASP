@@ -101,7 +101,6 @@ filter_tree([goal_origin(Term,_)-[_,goal_origin(Abduced, O)-_]|Cs],
     !,
     filter_tree(Cs, M, Fs, Options).
 filter_tree([goal_origin(Term0,O)-Children|Cs], M, Tree, Options) :-
-    !,
     filter_pos(Term0, Options),
     raise_negation(Term0, Term),
     selected(Term, M), !,
