@@ -11,7 +11,6 @@
             scasp_assert/2,             % :Clause
             scasp_retract/1,            % :Clause
             scasp_retractall/1,         % :Head
-            scasp_clause_position/2,    % +Ref, -Pos
             scasp_abolish/1,            % :PredicateIndicator
             (#)/1,                      % :Directive
             (#)/2,                      % :Directive, +Pos
@@ -45,6 +44,7 @@
 :- use_module(embed).
 :- use_module(common).
 :- use_module(modules).
+:- use_module(source_ref).
 :- use_module(listing).
 :- use_module(clp/clpq, [apply_clpq_constraints/1]).
 :- use_module(pr_rules, [process_pr_pred/5]).
@@ -403,13 +403,6 @@ scasp_dynamic(Name/Arity, M, Scoped) =>
                      M:NName/Arity))
     ).
 
-%!  scasp_clause_position(+Ref, -Pos) is semidet.
-%
-%   True when Pos is the stream position is which the source code for
-%   the dynamic clause referenced by Ref was read.
-
-:- dynamic scasp_clause_position/2.
-
 %!  scasp_assert(:Clause) is det.
 %!  scasp_retract(:Clause) is nondet.
 %!  scasp_retractall(:Head) is det.
@@ -448,7 +441,7 @@ scasp_assert_(Clause, false) =>
     assertz(Clause).
 scasp_assert_(Clause, Pos) =>
     assertz(Clause, Ref),
-    assertz(scasp_clause_position(Ref, Pos)).
+    assertz(scasp_dynamic_clause_position(Ref, Pos)).
 
 scasp_assert_into(M, Pos, Rule) :-
     scasp_assert(M:Rule, Pos).

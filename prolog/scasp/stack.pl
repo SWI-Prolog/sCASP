@@ -91,7 +91,9 @@ stack_tree([H|Stack], Tree, T, Parents) =>
 %        Remove all not(_) nodes from the tree.
 
 filter_tree([],_,[], _) :- !.
-filter_tree([goal_origin(Term,_)-[_,goal_origin(Abduced, O)-_]|Cs], M, [goal_origin(abduced(Term), O)-[]|Fs], Options) :-
+filter_tree([goal_origin(Term,_)-[_,goal_origin(Abduced, O)-_]|Cs],
+            M,
+            [goal_origin(abduced(Term), O)-[]|Fs], Options) :-
     Abduced =.. [F, _],
     (   sub_atom(F, _, _, 0, 'abducible$')
     ;   F == abducible
@@ -206,6 +208,9 @@ print_justification_tree(M:Tree, Options) :-
 
 %!  plain_output(+FilterChildren, +Options)
 
+plain_output(goal_origin(Term, _)-Children, Options) :-
+    !,
+    plain_output(Term-Children, Options).
 plain_output(Term-[], Options) :-
     !,
     option(depth(D), Options),

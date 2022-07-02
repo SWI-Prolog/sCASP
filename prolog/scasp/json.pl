@@ -5,6 +5,7 @@
 :- use_module(options).
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
+:- use_module(source_ref).
 
 /** <module> s(CASP) JSON I/O
 
@@ -128,6 +129,14 @@ node_json(assume(Node), Dict) =>
 node_json(proved(Node), Dict) =>
     model_term_json(Node, Dict0),
     Dict = Dict0.put(proved, true).
+node_json(abduced(Node), Dict) =>
+    model_term_json(Node, Dict0),
+    Dict = Dict0.put(abduced, true).
+node_json(goal_origin(Node, Origin), Dict) =>
+    scasp_source_reference_file_line(Origin, File, Line),
+    node_json(Node, Dict0),
+    Dict1 = Dict0.put(source_file, File),
+    Dict  = Dict1.put(source_line, Line).
 node_json(Node, Dict) =>
     model_term_json(Node, Dict).
 

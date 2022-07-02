@@ -11,7 +11,7 @@
 :- use_module(dyncall).
 :- use_module(html_text).
 :- use_module(messages).
-:- use_module(input, [sasp_source_reference/3]).
+:- use_module(source_ref).
 
 :- use_module(library(http/html_write)).
 :- use_module(library(http/term_html)).
@@ -122,7 +122,7 @@ justification_tree(Tree, Options) -->
 
 normal_justification_tree(goal_origin(Term, Origin)-[], Options) -->
     !,
-    { origin_file_line(Origin, File, Line) },
+    { scasp_source_reference_file_line(Origin, File, Line) },
     emit(li([ div(class(node),
                   [ \tree_atom(Term, Options),
                     \origin(File, Line, Options),
@@ -145,7 +145,7 @@ normal_justification_tree(goal_origin(Term, Origin)-Children, Options) -->
       ->  ExtraClasses = ['scasp-global-constraints']
       ;   ExtraClasses = []
       ),
-      origin_file_line(Origin, File, Line)
+      scasp_source_reference_file_line(Origin, File, Line)
     },
     !,
     emit(li(class([collapsable|ExtraClasses]),
@@ -471,7 +471,8 @@ utter(abduced(Atom), Options) -->
     atom(Atom, Options).
 utter(according_to(File, Line), _Options) -->
     { human_connector(according_to, Text) },
-    emit([' [', Text, ' ~w:~w]'-[File, Line]]).
+    emit(span(class('scasp-source-reference'),
+              span(class(human), [' [', Text, ' ~w:~w]'-[File, Line]]))).
 utter(assume(Atom), Options) -->
     { human_connector(assume, Text) },
     emit([Text, ' ']),
@@ -806,26 +807,7 @@ term_html:portray(Term, Options) -->
     term(Constraints, Options).
 
 origin(File, Line, Options) -->
-    { \+ option(show(machine), Options),
-         option(source(true),  Options)
-    },
+    {    option(source(true), Options)   },
     !,
     utter(according_to(File, Line), Options).
 origin(_, _, _) --> [].
-
-origin_file_line(O, P, L) :-
-    blob(O, clause),
-    !,
-    clause_origin(O, P, L).
-origin_file_line(O, P, L) :-
-    sasp_source_reference(O, P, D),
-    !,
-    stream_position_data(line_count, D, L).
-
-clause_origin(Clause, dynamic, Line) :-
-    scasp_clause_position(Clause, Pos),
-    !,
-    stream_position_data(line_count, Pos, Line).
-clause_origin(Clause, Path, Line) :-
-    clause_property(Clause, file(Path)),
-    clause_property(Clause, line_count(Line)).
