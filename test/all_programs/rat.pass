@@ -1,1 +1,1 @@
-[test_scasp:query-[p('$VAR'('X')'| '{'$VAR'('X')#>7r12})-[]]]-[[p('$VAR'('X')'| '{'$VAR'('X')#>7r12})]].
+[test_scasp:query-[goal_origin(p('$VAR'('X')'| '{'$VAR'('X')#>7r12}),1)-[]]]-[[p('$VAR'('X')'| '{'$VAR'('X')#>7r12})]].

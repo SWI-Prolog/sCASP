@@ -1,1 +1,1 @@
-[test_scasp:query-[p('$VAR'('X'))-[(not q('$VAR'('X')))-[chs(p('$VAR'('X')))-[]]]]]-[[p('$VAR'('X')),not q('$VAR'('X'))]].
+[test_scasp:query-[goal_origin(p('$VAR'('X')),1)-[(not q('$VAR'('X')))-[chs(p('$VAR'('X')))-[]]]]]-[[p('$VAR'('X')),not q('$VAR'('X'))]].

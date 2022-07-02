@@ -1,1 +1,1 @@
-[test_scasp:query-[p(0)-[]]]-[[p(0)]].
+[test_scasp:query-[goal_origin(p(0),2)-[]]]-[[p(0)]].

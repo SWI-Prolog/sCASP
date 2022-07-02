@@ -1,1 +1,1 @@
-[test_scasp:query-[r(a,b)-[p(a,b)-[]]]]-[[p(a,b),r(a,b)]].
+[test_scasp:query-[goal_origin(r(a,b),2)-[goal_origin(p(a,b),4)-[]]]]-[[p(a,b),r(a,b)]].

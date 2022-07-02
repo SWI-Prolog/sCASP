@@ -36,6 +36,7 @@ user:file_search_path(library, scasp(prolog)).
 :- use_module(library(scasp/model)).
 :- use_module(library(scasp/options)).
 :- use_module(library(scasp/messages)).
+:- use_module(library(scasp/source_ref)).
 :- use_module(diff).
 
 :- initialization(main, main).
@@ -334,6 +335,7 @@ scasp_test(File, Result, _Options) :-
     scasp_test(File, Result).
 
 scasp_test(File, Trees-Models) :-
+    retractall(scasp_source_reference(_, _, _)),
     scasp_load(File, [unknown(fail)]),
     scasp_query(Query, Bindings, []),
     findall(Pair, solve(Query, Bindings, Pair), Pairs),

@@ -1,1 +1,1 @@
-[test_scasp:query-[p(a,b,c,d,'$VAR'('E')'| '{'$VAR'('E')#>1,'$VAR'('E')#<5})-[]]]-[[p(a,b,c,d,'$VAR'('E')'| '{'$VAR'('E')#>1,'$VAR'('E')#<5})]].
+[test_scasp:query-[goal_origin(p(a,b,c,d,'$VAR'('E')'| '{'$VAR'('E')#>1,'$VAR'('E')#<5}),1)-[]]]-[[p(a,b,c,d,'$VAR'('E')'| '{'$VAR'('E')#>1,'$VAR'('E')#<5})]].
