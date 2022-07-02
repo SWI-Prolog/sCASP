@@ -34,6 +34,7 @@
 :- module(scasp_input,
           [ load_source_files/1,        % +Files
             sasp_read/2,                % +File, -Statements
+            sasp_source_reference/3,    % +Ref, -File, -Pos
             scasp_load_terms/2          % +Terms,+Options
           ]).
 :- use_module(library(apply)).
@@ -166,7 +167,7 @@ sasp_read_stream(Path, In, Statements, Options) :-
     ;   Term = (:- use_module(library(File))),
         nonvar(File)
     ->  sasp_read_stream(Path, In, Statements, Options)
-    ;   sasp_statement(source(Path, Term), VarNames, New, Pos, Options),
+    ;   sasp_statement(source(Path-Start, Term), VarNames, New, Pos, Options),
         add_statements(New, Tail, Statements),
         sasp_read_stream(Path, In, Tail, Options)
     ).
@@ -197,10 +198,11 @@ sasp_statement(source(Ref, Term), VarNames, source(Ref, SASP), Pos, Options) :-
     blob(Ref, clause),
     !,
     sasp_statement_(Term, VarNames, SASP, Pos, [source(Ref)|Options]).
-sasp_statement(source(Path, Term), VarNames, source(Ref, SASP), Pos, Options) :-
+sasp_statement(source(Path-Start, Term), VarNames, source(Ref, SASP), Pos, Options) :-
     !,
-    assert_sasp_source_reference(Path, Pos, Ref),
+    assert_sasp_source_reference(Path, Start, Ref),
     sasp_statement_(Term, VarNames, SASP, Pos, [source(Ref)|Options]).
+
 sasp_statement_(Term, VarNames, SASP, Pos, Options) :-
     maplist(bind_var,VarNames),
     term_variables(Term, Vars),

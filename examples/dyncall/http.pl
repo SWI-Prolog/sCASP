@@ -376,19 +376,20 @@ solve_options(json, Tree, Options) =>
 %   Read the program terms and (optional) query from In.
 
 read_terms(In, Terms) :-
-    read_one_term(In, Term0),
-    read_terms(Term0, In, Terms).
+    read_one_term(In, Term0, Pos0),
+    read_terms(Term0, Pos0, In, Terms).
 
-read_terms(end_of_file, _, []) :-
+read_terms(end_of_file, _, _, []) :-
     !.
-read_terms(Term, In, [Term|T]) :-
-    read_one_term(In, Term1),
-    read_terms(Term1, In, T).
+read_terms(Term0, Pos0, In, [Term0-Pos0|T]) :-
+    read_one_term(In, Term, Pos),
+    read_terms(Term, Pos, In, T).
 
-read_one_term(In, Term) :-
+read_one_term(In, Term, Pos) :-
     read_term(In, Term,
               [ module(scasp_dyncall),
-                variable_names(Bindings)
+                variable_names(Bindings),
+                term_position(Pos)
               ]),
     fixup_pred(Term, Bindings).
 
@@ -425,16 +426,16 @@ fixup_atom_r(Bindings, Atom) :-
 %
 %   Add clauses to the program.  Also handles s(CASP) directives.
 
-add_to_program(M, (# Directive)) =>
-    #(M:Directive).
-add_to_program(M, (:- show Spec)) =>
+add_to_program(M, (# Directive)-Pos) =>
+    #(M:Directive, Pos).
+add_to_program(M, (:- show Spec)-_) =>
     show(M:Spec).
-add_to_program(M, (:- pred Spec)) =>
+add_to_program(M, (:- pred Spec)-_) =>
     pred(M:Spec).
-add_to_program(M, (:- abducible Spec)) =>
-    abducible(M:Spec).
-add_to_program(M, Term) =>
-    scasp_assert(M:Term).
+add_to_program(M, (:- abducible Spec)-Pos) =>
+    abducible(M:Spec, Pos).
+add_to_program(M, Term-Pos) =>
+    scasp_assert(M:Term, Pos).
 
 %!  query(+String, -Query, -Bindings, +ProgramIn, -ProgramOut) is det.
 
@@ -444,13 +445,13 @@ query(QueryS, Query, Bindings, Terms, Terms) :-
     term_string(Query, QueryS, [variable_names(Bindings)]).
 query(_, Query, Bindings, TermsIn, TermsOut) :-
     partition(is_query, TermsIn, Queries, TermsOut),
-    last(Queries, (?- Query0)),
+    last(Queries, (?- Query0)-_),
     !,
     varnumbers_names(Query0, Query, Bindings).
 query(_, _, _, _, _) :-
     existence_error(scasp_query, program).
 
-is_query((?-_)) => true.
+is_query((?-_)-_) => true.
 is_query(_) => false.
 
 %!  scasp_result(+Query, +Bindings, -Dict, +Options) is nondet.

@@ -8,8 +8,10 @@
           ]).
 :- use_module(common).
 :- use_module(output).
+:- use_module(dyncall).
 :- use_module(html_text).
 :- use_module(messages).
+:- use_module(input, [sasp_source_reference/3]).
 
 :- use_module(library(http/html_write)).
 :- use_module(library(http/term_html)).
@@ -118,6 +120,15 @@ justification_tree(o_nmr_check-[], _Options) -->
 justification_tree(Tree, Options) -->
     normal_justification_tree(Tree, Options).
 
+normal_justification_tree(goal_origin(Term, Origin)-[], Options) -->
+    !,
+    { origin_file_line(Origin, File, Line) },
+    emit(li([ div(class(node),
+                  [ \tree_atom(Term, Options),
+                    \origin(File, Line, Options),
+                    \connect(Options)
+                  ])
+            ])).
 normal_justification_tree(Term-[], Options) -->
     !,
     emit(li([ div(class(node),
@@ -128,6 +139,24 @@ normal_justification_tree(Term-[], Options) -->
 normal_justification_tree(o_nmr_check-_, Options) -->
     { option(justify_nmr(false), Options) },
     !.
+normal_justification_tree(goal_origin(Term, Origin)-Children, Options) -->
+    { incr_indent(Options, Options1),
+      (   Term == o_nmr_check
+      ->  ExtraClasses = ['scasp-global-constraints']
+      ;   ExtraClasses = []
+      ),
+      origin_file_line(Origin, File, Line)
+    },
+    !,
+    emit(li(class([collapsable|ExtraClasses]),
+            [ div(class([node, 'collapsable-header']),
+                  [ \tree_atom(Term, Options),
+                    \connector(implies, Options),
+                    \origin(File, Line, Options)
+                  ]),
+              ul(class('collapsable-content'),
+                 \justification_tree_children(Children, Options1))
+            ])).
 normal_justification_tree(Term-Children, Options) -->
     { incr_indent(Options, Options1),
       (   Term == o_nmr_check
@@ -412,7 +441,7 @@ atom(Term, Options) -->
 atom(Term, Options) -->
     utter(holds(Term), Options).
 
-%!  utter(+Exppression, +Options)
+%!  utter(+Expression, +Options)
 
 utter(global_constraints_hold, _Options) -->
     { human_connector(global_constraints_hold, Text) },
@@ -440,6 +469,9 @@ utter(abduced(Atom), Options) -->
     { human_connector(abducible, Text) },
     emit([Text, ' ']),
     atom(Atom, Options).
+utter(according_to(File, Line), _Options) -->
+    { human_connector(according_to, Text) },
+    emit([' [', Text, ' ~w:~w]'-[File, Line]]).
 utter(assume(Atom), Options) -->
     { human_connector(assume, Text) },
     emit([Text, ' ']),
@@ -772,3 +804,28 @@ term_html:portray(Term, Options) -->
     term(Var, Options),
     emit(' | '),
     term(Constraints, Options).
+
+origin(File, Line, Options) -->
+    { \+ option(show(machine), Options),
+         option(source(true),  Options)
+    },
+    !,
+    utter(according_to(File, Line), Options).
+origin(_, _, _) --> [].
+
+origin_file_line(O, P, L) :-
+    blob(O, clause),
+    !,
+    clause_origin(O, P, L).
+origin_file_line(O, P, L) :-
+    sasp_source_reference(O, P, D),
+    !,
+    stream_position_data(line_count, D, L).
+
+clause_origin(Clause, dynamic, Line) :-
+    scasp_clause_position(Clause, Pos),
+    !,
+    stream_position_data(line_count, Pos, Line).
+clause_origin(Clause, Path, Line) :-
+    clause_property(Clause, file(Path)),
+    clause_property(Clause, line_count(Line)).

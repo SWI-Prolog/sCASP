@@ -5,3 +5,4 @@
 # Exclude main executable, but keep directory
 scasp
 !prolog/scasp/
+/TAGS

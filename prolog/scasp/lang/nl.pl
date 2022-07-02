@@ -117,6 +117,7 @@ scasp_message(global_constraint(N)) -->
     [ 'Aan de globale restrictie nummer ', N, ' is voldaan' ].
 scasp_message(abducible) -->
     [ 'middels abductie concluderen we dat' ].
+scasp_message(according_to) --> [ 'volgens' ].
 
 
 

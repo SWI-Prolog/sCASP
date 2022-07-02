@@ -14,13 +14,16 @@
 
             (scasp_dynamic)/1,          % :Spec
             scasp_assert/1,             % :Clause
+            scasp_assert/2,             % :Clause, +Pos
             scasp_retract/1,            % :Clause
             scasp_retractall/1,         % :Head
             scasp_abolish/1,            % :Name/Arity
             (#)/1,                      % :Directive
+            (#)/2,                      % :Directive, +Pos
             (pred)/1,                   % :Templates
             (show)/1,                   % :Atoms
             (abducible)/1,              % :Heads
+            (abducible)/2,              % :Heads, +Pos
 
             begin_scasp/1,              % +Unit
             begin_scasp/2,              % +Unit, +Exports
