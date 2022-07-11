@@ -8,7 +8,6 @@
           ]).
 :- use_module(common).
 :- use_module(output).
-:- use_module(dyncall).
 :- use_module(html_text).
 :- use_module(messages).
 :- use_module(source_ref).
