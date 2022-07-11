@@ -5,9 +5,14 @@ all:
 
 TEST_SCAP=swipl test/test_scasp.pl --passed
 
-check:
+check:	check_load
 	$(TEST_SCAP) test/all_programs test/all_programs/sasp
 	$(TEST_SCAP) --dcc test/all_programs/dcc
+
+# Verify consistency of main load points
+check_load:
+	swipl -q -l prolog/scasp.pl -g check --on-warning=status -t halt
+	swipl -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
 
 ifneq ($(strip $(PREFIX)),)
 install:
