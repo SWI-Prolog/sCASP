@@ -538,25 +538,12 @@ abducible(M:Head, Pos), callable(Head) =>
     discontiguous(M:('abducible$'/1, 'abducible$$'/1)),
     maplist(scasp_assert_into(M, Pos), Rules).
 
-abducible_rules(HeadIn,
-                [ (Head                 :- not AHead, 'abducible$'(Head)),
-                  (AHead                :- not Head),
+abducible_rules(Head,
+                [ (Head                   :- not(-(Head)), 'abducible$'(Head)),
+                  (-(Head)                :- not Head),
                   ('abducible$'(Head)   :- not 'abducible$$'(Head)),
                   ('abducible$$'(Head)  :- not 'abducible$'(Head))
-                ]) :-
-    ab_heads(HeadIn, Head, AHead).
-
-ab_heads(-NHead, Head, AHead) =>
-    NHead =.. [F|Args],
-    atom_concat('-', F, NF),
-    atom_concat('-o_', F, AF),
-    Head =.. [NF|Args],
-    AHead =.. [AF|Args].
-ab_heads(Head0, Head, AHead) =>
-    Head = Head0,
-    Head =.. [F|Args],
-    atom_concat('o_', F, AF),
-    AHead =.. [AF|Args].
+                ]).
 
 
 
