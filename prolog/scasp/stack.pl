@@ -91,13 +91,16 @@ stack_tree([H|Stack], Tree, T, Parents) =>
 %        Remove all not(_) nodes from the tree.
 
 filter_tree([],_,[], _) :- !.
-filter_tree([goal_origin(Term,_)-[_,goal_origin(Abduced, O)-_]|Cs],
+filter_tree([goal_origin(_,_)-[_,goal_origin(Abd, O)-_]|Cs],
             M,
-            [goal_origin(abduced(Term), O)-[]|Fs], Options) :-
-    Abduced =.. [F, _],
-    (   sub_atom(F, _, _, 0, 'abducible$')
-    ;   F == abducible
-    ),
+            [goal_origin(abduced(Atom), O)-[]|Fs], Options) :-
+    abduction_justification(Abd, Atom),
+    !,
+    filter_tree(Cs, M, Fs, Options).
+filter_tree([proved(Abd)-[]|Cs],
+            M,
+            [proved(Atom)-[]|Fs], Options) :-
+    abduction_justification(Abd, Atom),
     !,
     filter_tree(Cs, M, Fs, Options).
 filter_tree([goal_origin(Term0,O)-Children|Cs], M, Tree, Options) :-
@@ -171,6 +174,17 @@ is_global_constraint(Atom) :-
     atom(Atom),
     atom_concat(o_chk_, NA, Atom),
     atom_number(NA, _).
+
+
+abduction_justification(Abd, Atom) :-
+    Abd =.. [F, Atom],
+    abduction_justification_(F).
+
+abduction_justification_(F) :-
+    sub_atom(F, _, _, 0, 'abducible$'),
+    !.
+abduction_justification_(abducible).
+
 
 %!  print_justification_tree(:Tree) is det.
 %!  print_justification_tree(:Tree, +Options) is det.
