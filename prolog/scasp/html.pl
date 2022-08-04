@@ -448,6 +448,11 @@ utter(global_constraints_hold, _Options) -->
 utter(global_constraint(N), _Options) -->
     { human_connector(global_constraint(N), Text) },
     emit(Text).
+utter(not(-(Atom)), Options) -->
+    !,
+    { human_connector(may, Text) },
+    emit([Text, ' ']),
+    atom(Atom, Options).
 utter(not(Atom), Options) -->
     { human_connector(not, Text) },
     emit([Text, ' ']),

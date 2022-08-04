@@ -98,6 +98,7 @@ scasp_message(no_models(CPU)) -->
 scasp_message(and)       --> [ 'and' ].
 scasp_message(or)        --> [ 'or' ].
 scasp_message(not)       --> [ 'there is no evidence that' ].
+scasp_message(may)       --> [ 'it may be the case that' ].
 scasp_message(-)         --> [ 'it is not the case that' ].
 scasp_message(implies)   --> [ 'because' ].
 scasp_message(?)         --> [ '?' ].
