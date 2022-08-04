@@ -12,7 +12,10 @@
 scasp_source_reference_file_line(Ref, File, Line) :-
     blob(Ref, clause),
     !,
-    clause_file_line(Ref, File, Line).
+    (   clause_file_line(Ref, File, Line)
+    ->  true
+    ;   File = none, Line = 0
+    ).
 scasp_source_reference_file_line(Ref, File, Line) :-
     scasp_source_reference(Ref, File, Pos),
     !,
