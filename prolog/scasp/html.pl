@@ -431,7 +431,8 @@ atom(Comp, Options) -->
     emit(span(class([arithmetic|Classes]), S)).
 atom(Term, Options) -->
     { option(pred(true), Options, true),
-      option(module(M), Options),
+      option(module(DefM), Options),
+      option(source_module(M), Options, DefM),
       human_expression(M:(Term-[]), [], Actions),
       !,
       css_classes(Options, Classes)
