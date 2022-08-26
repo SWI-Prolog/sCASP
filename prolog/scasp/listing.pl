@@ -1,12 +1,17 @@
 :- module(scasp_listing,
           [ scasp_portray_program/1     % :Options
           ]).
-:- autoload(library(listing), [portray_clause/3]).
-
 :- use_module(human).
 :- use_module(compile).
 :- use_module(output).
-:- use_module(common).
+:- use_module(modules).
+:- use_module(library(ansi_term)).
+:- use_module(library(apply)).
+:- use_module(library(listing)).
+:- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(prolog_code)).
+:- use_module(library(terms)).
 
 :- meta_predicate
     scasp_portray_program(:).
@@ -34,6 +39,10 @@
 %     - write_program(+Detail)
 %       Set defaults for the above to handle the ``--code`` commandline
 %       option.
+%     - source_module(+Module)
+%       Module used for unqualifying terms, Note that scasp_show/2
+%       prepares a temporary module that is our context module. We want
+%       the original module to report to.
 %     - code_file(+Name)
 %       Dump code to file Name instead of current output
 
@@ -137,7 +146,9 @@ order_rules(constraints, NMRRules, R_NMRRules) :-
 order_rules(_, Rules, Rules).
 
 print_predicate(Options, Printed, Rules) :-
-    maplist(prolog_rule, Rules, Clauses),
+    option(module(DefM), Options, user),
+    option(source_module(M), Options, DefM),
+    maplist(prolog_rule(M), Rules, Clauses),
     (   option(human(true), Options)
     ->  human_predicate(Clauses, Options)
     ;   sep_line(Printed),
@@ -149,11 +160,11 @@ sep_line(true) =>
 sep_line(Printed) =>
     Printed = true.
 
-prolog_rule(rule(H, []), Rule) =>
-    raise_negation(H, Rule).
-prolog_rule(rule(H, B), Rule) =>
-    raise_negation(H, Head),
-    maplist(raise_negation, B, B1),
+prolog_rule(M, rule(H, []), Rule) =>
+    unqualify_model_term(M, H, Rule).
+prolog_rule(M, rule(H, B), Rule) =>
+    unqualify_model_term(M, H, Head),
+    maplist(unqualify_model_term(M), B, B1),
     comma_list(Body, B1),
     Rule = (Head :- Body).
 
