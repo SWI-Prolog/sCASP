@@ -27,11 +27,16 @@ variable.
 @author Joaquin Arias
 */
 
-:- use_module(disequality).
+:- use_module(disequality, [get_neg_var/2]).
 
 :- use_module(library(clpq)).
 :- use_module(library(clpr), []).                                % avoid undef
 :- use_module(library(clpqr/dump), [dump/3]).
+:- use_module(library(apply), [maplist/3, include/3]).
+:- use_module(library(debug), [assertion/1]).
+:- use_module(library(edinburgh), [display/1]).
+:- use_module(library(lists), [reverse/2]).
+:- use_module(library(prolog_code), [comma_list/2]).
 
 clpqr_dump_constraints(Target, NewVars, Constraints), is_list(Target) =>
     maplist(to_clpq_var, Target, Target2),

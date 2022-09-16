@@ -41,6 +41,7 @@
 :- use_module(html).
 :- use_module(html_text).
 :- use_module(library(http/html_write)).
+:- use_module(library(option)).
 
 :- meta_predicate
     human_justification_tree(:, +),

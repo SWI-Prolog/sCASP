@@ -39,6 +39,9 @@
           ]).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(http/html_write)).
+:- use_module(library(apply)).
+:- use_module(library(error)).
+:- use_module(library(lists)).
 
 :- html_meta
     emit_as(html, +, ?, ?),

@@ -3,6 +3,8 @@
           ]).
 :- use_module(library(dcg/high_order)).
 :- use_module('../ops', [op(_,_,_)]).
+:- use_module(library(lists), [reverse/2]).
+:- use_module(library(prolog_code), [comma_list/2]).
 
 :- multifile
     scasp_messages:scasp_lang_module/2.

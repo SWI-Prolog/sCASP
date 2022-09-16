@@ -13,6 +13,7 @@
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(ordsets)).
+:- use_module(library(dif), [dif/2]).   % use in :- if
 
 :- use_module('../verbose').
 :- use_module(clpq).

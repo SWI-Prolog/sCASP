@@ -50,6 +50,21 @@
 :- use_module(pr_rules, [process_pr_pred/5]).
 :- use_module(predicates, [prolog_builtin/1, clp_builtin/1]).
 
+:- use_module(library(apply), [maplist/3, exclude/3, maplist/2]).
+:- use_module(library(assoc), [empty_assoc/1, get_assoc/3, put_assoc/4]).
+:- use_module(library(error),
+              [ instantiation_error/1,
+                permission_error/3,
+                type_error/2,
+                must_be/2
+              ]).
+:- use_module(library(lists), [member/2, append/3]).
+:- use_module(library(modules),
+              [in_temporary_module/3, current_temporary_module/1]).
+:- use_module(library(option), [option/2]).
+:- use_module(library(ordsets), [ord_intersect/2, ord_union/3]).
+:- use_module(library(prolog_code), [pi_head/2]).
+
 :- meta_predicate
     scasp(0, +),
     scasp_show(:, +),

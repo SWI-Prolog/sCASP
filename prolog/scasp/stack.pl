@@ -9,6 +9,11 @@
 :- use_module(modules).
 :- use_module(output).
 
+:- autoload(library(apply), [maplist/3]).
+:- autoload(library(lists), [reverse/2, append/3]).
+:- autoload(library(option),
+            [option/2, merge_options/3, option/3, select_option/3]).
+
 :- meta_predicate
     justification_tree(:, -, +),
     print_justification_tree(:),

@@ -13,6 +13,14 @@
 :- use_module(library(prolog_code)).
 :- use_module(library(terms)).
 
+:- autoload(library(listing), [portray_clause/3, portray_clause/1]).
+:- autoload(library(ansi_term), [ansi_format/3]).
+:- autoload(library(apply), [maplist/2, maplist/3]).
+:- autoload(library(lists), [delete/3, append/3]).
+:- autoload(library(option), [option/2, merge_options/3, option/3]).
+:- autoload(library(prolog_code), [comma_list/2]).
+:- autoload(library(terms), [same_functor/2]).
+
 :- meta_predicate
     scasp_portray_program(:).
 

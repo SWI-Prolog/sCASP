@@ -30,7 +30,6 @@
             process_pr_pred/5,          % +Spec, -Atom, -Children, -Cond, -Human
             clean_pr_program/1          % +Module
           ]).
-:- use_module(modules).
 
 /** <module> Output formatting and printing.
 
@@ -42,13 +41,17 @@ that may be used for warning and error output.
 @license BSD-3
 */
 
-:- use_module(library(dcg/basics)).
-:- use_module(library(apply)).
-:- use_module(library(option)).
-
+:- use_module(modules).
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).
+
+:- autoload(library(option), [option/3]).
+:- autoload(library(apply), [maplist/4, maplist/3, exclude/3, maplist/2]).
+:- autoload(library(lists), [member/2]).
+:- autoload(library(prolog_code), [mkconj/3]).
+:- autoload(library(dcg/basics), [prolog_var_name/3, string/3]).
+:- use_module(library(yall), [(>>)/5]).
 
 :- op(950, xfx, ::).
 
