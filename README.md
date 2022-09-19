@@ -1,7 +1,7 @@
 # SWI-Prolog port (swipl branch)
 
 > This is a fork from https://gitlab.software.imdea.org/ciao-lang/sCASP.
-> It provides a port of s(CASP) to SWI-Prolog __in the branch `swipl`__.
+> It provides a port of s(CASP) to SWI-Prolog.
 
 ## About the SWI-Prolog port
 
