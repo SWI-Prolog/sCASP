@@ -13,7 +13,7 @@
 :- use_module(library(prolog_code)).
 :- use_module(library(terms)).
 
-:- autoload(library(listing), [portray_clause/3, portray_clause/1]).
+:- autoload(library(listing), [portray_clause/1]).
 :- autoload(library(ansi_term), [ansi_format/3]).
 :- autoload(library(apply), [maplist/2, maplist/3]).
 :- autoload(library(lists), [delete/3, append/3]).
@@ -192,9 +192,9 @@ print_query(Query, Options) :-
     option(variable_names(Bindings), Options, []),
     ovar_set_bindings(Bindings),
     human_query(Query, Options).
-print_query(Query, Options) :-
+print_query(Query, _Options) :-
     prolog_query(Query, Prolog),
-    format('?- ~@', [portray_clause(current_output, Prolog, Options)]).
+    portray_clause(Prolog).
 
 split_predicates([], []).
 split_predicates([H|T0], [[H|P]|T]) :-
