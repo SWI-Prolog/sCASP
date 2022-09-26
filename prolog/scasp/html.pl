@@ -818,6 +818,9 @@ incr_indent(Options0, [depth(D)|Options2]) :-
 %   Emit an s(CASP) atom with annotations as   they  appear in the model
 %   and justification.
 
+machine_atom(goal_origin(Term, _Origin), Options) -->
+    !,
+    machine_atom(Term, Options).
 machine_atom(not(Term), Options) -->
     !,
     emit([span(class([connector,not]), not), ' ']),
