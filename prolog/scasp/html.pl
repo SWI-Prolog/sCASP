@@ -747,6 +747,9 @@ list([H|T], Options) -->
         list(T, Options)
     ).
 
+actions(html(HTML), _) -->
+    !,
+    emit(HTML).
 actions([], _) --> [].
 actions([H|T], Options) -->
     action(H, Options),

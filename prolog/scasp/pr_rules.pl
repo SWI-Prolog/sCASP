@@ -306,12 +306,17 @@ assert_pr_pred(T, M) =>
 
 :- det(process_pr_pred/5).
 
-process_pr_pred(Spec::B, A, Children, Cond, format(Fmt,Args)) :-
+process_pr_pred(Spec::html(HTML), A, Children, Cond, Human) =>
+    revar(Spec+HTML, Spec1+HTML1, _),
+    atom_cond(Spec1, A, Children, Cond),
+    Human = html(HTML1).
+process_pr_pred(Spec::B, A, Children, Cond, Human) =>
     atom_codes(B, Chars),
     phrase(pr_pred(FmtChars, Args, Spec, Spec1), Chars),
     atom_codes(Fmt, FmtChars),
-    revar(Spec1, Spec2, _),             % need for s(CASP) input with vars
-    atom_cond(Spec2, A, Children, Cond).   % not in template
+    revar(Spec1, Spec2, _),                % need for s(CASP) input with vars
+    atom_cond(Spec2, A, Children, Cond),   % not in template
+    Human = format(Fmt,Args).
 
 pr_pred([0'~,0'p|Fmt], [@(Var:Type)|Args], A0, A) -->
     temp_var_start(Style), prolog_var_name(VarName),

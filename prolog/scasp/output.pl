@@ -288,8 +288,11 @@ human_expression(Tree, Children, Actions) :-
     tree_atom_children(Tree, M, Atom, ChildrenIn),
     current_predicate(M:pr_pred_predicate/4),
     \+ predicate_property(M:pr_pred_predicate(_,_,_,_), imported_from(_)),
-    human_utterance(Atom, ChildrenIn, M, Children, format(Fmt, Args)),
-    parse_fmt(Fmt, Args, Actions).
+    human_utterance(Atom, ChildrenIn, M, Children, Human),
+    (   Human = format(Fmt, Args)
+    ->  parse_fmt(Fmt, Args, Actions)
+    ;   Actions = Human
+    ).
 
 tree_atom_children(M0:(not(Atom0)-Children), M, not(Atom), Children) :-
     strip_module(M0:Atom0, M, Atom).
