@@ -300,7 +300,9 @@ tree_atom_children(M0:(-(Atom0)-Children), M, -(Atom), Children) :-
 tree_atom_children(M0:(Atom0-Children), M, Atom, Children) :-
     strip_module(M0:Atom0, M, Atom).
 
-human_utterance(Atom, Children0, M, Children, Format) :-
+human_utterance(goal_origin(Atom, _Origin), Children0, M, Children, Format) =>
+    human_utterance(Atom, Children0, M, Children, Format).
+human_utterance(Atom, Children0, M, Children, Format) =>
     M:pr_pred_predicate(Atom, ChildSpec, Cond, Format),
     match_children(ChildSpec, M, Children0, Children),
     call(Cond),

@@ -220,7 +220,9 @@ tree_atom(Atom, Options) -->
                 span(class(machine), \machine_atom(Atom, Options))
               ])).
 
-scasp_atom_string(Atom, String) :-
+scasp_atom_string(goal_origin(Atom, _Origin), String) =>
+    scasp_atom_string(Atom, String).
+scasp_atom_string(Atom, String) =>
     with_output_to(string(String),
                    print_model_term_v(Atom, [])).
 
