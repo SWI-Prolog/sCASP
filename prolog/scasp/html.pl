@@ -2,6 +2,8 @@
           [ html_justification_tree//2,		% :Tree, +Options
             html_model//2,			% :Model, +Options
             html_bindings//2,                   % :Bindings, +Options
+            html_program/1,                     % :Dict
+            html_program//1,                    % :Dict
             html_query//2,                      % :Query, +Options
             html_predicate//2,                  % :Predicate, +Options
             html_rule//2                        % :Rule, +Options
@@ -11,10 +13,11 @@
 :- use_module(html_text).
 :- use_module(messages).
 :- use_module(source_ref).
+:- use_module(listing).
 
 :- use_module(library(http/html_write)).
 :- use_module(library(http/term_html)).
-:- use_module(library(http/html_head), []).
+:- use_module(library(http/html_head), [html_resource/2]).
 :- if(exists_source(library(http/http_server_files))).
 :- use_module(library(http/http_server_files), []).
 :- endif.
@@ -26,6 +29,8 @@
 :- meta_predicate
     html_model(:, +, ?, ?),
     html_justification_tree(:, +, ?, ?),
+    html_program(:),
+    html_program(:, ?, ?),
     html_query(:, +, ?, ?),
     html_predicate(:, +, ?, ?),
     html_rule(:, +, ?, ?).
@@ -274,6 +279,49 @@ connect_binding(Options) -->
     !.
 connect_binding(_Options) -->
     emit(',').
+
+%!  html_program(:Dict)
+%
+%
+
+html_program(Dict) :-
+    phrase(html_program(Dict), Tokens),
+    print_html(current_output, Tokens).
+
+%!  html_program(:Dict)//
+%
+%   Emit the current program in human format using HTML.
+
+html_program(M:Dict) -->
+    { Dict1 = Dict.put(module, M)
+    },
+    html_program_section(query,       Dict1),
+    html_program_section(user,        Dict1),
+    html_program_section(duals,       Dict1),
+    html_program_section(constraints, Dict1),
+    html_program_section(dcc,         Dict1).
+
+html_program_section(Section, Dict) -->
+    { _{module:M, options:Options} :< Dict,
+      Content = Dict.get(Section),
+      Content \= [],
+      scasp_code_section_title(Section, Default, Title),
+      Opt =.. [Section,true],
+      option(Opt, Options, Default)
+    },
+    !,
+    html(h2(Title)),
+    (   {Section == query}
+    ->  {ovar_set_bindings(Dict.bindings)},
+        html_query(M:Content, Options)
+    ;   sequence(predicate_r(M:Options), Content)
+    ).
+html_program_section(_, _) -->
+    [].
+
+predicate_r(M:Options, Clauses) -->
+    html_predicate(M:Clauses, Options).
+
 
 %!  html_query(:Query, +Options)//
 %

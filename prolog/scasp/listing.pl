@@ -1,17 +1,12 @@
 :- module(scasp_listing,
-          [ scasp_portray_program/1     % :Options
+          [ scasp_portray_program/1,   % :Options
+            scasp_code_section_title/3 % +Section, -Default, -Title
           ]).
 :- use_module(human).
 :- use_module(compile).
 :- use_module(output).
 :- use_module(modules).
-:- use_module(library(ansi_term)).
-:- use_module(library(apply)).
-:- use_module(library(listing)).
-:- use_module(library(lists)).
-:- use_module(library(option)).
-:- use_module(library(prolog_code)).
-:- use_module(library(terms)).
+:- use_module(html).
 
 :- autoload(library(listing), [portray_clause/1]).
 :- autoload(library(ansi_term), [ansi_format/3]).
@@ -83,14 +78,28 @@ scasp_portray_program(M, Options) :-
     MOptions = [module(M)|Options],
     VOptions = [variable_names(Bindings)|MOptions],
     findall(rule(Head,Body), M:pr_rule(Head, Body, _Origin), Rules),
-    filter(Rules, UserRules0, DualRules, NMRChecks0),
-    remove_nmr_checks(NMRChecks0, UserRules0, NMRChecks, UserRules),
-    findall(rule(DccH,DccB), M:pr_dcc_predicate(DccH,DccB),DCCs),
-    print_program(query,       Query,       Printed, VOptions),
-    print_program(user,        UserRules,   Printed, MOptions),
-    print_program(duals,       DualRules,   Printed, MOptions),
-    print_program(constraints, NMRChecks,   Printed, MOptions),
-    print_program(dcc,	       DCCs,	    Printed, MOptions).
+    filter(Rules, UserRules0, DualRules1, NMRChecks0),
+    remove_nmr_checks(NMRChecks0, UserRules0, NMRChecks1, UserRules1),
+    findall(rule(DccH,DccB), M:pr_dcc_predicate(DccH,DccB),DCCs1),
+    maplist(rules_to_prolog(Options),
+            [ user-UserRules1, duals-DualRules1,
+              constraints-NMRChecks1, dcc-DCCs1 ],
+            [ UserRules, DualRules, NMRChecks, DCCs ]),
+    (   option(html(true), Options)
+    ->  html_program(#{ query:Query,
+                        user:UserRules,
+                        duals:DualRules,
+                        constraints:NMRChecks,
+                        dcc:DCCs,
+                        options:MOptions,
+                        variable_names:Bindings
+                      })
+    ;   print_program(query,       Query,       Printed, VOptions),
+        print_program(user,        UserRules,   Printed, MOptions),
+        print_program(duals,       DualRules,   Printed, MOptions),
+        print_program(constraints, NMRChecks,   Printed, MOptions),
+        print_program(dcc,	   DCCs,        Printed, MOptions)
+    ).
 
 %!  filter(+Rules, -UserRules, -DualRules, -NMRChecks) is det.
 
@@ -119,31 +128,47 @@ chk_pred(Pred) :-
     ),
     !.
 
+%!  rules_to_prolog(+Options, +SecRulePairs, -Predicates)
+%
+%   Translate the internal representation  into   a  list of Predicates,
+%   each consisting of a list of clauses.
+
+:- det(rules_to_prolog/3).
+rules_to_prolog(Options, Section-Rules, Predicates) :-
+    order_rules(Section, Rules, Rules1),
+    split_predicates(Rules1, PredRules),
+    maplist(predicate_clauses(Options), PredRules, Predicates).
+
+predicate_clauses(Options, Rules, Clauses) :-
+    option(module(DefM), Options, user),
+    option(source_module(M), Options, DefM),
+    maplist(prolog_rule(M), Rules, Clauses).
+
 %!  print_program(+Section, +Rules, ?Printed, +Options)
 
 :- det(print_program/4).
 print_program(_, [], _, _) :-
     !.
-print_program(Section, Rules, Printed, Options) :-
-    code_section_title(Section, Default, Title),
+print_program(Section, Content, Printed, Options) :-
+    scasp_code_section_title(Section, Default, Title),
     Opt =.. [Section,true],
     option(Opt, Options, Default),
     !,
     sep_line(Printed),
     ansi_format(comment, "% ~w\n", [Title]),
     (   Section == query
-    ->  print_query(Rules, Options)
-    ;   order_rules(Section, Rules, Rules1),
-        split_predicates(Rules1, Predicates),
-        maplist(print_predicate(Options, Printed), Predicates)
+    ->  print_query(Content, Options)
+    ;   maplist(print_predicate(Options, Printed), Content)
     ).
 print_program(_, _, _, _).
 
-code_section_title(query,       true,  'Query').
-code_section_title(user,        true,  'User Predicates').
-code_section_title(duals,       false, 'Dual Rules').
-code_section_title(constraints, false, 'Integrity Constraints').
-code_section_title(dcc,         false, 'Dynamic consistency checks').
+%!  scasp_code_section_title(+Section, -Default, -Title)
+
+scasp_code_section_title(query,       true,  'Query').
+scasp_code_section_title(user,        true,  'User Predicates').
+scasp_code_section_title(duals,       false, 'Dual Rules').
+scasp_code_section_title(constraints, false, 'Integrity Constraints').
+scasp_code_section_title(dcc,         false, 'Dynamic consistency checks').
 
 order_rules(duals, DualRules, R_DualRules) :-
     !,
@@ -153,10 +178,7 @@ order_rules(constraints, NMRRules, R_NMRRules) :-
     nmr_reverse(NMRRules, R_NMRRules).
 order_rules(_, Rules, Rules).
 
-print_predicate(Options, Printed, Rules) :-
-    option(module(DefM), Options, user),
-    option(source_module(M), Options, DefM),
-    maplist(prolog_rule(M), Rules, Clauses),
+print_predicate(Options, Printed, Clauses) :-
     (   option(human(true), Options)
     ->  human_predicate(Clauses, Options)
     ;   sep_line(Printed),
