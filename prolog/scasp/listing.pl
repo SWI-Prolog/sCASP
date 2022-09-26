@@ -294,6 +294,8 @@ remove_nmr_checks(NMRChecks0, UserRules0, NMRChecks, UserRules) =>
 
 :- det(nmr_reverse/2).
 
+nmr_reverse([], []) :-
+    !.
 nmr_reverse(L,L) :-
     current_prolog_flag(scasp_list_raw, true),
     !.
