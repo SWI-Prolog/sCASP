@@ -157,7 +157,7 @@ normal_justification_tree(goal_origin(Term, Origin)-Children, Options) -->
     emit(li(class([collapsable|ExtraClasses]),
             [ div(class([node, 'collapsable-header']),
                   [ \tree_atom(Term, Options),
-                    \connector(implies, Options),
+                    \connector(implies, [origin(File:Line)|Options]),
                     \origin(File, Line, Options)
                   ]),
               ul(class('collapsable-content'),
@@ -780,10 +780,12 @@ connector(-, _Options) -->
     emit([ span(class(human), [Text, ' ']),
            span(class(machine), '\u00ac ')
          ]).
-connector(implies, _Options) -->
+connector(implies, Options) -->
     { human_connector(implies, Text) },
-    emit([ span(class(human), [', ', Text]),
-           span(class(machine), ' \u2190')
+    emit([ span(class(human),
+                [', ', \origin_annotated(Text, Options)]),
+           span(class(machine),
+                \origin_annotated(' \u2190', Options))
          ]).
 connector(?, _Options) -->
     { human_connector(?, Text) },
@@ -874,3 +876,14 @@ origin(File, Line, Options) -->
     !,
     utter(according_to(File, Line), Options).
 origin(_, _, _) --> [].
+
+origin_annotated(Content, Options) -->
+    { option(origin(File:Line), Options)
+    },
+    !,
+    emit(span([ class(scasp_origin),
+                'data-file'(File),
+                'data-line'(Line)
+              ], Content)).
+origin_annotated(Content, _) -->
+    emit(Content).
