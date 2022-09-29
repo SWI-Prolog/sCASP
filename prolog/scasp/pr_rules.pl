@@ -369,8 +369,29 @@ insert_var_r(Name, Var, In, Out) :-
     insert_var(In, Out, Name, Var).
 
 %!  atom_cond(+Spec, -Atom, -Children, -Condition) is det.
+%
+%   Translate  a  pred/1  condition.  Spec  specifies   a  node  in  the
+%   justification tree. Its general form   is `AtomSpec-Children`, where
+%   `Children` is one of
+%
+%     - A list of specifications.  The specification matches if each
+%       specification in the children list matches one of the
+%       children of the justification tree.  Non-matched children
+%       remain in the tree and are used as justification normally.
+%       If the list ends with `-`, e.g. `[p(X)|-]`, all non-matched
+%       children are discarded.
+%     - The atom `-`.  All children are discarded.
+%     - The atom `*`.  This is the default of there are no children
+%       and causes the node to be processed normally.
+%
+%   Each `AtomSpec` is either a  plain   `Atom`,  one wrapped, `-(Atom)`
+%   `not(Atom)` or `not(-(Atom))`. A condition may   be added to an Atom
+%   as a conjunction, e.g., this denotes the  atom p(X), but only if `X`
+%   is an integer.
+%
+%       :- pred (p(X),integer(X)) :: "bla bla {{X}}".
 
-:- det(atom_cond/3).
+:- det(atom_cond/4).
 
 atom_cond(Atom0-Children0, Atom, Children, Cond) =>
     atom_cond(Atom0, Atom, Cond0),
