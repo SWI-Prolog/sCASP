@@ -419,6 +419,31 @@ scasp_dynamic(Name/Arity, M, Scoped) =>
                      M:NName/Arity))
     ).
 
+:- multifile system:term_expansion/2.
+
+system:term_expansion((:- scasp_dynamic(Spec)), Directives) :-
+    phrase(scasp_dynamic_direcives(Spec), Directives).
+
+scasp_dynamic_direcives(Spec as Scope) -->
+    !,
+    scasp_dynamic_direcives(Spec, Scope).
+scasp_dynamic_direcives(Spec) -->
+    !,
+    scasp_dynamic_direcives(Spec, private).
+
+scasp_dynamic_direcives(Var, _) -->
+    { var(Var), !, fail }.
+scasp_dynamic_direcives((A,B), Scope) -->
+    scasp_dynamic_direcives(A, Scope),
+    scasp_dynamic_direcives(B, Scope).
+scasp_dynamic_direcives(Name/Arity, Scope) -->
+    { atom_concat(-, Name, NName) },
+    (   {Scope == shared}
+    ->  [(:- dynamic((Name/Arity, NName/Arity)))]
+    ;   [(:- thread_local((Name/Arity, NName/Arity)))]
+    ).
+
+
 %!  scasp_assert(:Clause) is det.
 %!  scasp_retract(:Clause) is nondet.
 %!  scasp_retractall(:Head) is det.
