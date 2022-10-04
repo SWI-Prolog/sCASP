@@ -515,3 +515,62 @@ decl_show_colours(not(_A), Colours) =>
     Colours = built_in-[declarations(show)].
 decl_show_colours(_A, Colours) =>
     Colours = declarations(show).
+
+
+		 /*******************************
+		 *          GXREF SUPPORT	*
+		 *******************************/
+
+%!  pce_xref_gui:gxref_called(?Source, ?Callable)
+%
+%   Hook into gxref/0 that may  extend   the  notion of predicates being
+%   called by some infrastructure. Here, do two things:
+%
+%     - We silence called s(CASP) hooks
+%     - If a predicate is defined using scasp_dynamic/1 and either the
+%       positive or negative version is called, we consider it called.
+
+:- multifile pce_xref_gui:gxref_called/2.
+:- autoload(library(prolog_xref), [xref_called/4]).
+
+pce_xref_gui:gxref_called(Source, Callable) :-
+    nonvar(Source),
+    callable(Callable),
+    !,
+    (   xref_called_cond(Source, Callable, _)
+    ->  true
+    ;   scasp_called(Callable)
+    ->  true
+    ;   xref_dynamic(Source, Callable),
+        scasp_negate(Callable, NegCallable),
+        xref_dynamic(Source, NegCallable),
+        xref_called_cond(Source, NegCallable, _)
+    ).
+
+xref_dynamic(Source, Callable) :-
+    xref_defined(Source, Callable, dynamic(_)), !.
+xref_dynamic(Source, Callable) :-
+    xref_defined(Source, Callable, thread_local(_)).
+
+xref_called_cond(Source, Callable, Cond) :-
+    xref_called(Source, Callable, By, Cond),
+    By \= Callable.                 % recursive calls
+
+scasp_negate(Callable, NegCallable) :-
+    atom(Callable),
+    !,
+    scasp_neg_atom(Callable, NegCallable).
+scasp_negate(Callable, NegCallable) :-
+    compound_name_arguments(Callable, Name, Args),
+    scasp_neg_atom(Name, NegName),
+    compound_name_arguments(NegCallable, NegName, Args).
+
+scasp_neg_atom(Neg, Pos) :-
+    atom_concat(-, Pos, Neg),
+    !.
+scasp_neg_atom(Pos, Neg) :-
+    atom_concat(-, Pos, Neg).
+
+scasp_called(pr_pred_predicate(_,_,_,_)).
+scasp_called(scasp_expand_program(_,_,_,_)).
+scasp_called(-).
