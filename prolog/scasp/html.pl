@@ -483,10 +483,11 @@ atom(o_nmr_check, Options) -->
     utter(global_constraints_hold, Options).
 atom(is(Value,Expr), Options) -->
     !,
-    { format(string(S), '~p is ~p', [Expr, Value]),
-      css_classes(Options, Classes)
+    { css_classes(Options, Classes)
     },
-    emit(span(class([arithmetic|Classes]), S)).
+    emit(span(class([arithmetic|Classes]),
+              [ \expr(Expr, Options), &(nbsp), is, &(nbsp), \html_term(Value, Options)
+              ])).
 atom(Comp, Options) -->
     { human_connector(Comp, Text),
       !,
@@ -500,6 +501,34 @@ atom(Comp, Options) -->
               ])).
 atom(Term, Options) -->
     utter(holds(Term), Options).
+
+%!  expr(+Term, +Options)// is det.
+%
+%   Render an expression.
+%
+%   @tbd Should deal with parenthesis  where   needed.  Possibly it is a
+%   better option to use term//2 from  library(http/html_term) and add a
+%   portray hook for that?
+
+expr(Term, Options) -->
+    { compound(Term),
+      compound_name_arguments(Term, Op, [Left, Right])
+    },
+    !,
+    emit(span([ \expr(Left, Options),
+                &(nbsp), Op, &(nbsp),
+                \expr(Right, Options)
+              ])).
+expr(Term, Options) -->
+    { compound(Term),
+      compound_name_arguments(Term, Op, [Arg])
+    },
+    !,
+    emit(span([ Op,
+                \expr(Arg, Options)
+              ])).
+expr(Simple, Options) -->
+    html_term(Simple, Options).
 
 %!  utter(+Expression, +Options)
 
