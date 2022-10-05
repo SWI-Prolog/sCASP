@@ -6,7 +6,8 @@
             html_program//1,                    % :Dict
             html_query//2,                      % :Query, +Options
             html_predicate//2,                  % :Predicate, +Options
-            html_rule//2                        % :Rule, +Options
+            html_rule//2,                       % :Rule, +Options
+            html_term//2                        % +Term, +Options
           ]).
 :- use_module(common).
 :- use_module(output).
@@ -273,7 +274,7 @@ html_binding(Name=Value, Options) -->
     emit(div(class('scasp-binding'),
              [ var(Name),
                ' = ',
-               \scasp_term(Value, Options),
+               \html_term(Value, Options),
                \connect_binding(Options)
              ])).
 
@@ -423,7 +424,7 @@ html_rule_(M:Head, Options) -->
 html_body(forall(X, not(Goal)), Options) -->
     !,
     emit(div(class('scasp-query-literal'),
-             [ 'there exist no ', \scasp_term(X, Options),
+             [ 'there exist no ', \html_term(X, Options),
                ' for which ', \atom(Goal, Options)
              ])).
 html_body(Body, Options) -->
@@ -485,12 +486,14 @@ atom(is(Value,Expr), Options) -->
 atom(Comp, Options) -->
     { human_connector(Comp, Text),
       !,
-      Comp =.. [_,Left,Right]
-    },
-    { format(string(S), '~p ~w ~p', [Left,Text,Right]),
+      Comp =.. [_,Left,Right],
       css_classes(Options, Classes)
     },
-    emit(span(class([arithmetic|Classes]), S)).
+    emit(span(class([arithmetic|Classes]),
+              [ \html_term(Left, Options),
+                &(nbsp), Text, &(nbsp),
+                \html_term(Right, Options)
+              ])).
 atom(Term, Options) -->
     utter(holds(Term), Options).
 
@@ -554,41 +557,41 @@ css_classes(Options, [atom|Classes]) :-
     ).
 
 
-:- det(scasp_term//2).
+:- det(html_term//2).
 
-scasp_term(Var, Options) -->
+html_term(Var, Options) -->
     { var(Var) },
     !,
     var(Var, Options).
-scasp_term(@(Var:''), Options) -->
+html_term(@(Var:''), Options) -->
     { var(Var)
     },
     !,
     var(Var, Options).
-scasp_term(@(Var:Type), Options) -->
+html_term(@(Var:Type), Options) -->
     { var(Var)
     },
     !,
     typed_var(Var, Type, Options).
-scasp_term(@(Value:''), Options) -->
+html_term(@(Value:''), Options) -->
     !,
-    scasp_term(Value, Options).
-scasp_term(@(Value:Type), Options) -->
+    html_term(Value, Options).
+html_term(@(Value:Type), Options) -->
     emit('the ~w '-[Type]),
     !,
-    scasp_term(Value, Options).
-scasp_term(Term, _Options) -->
+    html_term(Value, Options).
+html_term(Term, _Options) -->
     { var_number(Term, _) },
     !,
     emit('~p'-[Term]).
-scasp_term('| '(Var, {Constraints}), Options) -->
+html_term('| '(Var, {Constraints}), Options) -->
     !,
     inlined_var(Var, Constraints, Options).
-scasp_term(Term, _Options) -->
+html_term(Term, _Options) -->
     { emitting_as(plain) },
     !,
     [ ansi(code, '~p', [Term]) ].
-scasp_term(Term, Options) -->
+html_term(Term, Options) -->
     term(Term, [numbervars(true)|Options]).
 
 %!  var(+Var, +Options)//
@@ -623,7 +626,7 @@ inlined_var(Var, Constraints, Options) -->
     !,
     (   {List = [One]}
     ->  emit('anything except for '),
-        scasp_term(One, Options)
+        html_term(One, Options)
     ;   emit('anything except for '),
         list(List, [last_connector(or)|Options])
     ).
@@ -636,7 +639,7 @@ inlined_var(Var, Constraints, Options) -->
     (   {List = [One]}
     ->  {human_connector(neq, Text)},
         emit([var(Name), ' ', Text, ' ']),
-        scasp_term(One, Options)
+        html_term(One, Options)
     ;   {human_connector(not_in, Text)},
         emit([var(Name), ' ', Text, ' ']),
         list(List, [last_connector(or)|Options])
@@ -660,7 +663,7 @@ clpq(Var, [Constraint|More], Options) -->
       )
     },
     emit(['any ', Id, ' ', Text, ' ']),
-    scasp_term(B, Options),
+    html_term(B, Options),
     (   {More == []}
     ->  []
     ;   emit(' and '),
@@ -674,7 +677,7 @@ clpq_and([Constraint|More], Var, Options) -->
       human_connector(Constraint, Text)
     },
     emit([Text, ' ']),
-    scasp_term(B, Options),
+    html_term(B, Options),
     (   {More == []}
     ->  []
     ;   emit(' and '),
@@ -707,7 +710,7 @@ inlined_typed_var(Var, Type, Constraints, Options) -->
     !,
     (   {List = [One]}
     ->  emit(['any ', Type, ' except for ']),
-        scasp_term(One, Options)
+        html_term(One, Options)
     ;   emit(['any ', Type, ' except for ']),
         list(List, [last_connector(or)|Options])
     ).
@@ -719,7 +722,7 @@ inlined_typed_var(Var, Type, Constraints, Options) -->
     !,
     (   {List = [One]}
     ->  emit([var(Name), ', a ', Type, ' other than ']),
-        scasp_term(One, Options)
+        html_term(One, Options)
     ;   emit([var(Name), ', a ', Type, ' not ']),
         list(List, [last_connector(or)|Options])
     ).
@@ -737,11 +740,11 @@ list([L1,L], Options) -->
     { option(last_connector(Conn), Options, and),
       human_connector(Conn, Text)
     },
-    scasp_term(L1, Options),
+    html_term(L1, Options),
     emit(', ~w '-[Text]),
-    scasp_term(L, Options).
+    html_term(L, Options).
 list([H|T], Options) -->
-    scasp_term(H, Options),
+    html_term(H, Options),
     (   {T==[]}
     ->  []
     ;   emit(', '),
@@ -760,7 +763,7 @@ action(text(S), _) -->
     !,
     emit(S).
 action(Term, Options) -->
-    scasp_term(Term, Options).
+    html_term(Term, Options).
 
 %!  connector(+Meaning, +Options)//
 %
