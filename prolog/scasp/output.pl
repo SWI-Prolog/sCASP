@@ -291,7 +291,7 @@ human_expression(Tree, Children, Actions) :-
     human_utterance(Atom, ChildrenIn, M, Children, Human),
     (   Human = format(Fmt, Args)
     ->  parse_fmt(Fmt, Args, Actions)
-    ;   Actions = Human
+    ;   Actions = Human                          % html(Terms)
     ).
 
 tree_atom_children(M0:(Atom0-Children), M, Atom, Children) :-
@@ -322,13 +322,20 @@ match_children(*, _, Children0, Children) =>
 match_children(-, _, _, Children) =>
     Children = [].
 match_children([H|T], M, Children0, Children) =>
-    append(Pre, [Atom-C|Post], Children0),
-    match_node(H, M, Atom),
+    append(Pre, [Atom-C0|Post], Children0),
+    match_node(H, M, Atom, C0, C),
     !,
     append([Pre,C,Post], Children2),
     match_children(T, M, Children2, Children).
 match_children([], _, Children0, Children) =>
     Children = Children0.
+
+match_node(Node-ChildSpec, M, Atom, C0, C) =>
+    match_node(Node, M, Atom),
+    match_children(ChildSpec, M, C0, C).
+match_node(Node, M, Atom, C0, C) =>
+    match_node(Node, M, Atom),
+    C = C0.
 
 match_node(Node, M, goal_origin(Child, _)) :-
     !,
