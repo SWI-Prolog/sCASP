@@ -337,11 +337,18 @@ match_node(Node, M, Atom, C0, C) =>
     match_node(Node, M, Atom),
     C = C0.
 
+%!  match_node(+Spec, +Module, +Atom) is semidet.
+%
+%   Succeed if Spec (from the `:-   pred` declaration) matches Atom from
+%   the justification tree.
+
 match_node(Node, M, goal_origin(Child, _)) :-
     !,
     match_node(Node, M, Child).
 match_node(Node, _M, Node).
+match_node(Node, _M, proved(Node)).
 match_node(not(Node), M, not(M:Node)).
+match_node(Node, M, proved(M:Node)).
 match_node(Node, M, M:Node).
 
 %!  parse_fmt(+Fmt, +Args, -Actions) is det.
