@@ -26,6 +26,7 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(prolog_code)).
+:- use_module(library(apply)).
 
 :- meta_predicate
     html_model(:, +, ?, ?),
@@ -402,9 +403,10 @@ html_rule(Rule, Options) -->
     html_rule_(Rule, Options),
     { ovar_clean(Rule) }.
 
-html_rule_(M:(Head :- Body), Options) -->
+html_rule_(M:(Head0 :- Body), Options) -->
     !,
-    { MOptions = [module(M)|Options]
+    { MOptions = [module(M)|Options],
+      raise_negation(Head0, Head)
     },
     emit(div(class('scasp-rule'),
              [ div(class('scasp-head'),
@@ -428,7 +430,9 @@ html_body(forall(X, not(Goal)), Options) -->
                ' for which ', \atom(Goal, Options)
              ])).
 html_body(Body, Options) -->
-    { comma_list(Body, List) },
+    { comma_list(Body, List0),
+      maplist(raise_negation, List0, List)
+    },
     query_terms(List, Options).
 
 
