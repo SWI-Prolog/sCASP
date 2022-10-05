@@ -255,6 +255,7 @@ model_term_r(Options, Atom) -->
               span(class(machine), \machine_atom(Atom, Options))
             ])).
 
+
 %!  html_bindings(+Bindings, +Options)//
 %
 %   Print the variable bindings.
@@ -436,6 +437,15 @@ html_body(Body, Options) -->
 %   Emit an s(CASP) atom with annotations as   they  appear in the model
 %   and justification.
 
+atom(Atom, Options) -->
+    { option(pred(true), Options, true),
+      option(module(DefM), Options),
+      option(source_module(M), Options, DefM),
+      human_expression(M:(Atom-[]), [], Actions),
+      !,
+      css_classes(Options, Classes)
+    },
+    emit(span(class(Classes), \actions(Actions, Options))).
 atom(not(GlobalConstraint), Options) -->
     { is_global_constraint(GlobalConstraint, N)
     },
@@ -481,15 +491,6 @@ atom(Comp, Options) -->
       css_classes(Options, Classes)
     },
     emit(span(class([arithmetic|Classes]), S)).
-atom(Term, Options) -->
-    { option(pred(true), Options, true),
-      option(module(DefM), Options),
-      option(source_module(M), Options, DefM),
-      human_expression(M:(Term-[]), [], Actions),
-      !,
-      css_classes(Options, Classes)
-    },
-    emit(span(class(Classes), \actions(Actions, Options))).
 atom(Term, Options) -->
     utter(holds(Term), Options).
 
