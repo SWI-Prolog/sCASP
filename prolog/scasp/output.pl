@@ -294,17 +294,23 @@ human_expression(Tree, Children, Actions) :-
     ;   Actions = Human
     ).
 
-tree_atom_children(M0:(not(Atom0)-Children), M, not(Atom), Children) :-
-    strip_module(M0:Atom0, M, Atom).
-tree_atom_children(M0:(not(-Atom0)-Children), M, not(-Atom), Children) :-
-    strip_module(M0:Atom0, M, Atom).
-tree_atom_children(M0:(-(Atom0)-Children), M, -(Atom), Children) :-
-    strip_module(M0:Atom0, M, Atom).
 tree_atom_children(M0:(Atom0-Children), M, Atom, Children) :-
+    clean_atom(Atom0, M0, Atom, M).
+
+clean_atom(goal_origin(Atom0, _), M0, Atom, M) =>
+    clean_atom(Atom0, M0, Atom, M).
+clean_atom(not(-Atom0), M0, Atom, M) =>
+    Atom = not(-Atom1),
+    strip_module(M0:Atom0, M, Atom1).
+clean_atom(not(Atom0), M0, Atom, M) =>
+    Atom = not(Atom1),
+    strip_module(M0:Atom0, M, Atom1).
+clean_atom(-(Atom0), M0, Atom, M) =>
+    Atom = -(Atom1),
+    strip_module(M0:Atom0, M, Atom1).
+clean_atom(Atom0, M0, Atom, M) =>
     strip_module(M0:Atom0, M, Atom).
 
-human_utterance(goal_origin(Atom, _Origin), Children0, M, Children, Format) =>
-    human_utterance(Atom, Children0, M, Children, Format).
 human_utterance(Atom, Children0, M, Children, Format) =>
     M:pr_pred_predicate(Atom, ChildSpec, Cond, Format),
     match_children(ChildSpec, M, Children0, Children),
@@ -324,10 +330,12 @@ match_children([H|T], M, Children0, Children) =>
 match_children([], _, Children0, Children) =>
     Children = Children0.
 
-match_node(Node,      _M, Node).
-match_node(not(Node),  M,  not(M:Node)).
-match_node(Node,       M, M:Node).
-
+match_node(Node, M, goal_origin(Child, _)) :-
+    !,
+    match_node(Node, M, Child).
+match_node(Node, _M, Node).
+match_node(not(Node), M, not(M:Node)).
+match_node(Node, M, M:Node).
 
 %!  parse_fmt(+Fmt, +Args, -Actions) is det.
 %
