@@ -84,8 +84,10 @@ define([ "jquery" ],
 	  var button = addToggler(elem, ".collapsable-header", options);
 
 	  button.click(function(ev) {
+	    ev.stopPropagation();
 	    var div = $(ev.target).closest(".collapsable");
 	    div[pluginName]('toggle', options);
+	    return false;
 	  });
 
 	});
