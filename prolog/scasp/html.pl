@@ -805,7 +805,7 @@ human_connector(Term, Connector) :-
     ).
 
 full_stop(_Options) -->
-    emit('\u220e').                     % QED block
+    emit(span(class(machine), '\u220e')).              % QED block
 
 incr_indent(Options0, [depth(D)|Options2]) :-
     select_option(depth(D0), Options0, Options1),
