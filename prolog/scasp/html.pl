@@ -58,7 +58,7 @@ user:file_search_path(css, library(scasp/web/css)).
 %
 %   Convert the tree to HTML. The  caller should use ovar_analyze_term/1
 %   on Tree to name variables and identify  singletons. This is not done
-%   in this predicate as the user may or  may not wish to combin the the
+%   in this predicate as the user may or  may not wish to combine the
 %   variable analysis with the bindings and/or model. Options processed:
 %
 %     - pred(Boolean)
@@ -66,6 +66,8 @@ user:file_search_path(css, library(scasp/web/css)).
 %     - justify_nmr(Boolean)
 %       When `false` (default `true`), do not omit a justification for
 %       the global constraints.
+%     - source(Boolean)
+%       When `false` (default `true`), do not omit source locations.
 
 :- det(html_justification_tree//2).
 
