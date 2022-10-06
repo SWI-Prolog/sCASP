@@ -388,9 +388,34 @@ scasp_stack(Stack) :-
 %
 %   Justification for the current sCASP answer.
 
-scasp_justification(M:Tree, _Options) :-
+scasp_justification(M:Tree, Options) :-
     nb_current(scasp_tree, Tree0),
-    unqualify_justitication_tree(Tree0, M, Tree).
+    remove_origins(Tree0, Tree1, Options),
+    unqualify_justitication_tree(Tree1, M, Tree).
+
+remove_origins(Tree0, Tree, Options) :-
+    option(source(false), Options),
+    !,
+    remove_origins(Tree0, Tree).
+remove_origins(Tree, Tree, _).
+
+remove_origins(M:Tree0, Result) =>
+    Result = M:Tree,
+    remove_origins(Tree0, Tree).
+remove_origins(Term0-Children0, Result) =>
+    Result = Term-Children,
+    remove_origin(Term0, Term),
+    maplist(remove_origins, Children0, Children).
+remove_origins(Nodes0, Nodes), is_list(Nodes0) =>
+    maplist(remove_origins, Nodes0, Nodes).
+remove_origins(Node0, Node) =>
+    remove_origin(Node0, Node).
+
+remove_origin(goal_origin(Term, _), Result) =>
+    Result = Term.
+remove_origin(Term, Result) =>
+    Result = Term.
+
 
 %!  scasp_listing(+Unit, +Options)
 %

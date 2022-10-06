@@ -115,6 +115,9 @@ Issues:
 %     - tree(-Tree)
 %       Unify Tree with the s(CASP) justification tree.  See
 %       scasp_justification/2 for details.
+%     - source(Boolean)
+%       When `false`, do not include source origin terms into the
+%       final tree.
 
 scasp(Query, Options) :-
     scasp_query_clauses(Query, Clauses),
