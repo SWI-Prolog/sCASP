@@ -616,9 +616,11 @@ list([H|T]) --> [H], list(T).
 
 user:term_expansion(-Fact, MFact) :-
     callable(Fact),
+    Fact \= _:_,
     intern_negation(-Fact, MFact).
 user:term_expansion((-Head :- Body), (MHead :- Body)) :-
     callable(Head),
+    Head \= _:_,
     intern_negation(-Head, MHead).
 user:term_expansion((false :- Body), ((-) :- Body)).
 user:term_expansion((:- pred(SpecIn)),
