@@ -194,13 +194,17 @@ add_statements(New, Tail, [New|Tail]).
 
 :- det(sasp_statement/5).
 
-sasp_statement(source(Ref, Term), VarNames, source(Ref, SASP), Pos, Options) :-
-    blob(Ref, clause),
-    !,
+sasp_statement(source(Ref, Term), VarNames, SSASP, Pos, Options),
+    blob(Ref, clause) =>
+    SSASP = source(Ref, SASP),
     sasp_statement_(Term, VarNames, SASP, Pos, [source(Ref)|Options]).
-sasp_statement(source(Path-Start, Term), VarNames, source(Ref, SASP), Pos, Options) :-
-    !,
+sasp_statement(source(Path-Start, Term), VarNames, SSASP, Pos, Options) =>
+    SSASP = source(Ref, SASP),
     assert_scasp_source_reference(Path, Start, Ref),
+    sasp_statement_(Term, VarNames, SASP, Pos, [source(Ref)|Options]).
+sasp_statement(Term, VarNames, SSASP, Pos, Options) =>
+    SSASP = source(Ref, SASP),
+    assert_scasp_source_reference(-, 0, Ref),
     sasp_statement_(Term, VarNames, SASP, Pos, [source(Ref)|Options]).
 
 sasp_statement_(Term, VarNames, SASP, Pos, Options) :-
