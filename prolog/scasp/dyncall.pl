@@ -583,13 +583,12 @@ abducible(M:Head, Pos), callable(Head) =>
     maplist(scasp_assert_into(M, Pos), Rules).
 
 abducible_rules(Head,
-                [ (Head                   :- not(-(Head)), 'abducible$'(Head)),
-                  (-(Head)                :- not Head),
+                [ (Head                   :- not(NegHead), 'abducible$'(Head)),
+                  (NegHead                :- not Head),
                   ('abducible$'(Head)   :- not 'abducible$$'(Head)),
                   ('abducible$$'(Head)  :- not 'abducible$'(Head))
-                ]).
-
-
+                ]) :-
+    intern_negation(-Head, NegHead).
 
 abducible(Var) -->
     { var(Var),
