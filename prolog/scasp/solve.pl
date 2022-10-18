@@ -444,15 +444,20 @@ exec_goal(Goal) :-
 % TODO: Pending StackOut to carry the literal involved in the findall
 % (if needed)
 % TODO: Handling of ProvedIn/ProvedOut
+
+%!  exec_findall(+Findall, +Module,
+%!		 +ProvedIn, -ProvedOut, +StackIn, -StackOut, -Model)
+
 exec_findall(findall(Var, Call, List), M,
              Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     verbose(format('execution of findall(~p, ~p, _) \n', [Var, Call])),
-    findall(t(Var, S, M), (
-            solve([Call], M, Parents, ProvedIn, ProvedOut, StackIn, S0, M),
+    findall(t(Var, S, Mdl), (
+            solve([Call], M, Parents, ProvedIn, _ProvedOut, StackIn, S0, Mdl),
             append(S, StackIn, S0)
         ), VSMList),
     process_vsmlist(VSMList, List, SOut, Model),
     append(SOut, [findall(Var, Call, List)|StackIn], StackOut),
+    stack_proved(StackOut, ProvedOut),
     verbose(format('Result execution = ~p \n', [List])).
 
 process_vsmlist(VSMList, List, [[]|StackOut], Model) :-

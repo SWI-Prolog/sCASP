@@ -472,6 +472,7 @@ check_existence(Options) :-
 defined('_false_0').
 defined(true_0).
 defined(false_0).
+defined(findall_3).
 defined(Name) :-
     defined_rule(Name, _, _, _).
 
