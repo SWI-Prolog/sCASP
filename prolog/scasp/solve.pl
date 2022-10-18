@@ -731,9 +731,9 @@ stack_proved([Top|Ss], Intervening, MaxInter, Proved0, Proved) :-
         stack_proved(Ss, Intervening, MaxInter, Proved1, Proved)
     ).
 
-add_proved(goal_origin(Goal, _), Assoc0, Assoc) :-
+add_proved(goal_origin(Goal, _), Assoc0, Assoc) =>
     add_proved(Goal, Goal, Assoc0, Assoc).
-add_proved(Goal, Assoc0, Assoc) :-
+add_proved(Goal, Assoc0, Assoc) =>
     add_proved(Goal, Goal, Assoc0, Assoc).
 
 add_proved(not(Term), Goal, Assoc0, Assoc) =>
