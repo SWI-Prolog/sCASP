@@ -333,6 +333,8 @@ body_calls((A,B), M, Callee) =>
     ).
 body_calls(not(A), M, Callee) =>
     body_calls(A, M, Callee).
+body_calls(findall(_,G,_), M, Callee) =>
+    body_calls(G, M, Callee).
 body_calls(N, M, Callee), rm_classic_negation(N,A) =>
     body_calls(A, M, Callee).
 body_calls(M:A, _, Callee), atom(M) =>
@@ -358,6 +360,7 @@ built_in(Head) :-
 built_in(Head) :-
     clp_builtin(Head).
 built_in(_ is _).
+built_in(findall(_,_,_)).
 
 rm_classic_negation(-Goal, Goal) :-
     !.
