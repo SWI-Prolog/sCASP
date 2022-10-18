@@ -21,7 +21,7 @@ prolog:error_message(existence_error(scasp_query, M)) -->
 
 
 		 /*******************************
-		 *            CASP		*
+		 *           sCASP		*
 		 *******************************/
 
 scasp_message(version(Version)) -->
