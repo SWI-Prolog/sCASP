@@ -151,6 +151,7 @@ selected(not(Goal), _) =>
     \+ aux_predicate(Goal).
 selected(-(Goal), M) =>
     selected(Goal, M).
+selected(findall(_,_,_), _) => true.
 selected(is(_,_), _) => true.
 selected(_>_, _) => true.
 selected(_>=_, _) => true.
