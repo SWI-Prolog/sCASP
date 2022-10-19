@@ -211,6 +211,9 @@ qualify(-(Head), M, Q) =>
 qualify(not(Head), M, Q) =>
     Q = not(QHead),
     qualify(Head, M, QHead).
+qualify(findall(Templ, Head, List), M, Q) =>
+    Q = findall(Templ, QHead, List),
+    qualify(Head, M, QHead).
 qualify((A,B), M, Q) =>
     Q = (QA,QB),
     qualify(A, M, QA),
