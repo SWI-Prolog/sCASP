@@ -88,6 +88,9 @@ unqualify_model_term(M, Term0, Term),
     Term0 =.. [Name,Arg0],
     Term  =.. [Name,Arg],
     unqualify_model_term(M, Arg0, Arg).
+unqualify_model_term(M, findall(Templ, Goal0, List), Findall) =>
+    Findall = findall(Templ, Goal, List),
+    unqualify_model_term(M, Goal0, Goal).
 unqualify_model_term(M, Term0, Term) =>
     (   encoded_module_term(Q:Term1, Term0)
     ->  (   Q == M
