@@ -182,6 +182,8 @@ scasp_show(Query, code, Options) =>
         scasp_portray_program(Module:[source_module(M)|Options])).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
+%
+%   @arg Clauses is a list of source(ClauseRef, Clause).
 
 :- det(scasp_query_clauses/2).
 
