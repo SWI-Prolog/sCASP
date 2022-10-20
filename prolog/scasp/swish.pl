@@ -7,9 +7,9 @@
 
 :- use_module(swish(lib/config)).
 
-:- use_module(embed).
-:- use_module(html).
-:- use_module(output).
+:- use_module(library(scasp/embed)).
+:- use_module(library(scasp/html)).
+:- use_module(library(scasp/output)).
 
 /** <module> s(CASP) adapter for SWISH
 
