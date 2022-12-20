@@ -176,9 +176,11 @@ scasp_show(Query, What) :-
 scasp_show(Query, code, Options) =>
     Query = M:_,
     scasp_query_clauses(Query, Clauses),
+    qualify(Query, SrcModule:QQuery),
+    expand_program(SrcModule, Clauses, Clauses1, QQuery, _QQuery1),
     in_temporary_module(
         Module,
-        prepare(Clauses, Module, []),
+        prepare(Clauses1, Module, []),
         scasp_portray_program(Module:[source_module(M)|Options])).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
