@@ -19,7 +19,10 @@ scasp_source_reference_file_line(Ref, File, Line) :-
 scasp_source_reference_file_line(Ref, File, Line) :-
     scasp_source_reference(Ref, File, Pos),
     !,
-    stream_position_data(line_count, Pos, Line).
+    (   File == (-)
+    ->  Line = Pos
+    ;   stream_position_data(line_count, Pos, Line)
+    ).
 
 clause_file_line(ClauseRef, dynamic, Line) :-
     scasp_dynamic_clause_position(ClauseRef, Pos),
@@ -46,4 +49,4 @@ assert_scasp_source_reference(File, Pos, Ref) :-
 %   True when Pos is the stream position is which the source code for
 %   the dynamic clause referenced by Ref was read.
 
-:- dynamic scasp_dynamic_clause_position/2.
+:- thread_local scasp_dynamic_clause_position/2.
