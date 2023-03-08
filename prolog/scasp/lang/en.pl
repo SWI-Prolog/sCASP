@@ -104,6 +104,7 @@ scasp_message(may)       --> [ 'it may be the case that' ].
 scasp_message(-)         --> [ 'it is not the case that' ].
 scasp_message(implies)   --> [ 'because' ].
 scasp_message(?)         --> [ '?' ].
+scasp_message(.)         --> [ '.' ].
 scasp_message(proved)    --> ['justified above'].
 scasp_message(chs)       --> ['it is assumed that'].
 scasp_message(assume)    --> ['we assume that'].

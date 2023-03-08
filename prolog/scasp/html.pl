@@ -1,3 +1,37 @@
+/*  Part of s(CASP)-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2021-2023, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(scasp_just_html,
           [ html_justification_tree//2,		% :Tree, +Options
             html_model//2,			% :Model, +Options
@@ -66,6 +100,8 @@ user:file_search_path(css, library(scasp/web/css)).
 %     - justify_nmr(Boolean)
 %       When `false` (default `true`), do not omit a justification for
 %       the global constraints.
+%     - show(Format)
+%       One of `human`, `machine` or `both`.
 %     - source(Boolean)
 %       When `false` (default `true`), do not omit source locations.
 
@@ -90,7 +126,7 @@ html_justification_tree(M:Tree, Options) -->
 %   case.
 
 justification_tree(Tree, Options) -->
-    { \+ option(show(machine), Options),
+    { \+ option(show(machine), Options),        % human or both
       option(pred(true), Options, true),
       option(module(M), Options),
       human_expression(M:Tree, Children, Actions)
@@ -199,8 +235,26 @@ connect(_) -->
 
 %!  human_atom(+Tree, +Human, +Options)// is det.
 %
-%   @tbd Deal with Human == '', deleting the node.
+%   Emits an atom handled by  a  pred/1   rule.  Human  is a sequence of
+%   actions as produced by human_expression/3.
 
+human_atom(_, Actions, Options) -->
+    { option(show(human), Options),
+      empty_actions(Actions)
+    },
+    !.
+human_atom(_Atom-_Children, Actions, Options) -->
+    { option(show(human), Options),
+      !,
+      css_classes(Options, Classes)
+    },
+    emit(span(class(['scasp-atom'|Classes]),
+              \actions(Actions, Options))).
+human_atom(Atom-_Children, _Actions, Options) -->
+    { option(show(machine), Options),
+      !
+    },
+    emit(span(class('scasp-atom'), \machine_atom(Atom, Options))).
 human_atom(Atom-_Children, Actions, Options) -->
     { css_classes(Options, Classes),
       scasp_atom_string(Atom, String)
@@ -211,11 +265,19 @@ human_atom(Atom-_Children, Actions, Options) -->
                 span(class(machine), \machine_atom(Atom, Options))
               ])).
 
+empty_actions('').
+empty_actions([]).
+
+
 tree_atom(Atom, Options) -->
     { option(show(machine), Options) },
     !,
-    emit(span(class(['scasp-atom']),
-              span(class(machine), \machine_atom(Atom, Options)))).
+    emit(span(class('scasp-atom'), \machine_atom(Atom, Options))).
+tree_atom(Atom, Options) -->
+    { option(show(human), Options),
+      !
+    },
+    emit(span(class('scasp-atom'), \atom(Atom, Options))).
 tree_atom(Atom, Options) -->
     { scasp_atom_string(Atom, String)
     },
@@ -251,6 +313,17 @@ html_model(M:Model, Options) -->
     emit(ul(class(['scasp-model'|Classes]),
             \sequence(model_term_r(Options1), Model))).
 
+model_term_r(Options, Atom) -->
+    { option(show(human), Options),
+      !,
+      scasp_atom_string(Atom, String)
+    },
+    emit(li([class('scasp-atom'), title(String)], \atom(Atom, Options))).
+model_term_r(Options, Atom) -->
+    { option(show(machine), Options),
+      !
+    },
+    emit(li(class(['scasp-atom']), \machine_atom(Atom, Options))).
 model_term_r(Options, Atom) -->
     { scasp_atom_string(Atom, String)
     },
@@ -346,16 +419,27 @@ html_query(M:Query, Options) -->
       comma_list(Prolog, List0),
       clean_query(List0, List)
     },
-    emit(div(class('scasp-query'),
-             [ div(class(human),
-                   [ div(class('scasp-query-title'),
-                         'I would like to know if'),
-                     \query_terms(List, [module(M)|Options])
-                   ]),
-               div(class(machine),
-                   [ '?- ', \term(Prolog, [numbervars(true)|Options])
-                   ])
-             ])).
+    (   { option(show(human), Options) }
+    ->  emit(div(class('scasp-query'),
+                 [ div(class('scasp-query-title'), 'I would like to know if'),
+                   \query_terms(List, [module(M)|Options])
+                 ]))
+    ;   { option(show(machine), Options) }
+    ->  emit(div(class('scasp-query'),
+                 [ span(class('scasp-query-title'), '?- '),
+                   \term(Prolog, [numbervars(true)|Options])
+                 ]))
+    ;   emit(div(class('scasp-query'),
+                  [ div(class(human),
+                        [ div(class('scasp-query-title'),
+                              'I would like to know if'),
+                          \query_terms(List, [module(M)|Options])
+                        ]),
+                    div(class(machine),
+                        [ '?- ', \term(Prolog, [numbervars(true)|Options])
+                        ])
+                  ]))
+    ).
 html_query(_, _) -->
     emit(div(class(comment), '% No query')).
 
@@ -804,36 +888,39 @@ action(Term, Options) -->
 %
 %   Emit a logical connector.
 
-connector(and, _Options) -->
-    { human_connector(and, Text) },
-    emit([ span(class(human), [', ', Text]),
-           span(class(machine), ',')
+connector(Meaning, Options) -->
+    { option(show(human), Options),
+      !,
+      human_connector(Meaning, Text)
+    },
+    emit_human_connector(Meaning, Text, Options).
+connector(Meaning, Options) -->
+    { option(show(machine), Options)
+    },
+    !,
+    emit_machine_connector(Meaning, Options).
+connector(Meaning, Options) -->
+    { human_connector(Meaning, Text)
+    },
+    emit([ span(class(human),   \emit_human_connector(Meaning, Text, Options)),
+           span(class(machine), \emit_machine_connector(Meaning, Options))
          ]).
-connector(not, _Options) -->
-    { human_connector(not, Text) },
-    emit([ span(class(human), [Text, ' ']),
-           span(class(machine), 'not ')
-         ]).
-connector(-, _Options) -->
-    { human_connector(-, Text) },
-    emit([ span(class(human), [Text, ' ']),
-           span(class(machine), '\u00ac ')
-         ]).
-connector(implies, Options) -->
-    { human_connector(implies, Text) },
-    emit([ span(class(human),
-                [', ', \origin_annotated(Text, Options)]),
-           span(class(machine),
-                \origin_annotated(' \u2190', Options))
-         ]).
-connector(?, _Options) -->
-    { human_connector(?, Text) },
-    emit([ span(class(human), Text),
-           span(class(machine), '.')
-         ]).
-connector('.', _Options) -->
-    emit([ span(class('full-stop'), '.')
-         ]).
+
+emit_human_connector(and, Text, _) --> emit([', ', Text]).
+emit_human_connector(not, Text, _) --> emit([Text, ' ']).
+emit_human_connector(-,   Text, _) --> emit([Text, ' ']).
+emit_human_connector(?,   Text, _) --> emit(Text).
+emit_human_connector(.,   Text, _) --> emit(Text).
+emit_human_connector(implies, Text, Options) -->
+    emit([', ', \origin_annotated(Text, Options)]).
+
+emit_machine_connector(and, _) --> emit(',').
+emit_machine_connector(not, _) --> emit('not ').
+emit_machine_connector(-,   _) --> emit('\u00ac ').
+emit_machine_connector(?,   _) --> emit(?).
+emit_machine_connector(.,   _) --> emit(.).
+emit_machine_connector(implies, Options) -->
+    origin_annotated(' \u2190', Options).
 
 human_connector(Term, Connector) :-
     phrase(scasp_justification_message(Term), List),
@@ -842,8 +929,11 @@ human_connector(Term, Connector) :-
     ;   Connector = List
     ).
 
+full_stop(Options) -->
+    { option(show(human), Options) },
+    !.
 full_stop(_Options) -->
-    emit(span(class(machine), '\u220e')).              % QED block
+    emit(span([class(machine), title('QED')], '\u220e')).
 
 incr_indent(Options0, [depth(D)|Options2]) :-
     select_option(depth(D0), Options0, Options1),
