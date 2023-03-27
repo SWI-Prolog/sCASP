@@ -35,6 +35,7 @@
 :- module(scasp_just_html,
           [ html_justification_tree//2,		% :Tree, +Options
             html_model//2,			% :Model, +Options
+            html_model_term//2,			% :Atom, +Options
             html_bindings//2,                   % :Bindings, +Options
             html_program/1,                     % :Dict
             html_program//1,                    % :Dict
@@ -64,6 +65,7 @@
 
 :- meta_predicate
     html_model(:, +, ?, ?),
+    html_model_term(:, +, ?, ?),
     html_justification_tree(:, +, ?, ?),
     html_program(:),
     html_program(:, ?, ?),
@@ -311,26 +313,35 @@ html_model(M:Model, Options) -->
       Options1 = [module(M)|Options]
     },
     emit(ul(class(['scasp-model'|Classes]),
-            \sequence(model_term_r(Options1), Model))).
+            \sequence(model_item_r(Options1), Model))).
 
-model_term_r(Options, Atom) -->
+model_item_r(Options, Atom) -->
+    emit(li(class('scasp-atom'),
+                  \model_term(Atom, Options))).
+
+%!  html_model_term(:Atom, +Options)// is det.
+%
+%   Emit a model term.
+
+html_model_term(M:Atom, Options) -->
+    model_term(Atom, [module(M)|Options]).
+
+model_term(Atom, Options) -->
     { option(show(human), Options),
-      !,
-      scasp_atom_string(Atom, String)
+      !
     },
-    emit(li([class('scasp-atom'), title(String)], \atom(Atom, Options))).
-model_term_r(Options, Atom) -->
+    atom(Atom, Options).
+model_term(Atom, Options) -->
     { option(show(machine), Options),
       !
     },
-    emit(li(class(['scasp-atom']), \machine_atom(Atom, Options))).
-model_term_r(Options, Atom) -->
+    machine_atom(Atom, Options).
+model_term(Atom, Options) -->
     { scasp_atom_string(Atom, String)
     },
-    emit(li(class(['scasp-atom']),
-            [ span([class(human), title(String)], \atom(Atom, Options)),
-              span(class(machine), \machine_atom(Atom, Options))
-            ])).
+    emit([ span([class(human), title(String)], \atom(Atom, Options)),
+           span(class(machine), \machine_atom(Atom, Options))
+         ]).
 
 
 %!  html_bindings(+Bindings, +Options)//
