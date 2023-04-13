@@ -11,7 +11,7 @@
 :- autoload(library(assoc),
             [get_assoc/3, empty_assoc/1, get_assoc/5, put_assoc/4]).
 :- autoload(library(lists), [append/3, member/2]).
-:- autoload(library(terms), [variant/2]).
+:- autoload(library(terms), [variant/2, mapsubterms/3]).
 
 :- meta_predicate
     solve(:, +, -, -).
@@ -49,7 +49,6 @@ solve([], _, _, Proved, Proved, StackIn, [[]|StackIn], []).
 solve([Goal|Goals], M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     verbose(print_check_calls_calling(Goal, StackIn)),
     check_goal(Goal, M, Parents, ProvedIn, ProvedMid, StackIn, StackMid, Modelx),
-    verbose(format('Check ~@\n', [print_goal(Goal)])),
     Modelx = [AddGoal|JGoal],
     verbose(format('Success ~@\n', [print_goal(Goal)])),
     solve(Goals, M, Parents, ProvedMid, ProvedOut, StackMid, StackOut, Modelxs),
@@ -583,11 +582,13 @@ is_negated_goal(Goal, Head) :-
 :- det(ground_neg_in_stack/3).
 
 ground_neg_in_stack(Goal, Parents, Proved) :-
+    verbose(format('Enter ground_neg_in_stack for ~p\n', [Goal])),
     (   proved_relatives(Goal, Proved, Relatives)
     ->  maplist(ground_neg_in_stack(Goal), Relatives)
     ;   true
     ),
-    maplist(ground_neg_in_stack(Goal), Parents).
+    maplist(ground_neg_in_stack(Goal), Parents),
+    verbose(format('\tThere exit the negation of ~p\n\n', [Goal])).
 
 ground_neg_in_stack(TGoal, SGoal) :-
     gn_match(TGoal, SGoal, Goal, NegGoal),
@@ -812,12 +813,13 @@ solve_other_forall(Goal, M, Parents, ProvedIn, ProvedOutExit,
     my_copy_vars(AllVars,   [Goal,  Parents,  ProvedIn,  StackIn,  OtherVars,  Vars],
                  _AllVars2, [Goal2, Parents2, ProvedIn2, StackIn2, OtherVars2, Vars2]),
 
-    verbose(format("solve other forall:\n\c
+    verbose((strip_goal_origin(StackIn, StackInCiao),
+             format("solve other forall:\n\c
                            \t Goal \t~p\n\c
                            \t Vars1       \t~p\n\c
                            \t OtherVars   \t~p\n\c
                            \t StackIn    \t~p\n\n",
-                          [Goal,Vars1,OtherVars,StackIn])),
+                          [Goal,Vars1,OtherVars,StackInCiao]))),
 
     % disequality and clp for numbers
     dump_constraint(OtherVars, OtherVars1, Dump, []-[], Pending-Pending1), !,
@@ -860,6 +862,11 @@ solve_other_forall(Goal, M, Parents, ProvedIn, ProvedOutExit,
         OtherVars = OtherVars2
     ).
 
+strip_goal_origin(StackIn, StackInCiao) :-
+    mapsubterms(strip_goal_origin_, StackIn, StackInCiao).
+
+strip_goal_origin_(goal_origin(Goal, _Origin), Goal).
+
 %!  solve_var_forall_(+Goal, +Module, +Parents, +ProvedIn, -ProvedOut,
 %!                    +Entry, +Duals, +OtherVars,
 %!                    +StackIn, -StackOut, -Model) is nondet.
@@ -882,12 +889,13 @@ solve_var_forall_(Goal, M, Parents, ProvedIn, ProvedOut,
                   entry(C_Vars, Prev_Store),
                   dual(C_Vars, [C_St|C_Stores]),
                   OtherVars, StackIn, StackOut, Model) :-
-    verbose(format("solve forall:\n\c
+    verbose((strip_goal_origin(StackIn, StackInCiao),
+             format("solve forall:\n\c
                           \tPrev_Store \t~p\n\c
                           \tC_St       \t~p\n\c
                           \tC_Stores   \t~p\n\c
                           \tStackIn    \t~p\n\n",
-                          [Prev_Store,C_St,C_Stores,StackIn])),
+                          [Prev_Store,C_St,C_Stores,StackInCiao]))),
 
     my_copy_vars(C_Vars, [Goal, Prev_Store, C_St], C_Vars1, [Goal1, Prev_Store1, C_St1]),
     my_copy_vars(C_Vars, [Goal, Prev_Store, C_Stores], C_Vars2, [Goal2, Prev_Store2, C_Stores2]),
