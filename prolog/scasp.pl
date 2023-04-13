@@ -150,6 +150,7 @@ sandbox:safe_meta(scasp:(?++ _), []).
 sandbox:safe_meta(scasp:(??+- _), []).
 sandbox:safe_meta(scasp:(??-+ _), []).
 sandbox:safe_meta(scasp:(??++ _), []).
+sandbox:safe_meta(scasp_dyncall:(scasp_show(_,_)), []).
 
 sandbox:safe_prolog_flag(scasp_lang, _).
 sandbox:safe_prolog_flag(scasp_unknown, _).
