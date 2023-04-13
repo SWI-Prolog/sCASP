@@ -157,5 +157,6 @@ sandbox:safe_prolog_flag(scasp_unknown, _).
 sandbox:safe_prolog_flag(scasp_plain_dual, _).
 sandbox:safe_prolog_flag(scasp_compile_olon, _).
 sandbox:safe_prolog_flag(scasp_compile_nmr, _).
+sandbox:safe_prolog_flag(scasp_forall, _).
 sandbox:safe_prolog_flag(scasp_dcc, _).
 
