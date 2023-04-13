@@ -19,13 +19,21 @@
 /** <module> The sCASP solver
 */
 
+% Note:  The  Ciao  original  controls   forall  algorithm  using  three
+% current_option/2 facts, `prev_forall`, `sasp_forall` and `all_forall`:
+%
+%   <no option>:    no current_option/2
+%   --prev_forall:  prev_forall=on, sasp_forall=off
+%   --all_c_forall: all_forall=on
+%   --sasp_forall:  prev_forall=on sasp_forall=on
+
 :- create_prolog_flag(scasp_no_fail_loop, false, [keep(true)]).
 :- create_prolog_flag(scasp_assume,       false, [keep(true)]).
-:- create_prolog_flag(scasp_forall,       all_c, [keep(true)]).
+:- create_prolog_flag(scasp_forall,       all,   [keep(true)]).
 :- create_prolog_flag(scasp_dcc,	  false, [keep(true)]).
 :- create_prolog_flag(scasp_trace_dcc,	  false, [keep(true)]).
 
-%!  solve(:Goals, +StackIn, -StackOut, -Model)
+%!  solve(:Goals, +StackIn, a-StackOut, -Model)
 %
 %   Solve the list of sub-goals `Goal`  where   StackIn  is  the list of
 %   goals already visited and returns  in   StackOut  the  list of goals
@@ -164,7 +172,9 @@ dynamic_consistency_eval_(SubGoal, _, _) :-
 solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, GoalModel) :-
     Goal = forall(_, _),
     !,
-    (   current_prolog_flag(scasp_forall, prev)
+    (   current_prolog_flag(scasp_forall, Algo),
+        ( Algo == prev -> true ; Algo == sasp )
+        % Ciao version --prev_forall or --sasp_forall
     ->  solve_goal_forall(Goal, M,
                           Parents, ProvedIn, ProvedOut, [Goal|StackIn], StackOut,
                           Model)
@@ -274,14 +284,20 @@ solve_goal_forall(forall(Var, Goal), M,
                                    StackMid, StackOut, ModelList),
         !,
         append(ModelMid, ModelList, Model)
-    ;   !,   %% Position of the cut in s(CASP) - remove answers in max.lp
-        verbose(format('Executing ~@ with clp_disequality list = ~p\n',
+    ;   verbose(format('Executing ~@ with clp_disequality list = ~p\n',
                        [print_goal(Goal), List])),
+        (   current_prolog_flag(scasp_forall, prev)
+        ->  !  % Ciao --prev_forall: remove answers in max.lp
+        ;   true
+        ),
         exec_with_neg_list(NewVar2, NewGoal2, M,
                            List, Parents, ProvedMid, ProvedOut,
                            StackMid, StackOut, ModelList),
-        % !, %% Position of the cut in s(ASP) - remove answers in hamcycle_two.lp
-             %% Without cuts the evaluation may loop - e.g. queens.lp
+        (   current_prolog_flag(scasp_forall, sasp)
+        ->  !  % Ciao --sasp_forall: remove answers in hamcycle_two.lp
+               % Without cuts the evaluation may loop - e.g. queens.lp
+        ;   true
+        ),
         append(ModelMid, ModelList, Model)
     ).
 
@@ -775,7 +791,7 @@ solve_c_forall(Forall, M, Parents, ProvedIn, ProvedOut, StackIn, [[]|StackOut],
     my_copy_vars(Vars0, Goal0, Vars1, Goal1),        % Vars should remain free
     my_diff_term(Goal1, Vars1, OtherVars),
     Initial_Const = [],                              % Constraint store = top
-    (   current_prolog_flag(scasp_forall, all)
+    (   current_prolog_flag(scasp_forall, all_c)     % Ciao --all_c_forall
     ->  solve_var_forall_(Goal1, M, Parents, ProvedIn, ProvedOut,
                           entry(Vars1, Initial_Const),
                           dual(Vars1, [Initial_Const]),

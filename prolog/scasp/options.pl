@@ -244,7 +244,7 @@ opt_type(v,           verbose,        boolean).
 
 opt_type(version,     version,        boolean).
 
-opt_type(forall,      forall,         oneof([all,all_c,prev])).
+opt_type(forall,      forall,         oneof([all,all_c,prev,sasp])).
 
 opt_type(trace_fails, trace_fails,    boolean).
 opt_type(f,           trace_fails,    boolean).
@@ -297,7 +297,7 @@ opt_help(verbose,        "Enable verbose progress messages").
 opt_help(trace_fails,    "Trace user-predicate failures").
 opt_help(trace_dcc,      "Trace DCC pruning").
 opt_help(unknown,        "Act on undefined predicates (fail,warning,error)").
-opt_help(forall,         "Forall algorithm to use (all, [all_c], prev)").
+opt_help(forall,         "Forall algorithm to use ([all], all_c, prev, sasp)").
 opt_help(olon,           "Compile olon rules (--no-olon for debugging purposes)").
 opt_help(nmr,            "Compile NMR rules (--no-nmr for debugging purposes)").
 opt_help(dcc,            "Use Dynamic Consistency Checking").
