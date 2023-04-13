@@ -33,7 +33,7 @@
 :- create_prolog_flag(scasp_dcc,	  false, [keep(true)]).
 :- create_prolog_flag(scasp_trace_dcc,	  false, [keep(true)]).
 
-%!  solve(:Goals, +StackIn, a-StackOut, -Model)
+%!  solve(:Goals, +StackIn, -StackOut, -Model)
 %
 %   Solve the list of sub-goals `Goal`  where   StackIn  is  the list of
 %   goals already visited and returns  in   StackOut  the  list of goals
