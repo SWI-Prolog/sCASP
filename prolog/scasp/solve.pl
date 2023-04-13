@@ -582,22 +582,25 @@ is_negated_goal(Goal, Head) :-
 :- det(ground_neg_in_stack/3).
 
 ground_neg_in_stack(Goal, Parents, Proved) :-
-    verbose(format('Enter ground_neg_in_stack for ~p\n', [Goal])),
+    verbose(format('Enter ground_neg_in_stack for ~@\n', [print_goal(Goal)])),
     (   proved_relatives(Goal, Proved, Relatives)
-    ->  maplist(ground_neg_in_stack(Goal), Relatives)
+    ->  maplist(ground_neg_in_stack_(Flag, Goal), Relatives)
     ;   true
     ),
-    maplist(ground_neg_in_stack(Goal), Parents),
-    verbose(format('\tThere exit the negation of ~p\n\n', [Goal])).
+    maplist(ground_neg_in_stack_(Flag, Goal), Parents),
+    (   Flag == found
+    ->  verbose(format('\tThere exit the negation of ~@\n\n', [print_goal(Goal)]))
+    ;   true
+    ).
 
-ground_neg_in_stack(TGoal, SGoal) :-
+ground_neg_in_stack_(found, TGoal, SGoal) :-
     gn_match(TGoal, SGoal, Goal, NegGoal),
     \+ Goal \= NegGoal,
     verbose(format('\t\tCheck disequality of ~@ and ~@\n',
                    [print_goal(TGoal), print_goal(SGoal)])),
     loop_term(Goal, NegGoal),
     !.
-ground_neg_in_stack(_, _).
+ground_neg_in_stack_(_, _, _).
 
 gn_match(Goal, chs(not(NegGoal)), Goal, NegGoal) :- !.
 gn_match(not(Goal), chs(NegGoal), Goal, NegGoal) :- !.
