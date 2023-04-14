@@ -13,6 +13,7 @@
 
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
+:- use_module(library(terms)).
 
 :- meta_predicate
     verbose(0).
@@ -119,6 +120,11 @@ print_check_stack([A|As],I) :-
     I1 is I + 4,
     print_check_stack(As,I1).
 
+:- multifile user:portray/1.
+
+user:portray('G'(Goal)) :-
+    print_goal(Goal).
+
 %!  print_goal(+Goal)
 %
 %   Print an sCASP goal. The first clause   does  the actual work at the
@@ -133,11 +139,17 @@ print_goal(Goal) :- !,
     print(Ciao).
 
 ciao_goal(Goal, Ciao) :-
-    copy_term(Goal, Ciao),
+    strip_goal_origin(Goal, Goal1),
+    copy_term(Goal1, Ciao),
     term_attvars(Ciao, AttVars),
     maplist(ciao_constraints, AttVars, Constraints),
     maplist(del_attrs, AttVars),
     maplist(ciao_attvar, AttVars, Constraints).
+
+strip_goal_origin(StackIn, StackInCiao) :-
+    mapsubterms(strip_goal_origin_, StackIn, StackInCiao).
+
+strip_goal_origin_(goal_origin(Goal, _Origin), Goal).
 
 :- use_module(library(clpqr/dump), [dump/3]).
 

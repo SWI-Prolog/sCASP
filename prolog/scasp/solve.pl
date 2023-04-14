@@ -790,7 +790,7 @@ solve_c_forall(Forall, M, Parents, ProvedIn, ProvedOut, StackIn, [[]|StackOut],
                Model) :-
     collect_vars(Forall, c_forall(Vars0, Goal0)),    % c_forall([F,G], not q_1(F,G))
 
-    verbose(format('\nc_forall(~p,\t~p)\n\n',[Vars0, Goal0])),
+    verbose(format('\nc_forall(~p,\t~@)\n\n',[Vars0, print_goal(Goal0)])),
 
     my_copy_vars(Vars0, Goal0, Vars1, Goal1),        % Vars should remain free
     my_diff_term(Goal1, Vars1, OtherVars),
@@ -816,13 +816,13 @@ solve_other_forall(Goal, M, Parents, ProvedIn, ProvedOutExit,
     my_copy_vars(AllVars,   [Goal,  Parents,  ProvedIn,  StackIn,  OtherVars,  Vars],
                  _AllVars2, [Goal2, Parents2, ProvedIn2, StackIn2, OtherVars2, Vars2]),
 
-    verbose((strip_goal_origin(StackIn, StackInCiao),
-             format("solve other forall:\n\c
+    verbose(format("solve other forall:\n\c
                            \t Goal \t~p\n\c
                            \t Vars1       \t~p\n\c
                            \t OtherVars   \t~p\n\c
-                           \t StackIn    \t~p\n\n",
-                          [Goal,Vars1,OtherVars,StackInCiao]))),
+                           \t StackIn     \t~p\n\n",
+                          ['G'(Goal),'G'(Vars1),
+                           'G'(OtherVars),'G'(StackIn)])),
 
     % disequality and clp for numbers
     dump_constraint(OtherVars, OtherVars1, Dump, []-[], Pending-Pending1), !,
@@ -833,9 +833,10 @@ solve_other_forall(Goal, M, Parents, ProvedIn, ProvedOutExit,
     verbose(format("solve other forall:\n\c
                           \t OtherVars1   \t~p\n\c
                           \t OtherVars2   \t~p\n\c
-                          \t Constraints1   \t~p\n\c
+                          \t Constraints1 \t~p\n\c
                           \t Constraints2 \t~p\n\n",
-                          [OtherVars, OtherVars1, Constraints1, Constraints2])),
+                          ['G'(OtherVars1), 'G'(OtherVars2),
+                           'G'(Constraints1), 'G'(Constraints2)])),
 
     apply_const_store(Constraints1),
     !,
@@ -865,11 +866,6 @@ solve_other_forall(Goal, M, Parents, ProvedIn, ProvedOutExit,
         OtherVars = OtherVars2
     ).
 
-strip_goal_origin(StackIn, StackInCiao) :-
-    mapsubterms(strip_goal_origin_, StackIn, StackInCiao).
-
-strip_goal_origin_(goal_origin(Goal, _Origin), Goal).
-
 %!  solve_var_forall_(+Goal, +Module, +Parents, +ProvedIn, -ProvedOut,
 %!                    +Entry, +Duals, +OtherVars,
 %!                    +StackIn, -StackOut, -Model) is nondet.
@@ -892,16 +888,18 @@ solve_var_forall_(Goal, M, Parents, ProvedIn, ProvedOut,
                   entry(C_Vars, Prev_Store),
                   dual(C_Vars, [C_St|C_Stores]),
                   OtherVars, StackIn, StackOut, Model) :-
-    verbose((strip_goal_origin(StackIn, StackInCiao),
-             format("solve forall:\n\c
+    verbose(format("solve forall:\n\c
                           \tPrev_Store \t~p\n\c
                           \tC_St       \t~p\n\c
                           \tC_Stores   \t~p\n\c
                           \tStackIn    \t~p\n\n",
-                          [Prev_Store,C_St,C_Stores,StackInCiao]))),
+                          ['G'(Prev_Store),'G'(C_St),
+                           'G'(C_Stores),'G'(StackIn)])),
 
-    my_copy_vars(C_Vars, [Goal, Prev_Store, C_St], C_Vars1, [Goal1, Prev_Store1, C_St1]),
-    my_copy_vars(C_Vars, [Goal, Prev_Store, C_Stores], C_Vars2, [Goal2, Prev_Store2, C_Stores2]),
+    my_copy_vars(C_Vars,  [Goal,Prev_Store,C_St],
+                 C_Vars1, [Goal1,Prev_Store1,C_St1]),
+    my_copy_vars(C_Vars,  [Goal,Prev_Store,C_Stores],
+                 C_Vars2, [Goal2,Prev_Store2,C_Stores2]),
 
     apply_const_store(Prev_Store),
     (   %verbose(format('apply_const_store ~@\n',[print_goal(C_St)])),
@@ -915,8 +913,7 @@ solve_var_forall_(Goal, M, Parents, ProvedIn, ProvedOut,
                           dual(C_Vars1, Duals),
                           OtherVars, StackOut1, StackOut2, Model2),
         append(Model1,Model2,Model3)
-    ;   verbose(format('Entail: Fail  applying \t ~@\n',
-                       [print_goal(C_St)])),
+    ;   verbose(format('Entail: Fail  applying \t ~p\n', ['G'(C_St)])),
         %% The dual C_St is not consistent with Prev_Store -> already checked (entails)
         ProvedOut2 = ProvedIn,
         StackOut2 = StackIn,
