@@ -407,6 +407,8 @@ atom_cond(Atom0, Atom, Cond) =>
     Atom = Atom0,
     Cond = true.
 
+atom_cond_list(-, -, Cond, Cond) :-
+    !.
 atom_cond_list([], [], Cond, Cond).
 atom_cond_list([H0|T0], [H|T], Cond0, Cond) :-
     atom_cond(H0, H, Cond1),

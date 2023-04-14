@@ -134,7 +134,9 @@ justification_tree(Tree, Options) -->
       human_expression(M:Tree, Children, Actions)
     },
     !,
-    (   {Children == []}
+    (   {Children == [], Actions == html([])}
+    ->  []
+    ;   {Children == []}
     ->  emit(li([ div(class(node),
                       [ \human_atom(Tree, Actions, Options),
                         \connect(Options)
