@@ -7,6 +7,8 @@
             dual_clpq/2,
             apply_clpq_constraints/1,
             dump_clpq_var/3,
+            inf/2,
+            sup/2,
 
             op(700, xfx, #=),
             op(700, xfx, #<>),

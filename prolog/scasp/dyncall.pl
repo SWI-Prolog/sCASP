@@ -48,7 +48,8 @@
 :- use_module(listing).
 :- use_module(clp/clpq, [apply_clpq_constraints/1]).
 :- use_module(pr_rules, [process_pr_pred/5]).
-:- use_module(predicates, [prolog_builtin/1, clp_builtin/1]).
+:- use_module(predicates, [prolog_builtin/1,
+                           clp_builtin/1, clp_interval/1]).
 
 :- use_module(library(apply), [maplist/3, exclude/3, maplist/2]).
 :- use_module(library(assoc), [empty_assoc/1, get_assoc/3, put_assoc/4]).
@@ -366,6 +367,8 @@ built_in(Head) :-
     prolog_builtin(Head).
 built_in(Head) :-
     clp_builtin(Head).
+built_in(Head) :-
+    clp_interval(Head).
 built_in(_ is _).
 built_in(findall(_,_,_)).
 

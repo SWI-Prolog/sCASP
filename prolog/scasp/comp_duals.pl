@@ -63,6 +63,8 @@ comp_duals :-
 
 scasp_builtin('call_1').
 scasp_builtin('findall_3').
+scasp_builtin('inf_2').
+scasp_builtin('sup_2').
 
 %!  comp_dual(+Predicate) is det
 %

@@ -140,6 +140,9 @@ check_existence(_,G) :-
 check_existence(_,G) :-
     clp_builtin(G),
     !.
+check_existence(_,G) :-
+    clp_interval(G),
+    !.
 check_existence(_,_ is _) :-
     !.
 check_existence(_, G) :-
