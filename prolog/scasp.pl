@@ -41,6 +41,7 @@
             (#>)/2,
             (#=<)/2,
             (#>=)/2,
+            '\u2209'/2,                 % Inequality
 
             op(900,  fy, not),
             op(700, xfx, '\u2209'),     % not element of

@@ -42,6 +42,7 @@
             scasp_justification/2,      % -Tree, +Options
             (not)/1,                    % :Query
             (-)/1,                      % :Query
+            '\u2209'/2,                 % Inequality
 
             op(700, xfx, .\=.),
             op(700, xfx, '\u2209'),
@@ -56,6 +57,7 @@
 :- use_module(stack).
 :- use_module(options).
 :- use_module(listing).
+:- use_module(clp/disequality).
 
 :- use_module(library(apply)).
 :- use_module(library(error)).
