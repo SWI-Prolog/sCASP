@@ -285,6 +285,10 @@ analyze_variables(Term, Bindings, Options) :-
         inline_constraints(Term, [])
     ).
 
+:- if(\+current_predicate(tty_size/2)).
+tty_size(25,80).
+:- endif.
+
 %!  print_answer(+Nth, +Resources:dict, +Options)
 
 print_answer(Nth, Resources, Options) :-

@@ -181,6 +181,10 @@ unqualify_model(Model0, Module, Model) :-
 %      3  6  9
 %   ```
 
+:- if(\+current_predicate(tty_size/2)).
+tty_size(25,80).
+:- endif.
+
 print_model(Model, Options) :-
     model_hook(Model, Options),
     !.
