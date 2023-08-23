@@ -387,7 +387,7 @@ abducible_rules(Head,
                 ], Options) :-
     option(source(Ref), Options, no_path-no_position),
     Head =.. [F|Args],
-    atom_concat('_', F, AF),
+    atom_concat('c_', F, AF),
     AHead =.. [AF|Args].
 
 %!  sasp_syntax_error(+Error, +Pos, +Options)
