@@ -592,16 +592,20 @@ abducible(M:(A,B), Pos) =>
     abducible(M:B, Pos).
 abducible(M:Head, Pos), callable(Head) =>
     abducible_rules(Head, Rules),
-    discontiguous(M:('abducible$'/1, 'abducible$$'/1)),
     maplist(scasp_assert_into(M, Pos), Rules).
 
 abducible_rules(Head,
-                [ (Head                   :- not(NegHead), 'abducible$'(Head)),
-                  (NegHead                :- not Head),
-                  ('abducible$'(Head)   :- not 'abducible$$'(Head)),
-                  ('abducible$$'(Head)  :- not 'abducible$'(Head))
+                [ (Head    :- AHead1),
+                  (NegHead :- AHead2),
+                  (AHead1  :- not AHead2),
+                  (AHead2  :- not AHead1)
                 ]) :-
+    abducible_head('abducible$',  Head, AHead1),
+    abducible_head('abducible$$', Head, AHead2),
     intern_negation(-Head, NegHead).
+
+abducible_head(Prefix, Head, AHead) :-
+    format(atom(AHead), '~w~k$', [Prefix, Head]).
 
 abducible(Var) -->
     { var(Var),

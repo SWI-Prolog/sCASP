@@ -96,18 +96,27 @@ stack_tree([H|Stack], Tree, T, Parents) =>
 %        Remove all not(_) nodes from the tree.
 
 filter_tree([],_,[], _) :- !.
-filter_tree([goal_origin(_,_)-[_,goal_origin(Abd, O)-_]|Cs],
+filter_tree([goal_origin(Atom0,_)-[goal_origin(Abd, O)-_]|Cs],
             M,
             [goal_origin(abduced(Atom), O)-[]|Fs], Options) :-
-    abduction_justification(Abd, Atom),
+    abduction_justification(Abd),
     !,
+    raise_negation(Atom0, Atom),
     filter_tree(Cs, M, Fs, Options).
-filter_tree([proved(Abd)-[]|Cs],
-            M,
-            [proved(Atom)-[]|Fs], Options) :-
-    abduction_justification(Abd, Atom),
+filter_tree([ proved(Atom0)-[],
+              not(_Neg)-[ not(_) - [proved(not(Abd))-[]]]],
+            _M,
+            [abduced(Atom)-[]], _Options) :-
+    abduction_justification(Abd),
     !,
-    filter_tree(Cs, M, Fs, Options).
+    raise_negation(Atom0, Atom).
+filter_tree([ not(Atom0)-[not(_Neg)-[proved(not(Abd))-[]]]],
+            _M,
+            [abduced(Atom)-[]], _Options) :-
+    raise_negation(Atom0, Atom1),
+    neg(Atom1, Atom),
+    abduction_justification(Abd),
+    !.
 filter_tree([goal_origin(Term0,O)-Children|Cs], M, Tree, Options) :-
     filter_pos(Term0, Options),
     raise_negation(Term0, Term),
@@ -128,6 +137,9 @@ filter_tree([Term0-Children|Cs], M, Tree, Options) :-
 filter_tree([_-Childs|Cs], M, FilterChildren, Options) :-
     append(Childs, Cs, AllCs),
     filter_tree(AllCs, M, FilterChildren, Options).
+
+neg(-A, Neg) => Neg = A.
+neg(A, Neg) => Neg = -A.
 
 %!  filter_pos(+Node, +Options) is semidet.
 %
@@ -182,14 +194,10 @@ is_global_constraint(Atom) :-
     atom_number(NA, _).
 
 
-abduction_justification(Abd, Atom) :-
-    Abd =.. [F, Atom],
-    abduction_justification_(F).
-
-abduction_justification_(F) :-
-    sub_atom(F, _, _, 0, 'abducible$'),
+abduction_justification(Abd) :-
+    atom(Abd),
+    sub_atom(Abd, _, _, _, ':abducible$'),
     !.
-abduction_justification_(abducible).
 
 
 %!  print_justification_tree(:Tree) is det.
