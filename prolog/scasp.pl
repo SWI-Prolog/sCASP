@@ -6,6 +6,7 @@
             (?+-)/1,                    % :Query
             (?-+)/1,                    % :Query
             (?++)/1,                    % :Query
+            (?+++)/1,                    % :Query
             (??+-)/1,                   % :Query
             (??-+)/1,                   % :Query
             (??++)/1,                   % :Query
@@ -51,6 +52,7 @@
             op(1150, fx, ?+-),          % bindings + model
             op(1150, fx, ?-+),          % bindings + tree
             op(1150, fx, ?++),          % bindings + model + tree
+            op(1150, fx, ?+++),         % bindings + model + tree
             op(1150, fx, ??+-),         % Human versions of the above
             op(1150, fx, ??-+),
             op(1150, fx, ??++),
@@ -88,6 +90,7 @@ s(CASP) programs in Prolog and query them from Prolog.
     ?+-(:),
     ?-+(:),
     ?++(:),
+    ?+++(:),
     ??+-(:),
     ??-+(:),
     ??++(:).
@@ -96,6 +99,7 @@ s(CASP) programs in Prolog and query them from Prolog.
 %!  ?+-(:Query).
 %!  ?-+(:Query).
 %!  ?++(:Query).
+%!  ?+++(:Query).
 %!  ??+-(:Query).
 %!  ??-+(:Query).
 %!  ??++(:Query).
@@ -104,22 +108,23 @@ s(CASP) programs in Prolog and query them from Prolog.
 %   and the format. The +/- control whether   the  model and/or tree are
 %   printed (in that order). The ?? versions print the human version.
 
-?   Q :- scasp_and_show(Q, unicode, false).
-??  Q :- scasp_and_show(Q, unicode, unicode).
+?   Q :- scasp_and_show(Q, unicode, false, []).
+??  Q :- scasp_and_show(Q, unicode, unicode, []).
 
-?--  Q :- scasp_and_show(Q, false, false).
-?-+  Q :- scasp_and_show(Q, false, unicode).
-?+-  Q :- scasp_and_show(Q, unicode, false).
-?++  Q :- scasp_and_show(Q, unicode, unicode).
-??-+ Q :- scasp_and_show(Q, false, human).
-??+- Q :- scasp_and_show(Q, human, false).
-??++ Q :- scasp_and_show(Q, human, human).
+?--  Q :- scasp_and_show(Q, false, false, []).
+?-+  Q :- scasp_and_show(Q, false, unicode, []).
+?+-  Q :- scasp_and_show(Q, unicode, false, []).
+?++  Q :- scasp_and_show(Q, unicode, unicode, []).
+?+++ Q :- scasp_and_show(Q, unicode, [unicode(true), long(true)], []).
+??-+ Q :- scasp_and_show(Q, false, human, []).
+??+- Q :- scasp_and_show(Q, human, false, []).
+??++ Q :- scasp_and_show(Q, human, human, []).
 
-scasp_and_show(Q, Model, Tree) :-
+scasp_and_show(Q, Model, Tree, Options) :-
     scasp_mode(M0, T0),
     setup_call_cleanup(
         set_scasp_mode(Model, Tree),
-        (   scasp(Q, [])
+        (   scasp(Q, Options)
         ;   false                       % make always nondet.
         ),
         set_scasp_mode(M0, T0)).

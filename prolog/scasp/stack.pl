@@ -94,7 +94,11 @@ stack_tree([H|Stack], Tree, T, Parents) =>
 %
 %      - pos(true)
 %        Remove all not(_) nodes from the tree.
+%      - long(true)
+%        Keep the full tree, including forall() and intermediate nodes.
 
+filter_tree(Tree, _, Tree, Options) :-
+    option(long(true), Options), !.
 filter_tree([],_,[], _) :- !.
 filter_tree([goal_origin(Atom0,_)-[goal_origin(Abd, O)-_]|Cs],
             M,
