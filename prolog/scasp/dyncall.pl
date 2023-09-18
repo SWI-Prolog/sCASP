@@ -121,12 +121,15 @@ Issues:
 %       final tree.
 
 scasp(Query, Options) :-
-    scasp_query_clauses(Query, Clauses),
-    qualify(Query, SrcModule:QQuery),
-    expand_program(SrcModule, Clauses, Clauses1, QQuery, QQuery1),
+    Query = SrcModule:_,
+    scasp_query_clauses(Query, Clauses0),
+    expand_program(SrcModule,  Clauses0, Clauses1, Query, Query1),
+    maplist(qualify, Clauses1, Clauses2),
+    qualify_query(Query1, SrcModule:QQuery),
+    q_expand_program(SrcModule, Clauses2, Clauses, QQuery, QQuery1),
     in_temporary_module(
         Module,
-        prepare(Clauses1, Module, Options),
+        prepare(Clauses, Module, Options),
         scasp_call_and_results(Module:QQuery1, SrcModule, Options)).
 
 prepare(Clauses, Module, Options) :-
@@ -136,15 +139,21 @@ prepare(Clauses, Module, Options) :-
     ;   true
     ).
 
-qualify(M:Q0, M:Q) :-
+qualify_query(M:Q0, M:Q) :-
     qualify(Q0, M, Q1),
     intern_negation(Q1, Q).
 
 expand_program(SrcModule, Clauses, Clauses1, QQuery, QQuery1) :-
+    current_predicate(SrcModule:scasp_expand/4),
+    SrcModule:scasp_expand(Clauses, Clauses1, QQuery, QQuery1),
+    !.
+expand_program(_, Clauses, Clauses, QQuery, QQuery).
+
+q_expand_program(SrcModule, Clauses, Clauses1, QQuery, QQuery1) :-
     current_predicate(SrcModule:scasp_expand_program/4),
     SrcModule:scasp_expand_program(Clauses, Clauses1, QQuery, QQuery1),
     !.
-expand_program(_, Clauses, Clauses, QQuery, QQuery).
+q_expand_program(_, Clauses, Clauses, QQuery, QQuery).
 
 
 scasp_call_and_results(Query, SrcModule, Options) :-
@@ -178,7 +187,7 @@ scasp_show(Query, code, Options) =>
     Query = M:_,
     scasp_query_clauses(Query, Clauses),
     qualify(Query, SrcModule:QQuery),
-    expand_program(SrcModule, Clauses, Clauses1, QQuery, _QQuery1),
+    q_expand_program(SrcModule, Clauses, Clauses1, QQuery, _QQuery1),
     in_temporary_module(
         Module,
         prepare(Clauses1, Module, []),
@@ -193,21 +202,22 @@ scasp_show(Query, code, Options) =>
 scasp_query_clauses(Query, Clauses) :-
     query_callees(Query, Callees0),
     include_global_constraint(Callees0, Constraints, Callees),
-    findall(Clause, scasp_clause(Callees, Clause), Clauses, QConstraints),
-    maplist(mkconstraint, Constraints, QConstraints).
+    findall(Clause, scasp_clause(Callees, Clause), Clauses, Constraints).
 
-scasp_clause(Callees, source(ClauseRef, Clause)) :-
+scasp_clause(Callees, source(ClauseRef, M:(Head:- Body))) :-
     member(PI, Callees),
     pi_head(PI, M:Head),
-    @(clause(Head, Body, ClauseRef), M),
-    mkclause(Head, Body, M, Clause).
+    @(clause(Head, Body, ClauseRef), M).
 
-mkclause(Head, true, M, Clause) =>
-    qualify(Head, M, Clause).
-mkclause(Head, Body, M, Clause) =>
-    qualify((Head:-Body), M, Clause).
-
-mkconstraint(source(Ref, M:Body), source(Ref, (:- Constraint))) :-
+qualify(source(Ref, Clause), Q) =>
+    Q = source(Ref, QClause),
+    qualify(Clause, QClause).
+qualify(M:(Head :- true), Q) =>
+    qualify(Head, M, Q).
+qualify(M:(Head :- Body), Q) =>
+    qualify((Head:-Body), M, Q).
+qualify(M:(:- Body), Q) =>
+    Q = (:- Constraint),
     qualify(Body, M, Constraint).
 
 qualify(-(Head), M, Q) =>
@@ -278,11 +288,12 @@ include_global_constraint(Callees0, Constraints, Callees) :-
 
 include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
     global_constraint(Constraint),
-    Constraint = source(_, Body),
-    \+ ( member(source(_, Body0), Constraints0),
-         Body =@= Body0
+    Constraint = source(_, Rule),       % Rule = M:(:-Body)
+    \+ ( member(source(_, Rule0), Constraints0),
+         Rule =@= Rule0
        ),
-    query_callees(Body, Called),
+    Rule = M:(:-Body),
+    query_callees(M:Body, Called),
     ord_intersect(Callees0, Called),
     !,
     ord_union(Callees0, Called, Callees1),
@@ -291,7 +302,7 @@ include_global_constraint(Callees0, Callees, Constraints0, Constraints) :-
 include_global_constraint(Callees, Callees, Constraints, Constraints).
 
 
-global_constraint(source(Ref, M:Body)) :-
+global_constraint(source(Ref, M:(:- Body))) :-
     (   current_temporary_module(M)
     ;   current_module(M)
     ),
