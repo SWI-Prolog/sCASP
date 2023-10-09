@@ -41,6 +41,7 @@ Computation of dual rules (rules for the negation of a literal).
 */
 
 :- use_module(library(lists)).
+:- use_module(library(debug)).
 :- use_module(common).
 :- use_module(program).
 :- use_module(variables).

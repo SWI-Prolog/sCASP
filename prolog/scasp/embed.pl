@@ -59,6 +59,7 @@
 :- use_module(listing).
 :- use_module(clp/disequality).
 
+:- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
