@@ -184,14 +184,16 @@ scasp_show(Query, What) :-
     scasp_show(Query, Type, Options).
 
 scasp_show(Query, code, Options) =>
-    Query = M:_,
-    scasp_query_clauses(Query, Clauses),
-    qualify(Query, SrcModule:QQuery),
-    q_expand_program(SrcModule, Clauses, Clauses1, QQuery, _QQuery1),
+    Query = SrcModule:_,
+    scasp_query_clauses(Query, Clauses0),
+    expand_program(SrcModule,  Clauses0, Clauses1, Query, Query1),
+    maplist(qualify, Clauses1, Clauses2),
+    qualify_query(Query1, SrcModule:QQuery),
+    q_expand_program(SrcModule, Clauses2, Clauses, QQuery, _QQuery1),
     in_temporary_module(
         Module,
-        prepare(Clauses1, Module, []),
-        scasp_portray_program(Module:[source_module(M)|Options])).
+        prepare(Clauses, Module, []),
+        scasp_portray_program(Module:[source_module(SrcModule)|Options])).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
 %
