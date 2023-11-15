@@ -695,6 +695,21 @@ A #>= B :- apply_clpq_constraints(A #>= B).
 
 
 		 /*******************************
+		 *            SOURCE		*
+		 *******************************/
+
+:- multifile
+    prolog_clause:unify_goal/5.
+
+prolog_clause:unify_goal(scasp(RGoal, Options),
+                         scasp(CGoal, Options),
+                         _Module,
+                         TermPos, TermPos) :-
+    intern_negation(RGoal, RGoal2),
+    RGoal2 =@= CGoal.
+
+
+		 /*******************************
 		 *            SANDBOX		*
 		 *******************************/
 
