@@ -372,4 +372,9 @@ info_and_exit_option(_, _).
 info_option(Options) :-
     option(version(true), Options),
     scasp_version(Version),
-    print_message(informational, scasp(version(Version))).
+    current_prolog_flag(version, Num),
+    Major is Num//10_000,
+    Minor is (Num//100) mod 100,
+    Patch is Num mod 100,
+    atomic_list_concat([Major,Minor,Patch], '.', PlVersion),
+    print_message(informational, scasp(version(Version, PlVersion))).

@@ -16,8 +16,8 @@ scasp_messages:scasp_lang_module(nl, casp_lang_nl).
 		 *            SCASP		*
 		 *******************************/
 
-scasp_message(version(Version)) -->
-    [ 'versie ~w'-[Version] ].
+scasp_message(version(Version, PrologVersion)) -->
+    [ 'versie ~w op SWI-Prolog ~w'-[Version, PrologVersion] ].
 
 % Usage messages
 

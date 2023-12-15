@@ -24,8 +24,8 @@ prolog:error_message(existence_error(scasp_query, M)) -->
 		 *           sCASP		*
 		 *******************************/
 
-scasp_message(version(Version)) -->
-    [ 'version ~w'-[Version] ].
+scasp_message(version(Version, PrologVersion)) -->
+    [ 'version ~w on SWI-Prolog ~w'-[Version, PrologVersion] ].
 
 % Usage messages
 
