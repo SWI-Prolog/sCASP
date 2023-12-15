@@ -26,7 +26,7 @@
 %
 %   print the current version of s(CASP)
 
-scasp_version('swi.0.21.11.26').
+scasp_version('1.0.0').
 
 %!  scasp_set_options(+Options) is det.
 %!  scasp_set_options(+Options, -Unprocessed) is det.
