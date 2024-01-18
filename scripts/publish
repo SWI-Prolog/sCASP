@@ -1,0 +1,7 @@
+#!/bin/bash
+
+git push
+git push --tags
+
+swipl pack remove scasp
+swipl pack install -y https://github.com/SWI-Prolog/sCASP.git
