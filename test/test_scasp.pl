@@ -1,3 +1,37 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2021-2024, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(test_scasp,
           [ test_scasp/0,
             qtest_scasp/0,
@@ -8,7 +42,9 @@
 :- use_module(library(lists)).
 :- use_module(library(main)).
 :- use_module(library(option)).
-:- use_module(library(test_cover)).
+:- if(exists_source(library(prolog_coverage))).
+:- use_module(library(prolog_coverage)).
+:- endif.
 :- use_module(library(time)).
 
 scasp_dir(SCASPDir) :-
@@ -95,8 +131,8 @@ main(Argv) :-
     scasp_set_options(Options),
     maplist(set_option, Options),
     (   option(cov(Dir), Options)
-    ->  show_coverage(run_tests(Files, Options),
-                      [ dir(Dir) ])
+    ->  coverage(run_tests(Files, Options),
+                 [ dir(Dir) ])
     ;   run_tests(Files, Options),
         (   option(cov_by_test(true), Options)
         ->  covering_clauses(Options)
@@ -354,6 +390,14 @@ solve(Query, Bindings, Tree-Model) :-
 		 *        COVERAGE BY FILE	*
 		 *******************************/
 
+:- if(\+current_predicate(coverage/2)).
+:- meta_predicate
+    coverage(0, +).
+
+coverage(Goal, _Options) :-
+    Goal.
+:- endif.
+
 :- dynamic covers/3.
 
 :- meta_predicate
@@ -362,13 +406,13 @@ solve(Query, Bindings, Tree-Model) :-
 collect_coverage(Goal, Test) :-
     setup_call_cleanup(
         asserta(scasp_current_test(Test), Ref),
-        show_coverage(Goal, []),
+        coverage(Goal, []),
         erase(Ref)).
 
 :- multifile
     prolog_cover:report_hook/2.
 
-prolog_cover:report_hook(Succeeded, Failed) :-
+prolog_coverage:report_hook(Succeeded, Failed) :-
     scasp_current_test(Test),
     cov_module(Module),
     module_property(Module, file(Target)),
