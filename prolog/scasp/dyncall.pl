@@ -589,8 +589,21 @@ show((A,B)) -->
     show(A),
     show(B).
 show(not(PI)) -->
+    !,
     { pi_head(PI, Head) },
     [ pr_show_predicate(not(Head)) ].
+show(-Name/Arity) -->
+    !,
+    { pi_head(Name/Arity, Head),
+      intern_negation(-Head, MHead)
+    },
+    [ pr_show_predicate(MHead) ].
+show(-PI) -->
+    !,
+    { pi_head(PI, Head),
+      intern_negation(-Head, MHead)
+    },
+    [ pr_show_predicate(MHead) ].
 show(PI) -->
     { pi_head(PI, Head) },
     [ pr_show_predicate(Head) ].
