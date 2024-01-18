@@ -45,6 +45,7 @@
 :- use_module(common).
 :- use_module(modules).
 :- use_module(source_ref).
+:- use_module(coverage).
 :- use_module(listing).
 :- use_module(clp/clpq, [apply_clpq_constraints/1]).
 :- use_module(pr_rules, [process_pr_pred/5]).
@@ -158,6 +159,7 @@ q_expand_program(_, Clauses, Clauses, QQuery, QQuery).
 
 scasp_call_and_results(Query, SrcModule, Options) :-
     scasp_embed:scasp_call(Query),
+    scasp_coverage,
     (   option(model(Model), Options)
     ->  scasp_model(SrcModule:Model)
     ;   true
