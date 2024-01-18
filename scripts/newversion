@@ -52,6 +52,17 @@ else
     echo "Updated version in $f"
 fi
 
+f=pack.pl
+sed -e "s/^version(.*/version('$vlong')./" $f > $tmp
+if cmp $f $tmp; then
+    rm -f $tmp
+else
+    diff --color $f $tmp
+    cat $tmp > $f
+    rm $tmp
+    echo "Updated version in $f"
+fi
+
 rm -f $tmp
 
 if [ ! -z "$(git diff --stat)" ]; then
