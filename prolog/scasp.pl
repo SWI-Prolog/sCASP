@@ -11,7 +11,8 @@
             (??-+)/1,                   % :Query
             (??++)/1,                   % :Query
 
-            scasp_show/2,               % :Query,+What
+            scasp_show/2,               % :Query, +What
+            scasp_trace/2,              % :Goal, +Condition
 
             (scasp_dynamic)/1,          % :Spec
             scasp_assert/1,             % :Clause
@@ -82,6 +83,7 @@ s(CASP) programs in Prolog and query them from Prolog.
 :- use_module(scasp/embed).
 :- use_module(scasp/dyncall).
 :- use_module(scasp/messages).
+:- use_module(scasp/verbose).
 
 :- meta_predicate
     ?(:),

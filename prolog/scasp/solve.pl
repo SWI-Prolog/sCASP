@@ -78,7 +78,7 @@ proved_relatives(Goal, Proved, Relatives) =>
 %
 %	  - [], chs(Goal)		Proved by co-induction
 %	  - [], proved(Goal)		Proved in a completed subtree
-%	  - From solve_goal/5		Continued execution
+%	  - From solve_goal/8		Continued execution
 
 check_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     check_CHS(Goal, M, Parents, ProvedIn, StackIn, Check),
@@ -115,9 +115,11 @@ check_goal_(proved, Goal, _M,
 check_goal_(cont, Goal, M,
             Parents, ProvedIn, ProvedOut, StackIn, StackOut,
             Model) :-
-    solve_goal(Goal, M,
-               [Goal|Parents], ProvedIn, ProvedOut, StackIn, StackOut,
-               Model).
+    scasp_trace_goal(
+        M:Goal,
+        solve_goal(Goal, M,
+                   [Goal|Parents], ProvedIn, ProvedOut, StackIn, StackOut,
+                   Model)).
 % coinduction fails <- the negation of a call unifies with a call in the call stack
 check_goal_(co_failure, _Goal, _M,
             _Parents, _ProvedIn, _ProvedOut, _StackIn, _StackOut,
@@ -136,10 +138,10 @@ dynamic_consistency_check(Goal, M, StackIn) :-
     user_predicate(M:Goal),
     ground(Goal),
     M:pr_dcc_predicate(dcc(Goal), Body),
-%   scasp_trace(scasp_trace_dcc, dcc_call(Goal, StackIn)),
+%   scasp_trace_event(scasp_trace_dcc, dcc_call(Goal, StackIn)),
     dynamic_consistency_eval(Body, M, StackIn),
     !,
-    scasp_trace(scasp_trace_dcc, dcc_discard(Goal, Body)),
+    scasp_trace_event(scasp_trace_dcc, dcc_discard(Goal, Body)),
     fail.
 dynamic_consistency_check(_, _, _).
 
@@ -231,8 +233,8 @@ solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     *-> true
     ;   verbose(format(' FAIL~n')),
         shown_predicate(M:Goal),
-        scasp_trace(scasp_trace_failures,
-                    trace_failure(Goal, [Goal|StackIn])),
+        scasp_trace_event(scasp_trace_failures,
+                          trace_failure(Goal, [Goal|StackIn])),
         fail
     ).
 solve_goal(Goal, _M, _Parents, ProvedIn, ProvedIn, StackIn, [[], Goal|StackIn],

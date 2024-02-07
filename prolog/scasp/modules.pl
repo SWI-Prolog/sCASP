@@ -31,17 +31,26 @@ encoded_module_name(M:NName, QName),
 encoded_module_name(M:Name, QName), atom(M), atom(Name) =>
     atomic_list_concat([M,:,Name], QName).
 encoded_module_name(MName, QName), atom(QName) =>
-    (   sub_atom(QName, B, _, A, :)
+    prefix(Prefix),
+    atom_concat(Prefix, QName1, QName),
+    !,
+    (   sub_atom(QName1, B, _, A, :)
     ->  MName = M:Name,
-        sub_atom(QName, _, A, 0, Name0),
-        sub_atom(QName, 0, B, _, M0),
+        sub_atom(QName1, _, A, 0, Name0),
+        sub_atom(QName1, 0, B, _, M0),
         (   atom_concat(-, M, M0)
-        ->  atom_concat(-, Name0, Name)
+        ->  atom_concat(-, Name0, Name1)
         ;   M = M0,
-            Name = Name0
-        )
-    ;   MName = QName
+            Name1 = Name0
+        ),
+        atom_concat(Prefix, Name1, Name)
+    ;   (var(MName) ; atom(MName))
+    ->  atom_concat(Prefix, QName1, MName)
     ).
+
+prefix(o_).
+prefix('').
+
 
 %!  encoded_module_term(?TermIn, ?TermOut) is det.
 
