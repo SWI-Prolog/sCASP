@@ -186,6 +186,7 @@ ciao_attvar({'\u2209'(Var, List)}, neg(Var, List)).
 scasp_trace_goal(Goal, Wrapped) :-
     scasp_tracing(Goal, Mask, MinTime),
     !,
+    seen_goal(Goal, Variant, Seen),
     parents(Parents),
     b_setval(scasp_trace_stack, [Goal|Parents]),
     length(Parents, Len),
@@ -195,7 +196,9 @@ scasp_trace_goal(Goal, Wrapped) :-
     Trace = #{ mask: Mask,
                min_time: MinTime,
                depth: Depth,
-               goal: Goal
+               goal: Goal,
+               variant: Variant,
+               seen: Seen
              },
     (   if_tracing(Trace, call, 0, 0),
         call(Wrapped),
@@ -236,11 +239,14 @@ inc_answers(State, Answers) :-
     Answers = Answers1.
 
 if_tracing(Dict, Port, Time, Answers) :-
-    _{mask:Mask, min_time:MinTime, depth:Depth, goal:Goal} :< Dict,
+    _{ mask:Mask,
+       min_time:MinTime
+     } :< Dict,
     port(Port, PortMask),
     (   PortMask /\ Mask =\= 0,
         Time >= MinTime
-    ->  print_message(debug, scasp(trace(Port, Depth, Time, Answers, Goal)))
+    ->  Dict1 = Dict.put(_{port:Port, time:Time, answer:Answers}),
+        print_message(debug, scasp(trace(Dict1)))
     ;   true
     ).
 
@@ -282,6 +288,28 @@ port(exit, 0x04).
 port(fail, 0x08).
 port(all,  0x0f).
 
+seen_goal(Goal, Variant, Seen) :-
+    lift_attributes(Goal, Variant),
+    variant_trie(Trie),
+    (   trie_lookup(Trie, Variant, Seen)
+    ->  Seen1 is Seen+1,
+        trie_update(Trie, Variant, Seen1)
+    ;   trie_insert(Trie, Variant, 1),
+        Seen = 0
+    ).
+
+variant_trie(Trie) :-
+    nb_current(scasp_variant_trie, Trie),
+    !.
+variant_trie(Trie) :-
+    trie_new(Trie),
+    nb_setval(scasp_variant_trie, Trie).
+
+lift_attributes(Goal, Variant) :-
+    term_attvars(Goal, AttVars),
+    maplist(get_attrs, AttVars, Attrs),
+    copy_term_nat(t(Goal,Attrs), Variant).
+
 
 		 /*******************************
 		 *            MESSAGES		*
@@ -292,21 +320,28 @@ port(all,  0x0f).
 prolog:message(scasp(Msg)) -->
     scasp_message(Msg).
 
-scasp_message(trace(Port, Depth, Time, Answers, M:Goal)) -->
-    { unqualify_model_term(M, Goal, UserGoal) },
+scasp_message(trace(Data)) -->
+    { _{ port: Port,
+         goal: M:Goal,
+         depth: Depth
+       } :< Data,
+      unqualify_model_term(M, Goal, UserGoal) },
     [ '[~D] '-[Depth] ],
     [ ansi(port(Port), '~w: ', [Port]) ],
-    time(Port, Time),
-    answer(Port, Answers),
+    time(Port, Data),
+    port_count(Port, Data),
     [ ansi(code, '~@', [scasp_verbose:print_goal(UserGoal)]) ].
 
 time(call, _) -->
     !.
-time(_Port, Time) -->
-    { Ms is Time*1000.0 },
+time(_Port, Data) -->
+    { Ms is Data.time*1000.0 },
     [ '+~3fms '-[Ms] ].
 
-answer(call, _) -->
-    !.
-answer(_Port, Count) -->
-    [ '#~D '-[Count] ].
+port_count(call, Data) -->
+    [ '#~D '-[Data.seen] ].
+port_count(_Port, Data) -->
+    { Seen = Data.seen, Seen > 0 },
+    [ '#~D (called ~D times) '-[Data.answer, Seen] ].
+port_count(_Port, Data) -->
+    [ '#~D '-[Data.answer] ].
