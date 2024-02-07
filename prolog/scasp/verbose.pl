@@ -186,33 +186,61 @@ ciao_attvar({'\u2209'(Var, List)}, neg(Var, List)).
 scasp_trace_goal(Goal, Wrapped) :-
     scasp_tracing(Goal, Mask, MinTime),
     !,
+    parents(Parents),
+    b_setval(scasp_trace_stack, [Goal|Parents]),
+    length(Parents, Len),
+    Depth is Len+1,
     statistics(cputime, T0),
-    (   if_tracing(Mask, call, MinTime, 0, Goal),
+    State = state(T0, 0),
+    Trace = #{ mask: Mask,
+               min_time: MinTime,
+               depth: Depth,
+               goal: Goal
+             },
+    (   if_tracing(Trace, call, 0, 0),
         call(Wrapped),
         deterministic(Det),
-        statistics(cputime, T1),
-        T is T1-T0,
-        if_tracing(Mask, exit, MinTime, T, Goal),
+        cpu_since(State, T),
+        inc_answers(State, NAnswers),
+        b_setval(scasp_trace_stack, Parents),
+        if_tracing(Trace, exit, T, NAnswers),
         (   Det == true
         ->  !
         ;   (   true
-            ;   if_tracing(Mask, redo, MinTime, T, Goal),
+            ;   if_tracing(Trace, redo, 0, NAnswers),
+                statistics(cputime, R0),
+                nb_setarg(1, State, R0),
                 fail
             )
         )
-    ;   statistics(cputime, T1),
-        T is T1-T0,
-        if_tracing(Mask, fail, MinTime, T, Goal),
+    ;   cpu_since(State, T),
+        arg(2, State, NAnswers),
+        if_tracing(Trace, fail, T, NAnswers),
         fail
     ).
 scasp_trace_goal(_Goal, Wrapped) :-
     call(Wrapped).
 
-if_tracing(Mask, Port, MinTime, Time, Goal) :-
+parents(Stack) :-
+    nb_current(scasp_trace_stack, Stack), !.
+parents([]).
+
+cpu_since(state(T0, _), T) :-
+    statistics(cputime, T1),
+    T is T1-T0.
+
+inc_answers(State, Answers) :-
+    arg(2, State, Answers0),
+    Answers1 is Answers0+1,
+    nb_setarg(2, State, Answers1),
+    Answers = Answers1.
+
+if_tracing(Dict, Port, Time, Answers) :-
+    _{mask:Mask, min_time:MinTime, depth:Depth, goal:Goal} :< Dict,
     port(Port, PortMask),
     (   PortMask /\ Mask =\= 0,
         Time >= MinTime
-    ->  print_message(debug, scasp(trace(Port, Time, Goal)))
+    ->  print_message(debug, scasp(trace(Port, Depth, Time, Answers, Goal)))
     ;   true
     ).
 
@@ -234,12 +262,19 @@ scasp_trace(Goal, Ports) :-
     asserta(scasp_tracing_(Goal, Mask, MinTime)).
 
 
-update_mask([], M0, M, MT, MT) => M = M0.
-update_mask([H|T], M0, M, MT0, MT) => update_mask(H, M0, M1, MT0, MT1), update_mask(T, M1, M, MT1, MT).
-update_mask(+Port, M0, M, MT0, MT), port(Port, Extra) => M is M0 \/ Extra, MT = MT0.
-update_mask(-Port, M0, M, MT0, MT), port(Port, Extra) => M is M0 /\ \Extra, MT = MT0.
-update_mask(Port, M0, M, MT0, MT),  port(Port, Extra) => M is M0 \/ Extra, MT = MT0.
-update_mask(Time, M0, M, _,   MT),  number(Time)      => M is M0, MT is Time/1000.0.
+update_mask([], M0, M, MT, MT) =>
+    M = M0.
+update_mask([H|T], M0, M, MT0, MT) =>
+    update_mask(H, M0, M1, MT0, MT1),
+    update_mask(T, M1, M, MT1, MT).
+update_mask(+Port, M0, M, MT0, MT), port(Port, Extra) =>
+    M is M0 \/ Extra, MT = MT0.
+update_mask(-Port, M0, M, MT0, MT), port(Port, Extra) =>
+    M is M0 /\ \Extra, MT = MT0.
+update_mask(Port, M0, M, MT0, MT),  port(Port, Extra) =>
+    M is M0 \/ Extra, MT = MT0.
+update_mask(Time, M0, M, _,   MT),  number(Time)      =>
+    M is M0, MT is Time/1000.0.
 
 port(call, 0x01).
 port(redo, 0x02).
@@ -257,10 +292,12 @@ port(all,  0x0f).
 prolog:message(scasp(Msg)) -->
     scasp_message(Msg).
 
-scasp_message(trace(Port, Time, M:Goal)) -->
+scasp_message(trace(Port, Depth, Time, Answers, M:Goal)) -->
     { unqualify_model_term(M, Goal, UserGoal) },
+    [ '[~D] '-[Depth] ],
     [ ansi(port(Port), '~w: ', [Port]) ],
     time(Port, Time),
+    answer(Port, Answers),
     [ ansi(code, '~@', [scasp_verbose:print_goal(UserGoal)]) ].
 
 time(call, _) -->
@@ -268,3 +305,8 @@ time(call, _) -->
 time(_Port, Time) -->
     { Ms is Time*1000.0 },
     [ '+~3fms '-[Ms] ].
+
+answer(call, _) -->
+    !.
+answer(_Port, Count) -->
+    [ '#~D '-[Count] ].
