@@ -186,7 +186,7 @@ ciao_attvar({'\u2209'(Var, List)}, neg(Var, List)).
 scasp_trace_goal(Goal, Wrapped) :-
     scasp_tracing(Goal, Mask, MinTime),
     !,
-    seen_goal(Goal, Variant, Seen),
+    seen_goal(Wrapped, Seen),
     parents(Parents),
     b_setval(scasp_trace_stack, [Goal|Parents]),
     length(Parents, Len),
@@ -197,7 +197,6 @@ scasp_trace_goal(Goal, Wrapped) :-
                min_time: MinTime,
                depth: Depth,
                goal: Goal,
-               variant: Variant,
                seen: Seen
              },
     (   if_tracing(Trace, call, 0, 0),
@@ -250,7 +249,7 @@ if_tracing(Dict, Port, Time, Answers) :-
     ;   true
     ).
 
-scasp_tracing(Goal, Mask, MinTime) :-
+scasp_tracing(_M:Goal, Mask, MinTime) :-
     scasp_tracing_(Tracing, Mask, MinTime),
     subsumes_term(Tracing, Goal),
     !.
@@ -268,8 +267,9 @@ scasp_trace(Goal, Ports) :-
     asserta(scasp_tracing_(Goal, Mask, MinTime)).
 
 
-update_mask([], M0, M, MT, MT) =>
-    M = M0.
+update_mask([], M0, M, MT0, MT) =>
+    M = M0,
+    MT = MT0.
 update_mask([H|T], M0, M, MT0, MT) =>
     update_mask(H, M0, M1, MT0, MT1),
     update_mask(T, M1, M, MT1, MT).
@@ -288,13 +288,20 @@ port(exit, 0x04).
 port(fail, 0x08).
 port(all,  0x0f).
 
-seen_goal(Goal, Variant, Seen) :-
-    lift_attributes(Goal, Variant),
+seen_goal(_:solve_goal(Goal, M, _Parents,
+                       ProvedIn, _ProvedOut,
+                       _StackIn, _StackOut,
+                       _Model),
+          Seen) =>
+    seen_goal_(t(Goal,M,ProvedIn), Seen).
+
+seen_goal_(Goal, Seen) :-
+    goal_sha1(Goal, SHA1),
     variant_trie(Trie),
-    (   trie_lookup(Trie, Variant, Seen)
+    (   trie_lookup(Trie, SHA1, Seen)
     ->  Seen1 is Seen+1,
-        trie_update(Trie, Variant, Seen1)
-    ;   trie_insert(Trie, Variant, 1),
+        trie_update(Trie, SHA1, Seen1)
+    ;   trie_insert(Trie, SHA1, 1),
         Seen = 0
     ).
 
@@ -305,10 +312,17 @@ variant_trie(Trie) :-
     trie_new(Trie),
     nb_setval(scasp_variant_trie, Trie).
 
-lift_attributes(Goal, Variant) :-
+goal_sha1(Goal, SHA1) :-
+    State = state(_),
+    \+ \+ goal_sha1_(Goal, State),
+    arg(1, State, SHA1).
+
+goal_sha1_(Goal, State) :-
     term_attvars(Goal, AttVars),
     maplist(get_attrs, AttVars, Attrs),
-    copy_term_nat(t(Goal,Attrs), Variant).
+    maplist(del_attrs, AttVars),
+    variant_sha1(t(Goal,Attrs), SHA1),
+    nb_setarg(1, State, SHA1).
 
 
 		 /*******************************
