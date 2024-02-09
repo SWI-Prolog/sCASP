@@ -1,6 +1,7 @@
 :- module(scasp_predicates,
           [ table_predicate/1,          % ?Goal
             shown_predicate/1,
+            scasp_builtin/1,            % ?Goal
             prolog_builtin/1,           % ?Goal
             clp_builtin/1,              % ?Goal
             clp_interval/1,             % ?Goal
@@ -44,6 +45,18 @@ shown_predicate(M:not(Goal)) :-
 shown_predicate(Goal) :-
     user_predicate(Goal).
 
+%!  scasp_builtin(?Goal)
+%
+%   True when Goal is built-in
+
+scasp_builtin(Head) :-
+    prolog_builtin(Head).
+scasp_builtin(Head) :-
+    clp_builtin(Head).
+scasp_builtin(Head) :-
+    clp_interval(Head).
+scasp_builtin(_ is _).
+scasp_builtin(findall(_,_,_)).
 
 %!  prolog_builtin(?Goal)
 %

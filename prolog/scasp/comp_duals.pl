@@ -62,11 +62,6 @@ comp_duals :-
     defined_predicates(Preds),
     maplist(comp_dual, Preds).
 
-scasp_builtin('call_1').
-scasp_builtin('findall_3').
-scasp_builtin('inf_2').
-scasp_builtin('sup_2').
-
 %!  comp_dual(+Predicate) is det
 %
 %   get matching rules and call comp_duals3/2.
@@ -74,11 +69,16 @@ scasp_builtin('sup_2').
 comp_dual('_false_0') :-	% Headless rules are handled by NMR check
     !.
 comp_dual(X) :-
-    scasp_builtin(X),		% skip dual of scasp builtins
+    scasp_builtin_encoded(X),   % skip dual of scasp builtins
     !.
 comp_dual(X) :-
     findall(R, (defined_rule(X, H, B, _), c_rule(R, H, B)), Rs), % get rules for a single predicate
     comp_duals3(X, Rs).
+
+scasp_builtin_encoded('call_1').
+scasp_builtin_encoded('findall_3').
+scasp_builtin_encoded('inf_2').
+scasp_builtin_encoded('sup_2').
 
 %!  comp_duals3(+Predicate:atom, +Rules:list) is det
 %

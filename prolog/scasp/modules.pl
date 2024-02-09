@@ -1,9 +1,12 @@
 :- module(scasp_modules,
           [ scasp_encoded_module_term/2, % ?MTerm, ?QTerm
             encoded_module_term/2,       % ?TermIn, ?TermOut
+            qualify_body/3,              % +BodyIn, +Module, -BodyOut
             unqualify_model_term/3,      % +Module, +TermIn, -TermOut
-            model_term_module/2          % :Term, -Module
+            model_term_module/2,         % :Term, -Module
+            implementation/2             % :GoalIn, :GoalOut
           ]).
+:- use_module(predicates, [scasp_builtin/1]).
 
 /** <module> Encode modules
 
@@ -87,6 +90,40 @@ scasp_encoded_module_term(Term, not(QTerm)) =>
 scasp_encoded_module_term(MTerm, QTerm) =>
     encoded_module_term(MTerm, QTerm).
 
+%!  qualify_body(+BodyIn, +Module, -BodyOut) is det.
+%
+%   Include the original Prolog module  into   the  program  for running
+%   modular programs.
+%
+%   @tbd: move into modules.pl
+
+qualify_body(-(Head), M, Q) =>
+    Q = -QHead,
+    qualify_body(Head, M, QHead).
+qualify_body(not(Head), M, Q) =>
+    Q = not(QHead),
+    qualify_body(Head, M, QHead).
+qualify_body(forall(Var, Goal), M, Q) =>
+    Q = forall(Var, QGoal),
+    qualify_body(Goal, M, QGoal).
+qualify_body(findall(Templ, Head, List), M, Q) =>
+    Q = findall(Templ, QHead, List),
+    qualify_body(Head, M, QHead).
+qualify_body((A,B), M, Q) =>
+    Q = (QA,QB),
+    qualify_body(A, M, QA),
+    qualify_body(B, M, QB).
+qualify_body((A:-B), M, Q) =>
+    Q = (QA:-QB),
+    qualify_body(A, M, QA),
+    qualify_body(B, M, QB).
+qualify_body(G, M, Q), callable(G) =>
+    (   scasp_builtin(G)
+    ->  Q = G
+    ;   implementation(M:G, Callee),
+        encoded_module_term(Callee, Q)
+    ).
+
 %!  unqualify_model_term(+Module, +TermIn, -TermOut)
 
 unqualify_model_term(M, goal_origin(Term0, O), Term)  =>
@@ -133,3 +170,15 @@ model_term_module(Term, M0, M) =>
     ->  M = Q
     ;   M = M0
     ).
+
+%!  implementation(:GoalIn, :GoalOut) is det.
+%
+%   True when GoalOut is the  true   location  of  the predicate GoalIn,
+%   i.e., the location from where the predicate was imported.
+
+implementation(M0:Head, M:Head) :-
+    predicate_property(M0:Head, imported_from(M1)),
+    !,
+    M = M1.
+implementation(Head, Head).
+

@@ -18,7 +18,6 @@
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
 :- use_module(modules).
-:- use_module(dyncall, [qualify_body/3]).
 
 :- meta_predicate
     verbose(0),

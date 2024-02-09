@@ -38,9 +38,7 @@
             op(700, xfx, #<),
             op(700, xfx, #>),
             op(700, xfx, #=<),
-            op(700, xfx, #>=),
-
-            qualify_body/3              % +BodyIn, +Module, -BodyOut
+            op(700, xfx, #>=)
           ]).
 :- use_module(compile).
 :- use_module(embed).
@@ -49,10 +47,9 @@
 :- use_module(source_ref).
 :- use_module(coverage).
 :- use_module(listing).
+:- use_module(predicates, [scasp_builtin/1]).
 :- use_module(clp/clpq, [apply_clpq_constraints/1]).
 :- use_module(pr_rules, [process_pr_pred/5]).
-:- use_module(predicates, [prolog_builtin/1,
-                           clp_builtin/1, clp_interval/1]).
 
 :- use_module(library(apply), [maplist/3, exclude/3, maplist/2]).
 :- use_module(library(assoc), [empty_assoc/1, get_assoc/3, put_assoc/4]).
@@ -226,40 +223,6 @@ qualify(M:(:- Body), Q) =>
     Q = (:- Constraint),
     qualify_body(Body, M, Constraint).
 
-%!  qualify_body(+BodyIn, +Module, -BodyOut) is det.
-%
-%   Include the original Prolog module  into   the  program  for running
-%   modular programs.
-%
-%   @tbd: move into modules.pl
-
-qualify_body(-(Head), M, Q) =>
-    Q = -QHead,
-    qualify_body(Head, M, QHead).
-qualify_body(not(Head), M, Q) =>
-    Q = not(QHead),
-    qualify_body(Head, M, QHead).
-qualify_body(forall(Var, Goal), M, Q) =>
-    Q = forall(Var, QGoal),
-    qualify_body(Goal, M, QGoal).
-qualify_body(findall(Templ, Head, List), M, Q) =>
-    Q = findall(Templ, QHead, List),
-    qualify_body(Head, M, QHead).
-qualify_body((A,B), M, Q) =>
-    Q = (QA,QB),
-    qualify_body(A, M, QA),
-    qualify_body(B, M, QB).
-qualify_body((A:-B), M, Q) =>
-    Q = (QA:-QB),
-    qualify_body(A, M, QA),
-    qualify_body(B, M, QB).
-qualify_body(G, M, Q), callable(G) =>
-    (   built_in(G)
-    ->  Q = G
-    ;   implementation(M:G, Callee),
-        encoded_module_term(Callee, Q)
-    ).
-
 %!  query_callees(:Query, -Callees) is det.
 %
 %   True when Callees is a list   of predicate indicators for predicates
@@ -374,7 +337,7 @@ body_calls(N, M, Callee), rm_classic_negation(N,A) =>
     body_calls(A, M, Callee).
 body_calls(M:A, _, Callee), atom(M) =>
     body_calls(A, M, Callee).
-body_calls(G, _M, _CalleePM), callable(G), built_in(G) =>
+body_calls(G, _M, _CalleePM), callable(G), scasp_builtin(G) =>
     fail.
 body_calls(G, M, CalleePM), callable(G) =>
     implementation(M:G, Callee0),
@@ -390,15 +353,6 @@ body_calls(G, M, CalleePM), callable(G) =>
 body_calls(G, _, _) =>
     type_error(callable, G).
 
-built_in(Head) :-
-    prolog_builtin(Head).
-built_in(Head) :-
-    clp_builtin(Head).
-built_in(Head) :-
-    clp_interval(Head).
-built_in(_ is _).
-built_in(findall(_,_,_)).
-
 rm_classic_negation(-Goal, Goal) :-
     !.
 rm_classic_negation(Goal, PGoal) :-
@@ -410,12 +364,6 @@ rm_classic_negation(Goal, PGoal) :-
 pm(P, P).
 pm(M:P, M:MP) :-
     intern_negation(-P, MP).
-
-implementation(M0:Head, M:Head) :-
-    predicate_property(M0:Head, imported_from(M1)),
-    !,
-    M = M1.
-implementation(Head, Head).
 
 generalise(M:Head0, Gen), atom(M) =>
     Gen = M:Head,
