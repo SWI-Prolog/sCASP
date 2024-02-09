@@ -4,7 +4,8 @@
             scasp_warning/2,            % +When, +Term
             scasp_trace_event/2,              % +When, +Term
             scasp_info/2,		% +When, +Term
-            scasp_trace/2,              % +Goal, +Ports
+            scasp_trace/2,              % :Goal, +Ports
+            scasp_tracing/0,
             scasp_trace_goal/2,         % +Goal, :Call
             print_goal/1,               % +Goal
             print_check_calls_calling/2 % ?Goal, ?StackIn
@@ -17,9 +18,11 @@
 :- use_module(clp/disequality).
 :- use_module(clp/clpq).
 :- use_module(modules).
+:- use_module(dyncall, [qualify_body/3]).
 
 :- meta_predicate
     verbose(0),
+    scasp_trace(:, +),
     scasp_trace_goal(:, 0).
 
 /** <module> Print goal and stack in Ciao compatible format
@@ -181,12 +184,15 @@ ciao_attvar({'\u2209'(Var, List)}, neg(Var, List)).
 		 *******************************/
 
 :- dynamic
-    scasp_tracing_/3.                   % Goal, PortMask, MinTime
+    scasp_tracing_/4.                   % Goal, PortMask, MinTime, Seen
 
 scasp_trace_goal(Goal, Wrapped) :-
-    scasp_tracing(Goal, Mask, MinTime),
+    scasp_tracing(Goal, Mask, MinTime, RecordSeen),
     !,
-    seen_goal(Wrapped, Seen),
+    (   RecordSeen == true
+    ->  seen_goal(Wrapped, Seen)
+    ;   true
+    ),
     parents(Parents),
     b_setval(scasp_trace_stack, [Goal|Parents]),
     length(Parents, Len),
@@ -249,38 +255,78 @@ if_tracing(Dict, Port, Time, Answers) :-
     ;   true
     ).
 
-scasp_tracing(_M:Goal, Mask, MinTime) :-
-    scasp_tracing_(Tracing, Mask, MinTime),
+scasp_tracing(_M:Goal, Mask, MinTime, RecordSeen) :-
+    scasp_tracing_(Tracing, Mask, MinTime, RecordSeen),
     subsumes_term(Tracing, Goal),
     !.
 
-scasp_trace(Goal, Ports) :-
-    clause(scasp_tracing_(Tracing, Mask0, MinTime0), true, Ref),
-    !,
+%!  scasp_trace(:Goal, +Ports) is det.
+%
+%   Enable tracing instances of the s(CASP) Goal.   Ports a single
+%   port or a list of ports.   Each port may be prefixed with + or
+%   - to enable or disable the port.  Valid ports are:
+%
+%     - call,redo,exit,fail
+%       The normal Prolog ports
+%     - a number
+%       Show the port when the CPU time used to prove the goal
+%       is at least the given number of milliseconds.  Setting
+%       to `0` enables all ports
+%     - seen
+%       Record possibilities for caching/tabling.  This counts
+%       the number of variants of the same goal, including the
+%       current proof tree, we have seen.
+
+scasp_trace(M:Goal, Ports) :-
+    qualify(Goal, M, Goal1),
+    scasp_trace_(Goal1, Ports).
+
+scasp_trace_(Goal, Ports) :-
+    clause(scasp_tracing_(Tracing, Mask0, MinTime0, RS0), true, Ref),
     Tracing =@= Goal,
     !,
-    update_mask(Ports, Mask0, Mask, MinTime0, MinTime),
-    transaction(( erase(Ref),
-                  asserta(scasp_tracing_(Tracing, Mask, MinTime)))).
-scasp_trace(Goal, Ports) :-
-    update_mask(Ports, 0, Mask, 0, MinTime),
-    asserta(scasp_tracing_(Goal, Mask, MinTime)).
+    update_mask(Ports, Mask0, Mask, MinTime0, MinTime, RS0, RS),
+    (   Mask =:= 0
+    ->  erase(Ref)
+    ;   transaction(( erase(Ref),
+                      asserta(scasp_tracing_(Tracing, Mask, MinTime, RS))))
+    ).
+scasp_trace_(Goal, Ports) :-
+    update_mask(Ports, 0, Mask, 0, MinTime, false, RS),
+    (   Mask =:= 0
+    ->  true
+    ;   asserta(scasp_tracing_(Goal, Mask, MinTime, RS))
+    ).
+
+qualify(Var, _, QVar), var(Var) =>
+    QVar = Var.
+qualify(forall(Var,Goal), M, QForall) =>
+    QForall = forall(Var, QGoal),
+    qualify(Goal, M, QGoal).
+qualify(not(Goal), M, QNot) =>
+    QNot = not(QGoal),
+    qualify(Goal, M, QGoal).
+qualify(Goal, M, QGoal) =>
+    qualify_body(Goal, M, QGoal).
 
 
-update_mask([], M0, M, MT0, MT) =>
-    M = M0,
-    MT = MT0.
-update_mask([H|T], M0, M, MT0, MT) =>
-    update_mask(H, M0, M1, MT0, MT1),
-    update_mask(T, M1, M, MT1, MT).
-update_mask(+Port, M0, M, MT0, MT), port(Port, Extra) =>
-    M is M0 \/ Extra, MT = MT0.
-update_mask(-Port, M0, M, MT0, MT), port(Port, Extra) =>
-    M is M0 /\ \Extra, MT = MT0.
-update_mask(Port, M0, M, MT0, MT),  port(Port, Extra) =>
-    M is M0 \/ Extra, MT = MT0.
-update_mask(Time, M0, M, _,   MT),  number(Time)      =>
-    M is M0, MT is Time/1000.0.
+update_mask([], M0, M, MT0, MT, RS0, RS) =>
+    M = M0, MT = MT0, RS = RS0.
+update_mask([H|T], M0, M, MT0, MT, RS0, RS) =>
+    update_mask(H, M0, M1, MT0, MT1, RS0, RS1),
+    update_mask(T, M1, M, MT1, MT, RS1, RS).
+update_mask(+Port, M0, M, MT0, MT, RS0, RS), port(Port, Extra) =>
+    M is M0 \/ Extra, MT = MT0, RS = RS0.
+update_mask(-Port, M0, M, MT0, MT, RS0, RS), port(Port, Extra) =>
+    M is M0 /\ \Extra, MT = MT0, RS = RS0.
+update_mask(Port, M0, M, MT0, MT, RS0, RS),  port(Port, Extra) =>
+    M is M0 \/ Extra, MT = MT0, RS = RS0.
+update_mask(Time, M0, M, _,   MT, RS0, RS),  number(Time)      =>
+    M = M0, MT is Time/1000.0, RS = RS0.
+update_mask(seen, M0, M, MT0, MT, _RS0, RS) =>
+    M = M0, MT = MT0, RS = true.
+update_mask(-seen, M0, M, MT0, MT, _RS0, RS) =>
+    M = M0, MT = MT0, RS = false.
 
 port(call, 0x01).
 port(redo, 0x02).
@@ -324,6 +370,31 @@ goal_sha1_(Goal, State) :-
     variant_sha1(t(Goal,Attrs), SHA1),
     nb_setarg(1, State, SHA1).
 
+scasp_tracing :-
+    scasp_tracing_(_,_,_,_),
+    !,
+    print_message(information, scasp(tracing)),
+    forall(scasp_tracing_(Goal, Mask, MinTime, RS),
+           ( tracing(Goal, Mask, MinTime, RS, Tracing),
+             print_message(information, scasp(Tracing)))).
+scasp_tracing :-
+    print_message(information, scasp(no_tracing)).
+
+
+tracing(ScaspGoal, Mask, MinTime, RS,
+        tracing(UserGoal, Ports, MinTime, RS)) :-
+    unqualify_model_term(user, ScaspGoal, UserGoal),
+    mask_to_ports(Mask, Ports).
+
+mask_to_ports(0, []) :-
+    !.
+mask_to_ports(N, [H|T]) :-
+    port(H, Mask),
+    N /\ Mask =\= 0,
+    !,
+    N2 is N /\ \Mask,
+    mask_to_ports(N2, T).
+
 
 		 /*******************************
 		 *            MESSAGES		*
@@ -333,6 +404,9 @@ goal_sha1_(Goal, State) :-
 
 prolog:message(scasp(Msg)) -->
     scasp_message(Msg).
+
+:- discontiguous
+    scasp_message//1.
 
 scasp_message(trace(Data)) -->
     { _{ port: Port,
@@ -353,9 +427,37 @@ time(_Port, Data) -->
     [ '+~3fms '-[Ms] ].
 
 port_count(call, Data) -->
+    { Seen = Data.seen, nonvar(Seen), Seen > 0 },
+    !,
     [ '#~D '-[Data.seen] ].
+port_count(call, _Data) -->
+    !.
 port_count(_Port, Data) -->
-    { Seen = Data.seen, Seen > 0 },
+    { Seen = Data.seen, nonvar(Seen), Seen > 0 },
     [ '#~D (called ~D times) '-[Data.answer, Seen] ].
 port_count(_Port, Data) -->
     [ '#~D '-[Data.answer] ].
+
+scasp_message(no_tracing) -->
+    [ 'Not tracing any s(CASP) goals'-[] ].
+scasp_message(tracing) -->
+    [ 'Tracing the following s(CASP) goals:'-[], nl,nl ].
+scasp_message(tracing(Goal, Ports, MinTime, Seen)) -->
+    { numbervars(Goal, 0, _, [singletons(true)]) },
+    [ ansi(code, '  ~p:', [Goal]), ' ~p'-[Ports] ],
+    msg_min_time(MinTime),
+    msg_seen(Seen).
+
+msg_min_time(MinTime) -->
+    { MinTime > 0,
+      MS is MinTime*1000
+    },
+    !,
+    [ ' >~1fms'-[MS] ].
+msg_min_time(_) -->
+    [].
+
+msg_seen(false) -->
+    [].
+msg_seen(true) -->
+    [ ' (count variant calls)' ].

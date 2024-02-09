@@ -38,7 +38,9 @@
             op(700, xfx, #<),
             op(700, xfx, #>),
             op(700, xfx, #=<),
-            op(700, xfx, #>=)
+            op(700, xfx, #>=),
+
+            qualify_body/3              % +BodyIn, +Module, -BodyOut
           ]).
 :- use_module(compile).
 :- use_module(embed).
@@ -141,7 +143,7 @@ prepare(Clauses, Module, Options) :-
     ).
 
 qualify_query(M:Q0, M:Q) :-
-    qualify(Q0, M, Q1),
+    qualify_body(Q0, M, Q1),
     intern_negation(Q1, Q).
 
 expand_program(SrcModule, Clauses, Clauses1, QQuery, QQuery1) :-
@@ -217,31 +219,41 @@ qualify(source(Ref, Clause), Q) =>
     Q = source(Ref, QClause),
     qualify(Clause, QClause).
 qualify(M:(Head :- true), Q) =>
-    qualify(Head, M, Q).
+    qualify_body(Head, M, Q).
 qualify(M:(Head :- Body), Q) =>
-    qualify((Head:-Body), M, Q).
+    qualify_body((Head:-Body), M, Q).
 qualify(M:(:- Body), Q) =>
     Q = (:- Constraint),
-    qualify(Body, M, Constraint).
+    qualify_body(Body, M, Constraint).
 
-qualify(-(Head), M, Q) =>
+%!  qualify_body(+BodyIn, +Module, -BodyOut) is det.
+%
+%   Include the original Prolog module  into   the  program  for running
+%   modular programs.
+%
+%   @tbd: move into modules.pl
+
+qualify_body(-(Head), M, Q) =>
     Q = -QHead,
-    qualify(Head, M, QHead).
-qualify(not(Head), M, Q) =>
+    qualify_body(Head, M, QHead).
+qualify_body(not(Head), M, Q) =>
     Q = not(QHead),
-    qualify(Head, M, QHead).
-qualify(findall(Templ, Head, List), M, Q) =>
+    qualify_body(Head, M, QHead).
+qualify_body(forall(Var, Goal), M, Q) =>
+    Q = forall(Var, QGoal),
+    qualify_body(Goal, M, QGoal).
+qualify_body(findall(Templ, Head, List), M, Q) =>
     Q = findall(Templ, QHead, List),
-    qualify(Head, M, QHead).
-qualify((A,B), M, Q) =>
+    qualify_body(Head, M, QHead).
+qualify_body((A,B), M, Q) =>
     Q = (QA,QB),
-    qualify(A, M, QA),
-    qualify(B, M, QB).
-qualify((A:-B), M, Q) =>
+    qualify_body(A, M, QA),
+    qualify_body(B, M, QB).
+qualify_body((A:-B), M, Q) =>
     Q = (QA:-QB),
-    qualify(A, M, QA),
-    qualify(B, M, QB).
-qualify(G, M, Q), callable(G) =>
+    qualify_body(A, M, QA),
+    qualify_body(B, M, QB).
+qualify_body(G, M, Q), callable(G) =>
     (   built_in(G)
     ->  Q = G
     ;   implementation(M:G, Callee),
