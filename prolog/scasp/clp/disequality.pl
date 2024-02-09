@@ -10,13 +10,12 @@
             op(700, xfx, .\=.),
             op(700, xfx, '\u2209')      % Not an element of
           ]).
-:- use_module(library(debug)).
-:- use_module(library(lists)).
-:- use_module(library(ordsets)).
-:- use_module(library(dif), [dif/2]).   % use in :- if
+:- use_module('../verbose', [verbose/1]).
+:- use_module(clpq, [is_clpq_var/1, disequality_clpq/2]).
 
-:- use_module('../verbose').
-:- use_module(clpq).
+:- use_module(library(debug), [assertion/1]).
+:- use_module(library(lists), [reverse/2, member/2]).
+:- use_module(library(ordsets), [ord_union/3, ord_add_element/3]).
 
 :- encoding(utf8).
 

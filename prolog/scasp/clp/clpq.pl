@@ -1,4 +1,4 @@
-:- module(casp_clpq,
+:- module(scasp_clpq,
           [ is_clpq_var/1,
             clpqr_dump_constraints/3,
             disequality_clpq/2,
@@ -30,9 +30,8 @@ variable.
 */
 
 :- use_module(disequality, [get_neg_var/2]).
-
-:- use_module(library(clpq)).
-:- use_module(library(clpr), []).                                % avoid undef
+:- use_module(library(clpq), [entailed/1, {}/1, clp_type/2, inf/2, sup/2, op(_,_,_)]).
+:- use_module(library(clpr), []).
 :- use_module(library(clpqr/dump), [dump/3]).
 :- use_module(library(apply), [maplist/3, include/3]).
 :- use_module(library(debug), [assertion/1]).

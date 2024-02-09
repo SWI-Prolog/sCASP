@@ -8,7 +8,7 @@
             user_predicate/1,           % ?Goal
             scasp_compiled/1            % ?Head
           ]).
-:- use_module(ops).
+:- use_module(ops, [op(_,_,_)]).
 :- meta_predicate
     user_predicate(:),
     shown_predicate(:),

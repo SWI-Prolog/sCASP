@@ -10,14 +10,14 @@
             print_goal/1,               % +Goal
             print_check_calls_calling/2 % ?Goal, ?StackIn
           ]).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
-:- use_module(library(clpqr/dump)).
-:- use_module(library(terms)).
+:- use_module(library(apply), [maplist/3, maplist/2]).
+:- use_module(library(lists), [reverse/2]).
+:- use_module(library(terms), [mapsubterms/3]).
+:- use_module(library(clpqr/dump), [dump/3]).
 
-:- use_module(clp/disequality).
-:- use_module(clp/clpq).
-:- use_module(modules).
+:- use_module(clp/disequality, [get_neg_var/2]).
+:- use_module(clp/clpq, [is_clpq_var/1]).
+:- use_module(modules, [qualify_body/3, unqualify_model_term/3]).
 
 :- meta_predicate
     verbose(0),

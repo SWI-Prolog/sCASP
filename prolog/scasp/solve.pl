@@ -1,17 +1,25 @@
 :- module(scasp_solve,
           [ solve/4                   % :Goals, +StackIn, -StackOut, -Model
           ]).
-:- use_module(clp/call_stack).
-:- use_module(predicates).
-:- use_module(clp/disequality).
-:- use_module(clp/clpq).
-:- use_module(verbose).
+:- use_module(clp/call_stack, [(<~)/2, (~>)/2, op(_,_,_)]).
+:- use_module(clp/disequality, [(.\=.)/2, get_neg_var/2, loop_term/2, op(_,_,_)]).
+:- use_module(predicates,
+              [ shown_predicate/1, user_predicate/1, table_predicate/1,
+                clp_builtin/1, clp_interval/1, prolog_builtin/1 ]).
+:- use_module(clp/clpq,
+              [ dual_clpq/2, dump_clpq_var/3, apply_clpq_constraints/1,
+                entails/2, entail_terms/2, clpqr_dump_constraints/3, is_clpq_var/1 ]).
+:- use_module(verbose,
+              [ verbose/1, scasp_trace_goal/2, scasp_trace_event/2,
+                scasp_warning/1, scasp_warning/2, scasp_info/2,
+                print_check_calls_calling/2
+              ]).
 
 :- autoload(library(apply), [maplist/2, include/3]).
 :- autoload(library(assoc),
             [get_assoc/3, empty_assoc/1, get_assoc/5, put_assoc/4]).
 :- autoload(library(lists), [append/3, member/2]).
-:- autoload(library(terms), [variant/2, mapsubterms/3]).
+:- autoload(library(terms), [variant/2]).
 
 :- meta_predicate
     solve(:, +, -, -).
