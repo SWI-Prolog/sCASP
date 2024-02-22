@@ -26,7 +26,7 @@
 %
 %   print the current version of s(CASP)
 
-scasp_version('1.1.3').
+scasp_version('1.1.4').
 
 %!  scasp_set_options(+Options) is det.
 %!  scasp_set_options(+Options, -Unprocessed) is det.
