@@ -21,12 +21,14 @@
 %
 %   Success if Goal is a user predicate
 
-user_predicate(_:builtin(_)) => fail.
-user_predicate(_:not(_ is _)) => fail.
-user_predicate(_:not(true)) => fail.
-user_predicate(_:not(fail)) => fail.
-user_predicate(_:not(_)) => true.
-user_predicate(M:Goal) =>
+user_predicate(M:G) :-
+    user_predicate(G, M).
+user_predicate(builtin(_), _) => fail.
+user_predicate(not(_ is _), _) => fail.
+user_predicate(not(true), _) => fail.
+user_predicate(not(fail), _) => fail.
+user_predicate(not(_), _) => true.
+user_predicate(Goal, M) =>
     functor(Goal, Name, Arity),
     M:pr_user_predicate(Name/Arity), !.
 
@@ -34,10 +36,16 @@ user_predicate(M:Goal) =>
 %
 %   Success if Goal is defined as a tabled predicate with  the directive
 %   `:- table pred/n.`
+%
+%   Currently not supported, so simply fail.
 
+:- if(fail).
 table_predicate(M:Goal) =>
     functor(Goal, Name, Arity),
     M:pr_table_predicate(Name/Arity).
+:- else.
+table_predicate(_) :- fail.
+:- endif.
 
 shown_predicate(M:not(Goal)) :-
     !,
