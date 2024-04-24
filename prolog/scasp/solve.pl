@@ -20,6 +20,7 @@
             [get_assoc/3, empty_assoc/1, get_assoc/5, put_assoc/4]).
 :- autoload(library(lists), [append/3, member/2]).
 :- autoload(library(terms), [variant/2]).
+:- use_module(library(apply_macros)).
 
 :- meta_predicate
     solve(:, +, -, -).
