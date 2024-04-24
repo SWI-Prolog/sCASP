@@ -989,18 +989,26 @@ find_duals(C_Vars, C_Vars1, OtherVars, Duals) :-
     append(CLP, Dump, Constraints),
     make_duals(Constraints,Duals), !.
 
-make_duals(Ls,Ds) :-
-    make_duals_([],Ls,[],Ds).
+%!  make_duals(+Constraints, -Duals) is det.
+%
+%   Given a conjunction of constraints as a list, compute the dual. That
+%   is list of lists (to be  interpreted   as  a disjunction), where the
+%   inner lists negate one of the literals.
 
-make_duals_(_,[],Ds,Ds).
-make_duals_(Prev,[A|As],D0,Ds) :-
+:- det(make_duals/2).
+make_duals(Ls,Ds) :-
+    make_duals_(Ls, [], [], Ds).
+
+make_duals_([],_,Ds,Ds).
+make_duals_([A|As],Prev,D0,Ds) :-
     append(Prev,[A],Prev1),
-    make_duals_(Prev1,As,D0,D1),
+    make_duals_(As,Prev1,D0,D1),
     dual(A,Duals_A),
     combine(Duals_A,Prev,As,Ls),
     append(Ls,D1,Ds).
 
 combine([A],Prev,Post,[Rs]) :-
+    !,
     append(Prev,[A|Post],Rs).
 combine([A,B|As],Prev,Post,[RA|RAs]) :-
     append(Prev,[A|Post],RA),
