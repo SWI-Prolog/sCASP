@@ -1016,7 +1016,8 @@ combine([A,B|As],Prev,Post,[RA|RAs]) :-
 
 :- det(dual/2).
 
-dual(#=(A,B), [#<(A,B), #>(A,B)]).
+dual(#=(A,B), [#<>(A,B)]).
+dual(#<>(A,B), [#=(A,B)]).
 dual(#<(A,B), [#>=(A,B)]).
 dual(#>(A,B), [#=<(A,B)]).
 dual(#=<(A,B), [#>(A,B)]).
