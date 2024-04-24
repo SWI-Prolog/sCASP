@@ -466,7 +466,7 @@ covered_clauses(CoveredClauses) :-
 
 clause_in_module(Module, cif(Line, PI)) :-
     module_property(Module, file(File)),
-    prolog_cover:clause_source(Clause, File, Line),
+    prolog_coverage:clause_source(Clause, File, Line),
     clause_property(Clause, predicate(Module:PI)),
     \+ ( PI = (Name/_Arity),
          sub_atom(Name, 0, _, _, $)
