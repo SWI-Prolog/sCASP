@@ -675,6 +675,8 @@ check_parents(not(Goal), Parents, Type) :-
 check_parents(Goal, Parents, Type) :-
     check_parents(Goal, 0, Parents, Type).
 
+%!  check_parents(+Goal, +Neg, +Parents, -Type) is semidet.
+
 check_parents(Goal, 0, [Parent|_Parents], Type) :-
     (   \+ \+ type_loop_fail_pos(Goal, Parent)
     ->  Type = fail_pos(Parent)
@@ -686,22 +688,22 @@ check_parents(Goal, N, [Parent|Parents], Type) :-
     (   even_loop(Goal, Parent, N)
     ->  Type = even
     ;   Goal \== Parent
-    ->  (  Parent = not(_)
+    ->  (   Parent = not(_)
         ->  NewN is N + 1,
             check_parents(Goal, NewN, Parents, Type)
         ;   check_parents(Goal, N, Parents, Type)
         )
     ).
 
-even_loop(not(Goal), not(Parent), _) :-
-    Goal =@= Parent,
+even_loop(not(Goal), NegParent, _) :-
     !,
+    NegParent = not(Parent),
+    Goal =@= Parent,
     Goal = Parent.
 even_loop(Goal, Parent, N) :-
-    Goal \= not(_),
-    Goal == Parent,
     N > 0,
-    0 =:= mod(N, 2).
+    0 =:= mod(N, 2),
+    Goal == Parent.
 
 type_loop_fail_pos(Goal, S) :-
     Goal == S, !.
