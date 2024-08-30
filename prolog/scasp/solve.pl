@@ -12,7 +12,7 @@
 :- use_module(verbose,
               [ verbose/1, scasp_trace_goal/2, scasp_trace_event/2,
                 scasp_warning/1, scasp_warning/2, scasp_info/2,
-                print_check_calls_calling/2
+                print_check_calls_calling/2, print_goal/1
               ]).
 
 :- autoload(library(apply), [maplist/2, include/3]).
