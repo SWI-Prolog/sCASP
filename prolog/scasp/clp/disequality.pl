@@ -5,6 +5,7 @@
             (.\=.)/2,
             '\u2209'/2,                 % ?X, +G
             loop_term/2,
+            bindings_inequality_constraints/2, % +Vs, +Bindings
 
             op(700, xfx, .=.),
             op(700, xfx, .\=.),
@@ -16,6 +17,8 @@
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [reverse/2, member/2]).
 :- use_module(library(ordsets), [ord_union/3, ord_add_element/3]).
+:- use_module(library(apply), [maplist/3, include/3]).
+:- use_module(library(solution_sequences), [distinct/2]).
 
 :- encoding(utf8).
 
@@ -217,6 +220,62 @@ update(A,List) :-
     sort(G, GS),
     update(X, GS).
 
+
+%!  bindings_inequality_constraints(+Vs, +Bindings) is multi.
+%
+%   Add constraints that  make  sure  Vs   cannot  become  the  same  as
+%   Bindings. If Bindings is `[]`, this is always the case. If the arity
+%   is one, this is simple. Otherwise we   first deny the first argument
+%   not to be in the set of values for  this argument and next we pick a
+%   binding from the earlier arguments, decide   on the compatible value
+%   for the next argument and constrain this   argument not to be in the
+%   set of compatible values.
+%
+%   @arg Vs is a term v(V1,V2,...), where all Vn are variables.
+%   @arg Bindings is a list of v(T1,T2,...) terms, all with the same
+%   arity.
+%
+%   @tbd: do we need to restrict the bindings to be ground? This seems a
+%   general not wel respected part of the inequality reasoning.
+
+bindings_inequality_constraints(_, []) :-
+    !.
+bindings_inequality_constraints(Vs, Bindings) :-
+    functor(Vs, v, Arity),
+    between(1, Arity, I),
+    bindings_inequality_constraints(I, Vs, Bindings).
+
+bindings_inequality_constraints(1, Vs, Bindings) =>
+    arg(1, Vs, V),
+    maplist(arg(1), Bindings, Values0),
+    sort(Values0, Values),
+    '\u2209'(V, Values).
+bindings_inequality_constraints(I, Vs, Bindings) =>
+    distinct(Widness, pick_before(I, Vs, Widness, Bindings)),
+    include(compatible_binding(Vs), Bindings, Compat),
+    arg(I, Vs, V),
+    maplist(arg(I), Compat, Values0),
+    sort(Values0, Values),
+    '\u2209'(V, Values).
+
+pick_before(I, Vs, Widness, Bindings) :-
+    A is I-1,
+    functor(Widness, v, A),
+    member(Binding, Bindings),
+    pick_before(1, I, Vs, Widness, Binding).
+
+pick_before(I, M, Vs, Widness, Binding) :-
+    I < M,
+    !,
+    arg(I, Binding, Value),
+    arg(I, Widness, Value),
+    arg(I, Vs, Value),
+    I2 is I+1,
+    pick_before(I2, M, Vs, Widness, Binding).
+pick_before(_, _, _, _, _).
+
+compatible_binding(Vs, Bs) :-
+    \+ Vs \= Bs.
 
 attr_unify_hook(neg(A),B) :-
     not_unify(B, A).

@@ -2,7 +2,9 @@
           [ solve/4                   % :Goals, +StackIn, -StackOut, -Model
           ]).
 :- use_module(clp/call_stack, [(<~)/2, (~>)/2, op(_,_,_)]).
-:- use_module(clp/disequality, [(.\=.)/2, get_neg_var/2, loop_term/2, op(_,_,_)]).
+:- use_module(clp/disequality, [(.\=.)/2, get_neg_var/2, loop_term/2,
+                                bindings_inequality_constraints/2,
+                                op(_,_,_)]).
 :- use_module(predicates,
               [ shown_predicate/1, user_predicate/1, table_predicate/1,
                 clp_builtin/1, clp_interval/1, prolog_builtin/1 ]).
@@ -13,6 +15,9 @@
               [ verbose/1, scasp_trace_goal/2, scasp_trace_event/2,
                 scasp_warning/1, scasp_warning/2, scasp_info/2,
                 print_check_calls_calling/2, print_goal/1
+              ]).
+:- use_module(prolog,
+              [ scasp_prolog/2
               ]).
 
 :- autoload(library(apply), [maplist/2, include/3]).
@@ -234,6 +239,21 @@ solve_goal(not(Goal), M, Parents, ProvedIn, ProvedIn, StackIn, StackIn,
     Goal = findall(_, _, _),
     !,
     exec_neg_findall(Goal, M, Parents, ProvedIn, StackIn).
+solve_goal(not(prolog(Goal)), _M, _Parents, ProvedIn, ProvedIn,
+           StackIn, [[], prolog(Tree)|StackIn], [not(Goal)]) :-
+    !,
+    term_variables(Goal, Vars),
+    (   Vars == []
+    ->  scasp_prolog(\+ Goal, Tree)
+    ;   Vs =.. [v|Vars],
+        findall(Vs, Goal, Bindings),
+        Tree = not(Goal)-[],
+        bindings_inequality_constraints(Vs, Bindings)
+    ).
+solve_goal(prolog(Goal), _M, _Parents, ProvedIn, ProvedIn,
+           StackIn, [[], prolog(Tree)|StackIn], [Goal]) :-
+    !,
+    scasp_prolog(Goal, Tree).
 solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     user_predicate(M:Goal),
     !,

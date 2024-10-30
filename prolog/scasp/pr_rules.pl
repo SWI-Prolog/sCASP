@@ -514,4 +514,5 @@ clean_pr_program(M) :-
     retractall(M:pr_table_predicate(_)),
     retractall(M:pr_show_predicate(_)),
     retractall(M:pr_pred_predicate(_,_,_,_)),
+    retractall(M:pr_prolog_predicate(_)),
     retractall(M:pr_dcc_predicate(_,_)).

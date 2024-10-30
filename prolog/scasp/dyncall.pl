@@ -18,6 +18,7 @@
             (show)/1,
             (abducible)/1,
             (abducible)/2,
+            (prolog)/1,                 % :PIs
 
             (#=)/2,
             (#<>)/2,
@@ -339,6 +340,8 @@ body_calls(M:A, _, Callee), atom(M) =>
     body_calls(A, M, Callee).
 body_calls(G, _M, _CalleePM), callable(G), scasp_builtin(G) =>
     fail.
+body_calls(G, M, _CalleePM), callable(G), M:pr_prolog_predicate(G) =>
+    fail.
 body_calls(G, M, CalleePM), callable(G) =>
     implementation(M:G, Callee0),
     generalise(Callee0, Callee),
@@ -612,6 +615,30 @@ abducible(Head) -->
 list([]) --> [].
 list([H|T]) --> [H], list(T).
 
+%!  prolog(:PIs) is det.
+%
+%   Declare PIs to be interpreted as Prolog predicates.
+
+prolog(M:PIs) =>
+    phrase(prolog_decls(PIs), Clauses),
+    maplist(assert_show(M), Clauses).
+
+prolog_decl(PIs) -->
+    [ (:- multifile(pr_prolog_predicate/1)) ],
+    prolog_decls(PIs).
+
+prolog_decls(Var) -->
+    { var(Var),
+      instantiation_error(Var)
+    }.
+prolog_decls((A,B)) -->
+    !,
+    prolog_decls(A),
+    prolog_decls(B).
+prolog_decls(PI) -->
+    { pi_head(PI, Head)
+    },
+    [ pr_prolog_predicate(Head) ].
 
 
 		 /*******************************
@@ -641,6 +668,10 @@ user:term_expansion((# show(SpecIn)), Clauses) :-
     phrase(show(SpecIn), Clauses).
 user:term_expansion((# abducible(SpecIn)), Clauses) :-
     phrase(abducible(SpecIn), Clauses).
+user:term_expansion((# prolog(SpecIn)), Clauses) :-
+    phrase(prolog_decl(SpecIn), Clauses).
+user:term_expansion((:- prolog(SpecIn)), Clauses) :-
+    phrase(prolog_decl(SpecIn), Clauses).
 
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),

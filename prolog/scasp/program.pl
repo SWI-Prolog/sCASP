@@ -297,9 +297,11 @@ rule_predicates(R, Preds) :-
     convlist(atom_predicate, B, FB),
     list_to_set([F|FB], Preds).
 
-atom_predicate(not(X), P) :-
+atom_predicate(not(X), P) =>
     atom_predicate(X, P).
-atom_predicate(X, F) :-
+atom_predicate(prolog(_Goal), _P) =>
+    fail.
+atom_predicate(X, F) =>
     predicate(X, F, _).
 
 %!  handle_classical_negation(+Predicate:atom) is det

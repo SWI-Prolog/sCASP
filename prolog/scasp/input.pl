@@ -280,6 +280,8 @@ sasp_predicate(not(Pred), not(ASPPred),
                term_position(_,_,_,_,[Pos]), Options) :-
     !,
     sasp_predicate(Pred, ASPPred, Pos, Options).
+sasp_predicate(prolog(Pred), prolog(Pred), _Pos, _Options) :-
+    !.
 sasp_predicate(-(Pred), ASPPred,
                term_position(_,_,_,_,[_Pos]), _Options) :-
     !,

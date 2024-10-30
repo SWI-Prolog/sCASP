@@ -86,7 +86,7 @@ stack_tree([H|Stack], Tree, T, Parents) =>
     stack_tree(Stack, Children, [], [T0/T|Parents]).
 
 
-%!  filter_tree(+Children, +Module, -FilteredChildren, +Options)
+%!  filter_tree(+Children, +Module, -FilteredChildren, +Options) is det.
 %
 %   Clean the tree from less  interesting   details.  By default removes
 %   auxiliary nodes created as part of the compilation and the NMR proof
@@ -97,6 +97,7 @@ stack_tree([H|Stack], Tree, T, Parents) =>
 %      - long(true)
 %        Keep the full tree, including forall() and intermediate nodes.
 
+:- det(filter_tree/4).
 filter_tree(Tree, _, Tree, Options) :-
     option(long(true), Options), !.
 filter_tree([],_,[], _) :- !.
@@ -138,8 +139,8 @@ filter_tree([Term0-Children|Cs], M, Tree, Options) :-
     ;   Tree = [Term-FChildren|Fs]
     ),
     filter_tree(Cs, M, Fs, Options).
-filter_tree([_-Childs|Cs], M, FilterChildren, Options) :-
-    append(Childs, Cs, AllCs),
+filter_tree([_-Children|Cs], M, FilterChildren, Options) :-
+    append(Children, Cs, AllCs),
     filter_tree(AllCs, M, FilterChildren, Options).
 
 neg(-A, Neg) => Neg = A.
@@ -173,6 +174,7 @@ selected(_>_, _) => true.
 selected(_>=_, _) => true.
 selected(_<_, _) => true.
 selected(_=<_, _) => true.
+selected(prolog(_), _) => true.
 selected(Goal, M) =>
     (   aux_predicate(Goal)
     ->  fail
@@ -301,6 +303,24 @@ unqualify_justitication_tree(_:Tree0, Module, Tree) :-
 unqualify_justitication_tree(_:Tree0, Module, Tree) :-
     unqualify_just(Module, Tree0, Tree).
 
+unqualify_just(M, prolog(Tree0)-[], Tree) :-
+    !,
+    unqualify_prolog_just(M, Tree0, Tree).
 unqualify_just(M, Node0-Children0, Node-Children) :-
     unqualify_model_term(M, Node0, Node),
     maplist(unqualify_just(M), Children0, Children).
+
+unqualify_prolog_just(M, Atom0-Children0, Tree) =>
+    Tree = Atom-Children,
+    unqualify_prolog_atom(M, Atom0, Atom),
+    maplist(unqualify_prolog_just(M), Children0, Children).
+unqualify_prolog_just(M, Atom0, Atom) =>
+    unqualify_prolog_atom(M, Atom0, Atom).
+
+unqualify_prolog_atom(M, goal_origin(Atom0, Origin), Result) =>
+    Result = goal_origin(Atom, Origin),
+    unqualify_prolog_atom(M, Atom0, Atom).
+unqualify_prolog_atom(M, M:Goal, Result) =>
+    Result = Goal.
+unqualify_prolog_atom(_, Goal, Result) =>
+    Result = Goal.

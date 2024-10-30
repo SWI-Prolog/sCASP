@@ -26,6 +26,7 @@
             (show)/1,                   % :Atoms
             (abducible)/1,              % :Heads
             (abducible)/2,              % :Heads, +Pos
+            (prolog)/1,                 % :Heads
 
             begin_scasp/1,              % +Unit
             begin_scasp/2,              % +Unit, +Exports
@@ -62,6 +63,7 @@
             op(1150, fx, pred),
             op(1150, fx, show),
             op(1150, fx, abducible),
+            op(1150, fx, prolog),
             op(1150, fx, scasp_dynamic),
             op(700, xfx, #=),
             op(700, xfx, #<>),
