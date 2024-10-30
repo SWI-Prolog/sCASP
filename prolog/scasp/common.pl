@@ -63,8 +63,7 @@ Common and utility predicates that may be called from multiple locations.
 predicate(Predicate, Name, Args) :-
     Predicate =.. [Name | Args],
     \+ operator(Name, _, _),
-    Name \= not,
-    !.
+    Name \= not.
 
 %!  c_rule(?Rule:compound, ?Head:compound, ?Body:list) is det
 %
