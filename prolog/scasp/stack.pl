@@ -237,19 +237,16 @@ print_justification_tree(M:Tree, Options) :-
     ;   true
     ).
 
-%!  plain_output(+FilterChildren, +Options)
+%!  plain_output(+FilterChildren, +Options) is det.
 
-plain_output(goal_origin(Term, _)-Children, Options) :-
-    !,
+plain_output(goal_origin(Term, _)-Children, Options) =>
     plain_output(Term-Children, Options).
-plain_output(Term-[], Options) :-
-    !,
+plain_output(Term-[], Options) =>
     option(depth(D), Options),
     Indent is D*3,
     nl_indent(Indent),
     term(Term, Options).
-plain_output(Term-Children, Options) :-
-    !,
+plain_output(Term-Children, Options) =>
     select_option(depth(D), Options, Options1),
     option(indent(Width), Options1, 3),
     Indent is D*Width,
@@ -261,13 +258,13 @@ plain_output(Term-Children, Options) :-
 nl_indent(Indent) :-
     format('~N~t~*|', [Indent]).
 
-plain_output_children([A,B|Rs], Options) :-
+plain_output_children([A,B|Rs], Options) =>
     !,
     plain_output(A, Options),
     connector(and, Conn, Options),
     format("~w",[Conn]),
     plain_output_children([B|Rs], Options).
-plain_output_children([A], Options) :-
+plain_output_children([A], Options) =>
     !,
     plain_output(A, Options).
 
