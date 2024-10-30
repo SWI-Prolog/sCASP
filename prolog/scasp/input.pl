@@ -283,20 +283,18 @@ sasp_predicate(not(Pred), not(ASPPred),
 sasp_predicate(-(Pred), ASPPred,
                term_position(_,_,_,_,[_Pos]), _Options) :-
     !,
-    Pred =.. [Name|Args0],
+    Pred =.. [Name|Args],
     functor(Pred, Name, Arity),
     asp_prefix(Name, Arity, ASPName),
     atom_concat(c_, ASPName, ASPNameNeg),
-    maplist(asp_term, Args0, Args),
     ASPPred =.. [ASPNameNeg|Args].
 sasp_predicate(Pred, error, Pos, Options) :-
     illegal_pred(Pred),
     !,
     sasp_syntax_error(invalid_predicate(Pred), Pos, Options).
 sasp_predicate(Pred, SASPPred, _, _Options) :-
-    Pred =.. [Name|Args0],
+    Pred =.. [Name|Args],
     functor(Pred, Name, Arity),
-    maplist(asp_term, Args0, Args),
     (   atom_concat(-, PName, Name)     % negation in the name
     ->  asp_prefix(PName, Arity, ASPName),
         atom_concat(c_, ASPName, ASPNameNeg),
@@ -304,8 +302,6 @@ sasp_predicate(Pred, SASPPred, _, _Options) :-
     ;   asp_prefix(Name, Arity, ASPName),
         SASPPred =.. [ASPName|Args]
     ).
-
-asp_term(Term, Term).
 
 asp_prefix(Name, 2, ASPName) :-
     operator(Name, _, _),
