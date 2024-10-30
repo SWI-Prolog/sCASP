@@ -649,8 +649,8 @@ contrained_neg(Goal, not(NegGoal)) :-
 contrained_neg(_,_).
 
 is_same_functor(Term1, Term2) :-
-    functor(Term1, Name, Arity, Type),
-    functor(Term2, Name, Arity, Type).
+    functor(Term1, Name, Arity),
+    functor(Term2, Name, Arity).
 
 %!  proved_in_stack(+Goal, +Proved) is semidet.
 %
@@ -964,7 +964,7 @@ apply_constraint(A = B) =>
 apply_constraint(CLPConstraint) =>
     apply_clpq_constraints(CLPConstraint).
 
-%!  find_duals(+C_Vars, +C_Vars1, +OtherVars, -Duals)
+%!  find_duals(+C_Vars, +C_Vars1, +OtherVars, -Duals) is det.
 %
 %   C_Vars is the list of forall variables   after solve/4. C_Vars1 is a
 %   copy of this list before calling solve/4.   Our  task is to create a
@@ -979,9 +979,10 @@ apply_constraint(CLPConstraint) =>
 %   @tbd JW: it is not clear to me why OtherVars is needed and why it is
 %   not copied.
 
+:- det(find_duals/4).
 find_duals(C_Vars, C_Vars1, OtherVars, Duals) :-
     % disequality and clp for numbers
-    dump_constraint(C_Vars, C_Vars1, Dump, []-[], Pending-Pending1), !,
+    dump_constraint(C_Vars, C_Vars1, Dump, []-[], Pending-Pending1),
     clp_vars_in(OtherVars, OtherCLPVars),		% clp(Q) vars
     append(Pending, OtherCLPVars, CLPVars),
     append(Pending1, OtherCLPVars, CLPVars1),
