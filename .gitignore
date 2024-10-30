@@ -6,3 +6,5 @@
 scasp
 !prolog/scasp/
 /TAGS
+buildenv.sh
+status.db
