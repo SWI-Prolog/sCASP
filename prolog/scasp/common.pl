@@ -51,7 +51,7 @@ Common and utility predicates that may be called from multiple locations.
 
 :- use_module(program, [has_prefix/2]).
 
-%!  predicate(?PredicateStruct:compound, ?Name:atom, ?Args:list) is det
+%!  predicate(?PredicateStruct:compound, ?Name:atom, ?Args:list) is semidet
 %
 %   Convert a predicate struct to its  components, or vice-versa. Ensure
 %   this doesn't succeed for operators or not(_).
