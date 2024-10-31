@@ -3,8 +3,12 @@
 SWIPL?=swipl
 SWIPL_PREFIX?=$(shell dirname $$(dirname $$(which ${SWIPL})))
 
-all:
+all:	scasp prolog/scasp/main.qlf
+
+scasp:
 	${SWIPL} --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
+prolog/scasp/main.qlf:
+	${SWIPL} qlf compile --include prolog/scasp/main.pl
 
 TEST_SCAP=${SWIPL} test/test_scasp.pl --passed
 
@@ -32,3 +36,4 @@ clean:
 	@-find . -name "*~" -type f -delete
 
 distclean: clean
+	${RM} scasp prolog/scasp/main.qlf

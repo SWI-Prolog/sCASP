@@ -29,6 +29,19 @@ to the use of SWI-Prolog's commandline parser.  Run `scasp -h` for details.
 The output is different, using Unicode and, if possible, color to simplify
 reading the model and justification.
 
+The  pack  also  provides  `scasp`   as  a  SWI-Prolog  _app_.   After
+installing the pack, `scasp` can be executed as below, i.e., replacing
+`scasp` with `swipl scasp`.
+
+    swipl scasp [option ...] file ...
+
+Using `scasp` as  an _app_ is more  portable, but as the  app needs to
+load  sCASP  at  runtime,  it  starts  considerably  slower  than  the
+executable generated above.
+
+
+## Using s(CASP) as a Prolog library
+
 Next to using the s(CASP) executable, s(CASP)  can be used as a library.
 For this, activate the  sCASP  directory  as   a  SWI-Prolog  add  on by
 starting SWI-Prolog in the top directory and run
