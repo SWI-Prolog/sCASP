@@ -120,8 +120,8 @@ qualify_body((A:-B), M, Q) =>
 qualify_body(G, M, Q), callable(G) =>
     (   scasp_builtin(G)
     ->  Q = G
-    ;   M:pr_prolog_predicate(G)
-    ->  Q = prolog(M:G)
+    ;   M:pr_prolog_predicate(G, Type)
+    ->  Q = prolog(M:G, Type)
     ;   implementation(M:G, Callee),
         encoded_module_term(Callee, Q)
     ).

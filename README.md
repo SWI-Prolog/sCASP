@@ -82,6 +82,37 @@ The web server lets you post s(CASP) programs and get their results as
 HTML or JSON. See [Help](https://dev.swi-prolog.org/scasp/help) for
 details.
 
+### Calling Prolog from s(CASP)
+
+The SWI-Prolog port allows sCASP to call out to Prolog.  This is achieved
+by declaring a predicate as `prolog`.  Prolog code may be executed in two
+modes:
+
+  - `justified` (default) <br>
+    In this case the predicate is handled by a meta-interpreter that
+	extends the sCASP justification tree.  The meta interpreter can
+	deal with cuts, `(If->Then;Else)`, disjunctions, and `=>/2` rules.
+  - `opaque` <br>
+    Call as native Prolog goal.  On success only the called Prolog
+	goal appears in the justification.
+
+Some example declarations:
+
+    :- prolog p/2.
+	:- prolog (p/2, q/1) as opaque.
+
+If the Prolog call appears in  a s(CASP) negation, the following takes
+place:
+
+  - If the Prolog call is ground, use Prolog `\+ Goal`.  This is a case
+    of non-floundering negation and thus safe.
+  - If the Prolog call is not ground, call findall/3 to find all solutions
+    to the goal.  If there are none, the negation is true.  Otherwise,
+	disequality constraints are created that prevent the variables to
+	match a result.   The generated pattern of partial bindings and
+	constraints is the same as s(CASP) calling `not Goal` where the
+	predicate is defined as a set of facts.
+
 
 # About s(CASP)
 

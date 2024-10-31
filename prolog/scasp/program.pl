@@ -299,7 +299,7 @@ rule_predicates(R, Preds) :-
 
 atom_predicate(not(X), P) =>
     atom_predicate(X, P).
-atom_predicate(prolog(_Goal), _P) =>
+atom_predicate(prolog(_Goal, _Type), _P) =>
     fail.
 atom_predicate(X, F) =>
     predicate(X, F, _).

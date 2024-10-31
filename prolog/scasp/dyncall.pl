@@ -340,7 +340,7 @@ body_calls(M:A, _, Callee), atom(M) =>
     body_calls(A, M, Callee).
 body_calls(G, _M, _CalleePM), callable(G), scasp_builtin(G) =>
     fail.
-body_calls(G, M, _CalleePM), callable(G), M:pr_prolog_predicate(G) =>
+body_calls(G, M, _CalleePM), callable(G), M:pr_prolog_predicate(G,_) =>
     fail.
 body_calls(G, M, CalleePM), callable(G) =>
     implementation(M:G, Callee0),
@@ -617,28 +617,43 @@ list([H|T]) --> [H], list(T).
 
 %!  prolog(:PIs) is det.
 %
-%   Declare PIs to be interpreted as Prolog predicates.
+%   Declare PIs to be interpreted as   Prolog  predicates. The directive
+%   allows for the  following,  where  `Type`   is  one  of  `justified`
+%   (default) or `opaque`, meaning that we   call  the predicate without
+%   creating a justification tree.
+%
+%       :- prolog PIs as Type.
 
 prolog(M:PIs) =>
-    phrase(prolog_decls(PIs), Clauses),
+    phrase(prolog_decl(PIs), [_Multifile|Clauses]),
     maplist(assert_show(M), Clauses).
 
+prolog_decl(Var) -->
+    { var(Var),
+      !,
+      instantiation_error(Var)
+    }.
+prolog_decl(PIs as Type) -->
+    !,
+    [ (:- multifile(pr_prolog_predicate/2)) ],
+    prolog_decls(PIs, Type).
 prolog_decl(PIs) -->
-    [ (:- multifile(pr_prolog_predicate/1)) ],
-    prolog_decls(PIs).
+    [ (:- multifile(pr_prolog_predicate/2)) ],
+    prolog_decls(PIs, justified).
 
-prolog_decls(Var) -->
+prolog_decls(Var, _Type) -->
     { var(Var),
       instantiation_error(Var)
     }.
-prolog_decls((A,B)) -->
+prolog_decls((A,B), Type) -->
     !,
-    prolog_decls(A),
-    prolog_decls(B).
-prolog_decls(PI) -->
-    { pi_head(PI, Head)
+    prolog_decls(A, Type),
+    prolog_decls(B, Type).
+prolog_decls(PI, Type) -->
+    { pi_head(PI, Head),
+      must_be(oneof([opaque,justified]), Type)
     },
-    [ pr_prolog_predicate(Head) ].
+    [ pr_prolog_predicate(Head, Type) ].
 
 
 		 /*******************************

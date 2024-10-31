@@ -239,21 +239,28 @@ solve_goal(not(Goal), M, Parents, ProvedIn, ProvedIn, StackIn, StackIn,
     Goal = findall(_, _, _),
     !,
     exec_neg_findall(Goal, M, Parents, ProvedIn, StackIn).
-solve_goal(not(prolog(Goal)), _M, _Parents, ProvedIn, ProvedIn,
+solve_goal(not(prolog(Goal, Type)), _M, _Parents, ProvedIn, ProvedIn,
            StackIn, [[], prolog(Tree)|StackIn], [not(Goal)]) :-
     !,
     term_variables(Goal, Vars),
     (   Vars == []
-    ->  scasp_prolog(\+ Goal, Tree)
+    ->  (   Type == justified
+        ->  scasp_prolog(\+ Goal, Tree)
+        ;   \+ Goal
+        )
     ;   Vs =.. [v|Vars],
         findall(Vs, Goal, Bindings),
         Tree = not(Goal)-[],
         bindings_inequality_constraints(Vs, Bindings)
     ).
-solve_goal(prolog(Goal), _M, _Parents, ProvedIn, ProvedIn,
+solve_goal(prolog(Goal, Type), _M, _Parents, ProvedIn, ProvedIn,
            StackIn, [[], prolog(Tree)|StackIn], [Goal]) :-
     !,
-    scasp_prolog(Goal, Tree).
+    (   Type == justified
+    ->  scasp_prolog(Goal, Tree)
+    ;   call(Goal),
+        Tree = Goal-[]
+    ).
 solve_goal(Goal, M, Parents, ProvedIn, ProvedOut, StackIn, StackOut, Model) :-
     user_predicate(M:Goal),
     !,
