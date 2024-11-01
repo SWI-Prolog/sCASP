@@ -340,7 +340,9 @@ body_calls(M:A, _, Callee), atom(M) =>
     body_calls(A, M, Callee).
 body_calls(G, _M, _CalleePM), callable(G), scasp_builtin(G) =>
     fail.
-body_calls(G, M, _CalleePM), callable(G), M:pr_prolog_predicate(G,_) =>
+body_calls(G, M, _CalleePM), callable(G),
+    current_predicate(M:pr_prolog_predicate/2),
+    M:pr_prolog_predicate(G,_) =>
     fail.
 body_calls(G, M, CalleePM), callable(G) =>
     implementation(M:G, Callee0),
