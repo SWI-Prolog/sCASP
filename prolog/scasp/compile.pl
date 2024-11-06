@@ -135,15 +135,7 @@ check_existence(M, G) :-
     shown_predicate(M:G),
     !.
 check_existence(_,G) :-
-    prolog_builtin(G),
-    !.
-check_existence(_,G) :-
-    clp_builtin(G),
-    !.
-check_existence(_,G) :-
-    clp_interval(G),
-    !.
-check_existence(_,_ is _) :-
+    scasp_builtin(G),
     !.
 check_existence(_, G) :-
     scasp_pi(G, PI),

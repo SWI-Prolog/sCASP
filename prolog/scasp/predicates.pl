@@ -65,6 +65,7 @@ scasp_builtin(Head) :-
     clp_interval(Head).
 scasp_builtin(_ is _).
 scasp_builtin(findall(_,_,_)).
+scasp_builtin(prolog(_,_)).
 
 %!  prolog_builtin(?Goal)
 %
