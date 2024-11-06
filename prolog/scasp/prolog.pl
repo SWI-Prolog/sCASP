@@ -47,7 +47,7 @@ scasp_prolog(!, _, Tree, Ch) =>
     Tree = !-[],
     prolog_cut_to(Ch).
 scasp_prolog(Goal, M, Tree, _),
-    predicate_property(M:Goal, foreign) =>
+    opaque(M:Goal) =>
     (   predicate_property(system:Goal, foreign)
     ->  Tree = Goal-[]
     ;   Tree = (M:Goal)-[]
@@ -101,3 +101,9 @@ body_list((A,B)) -->
 body_list(X) -->
     [X].
 
+opaque(Goal) :-
+    predicate_property(Goal, foreign),
+    !.
+opaque(Goal) :-
+    predicate_property(Goal, meta_predicate(_)),
+    !.
