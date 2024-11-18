@@ -296,13 +296,15 @@ assert_pr_pred(T, M) =>
 %
 %   Process a ``#pred Spec :: Template.`` directive.
 %
-%   @arg Spec is a term Head::Template,  where   Head  is  an sCASP atom
-%   where the variables are represented  as   $(Name)  and Template is a
-%   string that embeds "@(Var)", "@(Var:Type)", "{{Var}}" or
-%   "{{Var:Type}}"
-%   @arg Pred is a term `Head::format(Fmt, Args)`, where `Fmt` contains
-%   ~p and the arguments are of the shape `@($(Var):Type)`, which is
-%   printed as ``"<Var>, a <Type>"``
+%   Spec is parsed by atom_cond/4 to match a node in the proof tree.
+%   Template is one of
+%
+%     - A string that embeds "@(Var)", "@(Var:Type)", "{{Var}}" or
+%       "{{Var:Type}}".  `Var` may be named, using a corresponding
+%       $(Var) in Spec.
+%     - A term format(Fmt, Args), using the same argument passing
+%       conventions as above.  Deprecated.
+%     - A term for html(Spec), where `Spec` is passed to html//1.
 
 :- det(process_pr_pred/5).
 
@@ -379,7 +381,9 @@ insert_var_r(Name, Var, In, Out) :-
 %       children of the justification tree.  Non-matched children
 %       remain in the tree and are used as justification normally.
 %       If the list ends with `-`, e.g. `[p(X)|-]`, all non-matched
-%       children are discarded.
+%       children are discarded.  A specifier +Spec causes the node
+%       itself to remain in the justification.   A specifier ^(Spec)
+%       _lifts_ all matching nodes and discards anything else.
 %     - The atom `-`.  All children are discarded.
 %     - The atom `*`.  This is the default of there are no children
 %       and causes the node to be processed normally.

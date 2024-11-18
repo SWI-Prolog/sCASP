@@ -294,8 +294,12 @@ human_expression(Tree, Children, Actions) :-
     ;   Actions = Human                          % html(Terms)
     ).
 
-tree_atom_children(M0:(Atom0-Children), M, Atom, Children) :-
+tree_atom_children(M0:(Atom0-Children0), M, Atom, Children) =>
+    Children = Children0,
     clean_atom(Atom0, M0, Atom, M).
+tree_atom_children(Atom0-Children0, M, Atom, Children) =>
+    Children = Children0,
+    clean_atom(Atom0, _, Atom, M).
 
 clean_atom(goal_origin(Atom0, _), M0, Atom, M) =>
     clean_atom(Atom0, M0, Atom, M).
@@ -308,6 +312,8 @@ clean_atom(not(Atom0), M0, Atom, M) =>
 clean_atom(-(Atom0), M0, Atom, M) =>
     Atom = -(Atom1),
     strip_module(M0:Atom0, M, Atom1).
+clean_atom(Atom0, M0, Atom, _M), var(M0) =>
+    Atom = Atom0.
 clean_atom(Atom0, M0, Atom, M) =>
     strip_module(M0:Atom0, M, Atom).
 
@@ -321,6 +327,12 @@ match_children(*, _, Children0, Children) =>
     Children = Children0.
 match_children(-, _, _, Children) =>
     Children = [].
+match_children([+H|T], M, Children0, Children) =>
+    append(Pre, [Atom-C0|Post], Children0),
+    match_node(H, M, Atom, C0, C),
+    !,
+    match_children(T, M, Post, Post2),
+    append([Pre,[Atom-C],Post2], Children).
 match_children([H|T], M, Children0, Children) =>
     append(Pre, [Atom-C0|Post], Children0),
     match_node(H, M, Atom, C0, C),
@@ -333,9 +345,24 @@ match_children([], _, Children0, Children) =>
 match_node(Node-ChildSpec, M, Atom, C0, C) =>
     match_node(Node, M, Atom),
     match_children(ChildSpec, M, C0, C).
+match_node(^(Node), M, Atom0, C0, C) =>
+    clean_atom(Atom0, _, Atom, M),
+    findall(Match, in_tree(Node, M, Atom-C0, Match), C).
 match_node(Node, M, Atom, C0, C) =>
     match_node(Node, M, Atom),
     C = C0.
+
+in_tree(Target, M, List, Match), is_list(List) =>
+    member(Sub, List),
+    in_tree(Target, M, Sub, Match).
+in_tree(Target, M, Tree, Match) =>
+    tree_atom_children(Tree, M, Atom, Children),
+    (   \+ Target \= Atom
+    ->  (   Match = Atom-Children
+        ;   in_tree(Target, M, Children, Match)
+        )
+    ;   in_tree(Target, M, Children, Match)
+    ).
 
 %!  match_node(+Spec, +Module, +Atom) is semidet.
 %
