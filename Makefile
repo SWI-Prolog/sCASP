@@ -18,8 +18,8 @@ check:	check_load
 
 # Verify consistency of main load points
 check_load:
-	${SWIPL} -q -l prolog/scasp.pl -g check --on-warning=status -t halt
-	${SWIPL} -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -l prolog/scasp.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
 
 ifneq ($(strip $(SWIPL_PREFIX)),)
 install:
