@@ -6,7 +6,7 @@ SWIPL_PREFIX?=$(shell dirname $$(dirname $$(which ${SWIPL})))
 all:	scasp prolog/scasp/main.qlf
 
 scasp:
-	${SWIPL} --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
+	${SWIPL} --no-pce --no-autoload --undefined=error -O -o scasp -c prolog/scasp/main.pl
 prolog/scasp/main.qlf:
 	${SWIPL} qlf compile --include prolog/scasp/main.pl
 
