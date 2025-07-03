@@ -6,7 +6,7 @@ SWIPL_PREFIX?=$(shell dirname $$(dirname $$(which ${SWIPL})))
 all:	scasp prolog/scasp/main.qlf
 
 scasp:
-	${SWIPL} --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
+	${SWIPL} --no-pce --no-autoload --undefined=error -O -o scasp -c prolog/scasp/main.pl
 prolog/scasp/main.qlf:
 	${SWIPL} qlf compile --include prolog/scasp/main.pl
 
@@ -18,8 +18,8 @@ check:	check_load
 
 # Verify consistency of main load points
 check_load:
-	${SWIPL} -q -l prolog/scasp.pl -g check --on-warning=status -t halt
-	${SWIPL} -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -l prolog/scasp.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
 
 ifneq ($(strip $(SWIPL_PREFIX)),)
 install:
