@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, ssCASP ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SWI-Prolog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends software-properties-common
+          sudo apt-add-repository -y ppa:swi-prolog/stable
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends swi-prolog-nox
+
+      - name: Version
+        run: swipl --version
+
+      - name: Build
+        run: make
+
+      - name: scasp --version
+        run: ./scasp --version
+
+      - name: Run test suite
+        run: make check

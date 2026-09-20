@@ -34,256 +34,287 @@
 
 :- module(test_scasp,
           [ test_scasp/0,
-            qtest_scasp/0,
-            run_test/2                  % +File, +Options
+            golden_program/3,           % ?Name, ?File, ?Options
+            save_golden/1,              % +Spec
+            save_golden/2               % +Spec, +Options
           ]).
-:- set_prolog_flag(optimise, true).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
-:- use_module(library(main)).
-:- use_module(library(option)).
-:- if(exists_source(library(prolog_coverage))).
-:- use_module(library(prolog_coverage)).
-:- endif.
-:- use_module(library(time)).
+:- use_module(library(plunit)).
+:- use_module(library(apply),  [maplist/3, convlist/3]).
+:- use_module(library(lists),  [member/2, append/3]).
+:- use_module(library(option), [option/2, option/3]).
+:- use_module(library(pairs),  [pairs_keys_values/3]).
+:- use_module(library(filesex), [directory_file_path/3]).
+
+:- use_module(proof_skeleton,
+              [ answers_model_key/2, answers_skeleton/3, answers_agreement/3 ]).
+:- use_module(proof_levels, [proof_level/3]).
+:- use_module(known_issues, [known_issue/3]).
+
+/** <module> Golden-output tests for the file front end
+
+Each program under test/ is solved with scasp_load/2 + scasp_query/3 +
+solve/4 - the front end the `scasp` executable uses - and compared against
+its `.pass` file.  The two halves are compared differently:
+
+  - the **model** exactly, through answers_model_key/2: variable naming is
+    normalised and the order of the answers ignored, nothing else;
+  - the **justification** at the level test/proof_levels.pl declares,
+    `exact` unless there is a recorded reason to be looser, through
+    proof_skeleton/3.  See test/proof_skeleton.pl for what each level
+    absorbs and why comparing trees verbatim does not survive a change to
+    the solver.
+
+One plunit test is generated per program, so plunit's own options apply
+per program: `blocked(Reason)` for a program that does not terminate and
+`fixme(Reason)` for one that cannot be solved yet.  Both come from
+test/known_issues.pl, which holds the reason.
+
+Programs under test/all_programs/dcc run with `scasp_dcc`.  The flag is
+set inside the test rather than in a unit setup/1, so the change stays in
+the thread plunit runs the test in and this unit can run beside the
+others under run_tests/2's jobs(N).
+
+To regenerate the golden data after an intended change:
+
+    ?- save_golden('test/all_programs').        % only where absent
+    ?- save_golden('test/all_programs', [overwrite(true)]).
+*/
+
+user:file_search_path(scasp, SCASPDir) :-
+    scasp_dir(SCASPDir).
+user:file_search_path(library, scasp(prolog)).
 
 scasp_dir(SCASPDir) :-
     source_file(scasp_dir(_), File),
     file_directory_name(File, TestDir),
     file_directory_name(TestDir, SCASPDir).
 
-:- multifile
-    user:file_search_path/2.
-
-user:file_search_path(scasp, SCASPDir) :-
-    scasp_dir(SCASPDir).
-user:file_search_path(library, scasp(prolog)).
-
-:- use_module(library(lists), [member/2]).
-:- use_module(library(main), [main/0, argv_options/3]).
-:- use_module(library(option), [option/3, option/2]).
-:- use_module(library(time), [call_with_time_limit/2]).
-
 :- use_module(library(scasp/ops)).
 :- use_module(library(scasp/compile)).
 :- use_module(library(scasp/solve)).
-:- use_module(library(scasp/output)).
 :- use_module(library(scasp/stack)).
 :- use_module(library(scasp/model)).
+:- use_module(library(scasp/output)).
 :- use_module(library(scasp/options)).
-:- use_module(library(scasp/messages)).
 :- use_module(library(scasp/source_ref)).
-:- use_module(diff).
-
-:- initialization(main, main).
 
 test_scasp :-
-    main([]).
+    run_tests([golden]).
 
-qtest_scasp :-
-    findall(File, quick_test_file(_, File), Files),
-    main(Files).
 
-quick_test_file(Test, File) :-
-    (   atom(Test)
-    ->  true
-    ;   quick_test(Test)
-    ),
-    absolute_file_name(scasp(test/programs/Test), File,
-                       [ access(read),
-                         extensions([pl])
-                       ]).
+		 /*******************************
+		 *         THE PROGRAMS		*
+		 *******************************/
 
-quick_test(pq).
-quick_test(forall_arity).
-quick_test(vars).
-quick_test(classic_negation_inconstistent).
-quick_test(birds).
-quick_test(family).
-quick_test(hamcycle).
-quick_test(hamcycle_two).
-quick_test(hanoi).
-
-:- dynamic cov_module/1.
-cov_module(scasp_solve).
-
-%!  main(+Argv)
+%!  golden_dir(?Dir, ?Options) is nondet.
 %
-%   Usage: swipl test_scasp.pl [option ...] [dir ...] [file ...]
+%   Directories holding golden-output tests, relative to the repository.
+%   Options are the plunit unit options the directory needs; `dcc` needs
+%   the scasp_dcc flag and therefore its own unit.
+
+golden_dir('test/all_programs',      golden).
+golden_dir('test/all_programs/sasp', golden).
+golden_dir('test/min_programs',      golden).
+golden_dir('test/all_programs/dcc',  golden_dcc).
+
+%!  golden_program(?Name, ?File, ?Options) is nondet.
 %
-%   Options:
-%
-%     |----------------|---------------------------------------|
-%     | -q             | Only run the _quick_ tests            |
-%     | --timeout=Secs | Run tests with timeout (default 60)   |
-%     | --passed       | Only run tests that have a .pass file |
-%     | --save         | Save result if no .pass file exists   |
-%     | --overwrite    | Overwrite .pass after we passed       |
-%     | --pass         | Overwrite .pass after we failed       |
-%     | --cov=Dir      | Dump coverage data in Dir             |
-%     | --cov-by-test  | Get coverage information by test      |
-%     | --cov-module=M | Module to analyse for --cov-by-test   |
+%   Name is a unique test name for the program File, and Options are the
+%   plunit options it runs under.  Names are directory-qualified because
+%   three base names occur in more than one directory.
 
-main(Argv) :-
-    set_prolog_flag(encoding, utf8),
-    argv_options(Argv, Positional, Options),
-    test_files(Positional, Files, Options),
-    scasp_set_options(Options),
-    maplist(set_option, Options),
-    (   option(cov(Dir), Options)
-    ->  coverage(run_tests(Files, Options),
-                 [ dir(Dir) ])
-    ;   run_tests(Files, Options),
-        (   option(cov_by_test(true), Options)
-        ->  covering_clauses(Options)
-        ;   true
-        )
-    ).
+golden_program(Name, File, Options) :-
+    golden_program(golden, Name, File, Options).
 
-opt_type(q,           quick,       boolean).
-opt_type(timeout,     timeout,     number).
-opt_type(passed,      passed,      boolean).
-opt_type(save,        save,        boolean).
-opt_type(overwrite,   overwrite,   boolean).
-opt_type(pass,        pass,        boolean).
-opt_type(cov,         cov,         file).
-opt_type(cov_by_test, cov_by_test, boolean).
-opt_type(cov_module,  cov_module,  atom).
-opt_type(Flag, Option, Type) :-
-    scasp_opt_type(Flag, Option, Type).
+golden_program(Unit, Name, File, Options) :-
+    golden_dir(Dir, Unit),
+    scasp_dir(Root),
+    directory_file_path(Root, Dir, AbsDir),
+    directory_file_path(AbsDir, '*.pl', Pattern),
+    expand_file_name(Pattern, Files),
+    member(File, Files),
+    program_name(Dir, File, Name),
+    program_options(File, Options).
 
-opt_help(passed,      "Only run tests that have a .pass file").
-opt_help(quick,       "Only run fast tests").
-opt_help(timeout,     "Timeout per test in seconds").
-opt_help(save,        "Save pass data if not yet present").
-opt_help(overwrite,   "Save pass data if test passed").
-opt_help(pass,        "Save pass data if test failed").
-opt_help(cov,         "Write coverage data").
-opt_help(cov_by_test, "Analyse coverage by test and compare").
-opt_help(cov_module,  "Module to for --cov-by-test analysis").
-opt_help(Option, Help) :-
-    scasp_opt_help(Option, Help).
-
-opt_meta(cov,        'DIRECTORY').
-opt_meta(timeout,    'SECONDS').
-opt_meta(cov_module, 'MODULE').
-opt_meta(Option, Meta) :-
-    scasp_opt_meta(Option, Meta).
-
-set_option(cov_module(Module)) =>
-    retractall(cov_module(_)),
-    asserta(cov_module(Module)).
-set_option(_) =>
-    true.
-
-%!  run_tests(+Files, +Options)
-%
-%   Run the tests.  Return  to  the   toplevel  when  interactive,  else
-%   terminate the process using state 1 if tested failed.
-
-run_tests(Files, Options) :-
-    run_tests(Files, Failed, Options),
-    (   Failed == 0
-    ->  format(user_error, 'All tests passed!~n', [])
-    ;   format(user_error, '~D tests failed~n', [Failed]),
-        (   current_prolog_flag(break_level, _)
-        ->  fail
-        ;   halt(1)
-        )
-    ).
-
-run_tests(Files, Failed, Options) :-
-    run_tests(Files, 0, Failed, Options).
-
-run_tests([], Failed, Failed, _).
-run_tests([H|T], Failed0, Failed, Options) :-
-    (   run_test(H, Options)
-    ->  run_tests(T, Failed0, Failed, Options)
-    ;   Failed1 is Failed0+1,
-        run_tests(T, Failed1, Failed, Options)
-    ).
-
-%!  run_test(+File, +Options) is semidet.
-%
-%   Compute all stacks and models for File.  Options:
-%
-%     - save(true)
-%       Write new `.pass` file if there is none.
-%     - overwrite(true)
-%       Save the .pass file even if the test passed.
-%     - show_diff(true)
-%       Use `meld` to show the difference between the stacks if the
-%       test failed.
-
-run_test(File, Options) :-
+program_name(Dir, File, Name) :-
     file_base_name(File, Base),
-    format("~w ~`.t ~45|", [Base]),
-    flush_output,
-    option(timeout(Time), Options, 60),
-    statistics(runtime, _),
-    catch(call_with_time_limit(
-              Time,
-              scasp_test(File, Stacks-Models, Options)),
-          Error, true),
-    statistics(runtime, [_,Used]),
-    Result = Stacks-Models,
-    pass_data(File, PassFile, PassResult),
-    (   PassResult = PassStacks-PassModels
-    ->  true
-    ;   PassStacks = PassResult         % old format
-    ),
-    (   nonvar(Error)
-    ->  message_to_string(Error, Msg),
-        format("ERROR: ~s ~|~t~d ms~8+~n", [Msg,Used]),
-        fail
-    ;   var(PassStacks)
-    ->  length(Models, ModelCount),
-        format("~|~t~D models~9+~t~d ms~8+~n", [ModelCount,Used]),
-        (   option(save(true), Options)
-        ->  save_test_data(PassFile, Result)
-        ;   true
-        )
-    ;   PassStacks =@= Stacks
-    ->  format("passed ~|~t~d ms~8+\n", [Used]),
-        (   option(overwrite(true), Options)
-        ->  save_test_data(PassFile, Result)
-        ;   true
-        )
-    ;   PassModels =@= Models
-    ->  format("different stacks, same models ~|~t~d ms~8+\n", [Used]),
-        (   option(show_diff(true), Options)
-        ->  diff_terms(PassStacks, Stacks)
-        ;   option(pass(true), Options)
-        ->  save_test_data(PassFile, Result)
-        ;   true
-        )
-    ;   canonical_models(PassModels, CannonicalPassModels),
-        canonical_models(Models, CannonicalModels),
-        CannonicalPassModels =@= CannonicalModels
-    ->  format("different stacks, same models (different order) ~|~t~d ms~8+\n",
-               [Used]),
-        (   option(show_diff(true), Options)
-        ->  diff_terms(PassStacks, Stacks)
-        ;   option(pass(true), Options)
-        ->  save_test_data(PassFile, Result)
-        ;   true
-        )
-    ;   format("FAILED ~|~t~d ms~8+\n", [Used]),
-        (   option(pass(true), Options)
-        ->  save_test_data(PassFile, Result)
-        ;   option(show_diff(true), Options)
-        ->  diff_terms(PassStacks, Stacks)
-        ;   option(show_diff(models), Options)
-        ->  canonical_models(PassModels, CannonicalPassModels),
-            canonical_models(Models, CannonicalModels),
-            diff_terms(CannonicalPassModels, CannonicalModels)
+    file_name_extension(Plain, pl, Base),
+    file_base_name(Dir, DirName),
+    atomic_list_concat([DirName, /, Plain], Name).
+
+%!  program_options(+File, -Options) is det.
+%
+%   A program that cannot be solved is not given golden data - that would
+%   record the bug as the expected answer - so it is marked here instead,
+%   from the reason in test/known_issues.pl.  `blocked` is for one that
+%   does not terminate, since running it costs the whole timeout on every
+%   run; `fixme` for one that fails fast, which is still worth running so
+%   that plunit reports it the day it starts working.
+
+program_options(File, Options) :-
+    file_base_name(File, Base),
+    known_issue(Base, Expectation, Reason),
+    !,
+    issue_option(Expectation, Reason, Options).
+program_options(_, []).
+
+issue_option(hang, Reason, [blocked(Reason)]).
+issue_option(no_models, Reason, [fixme(Reason)]).
+
+%!  golden_goal(+Kind, +File, -Goal) is det.
+%
+%   How to run the program: the dcc ones need the flag set around them.
+
+golden_goal(golden, File, golden_test(File)).
+golden_goal(golden_dcc, File, golden_dcc_test(File)).
+
+
+		 /*******************************
+		 *          THE TESTS		*
+		 *******************************/
+
+% One unit for every program, including the --dcc ones.  They have to
+% share a unit: scasp_load/2 asserts the compiled program into the module
+% of its caller and wipes what was there first, so two *units* compiling
+% into test_scasp would destroy each other's program the moment plunit
+% ran them on separate jobs.  Within a unit the tests run one at a time,
+% which is what keeps that safe.
+
+:- begin_tests(golden).
+
+term_expansion(golden_tests, Tests) :-
+    findall((test(Name, Options) :- test_scasp:Goal),
+            ( test_scasp:golden_program(Kind, Name, File, Options),
+              test_scasp:golden_goal(Kind, File, Goal)
+            ),
+            Tests).
+
+golden_tests.
+
+:- end_tests(golden).
+
+
+%!  golden_dcc_test(+File) is semidet.
+%
+%   Run File with scasp_dcc set, and set it *here* rather than in a unit
+%   setup/1.  A Prolog flag is thread-local once set: a thread inherits
+%   its creator's value and its own changes do not propagate back, so
+%   setting it in the thread plunit runs the test in leaves every other
+%   job alone.
+%
+%   A unit setup/1 would not do, because that runs in the main thread:
+%   the value would leak into every job thread created after it - and
+%   scasp_forall would leak with it, since scasp_set_options/1 forces
+%   `prev` alongside dcc.
+
+golden_dcc_test(File) :-
+    setup_call_cleanup(
+        save_scasp_flags(Saved),
+        ( scasp_set_options([dcc(true)]),
+          golden_test(File)
         ),
+        restore_scasp_flags(Saved)).
+
+save_scasp_flags(Flags) :-
+    findall(Flag-Value,
+            ( current_prolog_flag(Flag, Value),
+              atom(Flag),
+              sub_atom(Flag, 0, _, _, scasp_)
+            ), Flags).
+
+restore_scasp_flags(Flags) :-
+    forall(member(Flag-Value, Flags), set_prolog_flag(Flag, Value)).
+
+
+		 /*******************************
+		 *        RUN AND COMPARE	*
+		 *******************************/
+
+%!  golden_test(+File) is semidet.
+%
+%   Solve File and compare both halves against its `.pass` data.
+
+golden_test(File) :-
+    pass_data(File, PassFile, PassData),
+    (   nonvar(PassData),
+        PassData = PassStacks-PassModels
+    ->  true
+    ;   print_message(error, scasp_test(no_golden_data(PassFile))),
+        fail
+    ),
+    scasp_test(File, Stacks-Models),
+    same_models(PassModels, Models),
+    test_proof_level(File, Level, _Reason),
+    same_proofs(PassStacks, Stacks, Level).
+
+%!  same_models(+PassModels, +Models) is semidet.
+%
+%   Models are compared *exactly*.  There is no option to weaken this.
+
+same_models(PassModels, Models) :-
+    answers_model_key(PassModels, Key),
+    (   answers_model_key(Models, Key)
+    ->  true
+    ;   print_message(error, scasp_test(model_differs)),
         fail
     ).
 
-canonical_models(Models, CannModels) :-
-    maplist(canonical_model, Models, Models1),
-    sort(Models1, CannModels).
+%!  same_proofs(+PassStacks, +Stacks, +Level) is semidet.
+%
+%   Report which way a justification moved.  Naming the strongest level
+%   that *would* agree turns the failure into the entry
+%   test/proof_levels.pl would need, so loosening a test stays a
+%   deliberate act rather than a silent rewrite of the `.pass` file.
+
+same_proofs(PassStacks, Stacks, Level) :-
+    answers_skeleton(PassStacks, Level, PassSkeleton),
+    answers_skeleton(Stacks, Level, Skeleton),
+    (   PassSkeleton == Skeleton
+    ->  true
+    ;   answers_agreement(PassStacks, Stacks, Agree)
+    ->  print_message(error, scasp_test(proof_agrees_at(Level, Agree))),
+        fail
+    ;   print_message(error, scasp_test(proof_differs(Level))),
+        fail
+    ).
+
+%!  test_proof_level(+File, -Level, -Reason) is det.
+
+test_proof_level(File, Level, Reason) :-
+    file_base_name(File, Base),
+    proof_level(Base, Level, Reason),
+    !.
+test_proof_level(_, exact, "").
+
+%!  scasp_test(+File, -StackModelPairs) is det.
+%
+%   Solve File and collect a Tree-Model pair for every answer.
+%
+%   The source references are reset first: scasp_source_reference/3 is a
+%   process-global counter that is never retracted, so the clause numbers
+%   in goal_origin/2 would otherwise depend on what was loaded earlier in
+%   the process, and a comparison at `exact` would depend on test order.
+
+scasp_test(File, Trees-Models) :-
+    retractall(scasp_source_reference(_, _, _)),
+    scasp_load(File, [unknown(fail)]),
+    scasp_query(Query, Bindings, []),
+    findall(Pair, solve_one(Query, Bindings, Pair), Pairs),
+    pairs_keys_values(Pairs, Trees, Models).
+
+solve_one(Query, Bindings, Tree-Model) :-
+    solve(Query, [], StackOut, ModelOut),
+    justification_tree(StackOut, Tree, []),
+    canonical_model(ModelOut, Model),
+    All = t(Bindings, Model, Tree),
+    ovar_set_bindings(Bindings),
+    ovar_analyze_term(All),
+    inline_constraints(All, []).
+
+
+		 /*******************************
+		 *         GOLDEN DATA		*
+		 *******************************/
 
 %!  pass_data(+TestFile, -PassFile, -PassData) is det.
 
@@ -292,9 +323,7 @@ pass_data(File, PassFile, PassData) :-
     (   exists_file(PassFile)
     ->  setup_call_cleanup(
             open(PassFile, read, In),
-            read_term(In, PassData,
-                      [ module(scasp_ops)
-                      ]),
+            read_term(In, PassData, [module(scasp_ops)]),
             close(In))
     ;   true
     ).
@@ -314,191 +343,65 @@ save_test_data(Into, Result) :-
                    ]),
         close(Out)).
 
-%!  test_files(+Argv, -Files, +Options) is det.
-
-test_files([], Files, Options) :-
-    !,
-    (   option(quick(true), Options)
-    ->  findall(File, quick_test_file(_, File), Files)
-    ;   absolute_file_name(scasp(test/all_programs), Dir,
-                           [ file_type(directory),
-                             access(read)
-                           ]),
-        test_files([Dir], Files, Options)
-    ).
-test_files(Spec, Files, Options) :-
-    phrase(test_files_(Spec, Options), Files).
-
-test_files_([], _) -->
-    [].
-test_files_([Dir|T], Options) -->
-    { exists_directory(Dir) },
-    !,
-    findall(File, dir_test_file(Dir,File, Options)),
-    test_files_(T, Options).
-test_files_([File|T], Options) -->
-    { exists_file(File) },
-    !,
-    [File],
-    test_files_(T, Options).
-test_files_([H|T], Options) -->
-    { print_message(warning, error(existence_error(file, H),_)) },
-    test_files_(T, Options).
-
-dir_test_file(Dir, File, Options) :-
-    atom_concat(Dir, '/*.pl', Pattern),
-    expand_file_name(Pattern, Files),
-    member(File, Files),
-    (   option(passed(true), Options)
-    ->  pass_file(File, PassFile),
-        exists_file(PassFile)
-    ;   true
-    ).
-
-
-%!  scasp_test(+File, -StackModelPairs, +Options) is det.
+%!  save_golden(+Spec) is det.
+%!  save_golden(+Spec, +Options) is det.
 %
-%   Test a single file
+%   Write the `.pass` data for the programs under Spec, a directory or a
+%   file relative to the repository.  By default only where it is absent;
+%   with `overwrite(true)` for every program, which is what to use after
+%   an intended change to the solver.
+%
+%   A program listed in test/known_issues.pl is skipped: recording its
+%   current output would record the bug as the expected answer.
 
-:- dynamic
-    scasp_current_test/1.
+save_golden(Spec) :-
+    save_golden(Spec, []).
 
-scasp_test(File, Result, Options) :-
-    option(cov_by_test(true), Options),
+save_golden(Spec, Options) :-
+    scasp_dir(Root),
+    directory_file_path(Root, Spec, Abs),
+    (   exists_directory(Abs)
+    ->  directory_file_path(Abs, '*.pl', Pattern),
+        expand_file_name(Pattern, Files)
+    ;   Files = [Abs]
+    ),
+    forall(member(File, Files),
+           save_golden_file(File, Options)).
+
+save_golden_file(File, _Options) :-
+    file_base_name(File, Base),
+    known_issue(Base, _, _),
     !,
-    collect_coverage(scasp_test(File, Result), File).
-scasp_test(File, Result, _Options) :-
-    scasp_test(File, Result).
+    print_message(informational, scasp_test(skipped_known_issue(File))).
+save_golden_file(File, Options) :-
+    pass_file(File, PassFile),
+    (   exists_file(PassFile),
+        \+ option(overwrite(true), Options)
+    ->  true
+    ;   scasp_test(File, Result),
+        save_test_data(PassFile, Result),
+        print_message(informational, scasp_test(saved(PassFile)))
+    ).
 
-scasp_test(File, Trees-Models) :-
-    retractall(scasp_source_reference(_, _, _)),
-    scasp_load(File, [unknown(fail)]),
-    scasp_query(Query, Bindings, []),
-    findall(Pair, solve(Query, Bindings, Pair), Pairs),
-    pairs_keys_values(Pairs, Trees, Models).
-
-solve(Query, Bindings, Tree-Model) :-
-    solve(Query, [], StackOut, ModelOut),
-    justification_tree(StackOut, Tree, []),
-    canonical_model(ModelOut, Model),
-    All = t(Bindings, Model, Tree),
-    ovar_set_bindings(Bindings),
-    ovar_analyze_term(All),
-    inline_constraints(All, []).
 
 		 /*******************************
-		 *        COVERAGE BY FILE	*
+		 *          MESSAGES		*
 		 *******************************/
 
-:- if(\+current_predicate(coverage/2)).
-:- meta_predicate
-    coverage(0, +).
+:- multifile prolog:message//1.
 
-coverage(Goal, _Options) :-
-    Goal.
-:- endif.
-
-:- dynamic covers/3.
-
-:- meta_predicate
-    collect_coverage(0, +).
-
-collect_coverage(Goal, Test) :-
-    setup_call_cleanup(
-        asserta(scasp_current_test(Test), Ref),
-        coverage(Goal, []),
-        erase(Ref)).
-
-:- multifile
-    prolog_cover:report_hook/2.
-
-prolog_coverage:report_hook(Succeeded, Failed) :-
-    scasp_current_test(Test),
-    cov_module(Module),
-    module_property(Module, file(Target)),
-    convlist(tag_clause(Module, Target, +), Succeeded, STagged),
-    convlist(tag_clause(Module, Target, -), Failed,    FTagged),
-    append(STagged, FTagged, Tagged),
-    sort(Tagged, Which),                % Sort by line
-    length(Which, N),
-    assertz(covers(Test, N, Which)).
-
-tag_clause(Module, File, Symbol, Clause, cov(Line, Symbol, PI)) :-
-    clause_property(Clause, file(File)),
-    clause_property(Clause, line_count(Line)),
-    clause_property(Clause, predicate(Module:PI)).
-
-covering_clauses(Options) :-
-    minimal_set_of_files(CoveredClauses, CoverContributions),
-    retractall(covers(_,_,_)),
-    sep_line,
-    format("Coverage contribution by file\n"),
-    format("~w ~`.t ~w~66| ~t~w~72|~n", ['File','Covers','New']),
-    maplist(list_contribution, CoverContributions),
-    sep_line,
-    include(contributes, CoverContributions, MinimalSetFiles),
-    maplist(arg(1), MinimalSetFiles, Files),
-    format("Running tests on this lot\n"),
-    select_option(cov_by_test(_), Options, Options1, false),
-    run_tests(Files, Options1),
-    sep_line,
-    format("List of Clauses \nClause ~`.t State~72|~n", []),
-    covered_clauses(CoveredClauses),
-    format("\nEnd of the report\n", []).
-
-sep_line :-
-    format("~n~`=t~78|~n", []).
-
-contributes(test(_File,_Covers,New)) :- New > 0.
-
-list_contribution(test(File,Covers,New)) :-
-    contrib_style(New, Style),
-    ansi_format(Style, "~w ~`.t ~d~66| ~t~d~72|~n", [File,Covers,New]).
-
-contrib_style(0, fg(127,127,127)) :- !.
-contrib_style(_, []).
-
-covered_clauses(CoveredClauses) :-
-    cov_module(Module),
-    findall(CIF, clause_in_module(Module, CIF), CIFs),
-    sort(1, =<, CIFs, OCIFs),
-    covered_clauses(OCIFs, CoveredClauses).
-
-clause_in_module(Module, cif(Line, PI)) :-
-    module_property(Module, file(File)),
-    prolog_coverage:clause_source(Clause, File, Line),
-    clause_property(Clause, predicate(Module:PI)),
-    \+ ( PI = (Name/_Arity),
-         sub_atom(Name, 0, _, _, $)
-       ).
-
-covered_clauses([], _).
-covered_clauses([cif(L, P)|RestC], Covered) :-
-    (   memberchk(cov(L,+,P), Covered)
-    ->  Message = 'COVERED'
-    ;   memberchk(cov(L,-,P), Covered)
-    ->  Message = 'NEG COVERED'
-    ;   Message = 'NO'
-    ),
-    format("~t~d~4| ~q ~46t ~w~72|~n", [L, P, Message]),
-    covered_clauses(RestC, Covered).
-
-%!  minimal_set_of_files(-SetOfClauses, -Minimal) is det.
-%
-%   @arg SetOfClauses is a set of cov(Line,Symbol,PI)
-%   @arg Minimal is a list of test(File,CoveredCount,NewCoveredCount)
-
-minimal_set_of_files(SetOfClauses, [test(F0,N0,N0)|CFiles]) :-
-    findall(t(N,File,Which), covers(File, N, Which), Covering),
-    sort(Covering, [t(N0, F0, S0)|RestF]),
-    grow_minimal_set(RestF, CFiles, S0, SClausesCovered),
-    sort(SClausesCovered, SetOfClauses).
-
-grow_minimal_set([], [], S, S).
-grow_minimal_set([t(N1,F1,S1)|RestF], [test(F1,N1,NewCount)|CFiles],
-                 Clauses0, Clauses) :-
-    ord_subtract(S1, Clauses0, New),
-    length(New, NewCount),
-    ord_union(S1, Clauses0, Clauses1),
-    grow_minimal_set(RestF, CFiles, Clauses1, Clauses).
-
+prolog:message(scasp_test(no_golden_data(File))) -->
+    [ 'no golden data: ~w does not exist'-[File] ].
+prolog:message(scasp_test(model_differs)) -->
+    [ 'golden data: the model differs'-[] ].
+prolog:message(scasp_test(proof_agrees_at(Level, Agree))) -->
+    [ 'golden data: the justification differs at `~w\'; it agrees at \c
+       `~w\'.'-[Level, Agree], nl,
+      'Add an entry to test/proof_levels.pl if that is intended.'-[] ].
+prolog:message(scasp_test(proof_differs(Level))) -->
+    [ 'golden data: the justification differs at `~w\' and agrees at no \c
+       level.'-[Level] ].
+prolog:message(scasp_test(saved(File))) -->
+    [ 'saved ~w'-[File] ].
+prolog:message(scasp_test(skipped_known_issue(File))) -->
+    [ 'skipped ~w: listed in test/known_issues.pl'-[File] ].

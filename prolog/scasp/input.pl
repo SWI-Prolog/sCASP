@@ -396,6 +396,11 @@ sasp_syntax_error(Error, Pos, Options) :-
     error_position(Pos, EPos, Options),
     print_message(error, sasp_error(Error, EPos)).
 
+error_position(_Pos, unknown, Options) :-
+    (   \+ option(base(_), Options)
+    ;   \+ option(stream(_), Options)
+    ),
+    !.
 error_position(Pos, pos(File, Line, Col), Options) :-
     option(base(File), Options),
     option(stream(In), Options),

@@ -112,5 +112,7 @@ scasp_compiled(pr_user_predicate(_Pred)).
 scasp_compiled(pr_table_predicate(_Pred)).
 scasp_compiled(pr_show_predicate(_Pred)).
 scasp_compiled(pr_pred_predicate(_Atom, _Children, _Cond, _Human)).
+scasp_compiled(pr_prolog_predicate(_Pred, _Type)).
+scasp_compiled(pr_dcc_predicate(_Head, _Body)).
 
 

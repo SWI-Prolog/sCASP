@@ -32,7 +32,17 @@ clause_file_line(ClauseRef, File, Line) :-
     clause_property(ClauseRef, file(File)),
     clause_property(ClauseRef, line_count(Line)).
 
-:- dynamic scasp_source_reference/3.
+%!  scasp_source_reference(?Ref, ?File, ?Pos) is nondet.
+%
+%   Map the reference interned into goal_origin/2 back to the place the
+%   term was read.  Thread-local, like scasp_dynamic_clause_position/2
+%   below: a reference is only meaningful to the thread that compiled the
+%   program it belongs to, and keeping the table per thread means two
+%   threads compiling at the same time cannot renumber or discard each
+%   other's references.  It also means the table goes away with the
+%   thread rather than growing for the life of the process.
+
+:- thread_local scasp_source_reference/3.
 
 assert_scasp_source_reference(File, Pos, Ref) :-
     scasp_source_reference(Ref, File, Pos), !.

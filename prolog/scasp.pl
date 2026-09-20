@@ -1,5 +1,6 @@
 :- module(scasp,
-          [ scasp/2,                    % :Goal, +Options
+          [ scasp/1,                    % :Goal
+            scasp/2,                    % :Goal, +Options
             (?)/1,                      % :Query
             (??)/1,                     % :Query
             (?--)/1,                    % :Query
@@ -148,7 +149,7 @@ set_scasp_mode(M, T) :-
 		 *******************************/
 
 :- multifile
-    sandbox:safe_meta_predicate/1,
+    sandbox:safe_meta/2,
     sandbox:safe_prolog_flag/2.
 
 sandbox:safe_meta(scasp:(? _), []).
@@ -157,6 +158,7 @@ sandbox:safe_meta(scasp:(?-- _), []).
 sandbox:safe_meta(scasp:(?+- _), []).
 sandbox:safe_meta(scasp:(?-+ _), []).
 sandbox:safe_meta(scasp:(?++ _), []).
+sandbox:safe_meta(scasp:(?+++ _), []).
 sandbox:safe_meta(scasp:(??+- _), []).
 sandbox:safe_meta(scasp:(??-+ _), []).
 sandbox:safe_meta(scasp:(??++ _), []).

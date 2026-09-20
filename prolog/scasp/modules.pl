@@ -7,6 +7,8 @@
             implementation/2             % :GoalIn, :GoalOut
           ]).
 :- use_module(predicates, [scasp_builtin/1]).
+:- use_module(library(error), [instantiation_error/1, type_error/2]).
+:- use_module(library(lists), [append/3]).
 
 /** <module> Encode modules
 
@@ -37,10 +39,8 @@ encoded_module_name(MName, QName), atom(QName) =>
     prefix(Prefix),
     atom_concat(Prefix, QName1, QName),
     !,
-    (   sub_atom(QName1, B, _, A, :)
+    (   split_module_name(QName1, M0, Name0)
     ->  MName = M:Name,
-        sub_atom(QName1, _, A, 0, Name0),
-        sub_atom(QName1, 0, B, _, M0),
         (   atom_concat(-, M, M0)
         ->  atom_concat(-, Name0, Name1)
         ;   M = M0,
@@ -53,6 +53,21 @@ encoded_module_name(MName, QName), atom(QName) =>
 
 prefix(o_).
 prefix('').
+
+%!  split_module_name(+QName, -Module, -Name) is semidet.
+%
+%   Undo the `Module:Name` encoding of encoded_module_name/2.  Split at
+%   the *last* colon: a module name may well contain one - the Logical
+%   English examples have a module called
+%   `family-scasp+http://tests.com` - while the encoded predicate names
+%   never do, as they are built from the functor, its arity and one of
+%   the reserved prefixes.
+
+split_module_name(QName, Module, Name) :-
+    atomic_list_concat(Parts, :, QName),
+    Parts = [_,_|_],
+    append(ModuleParts, [Name], Parts),
+    atomic_list_concat(ModuleParts, :, Module).
 
 
 %!  encoded_module_term(?TermIn, ?TermOut) is det.
@@ -95,7 +110,14 @@ scasp_encoded_module_term(MTerm, QTerm) =>
 %   Include the original Prolog module  into   the  program  for running
 %   modular programs.
 %
-%   @tbd: move into modules.pl
+%   Note that forall/2, findall/3, not/1 and  (-)/1 are matched here as
+%   s(CASP) control constructs.  A program that  *defines* one of them as
+%   an ordinary predicate loses to the construct: the clause head is read
+%   as the construct and its arguments  as  goals, which then reaches the
+%   errors below rather than being reported as the name clash it is.
+%
+%   @error instantiation_error if a goal in the body is unbound.
+%   @error type_error(callable, G) if a goal in the body is not callable.
 
 qualify_body(-(Head), M, Q) =>
     Q = -QHead,
@@ -126,6 +148,10 @@ qualify_body(G, M, Q), callable(G) =>
     ;   implementation(M:G, Callee),
         encoded_module_term(Callee, Q)
     ).
+qualify_body(G, _M, _Q), var(G) =>
+    instantiation_error(G).
+qualify_body(G, _M, _Q) =>
+    type_error(callable, G).
 
 %!  unqualify_model_term(+Module, +TermIn, -TermOut)
 

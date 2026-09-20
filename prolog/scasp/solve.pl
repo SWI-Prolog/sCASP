@@ -654,26 +654,26 @@ gn_match(not(Goal), NegGoal,      Goal, NegGoal) :- !.
 
 constrained_neg_in_stack(Goal, Parents, Proved) :-
     (   proved_relatives(Goal, Proved, Relatives)
-    ->  maplist(contrained_neg(Goal), Relatives)
+    ->  maplist(constrained_neg(Goal), Relatives)
     ;   true
     ),
-    maplist(contrained_neg(Goal), Parents).
+    maplist(constrained_neg(Goal), Parents).
 
-contrained_neg(not(Goal), NegGoal) :-
+constrained_neg(not(Goal), NegGoal) :-
     is_same_functor(Goal, NegGoal),
     verbose(format('\t\tCheck if not(~@) is consistent with ~@\n',
                    [print_goal(Goal), print_goal(NegGoal)])), !,
     loop_term(Goal, NegGoal),
     !,
     verbose(format('\t\tOK\n', [])).
-contrained_neg(Goal, not(NegGoal)) :-
+constrained_neg(Goal, not(NegGoal)) :-
     is_same_functor(Goal, NegGoal),
     verbose(format('\t\tCheck if not(~@) is consistent with ~@\n',
                    [print_goal(Goal), print_goal(NegGoal)])), !,
     loop_term(Goal, NegGoal),
     !,
     verbose(format('\t\tOK\n', [])).
-contrained_neg(_,_).
+constrained_neg(_,_).
 
 is_same_functor(Term1, Term2) :-
     functor(Term1, Name, Arity),

@@ -2,7 +2,7 @@
 
 ## Running the system without building
 
-    swipl prolog/scasp/main.pl -- [scasp-options] test/programs/familty.pl
+    swipl prolog/scasp/main.pl -- [scasp-options] test/all_programs/family.pl
     swipl test/test_scasp.pl -- [test options] [dir ...] [file ...]
 
 ## Loading for debugging
@@ -17,7 +17,7 @@ gspy/1 starts the graphical debugger. The   argument  is flexible. If no
 module is specified a spy point is set  on any matching predicate in any
 module.  Likewise if the arity is omitted all existing arities are used.
 
-    swipl -l prolog/scasp/main.pl -- test/programs/family.pl
+    swipl -l prolog/scasp/main.pl -- test/all_programs/family.pl
     ?- gspy(solve/4).
     ?- scasp_main:main.
 
@@ -67,11 +67,11 @@ search for undefined predicates and their call sites.
 Create annotated coverage file in _dir_ (default `cov`). Requires 8.3.27
 or later.
 
-    swipl test/test_scasp.pl --cov=dir test/programs/family.pl
+    swipl test/test_scasp.pl --cov=dir test/all_programs/family.pl
 
 ## Profiling
 
-    swipl -l prolog/scasp/main.pl -- test/programs/family.pl
+    swipl -l prolog/scasp/main.pl -- test/all_programs/family.pl
     ?- profile(scasp_main:main).
 
 ## Cross referencing

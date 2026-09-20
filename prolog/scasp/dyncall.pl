@@ -1,5 +1,6 @@
 :- module(scasp_dyncall,
-          [ scasp/2,                    % :Query, +Options
+          [ scasp/1,                    % :Query
+            scasp/2,                    % :Query, +Options
             scasp_query_clauses/2,      % :Query, -Clauses
             scasp_model/1,              % -Model
             scasp_justification/2,      % -Tree, +Options
@@ -68,6 +69,7 @@
 :- use_module(library(prolog_code), [pi_head/2]).
 
 :- meta_predicate
+    scasp(0),
     scasp(0, +),
     scasp_show(:, +),
     scasp_query_clauses(:, -),
@@ -120,6 +122,9 @@ Issues:
 %     - source(Boolean)
 %       When `false`, do not include source origin terms into the
 %       final tree.
+
+scasp(Query) :-
+    scasp(Query, []).
 
 scasp(Query, Options) :-
     Query = SrcModule:_,
@@ -205,8 +210,33 @@ scasp_show(Query, code, Options) =>
 
 scasp_query_clauses(Query, Clauses) :-
     query_callees(Query, Callees0),
+    maplist(check_not_reserved, Callees0),
     include_global_constraint(Callees0, Constraints, Callees),
     findall(Clause, scasp_clause(Callees, Clause), Clauses, Constraints).
+
+%!  check_not_reserved(+PI) is det.
+%
+%   s(CASP) matches some goals as  control  constructs before considering
+%   them as calls to a predicate, so  a program that *defines* one cannot
+%   win: the construct is matched first and the definition is never used.
+%   Report that rather than letting the  clause  be collected and fail in
+%   a way that does not mention the name.
+%
+%   Only forall/2 needs this.  findall/3 is  a static built-in, so Prolog
+%   already refuses to let a program define  it, and shadowing not/1 with
+%   s(CASP) negation is intended and documented behaviour.
+%
+%   @error permission_error(define, scasp_control_construct, PI)
+
+check_not_reserved(_M:PI) :-
+    scasp_control_construct(PI),
+    !,
+    permission_error(define, scasp_control_construct, PI).
+check_not_reserved(_).
+
+%!  scasp_control_construct(?PI) is nondet.
+
+scasp_control_construct(forall/2).
 
 scasp_clause(Callees, source(ClauseRef, M:(Head:- Body))) :-
     member(PI, Callees),
@@ -638,7 +668,7 @@ list([H|T]) --> [H], list(T).
 %       :- prolog PIs as Type.
 
 prolog(M:PIs) =>
-    phrase(prolog_decl(PIs), [_Multifile|Clauses]),
+    phrase(prolog_decl(PIs), Clauses),
     maplist(assert_show(M), Clauses).
 
 prolog_decl(Var) -->
@@ -648,10 +678,8 @@ prolog_decl(Var) -->
     }.
 prolog_decl(PIs as Type) -->
     !,
-    [ (:- multifile(pr_prolog_predicate/2)) ],
     prolog_decls(PIs, Type).
 prolog_decl(PIs) -->
-    [ (:- multifile(pr_prolog_predicate/2)) ],
     prolog_decls(PIs, justified).
 
 prolog_decls(Var, _Type) -->
@@ -683,22 +711,30 @@ user:term_expansion((-Head :- Body), (MHead :- Body)) :-
     intern_negation(-Head, MHead).
 user:term_expansion((false :- Body), ((-) :- Body)).
 user:term_expansion((:- pred(SpecIn)),
-                    pr_pred_predicate(Atom, Children, Cond, Human)) :-
+                    [ (:- dynamic(pr_pred_predicate/4)),
+                      pr_pred_predicate(Atom, Children, Cond, Human)
+                    ]) :-
     process_pr_pred(SpecIn, Atom, Children, Cond, Human).
-user:term_expansion((:- show(SpecIn)), Clauses) :-
+user:term_expansion((:- show(SpecIn)),
+                    [(:- dynamic(pr_show_predicate/1))|Clauses]) :-
     phrase(show(SpecIn), Clauses).
 user:term_expansion((:- abducible(SpecIn)), Clauses) :-
     phrase(abducible(SpecIn), Clauses).
 user:term_expansion((# pred(SpecIn)),
-                    pr_pred_predicate(Atom, Children, Cond, Human)) :-
+                    [ (:- dynamic(pr_pred_predicate/4)),
+                      pr_pred_predicate(Atom, Children, Cond, Human)
+                    ]) :-
     process_pr_pred(SpecIn, Atom, Children, Cond, Human).
-user:term_expansion((# show(SpecIn)), Clauses) :-
+user:term_expansion((# show(SpecIn)),
+                    [(:- dynamic(pr_show_predicate/1))|Clauses]) :-
     phrase(show(SpecIn), Clauses).
 user:term_expansion((# abducible(SpecIn)), Clauses) :-
     phrase(abducible(SpecIn), Clauses).
-user:term_expansion((# prolog(SpecIn)), Clauses) :-
+user:term_expansion((# prolog(SpecIn)),
+                    [(:- dynamic(pr_prolog_predicate/2))|Clauses]) :-
     phrase(prolog_decl(SpecIn), Clauses).
-user:term_expansion((:- prolog(SpecIn)), Clauses) :-
+user:term_expansion((:- prolog(SpecIn)),
+                    [(:- dynamic(pr_prolog_predicate/2))|Clauses]) :-
     phrase(prolog_decl(SpecIn), Clauses).
 
 user:goal_expansion(-Goal, MGoal) :-
@@ -755,5 +791,6 @@ prolog_clause:unify_goal(scasp(RGoal, Options),
 % member/2. s(CASP) does not allow for calling _qualified goals,
 % lists:member(...),
 
+sandbox:safe_meta(scasp_dyncall:scasp(_), []).
 sandbox:safe_meta(scasp_dyncall:scasp(_, _), []).
 

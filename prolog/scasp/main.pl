@@ -22,7 +22,7 @@
 :- use_module(messages).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
-:- use_module(library(http/json)).
+:- use_module(library(json)).
 :- use_module(library(dcg/high_order)).
 
 :- meta_predicate
@@ -84,6 +84,10 @@ load_sources(Sources, Options) :-
 %   Report expected errors concisely and  unexpected   ones  with a full
 %   backtrace.
 
+error(Unwind) :-
+    subsumes_term(unwind(_), Unwind),
+    !,
+    throw(Unwind).                  % halt/0,1 and friends are not errors
 error(error(scasp_undefined(PIs), _)) :-
     !,
     maplist(report_undef, PIs),

@@ -21,6 +21,8 @@
 
 % Prefer Unicode symbols over ASCII
 :- create_prolog_flag(scasp_unicode, true, []).
+% Print rationals as decimals: `false`, an integer precision or `float`.
+:- create_prolog_flag(scasp_real, false, [type(term)]).
 
 %!  scasp_version(-Version)
 %
@@ -49,6 +51,10 @@ set_option(forall(Algorithm)) =>
     set_prolog_flag(scasp_forall, Algorithm).
 set_option(dcc(Bool)) =>
     set_prolog_flag(scasp_dcc, Bool).
+set_option(plain_dual(Bool)) =>
+    set_prolog_flag(scasp_plain_dual, Bool).
+set_option(variant(Bool)) =>
+    set_prolog_flag(scasp_no_fail_loop, Bool).
 % Presentation uptions
 set_option(unicode(Bool)) =>
     set_prolog_flag(scasp_unicode, Bool).
@@ -155,6 +161,9 @@ opt_rule(Error) :-
     at_most_one_of([verbose, human], Error).
 opt_rule(Error) :-
     at_most_one_of([interactive, human], Error).
+opt_rule(add(tree(true))) :-
+    \+ opt(tree(_)),
+    opt(html(_)).                   % the HTML page *is* the justification
 opt_rule(add(forall(prev))) :-
     \+ opt(forall(_)),
     opt_true(dcc).
@@ -214,6 +223,7 @@ opt_type(c,           compiled,       boolean).
 
 opt_type(plaindual,   plain_dual,     boolean).
 opt_type(d,           plain_dual,     boolean).
+opt_type(variant,     variant,        boolean).
 
 opt_type(r,           real,           between(1,16)|oneof([float])).
 

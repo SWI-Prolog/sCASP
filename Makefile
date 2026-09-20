@@ -10,11 +10,8 @@ scasp:
 prolog/scasp/main.qlf:
 	${SWIPL} qlf compile --include prolog/scasp/main.pl
 
-TEST_SCAP=${SWIPL} test/test_scasp.pl --passed
-
 check:	check_load
-	$(TEST_SCAP) test/all_programs test/all_programs/sasp
-	$(TEST_SCAP) --dcc test/all_programs/dcc
+	${SWIPL} -g test_all -t halt test/test_all.pl
 
 # Verify consistency of main load points
 check_load:

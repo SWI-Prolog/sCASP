@@ -200,6 +200,11 @@ user:term_expansion(#(pred(Preds)), #(pred(Preds))) :-
     loading_scasp(_),
     prolog_load_context(variable_names, Vars),
     maplist(bind_var, Vars).
+% Keep any other sCASP directive verbatim.  Without this the expansions
+% from dyncall.pl assert the pr_*/N facts straight into the unit module,
+% where scasp_clause/2 filters them out again and the directive is lost.
+user:term_expansion(#(Directive), #(Directive)) :-
+    loading_scasp(_).
 user:term_expansion((:- end_scasp), Clauses) :-
     \+ current_prolog_flag(xref, true),
     end_scasp(Clauses).
@@ -394,7 +399,7 @@ scasp_stack(Stack) :-
 scasp_justification(M:Tree, Options) :-
     nb_current(scasp_tree, Tree0),
     remove_origins(Tree0, Tree1, Options),
-    unqualify_justitication_tree(Tree1, M, Tree).
+    unqualify_justification_tree(Tree1, M, Tree).
 
 remove_origins(Tree0, Tree, Options) :-
     option(source(false), Options),
@@ -483,7 +488,7 @@ user:portray(scasp_show_model(Model, Options)) :-
 user:portray(scasp_show_stack(M:Stack, Options)) :-
     ansi_format(comment, '% s(CASP) justification', []),
     justification_tree(Stack, Tree0, Options),
-    unqualify_justitication_tree(Tree0, M, Tree),
+    unqualify_justification_tree(Tree0, M, Tree),
     print_justification_tree(Tree, [full_stop(false)|Options]).
 user:portray('\u2209'(V,S)) :-          % not element of
     format('~p \u2209 ~p', [V, S]).

@@ -2,7 +2,8 @@
           [ justification_tree/3,		% :Stack, -JustTree, +Options
             print_justification_tree/1,         % :JustTree
             print_justification_tree/2,         % :JustTree, +Options
-            unqualify_justitication_tree/3      % +TreeIn, +Module, -TreeOut
+            unqualify_justification_tree/3,     % +TreeIn, +Module, -TreeOut
+            unqualify_justitication_tree/3      % deprecated misspelling
           ]).
 :- use_module(predicates).
 :- use_module(common).
@@ -289,19 +290,26 @@ term1(Functor, Arg, Options) :-
     print_model_term(Arg, Options),
     format(')', []).
 
-%!  unqualify_justitication_tree(:TreeIn, +Module, -TreeOut) is det.
+%!  unqualify_justification_tree(:TreeIn, +Module, -TreeOut) is det.
 %
 %   Unqualify the nodes in TreeIn, turning the nodes qualified to module
 %   Module into plain nodes.
 
-:- det(unqualify_justitication_tree/3).
+:- det(unqualify_justification_tree/3).
 
-unqualify_justitication_tree(_:Tree0, Module, Tree) :-
+unqualify_justification_tree(_:Tree0, Module, Tree) :-
     is_list(Tree0),
     !,
     maplist(unqualify_just(Module), Tree0, Tree).
-unqualify_justitication_tree(_:Tree0, Module, Tree) :-
+unqualify_justification_tree(_:Tree0, Module, Tree) :-
     unqualify_just(Module, Tree0, Tree).
+
+%!  unqualify_justitication_tree(:TreeIn, +Module, -TreeOut) is det.
+%
+%   @deprecated Misspelling of unqualify_justification_tree/3.
+
+unqualify_justitication_tree(Tree0, Module, Tree) :-
+    unqualify_justification_tree(Tree0, Module, Tree).
 
 unqualify_just(M, prolog(Tree0)-[], Tree) :-
     !,

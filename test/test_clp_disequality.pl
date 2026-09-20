@@ -2,7 +2,8 @@
           [ run_test/0
           ]).
 
-:- use_module(clp_disequality).
+:- use_module('../prolog/scasp/clp/disequality').
+:- use_module(library(intercept)).
 
 run_test :-
     template(_A = 5),
