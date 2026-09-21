@@ -4,6 +4,7 @@
           ]).
 :- use_module(scasp_plunit, []).                % sets the library search path
 :- use_module(library(plunit)).
+:- use_module(library(lists), [member/2]).
 :- use_module(library(option), [merge_options/3]).
 
 /** <module> Run every plunit suite in one process
@@ -60,6 +61,8 @@ too, one test per program.
 :- use_module(test_cli,            []).
 :- use_module(test_just,           []).
 :- use_module(test_proof_skeleton, []).
+:- use_module(test_stable_models,  []).
+:- use_module(test_differential,   []).
 
 %!  test_all is semidet.
 %!  test_all(+Options) is semidet.
@@ -73,3 +76,57 @@ test_all :-
 test_all(Options) :-
     merge_options(Options, [jobs(4), timeout(60)], Merged),
     run_tests(all, Merged).
+
+
+		 /*******************************
+		 *     THE MECHANISM ITSELF	*
+		 *******************************/
+
+%   `:- if(expect_semantics)` decides at *load* time which of two
+%   expectations a suite holds, so a file that forgets to import
+%   expect_semantics/0 takes the `:- else` branch in both modes.  SWI does
+%   report the unknown procedure, but the file still loads, every test still
+%   passes, and `make check_semantics` quietly stops measuring that defect.
+%
+%   That has already happened once, so it is checked rather than remembered.
+%   The check is textual because which branch was taken is not observable
+%   after loading.
+
+:- begin_tests(conditional_suites).
+
+:- use_module(library(filesex), [directory_file_path/3]).
+
+%   Importing the module in any form is enough: `use_module(scasp_plunit)`
+%   takes everything it exports, and `use_module(scasp_plunit, [...])` has
+%   to name expect_semantics/0 to compile at all.
+
+test(every_conditional_suite_imports_scasp_plunit,
+     [ forall(conditional_suite(File)) ]) :-
+    assertion(file_has(File, "use_module(scasp_plunit")).
+
+%!  conditional_suite(-File) is nondet.
+%
+%   A test source using the conditional, other than the module that
+%   defines expect_semantics/0 itself.
+
+conditional_suite(File) :-
+    test_directory(Dir),
+    directory_file_path(Dir, '*.pl', Pattern),
+    expand_file_name(Pattern, Files),
+    member(File, Files),
+    \+ file_base_name(File, 'scasp_plunit.pl'),
+    file_has(File, ":- if(expect_semantics)").
+
+test_directory(Dir) :-
+    source_file(test_directory(_), Here),
+    file_directory_name(Here, Dir).
+
+file_has(File, Needle) :-
+    setup_call_cleanup(
+        open(File, read, In),
+        ( read_string(In, _, String),
+          sub_string(String, _, _, _, Needle)
+        ),
+        close(In)).
+
+:- end_tests(conditional_suites).

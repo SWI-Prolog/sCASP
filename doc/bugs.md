@@ -378,7 +378,31 @@ stable. Equivalently: unification must fail *at the deciding position*, not
 merely somewhere. Pinned both ways by
 `test_builtins.pl:nor_when_a_later_clash_hides_the_deciding_argument`.
 
-### 17. `--assume` has no visible effect
+### 17. Querying an atom with no rules raises, where the body of a rule fails
+
+An atom that occurs in a program but has no rules is simply underivable: it
+is in the Herbrand base, and every answer set leaves it out. Used in a rule
+*body* s(CASP) agrees — but asked as a query it raises.
+
+```prolog
+q :- p.
+?- q.        % fails silently, correctly: p is underivable, so q is
+?- not p.    % existence_error(scasp_predicate, p/0)
+```
+
+The unique answer set of that program is `{}`, so `not p` holds in it and
+`?- not p.` should succeed. `compile.pl:check_existence/2` throws
+unconditionally for the query, without consulting the `scasp_unknown` flag or
+the `unknown(Mode)` option — unlike `pr_rules.pl:check_existence/1`, which
+honours both. So `unknown(fail)` does not suppress it, and the query is held
+to a stricter rule than the same literal in a body.
+
+Found by the differential harness (`test/differential.pl`): it is the only
+disagreement with the stable-model definition across the hand-written battery
+in `test_differential.pl`. Pinned there by
+`undefined_atom_in_a_query_raises_rather_than_answering`.
+
+### 18. `--assume` has no visible effect
 
 `solve.pl` reads `scasp_assume` in the coinductive-success branch and calls
 `mark_prev_goal/3` to rewrite the matching ancestor as `assume(Goal)`. Setting
@@ -387,7 +411,7 @@ the flag changes nothing in the justification of `p :- not q. q :- not p.`, and
 unreached for the same reason. Either the flag no longer does what it says, or
 it needs a program shape that is not obvious.
 
-### 18. Unsupported built-ins in embedded programs
+### 19. Unsupported built-ins in embedded programs
 
 `test/le_programs/list-scasp.pl` fails with
 `permission_error(scasp, procedure, system:once/1)`. `once/1` is a compiled

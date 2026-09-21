@@ -241,7 +241,7 @@ Two things worth knowing, both of which cost time to rediscover:
 - Selecting *parts* is exactly what a stage-level test wants: ask for
   `constraints(true)` alone and the answer is the NMR check and nothing else.
 
-## What is missing entirely: an independent oracle
+## The independent oracle — **done**
 
 Every oracle the suite has is derived from this implementation. The `.pass` data
 records what this code does, bugs included. The sibling checkout at
@@ -274,6 +274,52 @@ finitely-groundable fragment is precisely where the *compiler's* combinations
 interfere (duals × OLON × classical negation), and where the semantics are
 unambiguous enough for a definitional oracle to be authoritative.
 
+**Built.** `test/stable_models.pl` is the oracle, with 36 self-tests in
+`test_stable_models.pl` against worked examples — an unvalidated oracle judges
+nothing. `test/differential.pl` is the comparison and the generator, driven by
+`test_differential.pl`.
+
+The comparison is brave entailment, which is what a goal-directed solver computes:
+`scasp` answers `a` iff `a` is in some answer set, and answers `not a` iff `a` is
+absent from some answer set. Sharp in both directions — it catches an answer no
+answer set supports *and* an answer set the solver cannot reach. Counting models
+would catch neither, since a solver that found the right number of wrong models
+would pass a count.
+
+Result: **one divergence**, over 27 hand-written programs and some 600 random ones
+spanning four fragments — propositional, classical negation, first-order, and
+constraints over a finite domain.
+`doc/bugs.md` #17 — an atom with no rules is underivable, so `not p` holds in the
+unique answer set, but the query is rejected outright while the same literal in a
+rule body behaves correctly. Everything else agreed, across every combination of
+odd loops, positive loops, even loops and constraints the generator produced. The
+whole suite costs 0.6s, so it runs in `make check`.
+
+The fragments, in the order they were added:
+
+| Fragment | What it reaches |
+|---|---|
+| propositional | duals, odd loops, the NMR check, coinduction |
+| classical negation | `-p` as a separate literal, and the consistency requirement — a program deriving `p` and `-p` has no answer set at all |
+| first-order | the ungrounded solver against a grounded definition: two genuinely different evaluation strategies |
+| CLP over a finite domain | constraint **duals** — `not p(X)` where `p` is constraint-guarded, which is `dual_clpq/2`, the least independently checked code in the solver |
+
+**Unsafe rules are refused**, and that is about s(CASP) rather than the oracle.
+s(CASP) reads an unsafe rule over an *extended* Herbrand universe, so
+`:- not married(X).` means "everyone is married" and a finite grounding would
+disagree by design rather than by defect (P4 Example 1). A differential run over
+unsafe programs would measure the gap between two semantics, not find a bug.
+
+Worth being clear about what this does and does not say. It is real evidence that
+the core is right, and the first such evidence here that does not come from the
+implementation itself. It still says nothing about the `forall` algorithms, about
+dense domains or unbound variables in answers, or about anything the *renderers* do.
+
+The oracle is exponential in the Herbrand base, so seed counts per shape are tuned
+in `test_differential.pl` — three predicates over three constants is 2¹²
+interpretations. Widening a sweep is a one-line change, worth doing by hand
+whenever the solver changes.
+
 ## Plan, in order
 
 1. ~~**Tag every test `semantics` or `pinned`.**~~ **Done** — see *Gap 2*
@@ -283,9 +329,11 @@ unambiguous enough for a definitional oracle to be authoritative.
    reading rather than a design decision. Note that #16's two halves are decided
    but *not implemented* — the tests state the target, `make check_semantics`
    measures the distance to it.
-2. **Brute-force GL oracle plus random program generator.** The highest-value
-   addition by a distance: the first oracle in the project that is independent of
-   the implementation.
+2. ~~**Brute-force GL oracle plus random program generator.**~~ **Done**,
+   including all three extensions — classical negation, grounding, and CLP over a
+   finite domain. Found `doc/bugs.md` #17; agreed everywhere else. What remains
+   out of reach: the four `forall` algorithms, dense constraint domains, and
+   unbound variables in answers.
 3. **Complementarity property test for duals**, with the known exceptions
    declared as exclusions.
 4. **OLON-set assertion** for `call_graph.pl` / `nmr_check.pl`, read through

@@ -117,6 +117,12 @@ failures are the list of defects still outstanding, and each failure message sta
 the answer that is wanted. Four are wired up today (`doc/bugs.md` #1, #15, the
 `∉` item and negated `findall/3`).
 
+A file using `:- if(expect_semantics)` **must import `scasp_plunit.pl`**. The
+condition is evaluated at *load* time, so a missing import makes the directive
+error and silently take the `:- else` branch in both modes — every test still
+passes and `check_semantics` quietly stops measuring that defect. This has happened
+once already, so `test_all.pl:conditional_suites` checks it.
+
 Where the current answer is wrong but the right one has not been *decided*, there is
 no second branch: the test carries a `% PINNED, no semantics branch yet.` comment
 saying what has to be settled first. Assertions about how many answers a solution
@@ -152,6 +158,8 @@ importantly — makes `library(scasp)` resolve to *this* tree.
 | `test/test_le.pl` | the Logical English examples, run through `scasp/2` |
 | `test/test_cli.pl` | argument parsing, exit status and output formats, by running `main.pl` in a subprocess |
 | `test/test_proof_skeleton.pl` | the comparison itself, against hand-built trees |
+| `test/test_stable_models.pl` | the brute-force oracle, against worked examples |
+| `test/test_differential.pl` | s(CASP) vs. that oracle, on hand-written and random programs |
 | `test/test_scasp.pl` | the golden-output tests for the file front end |
 | `test/test_clpq.pl` | CLP(Q) constraints and the duals that make `not` constructive |
 | `test/test_forall.pl` | the `forall` construct and its four algorithms |
@@ -160,6 +168,35 @@ importantly — makes `library(scasp)` resolve to *this* tree.
 | `test/test_compound.pl` | compound terms in heads, bodies and negation |
 | `test/test_disequality.pl` | constructive disunification and the `∉` operator |
 | `test/test_prolog_calls.pl` | `:- prolog p/2`, justified and opaque |
+
+### The independent oracle
+
+`test/stable_models.pl` computes answer sets by brute force, straight from the
+Gelfond–Lifschitz definition: ground the program, enumerate subsets of the Herbrand
+base, take the reduct, keep the subsets that equal its least model. It is
+exponential on purpose — nothing clever can be wrong in a way that agrees with a
+clever solver. It covers default negation, classical negation (with the consistency
+requirement, so a program deriving `p` and `-p` has no answer set at all), variables
+by naive grounding over the program's constants, and CLP(Q) comparisons in bodies,
+evaluated while grounding.
+
+**Unsafe rules are refused**, and that is about s(CASP) rather than the oracle:
+s(CASP) reads an unsafe rule over an *extended* Herbrand universe, so
+`:- not married(X).` means "everyone is married" and a finite grounding would
+disagree by design rather than by defect (P4 Example 1, `doc/literature.md`).
+
+It matters because every *other* oracle here descends from the implementation it
+judges: `.pass` data records what this solver produces, and the sibling checkout at
+`../sCASP` is the same codebase. `test/differential.pl` points the two at the same
+program and compares **brave entailment** — `scasp` answers `a` iff `a` is in some
+answer set, and answers `not a` iff `a` is absent from some answer set. That is
+sharp both ways: it catches an answer no answer set supports, and an answer set the
+solver cannot reach. `random_program/3,4` generates programs seeded reproducibly, so a
+failure names the seed that repeats it; options `classical/1`, `first_order/1` and
+`clp/1` choose the fragment. Seed counts per shape are tuned in `test_differential.pl`
+because the *oracle* is exponential in the Herbrand base — three predicates over
+three constants is 2¹² interpretations — while s(CASP) is unaffected, never grounding
+at all. Widening a sweep is a one-line change to those counts.
 
 `test/test_all.pl` loads every suite — the golden tests included — into one process:
 `make check` is a single `swipl` call, 171 tests in 2.5s. The timeout is per *test*,
