@@ -128,7 +128,7 @@ comp_dual(Hn, [X|T], [Dg|Db], C) :-
     create_unique_functor(F2, C, F3),
     abstract_structures(A1, A3, 0, G),
     append(G, B, B2),
-    prep_args(A3, A2, [], A4, [], 0, G2), % get var list for inner dual clause heads and inner unifiability goals
+    prep_args(A3, A2, [], A4, [], G2), % get var list for inner dual clause heads and inner unifiability goals
     append(G2, B2, B3), % combine all goals
     predicate(Dh, F3, A4), % inner dual clause head
     body_vars(Dh, B2, Bv),
@@ -209,14 +209,7 @@ comp_dual3(Hn, [X|T], U) :-
 %   @arg GoalIn The original goal.
 %   @arg GoalOut The negated goal.
 
-% constraint
-dual_goal(#=(A, B), #<>(A,B)).
-dual_goal(#<>(A, B), #=(A,B)).
-dual_goal(#>(A, B), #=<(A,B)).
-dual_goal(#<(A, B), #>=(A,B)).
-dual_goal(#>=(A, B), #<(A,B)).
-dual_goal(#=<(A, B), #>(A,B)).
-% clpq/r
+% CLP(Q) constraints
 dual_goal(#=(A, B), #<>(A,B)).
 dual_goal(#<>(A, B), #=(A,B)).
 dual_goal(#>(A, B), #=<(A,B)).
@@ -303,7 +296,7 @@ abstract_structures([X|T], [X|T2], C, G) :-
 
 %!  prep_args(+OrigArgs:list, +VarArgs:list,
 %!            +NewArgsIn:list, -NewArgsOut:list,
-%!            +VarsSeen:list, +Counter:int, -Goals:list) is det
+%!            +VarsSeen:list, -Goals:list) is det
 %
 %   Given two sets of args, check if  each   of  the  original args is a
 %   variable. If so, check if it's a   member of NewArgsIn. If it's not,
@@ -313,83 +306,33 @@ abstract_structures([X|T], [X|T2], C, G) :-
 %   original  head.  When  an  element  from  VarArgs  is  used,  add  a
 %   unification (=) goal to Goals.
 %
+%   OrigArgs never holds a compound term: abstract_structures/4 has
+%   already replaced each of those by a fresh variable plus a `Var =
+%   Struct` goal prefixed to the body. So the only cases left are a
+%   variable, seen or unseen, and an atomic term, and the last clause
+%   covers the latter.
+%
 %   @arg OrigArgs The original args from a clause head.
 %   @arg VarArgs A list of unique variable names of the same length as OrigArgs.
 %   @arg NewArgsIn Input new args.
 %   @arg NewArgsOut Output new args.
 %   @arg VarsSeen List of variables encountered in original args.
-%   @arg Counter Input counter.
 %   @arg Goals Goals unifying non-variables with the variables replacing them.
 
-:- det(prep_args/7).
+:- det(prep_args/6).
 
-prep_args([], _, Ai, Ao, _, _, []) :-
+prep_args([], _, Ai, Ao, _, []) :-
     reverse(Ai, Ao). % Restore proper ordering
-prep_args([X|T], [Y|T2], Ai, Ao, Vs, C, [G|Gt]) :-
+prep_args([X|T], [Y|T2], Ai, Ao, Vs, [G|Gt]) :-
     is_var(X),
     memberchk(X, Vs), % X has already been seen
     !,
     G = (Y=X),     % create unification goal
-    prep_args(T, T2, [Y|Ai], Ao, Vs, C, Gt).
-prep_args([X|T], [_|T2], Ai, Ao, Vs, C, G) :-
+    prep_args(T, T2, [Y|Ai], Ao, Vs, Gt).
+prep_args([X|T], [_|T2], Ai, Ao, Vs, G) :-
     is_var(X),
     !,
-    prep_args(T, T2, [X|Ai], Ao, [X|Vs], C, G).
-prep_args([X|T], [Y|T2], Ai, Ao, Vs, C, Go) :-
-    X =.. [F|X2], % X is a compound term; process it.
-    !,
-    prep_args2(X2, X3, Vs, Vs2, C, C2, Gs),
-    Xo =.. [F|X3],
-    G = (Y=Xo), % create unification goal
-    !,
-    prep_args(T, T2, [Y|Ai], Ao, Vs2, C2, Gt),
-    append([G|Gs], Gt, Go).
-prep_args([X|T], [Y|T2], Ai, Ao, Vs, C, [G|Gt]) :-
+    prep_args(T, T2, [X|Ai], Ao, [X|Vs], G).
+prep_args([X|T], [Y|T2], Ai, Ao, Vs, [G|Gt]) :-
     G = (Y=X), % create unification goal
-    prep_args(T, T2, [Y|Ai], Ao, Vs, C, Gt).
-
-%!  prep_args2(+ArgsIn:list, -ArgsOut:list,
-%!             +VarsSeenIn:list, -VarsSeenOut:list,
-%!             +CounterIn:int, -CounterOut:int, -UniGoals:list) is det
-%
-%   Given the arguments from a compound  term, create unifiability goals
-%   to be used in the dual.
-%
-%   @arg ArgsIn Input args.
-%   @arg ArgsOut Output args.
-%   @arg VarsSeenIn Input vars seen.
-%   @arg VarsSeenOut Output vars seen.
-%   @arg CounterIn Input counter.
-%   @arg CounterOut Output counter.
-%   @arg UniGoals List of unification goals.
-
-:- det(prep_args2/7).
-
-prep_args2([], [], Vs, Vs, C, C, []).
-prep_args2([X|T], [Y|T2], Vsi, Vso, Ci, Co, [G|Gt]) :-
-    is_var(X),
-    !,
-    (   memberchk(X, Vsi) % X has been seen
-    ->  Vs1 = Vsi
-    ;   Vs1 = [X|Vsi]
-    ),
-    atom_concat('_Y', Ci, Y),
-    C1 is Ci + 1,
-    G = (Y=X), % create unification goal
-    prep_args2(T, T2, Vs1, Vso, C1, Co, Gt).
-prep_args2([X|T], [Y|T2], Vsi, Vso, Ci, Co, Go) :-
-    X =.. [F|X2], % X is a compound term
-    !,
-    atom_concat('_Y', Ci, Y),
-    C1 is Ci + 1,
-    prep_args2(X2, X3, Vsi, Vs1, C1, C2, Gs),
-    Xo =.. [F|X3],
-    G = (Y=Xo), % create unification goal
-    prep_args2(T, T2, Vs1, Vso, C2, Co, Gt),
-    append([G|Gs], Gt, Go).
-prep_args2([X|T], [Y|T2], Vsi, Vso, Ci, Co, [G|Gt]) :-
-    % X isn't a variable or compound term
-    atom_concat('_Y', Ci, Y),
-    C1 is Ci + 1,
-    G = (Y=X), % create unification goal
-    prep_args2(T, T2, Vsi, Vso, C1, Co, Gt).
+    prep_args(T, T2, [Y|Ai], Ao, Vs, Gt).

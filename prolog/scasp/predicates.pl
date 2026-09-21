@@ -71,6 +71,14 @@ scasp_builtin(prolog(_,_)).
 %
 %   Success  if  Goal  is  a  builtin  prolog  predicate  (the  compiler
 %   introduced its dual)
+%
+%   comp_duals.pl carries a dual_goal/2 pair for each of these, which is
+%   what lets the compiler negate one in a rule body.  The arithmetic
+%   comparisons evaluate their arguments, so they need them bound; the
+%   standard order comparisons (@</2 and friends) compare *terms*, and
+%   are only meaningful once those terms are ground - on an unbound
+%   variable they answer from the variable's age, and binding it later
+%   does not revisit the answer.
 
 prolog_builtin(true).
 prolog_builtin(fail).
@@ -81,6 +89,12 @@ prolog_builtin(_ < _).
 prolog_builtin(_ > _).
 prolog_builtin(_ >= _).
 prolog_builtin(_ =< _).
+prolog_builtin(_ =:= _).
+prolog_builtin(_ =\= _).
+prolog_builtin(_ @< _).
+prolog_builtin(_ @> _).
+prolog_builtin(_ @=< _).
+prolog_builtin(_ @>= _).
 
 %!  clp_builtin(?Goal)
 %

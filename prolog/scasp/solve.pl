@@ -10,7 +10,8 @@
                 clp_builtin/1, clp_interval/1, prolog_builtin/1 ]).
 :- use_module(clp/clpq,
               [ dual_clpq/2, dump_clpq_var/3, apply_clpq_constraints/1,
-                entails/2, entail_terms/2, clpqr_dump_constraints/3, is_clpq_var/1 ]).
+                entails/2, entail_terms/2, clpqr_dump_constraints/3, is_clpq_var/1,
+                inf/2, sup/2 ]).          % predicates.pl:clp_interval/1
 :- use_module(verbose,
               [ verbose/1, scasp_trace_goal/2, scasp_trace_event/2,
                 scasp_warning/1, scasp_warning/2, scasp_info/2,
@@ -371,6 +372,7 @@ exec_with_clpq_constraints(Var, Goal, M, entry(ConVar, ConEntry),
                        [Var01, ConVar01, Con01])),
         (   entails([Var01], ([ConVar01], Con01))
         ->  verbose(format('\tOK\n', [])),
+            ProvedOut02 = ProvedOut01,
             StackOut02 = StackOut01,
             Model03 = Model01
         ;   verbose(format('\tFail\n', [])),
@@ -389,6 +391,7 @@ exec_with_clpq_constraints(Var, Goal, M, entry(ConVar, ConEntry),
     ;   verbose(format('Skip execution of an already checked \c
                         constraint ~p (it is inconsitent with ~p)\n',
                        [ConDual, ConEntry])),
+        ProvedOut02 = ProvedIn01,
         StackOut02 = StackIn01,
         Model03 = []
     ),
@@ -485,13 +488,20 @@ exec_goal(A \= B) :- !,
     verbose(format('exec ~@\n', [print_goal(A \= B)])),
     A .\=. B,
     verbose(format('ok   ~@\n', [print_goal(A \= B)])).
+%   Errors are *not* caught.  Turning an error into failure says "the answer
+%   is no" where the truth is "I cannot answer", and because the dual
+%   evaluates the same goal and fails the same way, it made a goal and its
+%   negation both fail - which cannot hold of a ground-decidable predicate.
+%   It also hid defects in the program being solved: clpq_intercept.pl wrote
+%   `=\=' over lists where it meant `\=', and failed silently for years
+%   rather than reporting the type error.  doc/bugs.md #17.
+
 exec_goal(Goal) :-
     (   current_prolog_flag(scasp_verbose, true)
-    ->  E = error(_,_),
-        verbose(format('exec goal ~@ \n', [print_goal(Goal)])),
-        catch(call(Goal), E, (print_message(warning, E), fail)),
+    ->  verbose(format('exec goal ~@ \n', [print_goal(Goal)])),
+        call(Goal),
         verbose(format('ok   goal ~@ \n', [print_goal(Goal)]))
-    ;   catch(call(Goal), error(_,_), fail)
+    ;   call(Goal)
     ).
 
 % TODO: Pending StackOut to carry the literal involved in the findall

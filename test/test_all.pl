@@ -47,6 +47,13 @@ too, one test per program.
 */
 
 :- use_module(test_scasp,          []).
+:- use_module(test_clpq,           []).
+:- use_module(test_disequality,    []).
+:- use_module(test_prolog_calls,   []).
+:- use_module(test_forall,         []).
+:- use_module(test_olon,           []).
+:- use_module(test_builtins,       []).
+:- use_module(test_compound,       []).
 :- use_module(test_dyncall,        []).
 :- use_module(test_embed,          []).
 :- use_module(test_le,             []).

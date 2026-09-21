@@ -105,9 +105,16 @@ is_clpq_var(X) :-
     attvar(X),
     clp_type(X, clpq).
 
+% A is already constrained away from a single number, and B+C evaluates to
+% exactly that number, so the disequality is satisfied with nothing to add.
+% The groundness guard matters: this clause is reached with B unbound (a
+% `_ #<> _+1' from bec_loan.pl), and without it the is/2 raises.  Falling
+% through to the clause below then handles it as the general disequality.
+
 apply_clpq_constraints(A #<> B + C) :-
     get_neg_var(A,[Num]),
     number(Num),
+    ground(B+C),
     Num is B + C, !.
 apply_clpq_constraints(A #<> B) :- !,       % JW: Why not simply {A =\= B}?
     (   apply_clpq_constraints(A #< B)
@@ -116,12 +123,28 @@ apply_clpq_constraints(A #<> B) :- !,       % JW: Why not simply {A =\= B}?
 apply_clpq_constraints(Constraints) :-
     clpq_meta(Constraints).
 
+%!  dump_clpq_var(+Vars, -NewVars, -Constraints) is semidet.
+%
+%   Constraints is the CLP(Q) store on Vars, expressed over the fresh
+%   NewVars.  Vars is a *list*: that is how all three callers pass it -
+%   solve.pl:check_unbound/2 and exec_with_clpq_constraints/11, and
+%   entails/2 below.
+%
+%   The second clause used to wrap its first argument in a list again,
+%   so a caller passing [Var] reached clpqr_dump_constraints/3 as
+%   [[Var]].  Dumping the store of a *list* rather than of the variable
+%   yields no constraints, so the predicate quietly returned `[]` for
+%   every constrained variable.  That is what kept the `clpq(...)` case
+%   of check_unbound/2 - and with it dual_clpq/2 and
+%   exec_with_clpq_constraints/11 - from ever running.
+
 dump_clpq_var([Ground], [NewVar], Constraints) :-
     ground(Ground),
+    !,
     Constraints = [NewVar #= Ground].
-dump_clpq_var(Var, NewVar, Constraints) :-
-    \+ ground(Var),
-    clpqr_dump_constraints([Var], [NewVar], Constraints).
+dump_clpq_var(Vars, NewVars, Constraints) :-
+    \+ ground(Vars),
+    clpqr_dump_constraints(Vars, NewVars, Constraints).
 
 dual_clpq([Unique], [Dual]) :-
     dual_clpq_(Unique, Dual).

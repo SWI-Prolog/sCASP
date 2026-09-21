@@ -7,11 +7,18 @@ Open items are first, because those are the ones still to decide on. The
 fixed ones are listed at the end for reference — they say what the tests
 now guard.
 
+Several open items carry an **executable statement of the answer they
+ought to give**, marked *Semantics branch* below: the test is written twice,
+under `:- if(expect_semantics)`, and `make check_semantics` runs the second
+branch so the failure spells out what is wanted. See `doc/test-strategy.md`.
+
 ---
 
 ## Open
 
 ### 1. Two s(CASP) calls in one conjunction fail
+
+*Semantics branch:* `test_dyncall.pl:two_calls_in_one_conjunction_both_succeed`.
 
 ```prolog
 ?- scasp(p(_)), scasp(q(_)).
@@ -162,6 +169,8 @@ options are not diagnosed for trees the way they are for `--code`.
 
 ### 9. `exec_neg_findall/5` is a stub
 
+*Semantics branch:* `test_builtins.pl:negated_findall_holds_when_the_findall_fails`.
+
 `solve.pl:526`:
 
 ```prolog
@@ -211,7 +220,174 @@ expansion, which is what the singleton check sees. Every file in
 The expansion could keep the variable reachable, or `pred/1` could suppress
 the check the way `begin_scasp` does.
 
-### 14. Unsupported built-ins in embedded programs
+### 14. `∉` cannot be used inside a program
+
+*Semantics branch:* `test_disequality.pl:not_in_is_usable_in_a_program`.
+
+`library(scasp)` exports `∉/2` with an operator and documents it as "not
+element of", but `predicates.pl` does not list it in `scasp_builtin/1`. So a
+program that uses it is treated as calling a user predicate, `dyncall.pl` tries
+to collect that predicate's clauses, and they call `ground/1`:
+
+```prolog
+not_one_of(X) :- X ∉ [a, b].
+
+?- scasp(not_one_of(c)).
+ERROR: No permission to scasp procedure `system:ground/1'
+```
+
+As a plain goal it works correctly, constraining an unbound left argument and
+testing a bound one. Pinned both ways by `test_disequality.pl:diseq_not_in`.
+
+### 15. Negating a structured head is incomplete for an unbound query
+
+*Semantics branch:* `test_compound.pl:the_unbound_answer_admits_every_shape_that_holds`.
+
+```prolog
+wrap(f(X)) :- item(X).
+item(a).
+```
+
+`not wrap(T)` holds of every T except `f(a)`. Asked about a ground term it
+says so — `not wrap(g(a))` and `not wrap(b)` both succeed. Asked about an
+unbound one it gives a single answer, `f(Y)` with `Y ∉ [a]`: the shape that
+is *not* `f(_)` is never offered, so the general answer is strictly weaker
+than the set of ground instances that hold.
+
+The dual has the missing clause —
+
+```prolog
+not o_wrap_1_vh2(A, B) :- A \= f(B).
+not o_wrap_1_vh2(A, B) :- A = f(B), not item(B).
+```
+
+— but under `forall(B, ...)` an unbound `A` cannot satisfy `A \= f(B)`, since
+the two unify, so only the second branch survives.
+
+Pinned by `test_compound.pl:compound_negation_is_incomplete`, which fails the
+day the general answer appears.
+
+**This is a known limitation of the published method, not a porting error.**
+Marple et al., *Computing Stable Models of Normal Logic Programs Without
+Grounding* — the paper the dual construction comes from — works the same case
+through for `p([X|T]) :- q(X), p(T).` and states that calling the resulting dual
+with a structure containing unbound variables makes the disunification in its
+first clause "encounter illegal cases", in their implementation a fatal error.
+This port does not error; it silently drops the answer instead. Same cause, a
+quieter symptom. See `doc/literature.md`.
+
+**Not a head-rewriting problem.** The obvious suspect was the removed
+`prep_args2/7` (see Fixed #22): it decomposed a structured head argument one
+level further than `abstract_structures/4` does, so it might have been the
+intended repair. It is not. Writing the three formulations by hand —
+
+```prolog
+w1(f(X)) :- item(X).                   % compound in the head
+w2(Y)    :- Y = f(X), item(X).         % what abstract_structures/4 produces
+w3(Y)    :- Y = f(Z), Z = X, item(X).  % what prep_args2/7 would have produced
+```
+
+— `w1` and `w2` compile identically, and `w3` compiles to a genuinely longer
+dual with a branch of its own for the inner `B \= C`. All three give the same
+single answer. So no rewriting of the head recovers the missing one; the
+fix, if there is to be one, has to be a constructive representation of "A does
+not unify with `f(_)`", which the disequality store cannot express today.
+`test_compound.pl:compound_head_rewriting_is_neutral` pins the equivalence.
+
+### 16. Standard order on an unbound variable is not a constraint
+
+*Semantics branch:* `test_builtins.pl:builtin_standard_order` and
+`builtin_arithmetic_comparison`. Both behaviours are now **decided** — see
+*Resolution* below — so the expected answers are written out even though
+neither is implemented yet.
+
+`@</2` and friends are defined on every term, and a variable precedes
+everything else in the standard order. So
+
+```prolog
+tlt(X, Y) :- X @< Y.
+?- scasp(tlt(X, b)).
+```
+
+succeeds with `X` still unbound — and nothing then stops `X` being bound to
+`z`, which is not `@< b`. Every other s(CASP) answer about an unbound variable
+carries a constraint that the variable must respect; this one does not, so
+these operators are only meaningful on ground terms.
+
+The arithmetic comparisons have a different problem: `aeq(_, 2)` and
+`not aeq(_, 2)` *both* fail, because `exec_goal/1` catches the instantiation
+error and fails rather than reporting it (#17).
+
+**Resolution.** Two decisions, neither implemented yet.
+
+*Arithmetic* (`=:=`, `=\=`) — **constrain**. `X =:= 2` on an unbound `X`
+constrains it exactly as `X #= 2` does, and the negation constrains the other
+way:
+
+```prolog
+?- scasp(aeq(X, 2)).        X = 2.
+?- scasp(not aeq(X, 2)).    X = X | {X #<> 2}.
+```
+
+This keeps an unbound query answerable, which is the point of s(CASP), and
+makes `=:=` agree with `#=` rather than introduce a second, weaker meaning.
+
+*Standard order* (`@<`, `@>`, `@=<`, `@>=`) — **raise, but only where the
+outcome depends on a variable**. Standard order settles many comparisons
+before reaching one: `f(X) @< g(a)` holds whatever `X` is, because the names
+decide it, and those stay usable. Only a comparison whose deciding position
+is an unbound variable raises:
+
+```prolog
+?- scasp(tlt(f(X), g(a))).   true.                 % names decide it
+?- scasp(tlt(X, b)).         instantiation_error.
+?- scasp(tlt(f(X), f(a))).   instantiation_error.  % X vs a decides it
+```
+
+Requiring ground arguments outright would have been simpler to specify but
+rejects the decidable cases.
+
+**The criterion is about where the comparison is decided, not about
+unifiability.** The tempting shortcut — *undecidable iff the two terms
+unify* — is wrong in the unsafe direction:
+
+```prolog
+f(X, a)  and  f(b, c)     % do NOT unify: a and c clash at argument 2
+?- f(X, a) @< f(b, c).    % true, with X unbound
+?- X = z, f(X, a) @< f(b, c).
+false.                    % standard order decided at argument 1, where X is
+```
+
+Unification fails at argument 2, but standard order decides at argument 1, so
+a rule based on unifiability would accept an answer that a later binding
+overturns. (It is also wrong the other way, though harmlessly: `X @< X`
+unifies yet is stably false.)
+
+**Deferred: this wants support below s(CASP).** The same question has come up
+before outside this project, and the natural home for it is a `compare/3`
+variant that reports a third outcome when the decision rests on comparing a
+variable against something, rather than silently ordering the variable first.
+With that primitive the s(CASP) side is a few lines; without it, every caller
+re-implements the walk below.
+
+So the implementation has to walk both terms the way standard order does —
+arity, then name, then arguments left to right — and stop at the first
+position that decides the comparison. If either side there is an unbound
+variable, raise; otherwise the comparison rests on ground structure and is
+stable. Equivalently: unification must fail *at the deciding position*, not
+merely somewhere. Pinned both ways by
+`test_builtins.pl:nor_when_a_later_clash_hides_the_deciding_argument`.
+
+### 17. `--assume` has no visible effect
+
+`solve.pl` reads `scasp_assume` in the coinductive-success branch and calls
+`mark_prev_goal/3` to rewrite the matching ancestor as `assume(Goal)`. Setting
+the flag changes nothing in the justification of `p :- not q. q :- not p.`, and
+`mark_prev_goal/3` is never reached. `model_wrapper(assume)` in `modules.pl` is
+unreached for the same reason. Either the flag no longer does what it says, or
+it needs a program shape that is not obvious.
+
+### 18. Unsupported built-ins in embedded programs
 
 `test/le_programs/list-scasp.pl` fails with
 `permission_error(scasp, procedure, system:once/1)`. `once/1` is a compiled
@@ -238,10 +414,20 @@ Each is covered by a test, so the suite now guards against regression.
 | 9 | A program defining `forall/2` crashed with `No rule matches qualify_body/3`; now a proper error naming the predicate | `modules.pl`, `dyncall.pl` |
 | 10 | `--html` without `--tree` crashed: `solve_results/4` omits the `tree` key, the HTML renderer reads `Answer.tree` unconditionally | `options.pl` |
 | 11 | `scasp/1` documented in the pldoc since the module was written but never defined | `dyncall.pl` |
-| 12 | A module name containing `:` corrupted every literal in the model *and* the justification: `'family-scasp+http':'//tests.com:is_a_parent_of'(john,mary)`. Split at the first colon instead of the last | `modules.pl` |
-| 13 | `sandbox:safe_meta_predicate/1` declared multifile while `safe_meta/2` was defined; `?+++` missing from the safe list | `scasp.pl` |
-| 14 | `library(http/json)` moved; warned on every run | `main.pl` |
-| 15 | Public-name typos `unqualify_justitication_tree/3` (alias kept) and `contrained_neg/2` | `stack.pl`, `solve.pl` |
+| 12 | `dump_clpq_var/3` re-wrapped an argument its callers had already wrapped, so `clpqr_dump_constraints/3` was asked for the store of a *list* rather than of a variable and returned `[]` for every constrained variable. That made the `clpq(...)` case of `check_unbound/2` unreachable, and with it `dual_clpq/2`, `dual_clpq_/2` and `exec_with_clpq_constraints/11` — about 40 lines | `clp/clpq.pl` |
+| 13 | `exec_with_clpq_constraints/11` left `ProvedOut02` unbound on two of its three branches, so the recursive call was handed an unbound assoc and `get_assoc/3` raised `$btree_find_node/5: Arguments are not sufficiently instantiated`. Hidden behind the previous one: the code had never run | `solve.pl` |
+| 14 | `--forall=prev` and `--forall=sasp` proved both `w` and `not w` for `w :- x(Y), Y #> 3` with `x(Y) :- Y #> 0`, where `Y = 4` satisfies both so `w` holds. A consequence of the two above — the forall could not see the constraint store it was supposed to negate. `--dcc` forces `prev`, so it reached past the flag. All four algorithms now agree | `clp/clpq.pl`, `solve.pl` |
+| 15 | `inf/2` and `sup/2` are listed in `clp_interval/1` and handled by `solve_goal_builtin/2`, but `solve.pl` never imported them from `clp/clpq.pl`. `exec_goal/1` catches every `error(_,_)` and fails, so the existence error became a silent "no models" | `solve.pl` |
+| 16 | A module name containing `:` corrupted every literal in the model *and* the justification: `'family-scasp+http':'//tests.com:is_a_parent_of'(john,mary)`. Split at the first colon instead of the last | `modules.pl` |
+| 17 | `sandbox:safe_meta_predicate/1` declared multifile while `safe_meta/2` was defined; `?+++` missing from the safe list | `scasp.pl` |
+| 18 | `library(http/json)` moved; warned on every run | `main.pl` |
+| 19 | `=:=`, `=\=`, `@<`, `@>`, `@=<` and `@>=` had `dual_goal/2` entries in `comp_duals.pl` but were missing from `prolog_builtin/1`, so `scasp/2` refused them and the file front end compiled them and then silently yielded no model. Added to `prolog_builtin/1`; `solve_goal_builtin/2` already had the case | `predicates.pl` |
+| 20 | `comp_duals.pl` carried the six `dual_goal/2` clauses for the CLP(Q) comparisons twice over, under the comments `% constraint` and `% clpq/r`. Removed the second copy; the compiled program is byte-identical with and without `--plaindual` | `comp_duals.pl` |
+| 21 | Public-name typos `unqualify_justitication_tree/3` (alias kept) and `contrained_neg/2` | `stack.pl`, `solve.pl` |
+| 22 | `prep_args2/7` and the last clause of `prep_args/7` were unreachable behind `abstract_structures/4`; ~50 lines of a second, never-used head-rewriting mechanism, plus a counter argument threaded unchanged through `prep_args/7` | `comp_duals.pl` |
+| 23 | `exec_goal/1` caught **every** error from a built-in and failed, so a goal and its negation both failed where neither could be evaluated, and defects in the program being solved were hidden. Errors now propagate; `scasp` reports them and exits 1 | `solve.pl` |
+| 24 | `apply_clpq_constraints(A #<> B+C)` evaluated `B+C` with an unguarded `is/2`, raising when reached with `B` unbound (`_ #<> _+1` in `bec_loan.pl`). Guarded with `ground/1`, so it now falls through to the general disequality clause | `clp/clpq.pl` |
+| 25 | `min_programs/clpq_intercept.pl` compared two *lists* with `=\=`, an arithmetic operator, where it meant `\=`. The type error was swallowed, so the program yielded no models and "passed" that way. Fixed; it now reasons about which segments intercept | `test/min_programs/` |
 
 Test-infrastructure defects fixed at the same time: `-q` resolved the renamed
 `test/programs/`; `test_scasp.pl` declared `prolog_cover:report_hook/2` while

@@ -6,8 +6,12 @@
             scasp_tree/2,               % :Query, -Tree
             models_equal/2,             % +ModelsA, +ModelsB
             model_has/2,                % +Models, +Literal
+            constrained_to/3,           % +Term, +Admits, +Excludes
             scasp_flags/1,              % -Flags
-            set_scasp_flags/1           % +Flags
+            set_scasp_flags/1,          % +Flags
+            with_forall/2,              % +Algorithm, :Goal
+            answers_admit/4,            % :Query, ?Var, +Candidates, -Admitted
+            expect_semantics/0          % for :- if/1
           ]).
 :- reexport(proof_skeleton, [proof_literals/2]).
 :- use_module('../prolog/scasp', [scasp/2]).
@@ -30,9 +34,62 @@ set_scasp_library_path :-
 :- set_scasp_library_path.
 :- use_module(proof_skeleton,
               [ answers_model_key/2, answers_skeleton/3, proof_literals/2 ]).
-:- use_module(library(apply), [maplist/3]).
+:- use_module(library(apply), [maplist/3, include/3]).
 :- use_module(library(lists), [member/2]).
 :- use_module(library(pairs), [pairs_keys_values/3]).
+
+%!  answers_admit(:Query, ?Var, +Candidates, -Admitted) is det.
+%
+%   Admitted is the sublist of Candidates that *some* answer to Query
+%   still allows for Var, which must be a variable occurring in Query.
+%
+%   This is the union over all answers, so it says what the solution set
+%   is without depending on how many answers it arrives in.  That
+%   distinction matters: `X #< 1 ; X #> 1` and a single disequality
+%   describe the same set, and CLP(Q) splits the dual of an equality in
+%   two only because it has no native disequality.  A reimplementation
+%   may legitimately answer in one where this one answers in two, so a
+%   test that counts answers pins an implementation choice while one that
+%   compares the set states the semantics.
+%
+%   findall/3 keeps the constraints on the collected variables, so an
+%   answer of `X #=< 10` is still testable against each candidate.
+
+:- meta_predicate answers_admit(0, ?, +, -).
+
+answers_admit(Query, Var, Candidates, Admitted) :-
+    findall(Var, Query, Answers),
+    include(admitted_by(Answers), Candidates, Admitted).
+
+admitted_by(Answers, Value) :-
+    member(Answer, Answers),
+    \+ \+ Answer = Value,
+    !.
+
+%!  expect_semantics is semidet.
+%
+%   True when the suite is being run in *semantics* mode, i.e. when the
+%   Prolog flag `scasp_expect` is `semantics`:
+%
+%       swipl -Dscasp_expect=semantics ...
+%
+%   Used as the condition of a `:- if/1` around a test whose current
+%   answer is known to be wrong.  The two branches hold the two
+%   expectations - what the reasoner does today, and what it ought to do:
+%
+%       :- if(expect_semantics).
+%       test(the_answer_covers_every_shape) :- ...
+%       :- else.
+%       test(the_answer_is_only_the_f_shape) :- ...
+%       :- endif.
+%
+%   Default (flag unset) is the current behaviour, so `make check` stays
+%   green.  In semantics mode those tests are *expected to fail*: the set
+%   that fails is the list of defects a reimplementation still has to fix.
+%   See doc/test-strategy.md.
+
+expect_semantics :-
+    current_prolog_flag(scasp_expect, semantics).
 
 /** <module> Helpers for testing s(CASP) through the embedded interface
 
@@ -116,6 +173,55 @@ model_has(Models, Literal) :-
     member(Model, Models),
     member(Literal, Model),
     !.
+
+%!  constrained_to(+Term, +Admits, +Excludes) is semidet.
+%
+%   True when every value in Admits still unifies with Term and none in
+%   Excludes does.  scasp/2 leaves a constrained answer as a variable
+%   carrying the constraint in its attributes rather than inlining it
+%   into the term, so this is how a test says what the constraint *is*:
+%   by what it still allows and what it has ruled out.
+%
+%       scasp(not gt(X), []),
+%       constrained_to(X, [10, 0, -5], [11, 1000])
+
+constrained_to(Term, Admits, Excludes) :-
+    forall(member(A, Admits),
+           (   \+ \+ Term = A
+           ->  true
+           ;   print_message(error, scasp_test(should_admit(Term, A))),
+               fail
+           )),
+    forall(member(E, Excludes),
+           (   \+ Term = E
+           ->  true
+           ;   print_message(error, scasp_test(should_exclude(Term, E))),
+               fail
+           )).
+
+:- multifile prolog:message//1.
+
+prolog:message(scasp_test(should_admit(Term, Value))) -->
+    [ 'constraint on ~p should still admit ~p'-[Term, Value] ].
+prolog:message(scasp_test(should_exclude(Term, Value))) -->
+    [ 'constraint on ~p should exclude ~p'-[Term, Value] ].
+
+%!  with_forall(+Algorithm, :Goal) is nondet.
+%
+%   Run Goal with the `scasp_forall` flag set to Algorithm.  Set here
+%   rather than in a unit setup/1: a Prolog flag is thread-local once
+%   set, so changing it in the thread plunit runs the test in leaves
+%   every other job alone, while a setup/1 runs in the main thread and
+%   would leak.
+
+:- meta_predicate with_forall(+, 0).
+
+with_forall(Algorithm, Goal) :-
+    current_prolog_flag(scasp_forall, Old),
+    setup_call_cleanup(
+        set_prolog_flag(scasp_forall, Algorithm),
+        Goal,
+        set_prolog_flag(scasp_forall, Old)).
 
 %!  scasp_flags(-Flags) is det.
 %!  set_scasp_flags(+Flags) is det.

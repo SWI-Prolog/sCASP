@@ -1,5 +1,5 @@
 -mutually_exclusive(S1, S2) :-
-    segment(S1), segment(S2), S1 =\= S2, 
+    segment(S1), segment(S2), S1 \= S2,
     intercept(S1, S2). 
 
 mutually_exclusive(S1, S2) :-

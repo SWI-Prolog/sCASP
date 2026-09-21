@@ -145,11 +145,14 @@ program_name(Dir, File, Name) :-
 %!  program_options(+File, -Options) is det.
 %
 %   A program that cannot be solved is not given golden data - that would
-%   record the bug as the expected answer - so it is marked here instead,
-%   from the reason in test/known_issues.pl.  `blocked` is for one that
-%   does not terminate, since running it costs the whole timeout on every
-%   run; `fixme` for one that fails fast, which is still worth running so
-%   that plunit reports it the day it starts working.
+%   record the bug as the expected answer - so it is marked from the
+%   reason in test/known_issues.pl instead.
+%
+%   `hang` becomes `blocked`: running it costs the whole timeout on every
+%   run.  `no_models` becomes a test expected to *fail*, which is not the
+%   same as `fixme`: plunit does not run the body of a fixme test, so it
+%   could never report that the problem had gone away.  An expected
+%   failure runs, and fails loudly the day the program yields a model.
 
 program_options(File, Options) :-
     file_base_name(File, Base),
@@ -159,14 +162,33 @@ program_options(File, Options) :-
 program_options(_, []).
 
 issue_option(hang, Reason, [blocked(Reason)]).
-issue_option(no_models, Reason, [fixme(Reason)]).
+issue_option(no_models, _Reason, [fail]).
 
 %!  golden_goal(+Kind, +File, -Goal) is det.
 %
-%   How to run the program: the dcc ones need the flag set around them.
+%   How to run the program.  The dcc ones need the flag set around them;
+%   a known `no_models` issue is run for the opposite reason - to check
+%   it still yields nothing.
 
-golden_goal(golden, File, golden_test(File)).
+golden_goal(golden, File, golden_test(File)) :-
+    \+ known_no_models(File).
+golden_goal(golden, File, yields_a_model(File)) :-
+    known_no_models(File).
 golden_goal(golden_dcc, File, golden_dcc_test(File)).
+
+known_no_models(File) :-
+    file_base_name(File, Base),
+    known_issue(Base, no_models, _).
+
+%!  yields_a_model(+File) is semidet.
+%
+%   True when File yields at least one model.  Used as the body of a test
+%   declared to fail, so that the suite says so the day one of the
+%   programs in test/known_issues.pl starts working.
+
+yields_a_model(File) :-
+    scasp_test(File, _Trees-Models),
+    Models \== [].
 
 
 		 /*******************************

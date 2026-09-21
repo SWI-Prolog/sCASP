@@ -90,11 +90,44 @@ would need — so loosening one is a deliberate act rather than a silent `--pass
 `test/test_proof_skeleton.pl` pins both halves of that guarantee against hand-built trees.
 
 A program that cannot be solved gets no `.pass` file: that would record the bug as the
-expected answer. It goes in `test/known_issues.pl` with the reason, which becomes a
-plunit option on its generated test — `blocked(Reason)` for one that does not terminate
-(not run at all; `clpq_equality.pl` alone was two thirds of `make check`) and
-`fixme(Reason)` for one that fails fast, which plunit still runs so it can report the
-day it starts working.
+expected answer. It goes in `test/known_issues.pl` with the reason, which shapes its
+generated test — `blocked(Reason)` for one that does not terminate (`clpq_equality.pl`
+alone was two thirds of `make check`), and for one that fails fast, a test declared
+`fail` whose body checks whether the program now yields a model.
+
+### Semantics vs. pinned behaviour
+
+Some tests assert what any correct implementation must do; others pin what *this*
+one currently does, bug included. A reimplementation needs to tell them apart, so
+where the current answer is known to be wrong and the right one is known, both are
+written, selected by conditional compilation:
+
+```prolog
+:- if(expect_semantics).
+test(the_unbound_answer_admits_every_shape_that_holds, ...) :- ...
+:- else.
+test(the_unbound_answer_admits_only_the_f_shape, ...) :- ...
+:- endif.
+```
+
+`expect_semantics/0` (from `scasp_plunit.pl`) is true when the flag `scasp_expect`
+is `semantics`. Default is current behaviour, so `make check` stays green;
+`make check_semantics` runs the other branch and is **expected to fail** — its
+failures are the list of defects still outstanding, and each failure message states
+the answer that is wanted. Four are wired up today (`doc/bugs.md` #1, #15, the
+`∉` item and negated `findall/3`).
+
+Where the current answer is wrong but the right one has not been *decided*, there is
+no second branch: the test carries a `% PINNED, no semantics branch yet.` comment
+saying what has to be settled first. Assertions about how many answers a solution
+set arrives in are pinned too and marked as such — the set is semantics, the number
+of answers it is split into is an implementation choice.
+
+**Do not use `fixme` for that.** plunit does not run the body of a `fixme` test — nor of
+a `blocked` one — so it can never report that the problem has gone away. A test declared
+`fail` does run, and fails loudly the day the goal starts succeeding. The same applies
+to a known-wrong *answer*: assert the wrong value with a comment saying so, rather than
+marking the correct assertion `fixme`.
 
 Add a new test by dropping a `.pl` file into `test/all_programs/` and running with
 `--save`. Every program in `all_programs`, `sasp`, `dcc` and `min_programs` is pinned
@@ -120,6 +153,13 @@ importantly — makes `library(scasp)` resolve to *this* tree.
 | `test/test_cli.pl` | argument parsing, exit status and output formats, by running `main.pl` in a subprocess |
 | `test/test_proof_skeleton.pl` | the comparison itself, against hand-built trees |
 | `test/test_scasp.pl` | the golden-output tests for the file front end |
+| `test/test_clpq.pl` | CLP(Q) constraints and the duals that make `not` constructive |
+| `test/test_forall.pl` | the `forall` construct and its four algorithms |
+| `test/test_olon.pl` | loops over negation, coinduction and the NMR check |
+| `test/test_builtins.pl` | built-ins, `findall/3`, `#abducible`, classical negation |
+| `test/test_compound.pl` | compound terms in heads, bodies and negation |
+| `test/test_disequality.pl` | constructive disunification and the `∉` operator |
+| `test/test_prolog_calls.pl` | `:- prolog p/2`, justified and opaque |
 
 `test/test_all.pl` loads every suite — the golden tests included — into one process:
 `make check` is a single `swipl` call, 171 tests in 2.5s. The timeout is per *test*,
@@ -247,6 +287,14 @@ ground, otherwise `findall/3` + disequality constraints.
 
 - `doc/Tricks.md` has the debugging recipes (`gspy/1`, `gtrap/1`, `?- make.`, profiling,
   `gxref`). Its example paths are stale but the techniques are current.
+- `doc/test-strategy.md` assesses the suite against the goal of reimplementing the
+  reasoner: what is covered, the two gaps that matter (feature *crossings*, and tests
+  that pin known bugs as expected), and which tests survive a change of data
+  representation. Read it before adding white-box tests.
+- `doc/literature.md` summarises the five papers the design comes from and maps each
+  idea onto the module that implements it — read it before changing `comp_duals.pl`,
+  `nmr_check.pl` or the `forall` code, several of which transcribe a published
+  algorithm. It also lists what in this port has no paper behind it.
 - `doc/bugs.md` lists the defects found while building the test suite: what is
   fixed (and therefore guarded by a test) and what is still open.
 - Run `make check_load` after touching imports/exports — it catches undefined predicates

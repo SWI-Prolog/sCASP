@@ -13,6 +13,15 @@ prolog/scasp/main.qlf:
 check:	check_load
 	${SWIPL} -g test_all -t halt test/test_all.pl
 
+# Run the suite holding it to the *semantics* rather than to current
+# behaviour.  Tests wrapped in `:- if(expect_semantics)' switch to the
+# answer the reasoner ought to give, so the failures are the list of
+# known defects still outstanding.  Expected to fail; it is a report, not
+# a gate, so its exit status is ignored.
+check_semantics:
+	-${SWIPL} -Dscasp_expect=semantics -g 'test_all([jobs(1)])' -t halt \
+		test/test_all.pl
+
 # Verify consistency of main load points
 check_load:
 	${SWIPL} -q -l prolog/scasp.pl -g check --on-warning=status -t halt

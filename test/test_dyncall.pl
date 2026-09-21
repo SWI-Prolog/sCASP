@@ -278,14 +278,29 @@ test(the_cache_is_invalidated,
 % it builds a single tree, so the feature needs a decision about what the
 % justification of a conjunction should be, not a one-line fix.
 %
-% Pinned here so it is visible and so this test fails, rather than the
-% behaviour changing unnoticed, once that decision is made.
+% doc/bugs.md #1.  The two branches are the two expectations: two
+% independent queries in one conjunction should simply both succeed.
 
-test(two_calls_in_one_conjunction_fail,
-     [ throws(error(determinism_error(scasp_solve:stack_parents/3,
-                                      det, fail, property), _)) ]) :-
+:- if(expect_semantics).
+
+test(two_calls_in_one_conjunction_both_succeed) :-
+    scasp(conj_a(A)),
+    scasp(conj_b(B)),
+    assertion(A == 1),
+    assertion(B == 2).
+
+:- else.
+
+% The arity in the error term is whichever of stack_parents/2,3 the det
+% check happens to report, so match on the predicate name only.
+
+test(two_calls_in_one_conjunction_fail, [ throws(Error) ]) :-
+    Error = error(determinism_error(scasp_solve:stack_parents/_,
+                                    det, fail, property), _),
     scasp(conj_a(_)),
     scasp(conj_b(_)).
+
+:- endif.
 
 conj_a(1).
 conj_b(2).

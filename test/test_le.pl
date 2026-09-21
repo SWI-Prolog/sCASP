@@ -83,8 +83,10 @@ test(simple_rps, set(Who-Amount == [bob-1000, miguel-100])) :-
 		 *        THE EMPTY ONES	*
 		 *******************************/
 
-% These scenarios yield no answer.  Whether that is the intended reading
-% has not been established; it is pinned so that a change shows up.
+% PINNED, no semantics branch yet.  These scenarios yield no answer.
+% Whether that is the intended reading of the Logical English source has
+% not been established - each needs reading against its own text - so
+% they are pinned at the current behaviour and a change shows up.
 
 :- begin_tests(le_no_answers).
 
