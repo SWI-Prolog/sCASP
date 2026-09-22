@@ -258,6 +258,135 @@ Note the two spellings of a global constraint: inside `begin_scasp` it is
 `:- Constraint.`, but in a plain Prolog module that is an ordinary directive and the
 constraint must be written `false :- Constraint.`
 
+## The fresh implementation
+
+`prolog/sscasp/` is the reimplementation, started fresh rather than grown out of
+`prolog/scasp/` — decisions 1–3 of `doc/design-next.md` replace the compiler and the
+solver wholesale, so growing it in place would mean a long stretch with no green
+suite. It sits under `prolog/`, the pack's library root, so `library(sscasp/ops)`
+resolves out of the box beside `library(scasp/compile)`. Modules are named
+`sscasp_*`, and load **each other by plain file name** — `:- use_module(ops).` —
+reserving `library(...)` for what comes from outside the directory.
+
+**The module names differ deliberately** so both trees load into one process.
+That is the point of starting beside rather than inside: the differential harness
+can point the same program at both, with the Gelfond–Lifschitz oracle as referee.
+
+| Module | |
+|---|---|
+| `ops.pl` | every operator, in one place |
+| `domains.pl` | reading one domain annotation — `:- domain`, `:- pred` |
+| `annotations.pl` | a program's annotation table, as a value rather than a store |
+| `mangle.pl` | functor names — `m$dual.2.inner$flies$1`, always four fields |
+| `abstract.pl` | head abstraction — making head unification explicit |
+| `dual.pl` | dualising a clause body — one clause per negated literal |
+| `dualise.pl` | dualising a predicate — where the pieces meet |
+| `graph.pl` | the call graph, and the odd loops over negation in it |
+| `nmr.pl` | denials → the NMR check |
+| `compile.pl` | the whole pipeline — terms in, `program{clauses, nmr, unbounded}` out |
+| `emit.pl` | the backend — the logical program made runnable |
+| `solve.pl` | the runtime the emitted clauses call |
+| `run.pl` | `sscasp/3` — compile, emit, load into a module, answer |
+
+Its tests live in `test/` like the rest, so there is one `make check`.
+
+### What the new compiler produces
+
+`compile_program(+Module, +Terms, -Program)` returns a **value**, not a store:
+
+```prolog
+program{ clauses:   [...],            % every clause, translated and dualised
+         nmr:       nmr{goal, clauses, checks},
+         unbounded: [...] }
+```
+
+Three things are worth knowing about it:
+
+- **The program is closed.** A predicate called but never defined is false of
+  everything and its negation true of everything, and both are written out, so
+  running the result cannot raise an existence error and the solver need not
+  treat "no clauses" as a case of its own.
+- **Domains are predicates.** `:- domain day = [mon, tue]` compiles to two
+  facts that go through the same path as the user's clauses, duals included.
+- **One goal for the NMR check.** Global constraints, rules on odd loops and
+  the consistency of classically negated predicates all become *denials*;
+  `nmr.checks` says which is which, and `nmr.goal` is what the solver calls.
+  Each sub-check has **arity zero**, so its variables are body-only variables
+  that the dual generator already quantifies and bounds by declared domains.
+
+`unbounded` lists where a quantifier has no declared domain. It is a scan, not
+decision 5's undecidability analysis — the solver's `forall` decides many of
+them at run time — but it is exactly the list of places where adding a `:- pred`
+annotation would replace a search over the universe with an enumeration.
+
+### The solver
+
+`sscasp(+Terms, ?Query, -Model)` compiles, emits, loads into a temporary
+module and answers. The query is the literals asked for **followed by** the
+NMR check, sharing one proof, so a constraint the query's own answer violates
+is caught.
+
+`emit.pl` is a pass of its own because it is the only place that knows how the
+solver carries state: three arguments (`Anc` down, `S0`/`S` up) and a wrapper
+per literal, so that the coinductive check happens before a predicate's
+clauses are tried. The logical form stays what a listing shows and what the
+compiler's tests read.
+
+**Coinduction is four rules, not six.** Compiling to predicates makes a goal's
+polarity static (it is the `Kind` field), so a frame records it and the number
+of negations on a path is the number of **polarity transitions** along it —
+which is the number of negative edges on the dependency path. Counting `dual`
+frames undercounts: dualising `q :- not p` turns `not q`'s body into a
+positive call to `p`.
+
+| | |
+|---|---|
+| the goal's negation unifies with an ancestor or a proved literal | fail |
+| an ancestor unifies with the goal, **0** transitions | by polarity — below |
+| an ancestor unifies with the goal, **even, non-zero** | succeed coinductively |
+| the goal is ground and already proved | succeed |
+
+There is no odd case: two frames of the same polarity have an even number of
+transitions between them by construction, so an odd loop reaches the goal's
+*negation* instead.
+
+A zero-transition loop **fails on `+` and succeeds on `-`**, and the
+difference is not a special case. `c :- c` gives `c` no support, so `c` fails;
+dualising it gives `not c :- not c`, and `c` being unfounded is exactly why
+`not c` holds. Getting this wrong makes `not c` unprovable for every unfounded
+`c`, which the Gelfond–Lifschitz oracle catches immediately —
+`[a, b, (c :- c), (:- not c, not b)]` has the answer set `{a, b}` and nothing
+can reach it. `test_solve.pl` pins both readings and that program.
+
+Negation is constructive through `dif/2` (decision 4), so `not q(X)` for an
+unbound X answers with the constraint rather than merely succeeding, and the
+model **shares variables with the query** — it is collected by walking, not
+with `findall/3`, which would copy the constraints away.
+
+**Still missing:** `forall/2` implements only decision 5's case 2 (the goal
+leaves the variable unconstrained) and raises otherwise; a declared domain
+makes it a complete `for_domain/3` enumeration instead. CLP(Q) and the
+justification tree are not there yet.
+
+### Testing the new tree
+
+| Suite | Covers |
+|---|---|
+| `test/test_domains.pl`, `test_annotations.pl` | reading annotations |
+| `test/test_mangle.pl` | the naming scheme, both ways |
+| `test/test_abstract.pl`, `test_dual.pl`, `test_dualise.pl` | head abstraction and duals |
+| `test/test_graph.pl` | odd loops, against brute-force cycle enumeration |
+| `test/test_nmr.pl`, `test_compile.pl` | the NMR check and the whole pipeline |
+| `test/test_emit.pl` | the threading and the wrappers |
+| `test/test_solve.pl` | the solver, and **the oracle** |
+
+Two units compare an argument against something that enumerates, because two
+steps here are arguments rather than transcriptions: `test_graph.pl` checks
+the balance criterion against brute-force cycle enumeration, and
+`test_solve.pl` checks brave entailment against `test/stable_models.pl` on 340
+seeded random programs. Widening either sweep is a one-line change to a
+`shape/N` fact.
+
 ## Architecture
 
 ### Three entry points, one core

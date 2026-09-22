@@ -20,15 +20,25 @@
 % resolves through the installed pack, which is a different checkout, so
 % a program under test that says use_module(library(scasp)) loads a second
 % copy of the library and collides with the one already loaded here.
+%
+% `prolog/' is the pack's library root, so this one path serves both
+% trees: library(scasp/...) and library(sscasp/...) alike.
 
 set_scasp_library_path :-
     source_file(set_scasp_library_path, Here),
     file_directory_name(Here, TestDir),
     file_directory_name(TestDir, Root),
     atom_concat(Root, '/prolog', Lib),
-    (   user:file_search_path(library, Lib)
+    add_library_path(Lib).
+
+%   asserta/1, not assertz/1.  These have to come *before* whatever the
+%   installed pack put there, or library(scasp) resolves to the other
+%   checkout and a module gets loaded twice under two paths.
+
+add_library_path(Dir) :-
+    (   user:file_search_path(library, Dir)
     ->  true
-    ;   asserta(user:file_search_path(library, Lib))
+    ;   asserta(user:file_search_path(library, Dir))
     ).
 
 :- set_scasp_library_path.

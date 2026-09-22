@@ -64,6 +64,17 @@ too, one test per program.
 :- use_module(test_stable_models,  []).
 :- use_module(test_differential,   []).
 :- use_module(test_proof_model,    []).
+:- use_module(test_domains,        []).
+:- use_module(test_annotations,    []).
+:- use_module(test_mangle,         []).
+:- use_module(test_abstract,       []).
+:- use_module(test_dual,           []).
+:- use_module(test_dualise,        []).
+:- use_module(test_compile,        []).
+:- use_module(test_graph,          []).
+:- use_module(test_nmr,            []).
+:- use_module(test_emit,           []).
+:- use_module(test_solve,          []).
 
 %!  test_all is semidet.
 %!  test_all(+Options) is semidet.

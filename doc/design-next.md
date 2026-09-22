@@ -189,17 +189,21 @@ is what makes the name useful in a message: `user$dual.2.inner$p$1` says
 the generated predicate's own arity — that one is 2, and anything wanting it
 should ask `functor/3` rather than read it out of a name.
 
-The program-level predicates have no user predicate to name, so they take a
-two-field form and the field count distinguishes them:
+The program-level predicates have no user predicate to name, so they leave the
+`Name` field **empty** — which is unambiguous, since a predicate must have a
+name, and keeps every mangled name to four fields:
 
 | | |
 |---|---|
-| `user$nmr` | the NMR check |
-| `user$chk.1` | its first sub-check |
-| `user$false` | the head of a headless rule |
+| `user$nmr$$0` | the NMR check |
+| `user$chk.1$$1` | its first sub-check, of arity 1 |
+| `user$false$$0` | the head of a headless rule |
 
-Demangling stays two lines: split on `$`, dispatch on four fields or two, and
-split `Kind` on `.` if the caller cares which clause it came from.
+For these, `Arity` is the generated predicate's own — a sub-check may have
+arguments (P4 §2.4's `chk2(X)`). Demangling is then one clause: split on `$`,
+take four fields, and read an empty `Name` as "derives from no user
+predicate". An earlier draft used a two-field form for these and made the
+reader dispatch on field count for no gain.
 
 #### Demangle on the way out
 
@@ -227,16 +231,60 @@ a `Proved` assoc — with two rebuilt from the first on every entry
 some twenty predicates of 8–11 arguments. `solve.pl:777` concedes the
 duplication in a comment.
 
-The ancestor chain need not be an argument at all. `library(coinduction)` finds
-ancestors with `prolog_frame_attribute(F, parent_goal, M:Goal)` — native stack
-examination, as `ssCASP.md` suggests. **Borrow the mechanism, not the
-semantics:** that library implements plain co-SLD, whose greatest fixpoint is
-wrong for ASP. The restriction that makes goal-directed evaluation agree with
-Gelfond–Lifschitz is P2 §3.3.3 — *a coinductive call may succeed only if the
-path back to its ancestor crosses at least one negation* — and it has to be
-added on top, along with the three-way odd/even/positive distinction.
+What is wrong is that the *same* information lives three ways, not that it is
+threaded. Ancestors and proved literals are different things with different
+modes — one goes down, the other comes up — and the fix is to say so, not to
+hide one of them.
 
-What genuinely needs threading is the CHS (the candidate answer set). One dict.
+**Ancestors go down, the proof comes up.** Three extra arguments on every
+compiled predicate: `Anc` in, `S0`/`S` threaded. Nothing is reconstructed from
+anything else, and there are no markers to walk.
+
+#### Not the native stack, after all
+
+The first version of this decision proposed finding ancestors with
+`prolog_frame_attribute(F, parent_goal, M:Goal)`, as `library(coinduction)`
+does. That was a paper decision and it does not survive contact:
+
+- `parent_goal` *unifies* with an ancestor; it does not say **which** one, and
+  the negation count on the path back is the whole point. Counting means
+  walking frames explicitly and demangling each one's functor.
+- Every frame on the path has to be protected from last-call optimisation —
+  `library(coinduction)` needs its `no_lco` marker for one wrapper; a solver
+  needs it on every predicate, giving up LCO across the whole program.
+- It is barely testable. An ancestor list is a value a test can construct; a
+  frame chain is not.
+
+**Borrow the semantics, not the mechanism.** What that library is right about
+is the restriction, P2 §3.3.3: a coinductive call may succeed only if the path
+back to its ancestor crosses a negation. That stays.
+
+#### The six cases collapse to three
+
+Compiling to predicates makes the polarity of a goal **static** — it is in the
+functor's `Kind` field — so a frame can record it, and the number of negations
+on a path is the number of *polarity transitions* along it. That measure is the
+number of negative edges on the corresponding dependency path, which is what
+the theory is about; counting `dual` frames instead undercounts, because
+dualising `q :- not p` turns `not q`'s body into a positive call to `p` and
+consumes one negation.
+
+Written that way, `check_CHS_/6`'s six clauses become three, and one of the six
+turns out to be impossible:
+
+| | |
+|---|---|
+| the goal's **negation** unifies with an ancestor or a proved literal | fail |
+| an ancestor unifies with the goal, **0** transitions | fail — positive loop |
+| an ancestor unifies with the goal, **even, non-zero** | succeed coinductively |
+| the goal is ground and already proved | succeed |
+
+There is no odd case. Two frames of the same polarity have an even number of
+transitions between them by construction, so an ancestor matching the goal is
+never reached across an odd number of negations — an odd loop reaches the
+goal's *negation* instead, which is the first row. That is a property to check
+against the oracle rather than to take on faith, and `test_solve.pl` asserts
+it directly.
 
 ### 2a. Drop the block API
 
@@ -315,6 +363,22 @@ That is decidable in exactly four cases, and undecidable outside them.
 1. **V's domain is declared finite.** Expand to a finite conjunction, one
    conjunct per value. Sound, complete, no search. This is what annotations
    (decision 6) buy, and it is the state to aim for.
+
+   **Implemented** in `prolog/sscasp/dualise.pl`, though not by expanding: a body-only
+   variable with a domain gets `for_domain(Var, Generator, Goal)` instead of
+   `forall/2`, naming the domain and leaving the solver to enumerate it or post
+   it as a region and label. Expanding at compile time would be right for
+   `[a, b]` and wrong for `0..23`. The upshot is that **`forall/2` surviving
+   into a compiled program means exactly one thing: a quantifier nothing
+   bounds**, which makes decision 5a's report a grep. The domain is read off
+   *where the variable is used* — argument 2 of `t/2` — rather than from the signature of
+   the predicate being dualised, which says nothing about it. Where a variable
+   is used in several places any one of the domains will do, and taking the
+   first is not a shortcut: the inner dual negates a conjunction, so for a
+   value outside the domain of any single literal that literal fails, the
+   conjunction fails and its negation holds — the instance is true for free.
+   Bounding the quantifier by one usage leaves nothing unchecked that could
+   have failed.
 2. **Some answer leaves V wholly unconstrained.** Then G's success does not
    depend on V and that one answer covers the domain. Sound *provided every
    store is consulted* — `doc/bugs.md` #14 was precisely this check failing to
