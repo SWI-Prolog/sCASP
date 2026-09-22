@@ -23,7 +23,8 @@ test_dyncall :-
                 dyncall_constraints_global,
                 dyncall_directives,
                 dyncall_dynamic,
-                dyncall_errors
+                dyncall_errors,
+                dyncall_collect_option
               ]).
 
 		 /*******************************
@@ -319,3 +320,62 @@ test(compiled_predicate_is_refused,
     scasp(uses_compiled).
 
 :- end_tests(dyncall_errors).
+
+
+		 /*******************************
+		 *      THE collect OPTION	*
+		 *******************************/
+
+%   scasp/2 is relevance-scoped: it gathers the clauses reachable from the
+%   query plus the global constraints whose call tree overlaps them, and
+%   solves that.  So a part of the program the query cannot reach does not
+%   constrain the answer - which is what makes scasp/2 usable on a large
+%   program, and is wrong when the answer must respect the whole program.
+%
+%   `collect(Goal)' widens the collection without widening the query.
+
+:- begin_tests(dyncall_collect_option).
+
+% a contradiction the query cannot reach
+cc_p.
+-cc_p.
+cc_q.
+
+% an odd loop on a predicate the query cannot reach
+ol_q :- not ol_r.
+ol_r :- not ol_q.
+ol_p :- ol_q, not ol_p.
+
+% a global constraint mentioning nothing the query reaches
+gc_q.
+gc_p.
+false :- gc_p.
+
+test(an_unreachable_contradiction_does_not_constrain, [nondet]) :-
+    scasp(cc_q).
+test(unless_it_is_collected, [fail]) :-
+    scasp(cc_q, [collect((cc_p, -cc_p))]).
+
+test(an_unreachable_odd_loop_does_not_constrain, [nondet]) :-
+    scasp(ol_q).
+test(unless_the_loop_is_collected, [fail]) :-
+    scasp(ol_q, [collect(ol_p)]).
+
+test(an_unreachable_global_constraint_does_not_apply, [nondet]) :-
+    scasp(gc_q).
+test(unless_its_subject_is_collected, [fail]) :-
+    scasp(gc_q, [collect(gc_p)]).
+
+%   Only collection is affected: the query is still about the query.  Two
+%   unrelated facts, neither constraining anything, so collecting one does
+%   not change the answer to the other.
+
+nn_a.
+nn_b.
+
+test(the_collected_goal_is_not_answered, [nondet]) :-
+    scasp(nn_a, [collect(nn_b), model(Model)]),
+    assertion(memberchk(nn_a, Model)),
+    assertion(\+ memberchk(nn_b, Model)).
+
+:- end_tests(dyncall_collect_option).

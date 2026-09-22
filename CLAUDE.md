@@ -53,15 +53,19 @@ by both — recording their output would record the bug as the expected answer.
   `swipl -p library=prolog ...` from the repo top, or use the idiom in
   `test/test_scasp.pl`, which derives the root from its own source file.
 - `make check` runs `test/all_programs/dcc` as a separate invocation, with `--dcc`
-  enabled; those `.pass` files are only valid under that flag. `--dcc` also forces
-  `--forall=prev` and errors on any other value, which is why it needs its own process.
-- Options are process-global Prolog flags (18 of them, created across 9 modules and
-  set by `scasp_set_options/1`). `scasp_forall` and `scasp_dcc` change the *semantics*
-  of `solve/4` and `generate_nmr_check/1`, so two callers in one process cannot use
-  different settings.
+  enabled; those `.pass` files are only valid under that flag, and `--dcc` forces
+  `--forall=prev` and errors on any other value.
+- Options are Prolog flags (18 of them, created across 9 modules and set by
+  `scasp_set_options/1`). **They are thread-local on write**: a thread's
+  `set_prolog_flag/2` does not propagate back to its creator, and a new thread
+  inherits the creator's value at creation. So a caller *can* set a flag and restore
+  it around a solve — single-threaded that is all it takes. What it cannot do is hold
+  two different values at once in one thread, which matters for `scasp_forall` and
+  `scasp_dcc` because they change the *semantics* of `solve/4` and
+  `generate_nmr_check/1`.
 - `goal_origin(_, Ref)` clause references come from `scasp_source_reference/3`, a
-  process-global counter that is never retracted, so they depend on what was loaded
-  earlier in the process. `test_scasp.pl` resets it per test.
+  thread-local counter that is never retracted, so they depend on what was loaded
+  earlier in *this thread*. `test_scasp.pl` resets it per test.
 
 ## Test conventions
 
@@ -75,7 +79,10 @@ The two halves are compared differently, because the model of an answer is stabl
 the *location* of steps in its justification moves whenever the solver changes:
 
 - **Model: exactly.** `answers_model_key/2` normalises variable naming and ignores the
-  order of the answers, nothing else. There is no option to weaken it.
+  order of the answers, nothing else. There is no option to weaken it — and it does not
+  need one: the model is a *function of the proof* (`test/test_proof_model.pl`), so two
+  answers with the same proof at `support` always carry the same model. Comparing the
+  proof therefore subsumes comparing the model rather than competing with it.
 - **Justification: at a declared level.** `proof_skeleton/3` (`test/proof_skeleton.pl`)
   maps a justification onto a canonical term at one of `exact` (whole tree),
   `refless` (no clause refs, abduction collapsed), `literals` (bookkeeping nodes such as
@@ -154,10 +161,11 @@ importantly — makes `library(scasp)` resolve to *this* tree.
 | Suite | Covers |
 |---|---|
 | `test/test_dyncall.pl` | `scasp/1,2` over ordinary Prolog clauses: clause collection, global-constraint overlap, directives, `scasp_dynamic` |
-| `test/test_embed.pl` | `begin_scasp`/`end_scasp`: `#pred`, `#show`, `#abducible`, `-p(X)` heads, `:- Constraint.`, `?- Query.` |
+| `test/test_embed.pl` | `begin_scasp`/`end_scasp` — an **obsolete** API, kept running so it does not rot silently |
 | `test/test_le.pl` | the Logical English examples, run through `scasp/2` |
 | `test/test_cli.pl` | argument parsing, exit status and output formats, by running `main.pl` in a subprocess |
 | `test/test_proof_skeleton.pl` | the comparison itself, against hand-built trees |
+| `test/test_proof_model.pl` | that the model is a function of the proof |
 | `test/test_stable_models.pl` | the brute-force oracle, against worked examples |
 | `test/test_differential.pl` | s(CASP) vs. that oracle, on hand-written and random programs |
 | `test/test_scasp.pl` | the golden-output tests for the file front end |
@@ -214,11 +222,37 @@ share a run:
   compiling into the same module destroy each other's program (`doc/bugs.md` §5). The
   golden tests are one unit for that reason; plunit runs its tests one at a time.
 
-**A unit must not change a `scasp_*` flag while `jobs(N) > 1`.** Those flags are
-process-global and `scasp_forall`/`scasp_dcc` change solver semantics, so one
-unit would silently alter what another is testing. Pass the option to `scasp/2`
-instead (`scasp(Goal, [unknown(error)])`); `scasp_plunit.pl` has `scasp_flags/1`
-and `set_scasp_flags/1` for a unit that cannot, but it must then run alone.
+Passing the option to `scasp/2` (`scasp(Goal, [unknown(error)])`) is still the
+tidier way when it is available; `scasp_plunit.pl` has `with_forall/2`, and
+`scasp_flags/1` + `set_scasp_flags/1` for saving and restoring a set of them.
+
+**Prefer `scasp/2` over `scasp_load/2` in tests.** The file front end compiles into
+its caller's module and wipes what was there (`doc/bugs.md` #5), so two runs in one
+process interfere — which forces whole suites into a single plunit unit and makes
+comparing two solver configurations unreliable. `scasp/2` collects the clauses
+reachable from the query and has neither problem. `test_scasp.pl` uses the file front
+end because that is the entry point it exists to test; everything else uses `scasp/2`.
+
+Note that `scasp/2` is *relevance-scoped* — it collects the clauses reachable from
+the query plus the global constraints overlapping them. A contradiction, odd loop or
+constraint the query cannot reach therefore does not constrain the answer. Where a
+test needs whole-program semantics, name the rest of the program with the `collect`
+option: `scasp(q, [collect((p, -p))])`.
+
+### The obsolete block API
+
+`begin_scasp/1,2` .. `end_scasp/0` is obsolete. Use `scasp/2` over ordinary
+Prolog clauses. It still works and `test_embed.pl` still runs, so a regression
+would be noticed, but it is not part of the design going forward and a
+reimplementation need not reproduce it.
+
+Two things this does *not* mean. The rest of `embed.pl` stays: `scasp_call/1` is
+how `dyncall.pl` and the toplevel run a query, and `scasp_model/1,2`,
+`scasp_stack/1` and `scasp_justification/2` are how a caller reads the result.
+And the *language* features `test_embed.pl` happens to exercise through blocks —
+`#show`, `#abducible`, `#pred`, `-p(X)` heads, `:- Constraint.` — are covered
+independently by the golden corpus (4, 3, 1 and many programs respectively), so
+they do not go with it.
 
 Note the two spellings of a global constraint: inside `begin_scasp` it is
 `:- Constraint.`, but in a plain Prolog module that is an ordinary directive and the
@@ -232,7 +266,7 @@ constraint must be written `false :- Constraint.`
 |---|---|---|
 | `prolog/scasp/main.pl` | `scasp_main` | the `scasp` CLI/executable; loads files, answers the last query, exits |
 | `prolog/scasp.pl` | `scasp` | the user-facing library: `?-`-style operators (`?--`, `?+-`, `?-+`, `?++`, `??++`, …), `scasp/2` |
-| `prolog/scasp/embed.pl` / `dyncall.pl` | `scasp_embed`, `scasp_dyncall` | embed s(CASP) blocks in Prolog (`begin_scasp/1`..`end_scasp/0`) or solve queries against ordinary Prolog clauses |
+| `prolog/scasp/embed.pl` / `dyncall.pl` | `scasp_embed`, `scasp_dyncall` | solve queries against ordinary Prolog clauses (`scasp/2`). **`begin_scasp/1`..`end_scasp/0` is obsolete** — see below |
 
 `dyncall.pl` is the interesting one: `scasp/2` collects the clauses transitively
 reachable from the query plus any global constraints whose call tree overlaps, compiles
@@ -324,6 +358,11 @@ ground, otherwise `findall/3` + disequality constraints.
 
 - `doc/Tricks.md` has the debugging recipes (`gspy/1`, `gtrap/1`, `?- make.`, profiling,
   `gxref`). Its example paths are stale but the techniques are current.
+- `doc/design.md` describes how this implementation works — the essential steps in
+  s(CASP) resolution, from collecting a program through duals, the NMR check and the
+  solver's six coinduction cases to the renderers. Start here.
+- `doc/design-next.md` is the design round for a fresh implementation: the
+  measurements it rests on, the decisions taken, and the questions still open.
 - `doc/test-strategy.md` assesses the suite against the goal of reimplementing the
   reasoner: what is covered, the two gaps that matter (feature *crossings*, and tests
   that pin known bugs as expected), and which tests survive a change of data

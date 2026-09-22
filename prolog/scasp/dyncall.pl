@@ -2,6 +2,7 @@
           [ scasp/1,                    % :Query
             scasp/2,                    % :Query, +Options
             scasp_query_clauses/2,      % :Query, -Clauses
+            scasp_query_clauses/3,      % :Query, -Clauses, +Options
             scasp_model/1,              % -Model
             scasp_justification/2,      % -Tree, +Options
 
@@ -73,6 +74,7 @@
     scasp(0, +),
     scasp_show(:, +),
     scasp_query_clauses(:, -),
+    scasp_query_clauses(:, -, +),
     scasp_dynamic(:),
     scasp_assert(:),
     scasp_retract(:),
@@ -122,13 +124,28 @@ Issues:
 %     - source(Boolean)
 %       When `false`, do not include source origin terms into the
 %       final tree.
+%     - collect(:Goal)
+%       Collect the program as if Goal were part of the query, without
+%       asking it.  s(CASP) gathers the clauses reachable from the query
+%       and the global constraints whose call tree overlaps them, so a
+%       constraint mentioning nothing the query reaches is left out --
+%       and an odd loop or a `p`/`-p` contradiction elsewhere in the
+%       program is left out with it.  That is usually what is wanted: it
+%       is what makes `scasp/2` usable on a large program.  Where it is
+%       not -- where the answer must respect the whole program however
+%       unrelated it looks -- name the rest of it here:
+%
+%           ?- scasp(q, [collect((p, r(_)))]).
+%
+%       Only collection is affected.  The query, the model and the
+%       justification are still about Query alone.
 
 scasp(Query) :-
     scasp(Query, []).
 
 scasp(Query, Options) :-
     Query = SrcModule:_,
-    scasp_query_clauses(Query, Clauses0),
+    scasp_query_clauses(Query, Clauses0, Options),
     expand_program(SrcModule,  Clauses0, Clauses1, Query, Query1),
     maplist(qualify, Clauses1, Clauses2),
     qualify_query(Query1, SrcModule:QQuery),
@@ -203,16 +220,33 @@ scasp_show(Query, code, Options) =>
         scasp_portray_program(Module:[source_module(SrcModule)|Options])).
 
 %!  scasp_query_clauses(:Query, -Clauses) is det.
+%!  scasp_query_clauses(:Query, -Clauses, +Options) is det.
+%
+%   Collect the clauses relevant to Query: those reachable from it, plus
+%   the global constraints whose call tree overlaps them.  `collect(Goal)`
+%   widens the first set without widening the query -- see scasp/2.
 %
 %   @arg Clauses is a list of source(ClauseRef, Clause).
 
 :- det(scasp_query_clauses/2).
+:- det(scasp_query_clauses/3).
 
 scasp_query_clauses(Query, Clauses) :-
-    query_callees(Query, Callees0),
+    scasp_query_clauses(Query, Clauses, []).
+
+scasp_query_clauses(M:Query, Clauses, Options) :-
+    (   option(collect(Extra), Options)
+    ->  strip_module_goal(Extra, M, Goal),
+        Collect = (Query, Goal)
+    ;   Collect = Query
+    ),
+    query_callees(M:Collect, Callees0),
     maplist(check_not_reserved, Callees0),
     include_global_constraint(Callees0, Constraints, Callees),
     findall(Clause, scasp_clause(Callees, Clause), Clauses, Constraints).
+
+strip_module_goal(_:Goal, _, Goal) :- !.
+strip_module_goal(Goal, _, Goal).
 
 %!  check_not_reserved(+PI) is det.
 %

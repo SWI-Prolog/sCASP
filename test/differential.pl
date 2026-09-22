@@ -8,9 +8,8 @@
 :- use_module(stable_models, [stable_models/2, models_entail/2,
                               program_literals/2, op(900, fy, not),
                               op(700, xfx, [#=, #<>, #<, #>, #=<, #>=])]).
-:- use_module(library(scasp/compile), [scasp_load/2, scasp_query/3]).
-:- use_module(library(scasp/solve), [solve/4]).
-:- use_module(library(scasp/source_ref), [scasp_source_reference/3]).
+:- use_module(scasp_plunit, []).
+:- use_module(library(scasp), [scasp/2, scasp_assert/1]).
 :- use_module(library(lists), [member/2, numlist/3]).
 :- use_module(library(apply), [maplist/3, include/3]).
 :- use_module(library(random), [random_between/3, random_member/2]).
@@ -33,10 +32,34 @@ where no answer set supports it) and incompleteness (an answer set exists
 that s(CASP) cannot find), which counting models would not: a solver that
 found the right number of wrong models would pass a count.
 
-The literals are checked one at a time through the *file* front end, since
-that is the entry point with a query built in, and because `scasp_load/2`
-wipes the compiled program in its caller's module, which makes one program
-per call the honest unit anyway (doc/bugs.md #5).
+Each program is asserted into a module of its own with `scasp_assert/1` and
+queried with `scasp/2`.  Nothing is shared between calls, so two may run
+concurrently -- which is why the tests are free to sit in three plunit units.
+They were forced into one while this went through `scasp_load/2`, which
+compiles into its caller's module and wipes what was there (`doc/bugs.md` #5).
+
+`scasp_assert/1` rather than `assertz/1`, because it understands the two
+shapes a program written for the oracle uses: `:- Body` for a global
+constraint, which it rewrites to the internal headless form, and `-p` for
+classical negation, which it interns.  Plain `assertz/1` raises on the first --
+`false/0` is a static system predicate -- and would leave the second as an
+ordinary `-`/1 term.
+
+## Scope
+
+`scasp/2` is *relevance-scoped*: it collects the clauses reachable from the
+query plus the global constraints overlapping them, and solves that.  The
+oracle computes answer sets of the whole program.  Comparing the two directly
+would be comparing different questions, and the gap is not subtle:
+
+    [p, -p, q]   ?- q.   whole program: no answer set, so q is false
+                         scoped:        q is true, the contradiction is
+                                        unreachable from q
+
+The same holds for an odd loop elsewhere, and for a constraint mentioning
+nothing the query reaches.  `whole_program/2` therefore names every predicate
+the program defines and passes it to `scasp/2`'s `collect` option, which
+widens the collection without widening the query.
 */
 
 %!  scasp_brave(+Program, +Literal) is semidet.
@@ -50,24 +73,30 @@ per call the honest unit anyway (doc/bugs.md #5).
 %   an error as "no" would be measuring the wrong thing.
 
 scasp_brave(Program, Literal) :-
-    setup_call_cleanup(
-        tmp_file_stream(text, File, Out),
-        ( write_program(Out, Program, Literal),
-          close(Out),
-          solve_file(File)
-        ),
-        catch(delete_file(File), _, true)).
+    whole_program(Program, Collect),
+    in_temporary_module(
+        Module,
+        assert_program(Module, Program),
+        \+ \+ scasp(Module:Literal, [collect(Collect)])).
 
-solve_file(File) :-
-    retractall(scasp_source_reference(_, _, _)),
-    scasp_load(File, [unknown(fail)]),
-    scasp_query(Query, _Bindings, []),
-    \+ \+ solve(Query, [], _StackOut, _ModelOut).
+assert_program(Module, Program) :-
+    forall(member(Clause, Program),
+           scasp_assert(Module:Clause)).
 
-write_program(Out, Program, Literal) :-
-    forall(member(Rule, Program),
-           format(Out, "~q.~n", [Rule])),
-    format(Out, "?- ~q.~n", [Literal]).
+whole_program(Program, Goal) :-
+    findall(G, (member(Clause, Program), head_goal(Clause, G)), Goals0),
+    sort(Goals0, Goals),
+    (   Goals == []
+    ->  Goal = true
+    ;   conjunction(Goals, Goal)
+    ).
+
+head_goal((:- _), _) :- !, fail.
+head_goal((Head :- _), Goal) :- !, most_general(Head, Goal).
+head_goal(Fact, Goal) :- most_general(Fact, Goal).
+
+most_general(-(Head), -(Goal)) :- !, functor(Head, N, A), functor(Goal, N, A).
+most_general(Head, Goal) :- functor(Head, N, A), functor(Goal, N, A).
 
 %!  disagreements(+Program, -Disagreements) is det.
 %

@@ -1,7 +1,9 @@
 # The s(CASP) literature
 
 s(CASP) is a port, twice over: from Marple's s(ASP) (Prolog, UT Dallas) to Arias'
-s(CASP) (Ciao), and from that to this SWI-Prolog tree. Most of the design was
+s(CASP) (Ciao), and from that to this SWI-Prolog tree. s(ASP) is *ungrounded
+ASP*; s(CASP) is that **plus a constraint solver**, which is what the C stands
+for and the one thing the second step added to the language. Most of the design was
 decided in papers rather than in this repository, and several predicates here are
 direct transcriptions of an algorithm printed in one of them.
 
@@ -193,11 +195,18 @@ with two refinements from P4 §3.2 that this port keeps:
 
 ## P4 — s(CASP): constraints, and the two forall algorithms
 
-P4's contribution over s(ASP) is to keep constraints — and therefore variables —
-alive through execution and into the answer sets, parametric in the constraint
-solver. Concretely: a rule may carry a constraint `c_a` in its body, the
-interpreter checks consistency against the store as it goes, and an answer is a
-**constrained** partial model. Holzbaur's CLP(Q) is the solver used; `clp/clpq.pl`
+**s(ASP) has no constraints at all** — the C in s(CASP) is precisely what P4
+adds. s(ASP)'s contribution was to keep *variables* alive by not grounding, and
+the only thing it can say about an unbound one is a constructive disequality
+over Herbrand terms: `X \= a`. P4 adds a **constraint solver**, so a variable
+can instead carry a store over a dense domain, and the two are independent —
+`X #> 1, X #< 2` has no solution in the integers and infinitely many in the
+rationals, and neither is expressible by disequalities.
+
+Concretely: a rule may carry a constraint `c_a` in its body, the interpreter
+checks consistency against the store as it goes, and an answer is a
+**constrained** partial model. The execution model is otherwise s(ASP)'s —
+duals, the NMR check, coinduction — which is why P4 restates all of it. Holzbaur's CLP(Q) is the solver used; `clp/clpq.pl`
 is that integration, plus `dual_clpq/2`, which negates a whole constraint store
 one constraint at a time keeping the earlier ones.
 

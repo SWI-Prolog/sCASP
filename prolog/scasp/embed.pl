@@ -99,8 +99,14 @@ available as normal Prolog bindings.
 
 This is an  alternative  interface  to   defining  the  user  accessible
 predicates using e.g., `:- scasp p/1,   q/2.`, which will then establish
-the reachable predicates and perform  the   sCASP  conversion on them. I
-think both have their value and the above one is simpler to start with.
+the reachable predicates and perform  the   sCASP  conversion on them.
+
+__The begin_scasp/1,2 .. end_scasp/0 block API is obsolete.__  Use scasp/2
+over ordinary Prolog clauses instead; see dyncall.pl.  The rest of this
+module is *not* obsolete and has no replacement: scasp_call/1 is how
+dyncall.pl and the toplevel run a query, and scasp_model/1,2,
+scasp_stack/1 and scasp_justification/2 are how a caller reads the result
+back.  A reimplementation should carry those over and drop the blocks.
 
 @tbd: incomplete
 */
@@ -127,6 +133,13 @@ think both have their value and the above one is simpler to start with.
 %
 %   The  sCASP  code   must   be    closed   using   end_scasp/0.   Both
 %   begin_scasp/1,2 and end_scasp/0 must be used as directives.
+%
+%   @deprecated Use scasp/2 (dyncall.pl) over ordinary Prolog clauses.
+%   The block API is retained so existing programs keep working, but it
+%   is not part of the design going forward.  Everything it offers that
+%   is about the *language* rather than the API - `#show`, `#abducible`,
+%   `#pred`, `-p(X)` heads, `:- Constraint.` global constraints - is
+%   equally available through the file front end.
 
 begin_scasp(Unit) :-
     begin_scasp(Unit, all).

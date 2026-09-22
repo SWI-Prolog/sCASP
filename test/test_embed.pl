@@ -13,6 +13,17 @@ source almost verbatim - `#pred`, `#show`, `#abducible`, `-p(X)` heads,
 rewriting those forms while the block is being read.  The programs below
 are written the way they would be in a `.pl` file fed to the `scasp`
 executable, which is the point: the same source has to work both ways.
+
+## Obsolete
+
+`begin_scasp/1,2` … `end_scasp/0` is obsolete; `scasp/2` over ordinary Prolog
+clauses replaces it (`test_dyncall.pl`).  This suite is kept running so the API
+does not rot silently while it still exists, but a reimplementation is under no
+obligation to reproduce it.
+
+The *language* features exercised here — `#pred`, `#show`, `#abducible`,
+`-p(X)` heads, `:- Constraint.`, `?- Query.` — are not obsolete, and are
+covered independently of blocks by the golden corpus.
 */
 
 test_embed :-

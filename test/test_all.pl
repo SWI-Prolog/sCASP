@@ -63,6 +63,7 @@ too, one test per program.
 :- use_module(test_proof_skeleton, []).
 :- use_module(test_stable_models,  []).
 :- use_module(test_differential,   []).
+:- use_module(test_proof_model,    []).
 
 %!  test_all is semidet.
 %!  test_all(+Options) is semidet.

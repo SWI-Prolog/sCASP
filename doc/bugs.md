@@ -267,6 +267,27 @@ the two unify, so only the second branch survives.
 Pinned by `test_compound.pl:compound_negation_is_incomplete`, which fails the
 day the general answer appears.
 
+**A finite domain fixes it**, today, with no new machinery — guarding the
+variable turns the incomplete answer into the complete one:
+
+```prolog
+dom(f(a)). dom(f(b)). dom(g(a)). dom(b).
+nw(T) :- dom(T), not wrap(T).
+?- nw(T).                 % T = f(b) ; T = g(a) ; T = b
+```
+
+which is why `doc/design-next.md` §6a proposes declaring such domains rather
+than writing the guard by hand.
+
+**The criterion that detects it** is in `doc/design-next.md` §5: a
+`forall`-quantified variable occurring inside a compound on the other side of a
+disequality, so that covering the rest of the domain would need "A is not of
+the form `f(_)`" — a universally quantified disequality no store can express.
+It is statically detectable at dual generation and flags 20 of the 52 test
+programs, `member/2` and `queens.pl` among them; most of those never call the
+negation in the mode that realises it, which is why the check belongs in a
+report rather than a refusal.
+
 **This is a known limitation of the published method, not a porting error.**
 Marple et al., *Computing Stable Models of Normal Logic Programs Without
 Grounding* — the paper the dual construction comes from — works the same case
@@ -397,12 +418,67 @@ the `unknown(Mode)` option — unlike `pr_rules.pl:check_existence/1`, which
 honours both. So `unknown(fail)` does not suppress it, and the query is held
 to a stricter rule than the same literal in a body.
 
+`scasp/2` does the same, and adds a second wart: the predicate indicator in
+the error carries the interned module name, so the message a user sees is
+
+```
+scasp_predicate `'tmp-1-4183594005075597591:p'/0' does not exist
+```
+
+naming a temporary module that existed only for that query. `modules.pl`
+interns the module into the functor for the solver's benefit; the error should
+be un-interned before it is reported.
+
 Found by the differential harness (`test/differential.pl`): it is the only
 disagreement with the stable-model definition across the hand-written battery
 in `test_differential.pl`. Pinned there by
 `undefined_atom_in_a_query_raises_rather_than_answering`.
 
-### 18. `--assume` has no visible effect
+### 18. `--forall=prev` and `--forall=sasp` lose answers, and `--dcc` inherits it
+
+Both cuts in `solve_goal_forall/8` sit in the *disequality* branch — the case
+where the goal succeeded with the quantified variable constrained to a finite
+set of prohibited values, which `exec_with_neg_list/10` then has to check.
+
+```prolog
+(   current_prolog_flag(scasp_forall, prev) ->  !  ;   true ),
+exec_with_neg_list(...),
+(   current_prolog_flag(scasp_forall, sasp) ->  !  ;   true ),
+```
+
+`prev` cuts **before** the check, committing to the first solution of the goal
+before knowing whether its prohibited set can be completed. If the completion
+then fails, the whole `forall` fails — although another solution might have
+completed. `sasp` cuts after, which is milder but still discards alternative
+covers.
+
+Measured over the corpus, comparing the *set of query bindings* against the
+uncut default:
+
+| Program | `all` | `prev` | `sasp` |
+|---|---:|---:|---:|
+| `all_programs/bec_loan.pl` | **4** | **0** | **0** |
+| `min_programs/stream_reasoning.pl` | 4 | 3 | 3 |
+| `min_programs/solve_not_is.pl` | 2 | 1 | 1 |
+| `all_programs/sasp/lion.pl` | 1 | 1 | **0** |
+
+`bec_loan` is the clear case: four answers become none.
+
+**`--dcc` inherits this.** `options.pl:opt_rule/1` adds `forall(prev)` when
+`--dcc` is given and *errors* on any other value, so there is no way to run
+`--dcc` with a complete `forall`. `scasp --dcc -s0 test/all_programs/bec_loan.pl`
+reports no models where the default reports four. The `.pass` data under
+`test/all_programs/dcc/` was recorded that way and may be incomplete for the
+same reason.
+
+`--forall=all_c` is not an answer either: it does not terminate on `queens.pl`
+or on `bec_loan.pl`.
+
+So the only complete setting is the default. `doc/design-next.md` §5c argues
+that the flag should be removed rather than defaulted, since the four values
+are not four algorithms but one case-dispatch plus two unsound cuts.
+
+### 19. `--assume` has no visible effect
 
 `solve.pl` reads `scasp_assume` in the coinductive-success branch and calls
 `mark_prev_goal/3` to rewrite the matching ancestor as `assume(Goal)`. Setting
@@ -411,7 +487,7 @@ the flag changes nothing in the justification of `p :- not q. q :- not p.`, and
 unreached for the same reason. Either the flag no longer does what it says, or
 it needs a program shape that is not obvious.
 
-### 19. Unsupported built-ins in embedded programs
+### 20. Unsupported built-ins in embedded programs
 
 `test/le_programs/list-scasp.pl` fails with
 `permission_error(scasp, procedure, system:once/1)`. `once/1` is a compiled
