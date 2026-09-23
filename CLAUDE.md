@@ -286,7 +286,8 @@ can point the same program at both, with the Gelfond–Lifschitz oracle as refer
 | `compile.pl` | the whole pipeline — terms in, `program{clauses, nmr, unbounded}` out |
 | `emit.pl` | the backend — the logical program made runnable |
 | `solve.pl` | the runtime the emitted clauses call |
-| `run.pl` | `sscasp/3` — compile, emit, load into a module, answer |
+| `run.pl` | `sscasp/3,4` — compile, emit, load into a module, answer |
+| `source.pl` | reading an s(CASP) source file, `#include` and all |
 
 Its tests live in `test/` like the rest, so there is one `make check`.
 
@@ -314,6 +315,21 @@ Three things are worth knowing about it:
   Each sub-check has **arity zero**, so its variables are body-only variables
   that the dual generator already quantifies and bounds by declared domains.
 
+**Two flags turn it off**, and they are upstream's — `scasp_compile_nmr` and
+`scasp_compile_olon`, spelled and scoped exactly as `prolog/scasp/nmr_check.pl`
+does, so that a caller setting one gets the same thing from either tree and
+both trees in one process read one flag. `nmr.pl:compiled_sources/2` filters
+the sources; `--no-nmr` drops the check altogether, odd loops included, because
+upstream empties the list *after* adding the headless rules to it and both a
+global constraint and the `:- -p, p` of a classically negated predicate are
+headless rules there. `--no-olon` drops only the rules on an odd loop.
+
+Neither is a mode to run a program in: an answer that violates a constraint is
+wrong, and with the check off nothing says so. They are for asking what a
+*query* costs on its own, which is how the four event-calculus gaps were
+traced to the one check they all wait on. `test/scasp_plunit.pl` has
+`with_scasp_flag/3` for setting either inside a test.
+
 `unbounded` lists where a quantifier has no declared domain. It is a scan, not
 decision 5's undecidability analysis — the solver's `forall` decides many of
 them at run time — but it is exactly the list of places where adding a `:- pred`
@@ -332,6 +348,62 @@ per literal, so that the coinductive check happens before a predicate's
 clauses are tried. The logical form stays what a listing shows and what the
 compiler's tests read.
 
+**A `dif/2` is destroyed by reading it.** `dif:attribute_goals//1` calls
+`del_attr/2` on each or-node as it reports it, so that a node shared by
+several variables is not reported twice; `copy_term/3` and the toplevel undo
+that and a direct call does not. `solve.pl:disequality_goals/2` calls it
+inside `\+ \+` and carries the ground excluded values out with `nb_setarg/3`
+for that reason. Anything else reaching for a variable's constraints has the
+same problem.
+
+**A loop is a variant, or an instance with no negation between.** Merely
+*unifying* with an ancestor is not a loop and reading it as one is wrong:
+`initiates(E, F, T)` unifies with an ancestor `initiates(overflow, spilling,
+15)` and is a more general question, which the ancestor says nothing about.
+Taking it for a loop binds E, F and T to that instance and then fails it as a
+positive loop — which is why `holdsAt(spilling, T)` had no proof in *any* of
+the event calculus programs. So `ancestor/4` walks past an ancestor that only
+unifies, and stops at one that is a variant of the goal, or that subsumes it
+with no negation on the path — the second being exactly "an instance of
+something already being proved from itself", hence unfounded.
+`solve.pl:check_parents/4` reads it the same way.
+
+**And a variant is a variant of the *question*, not of the store.** `=@=`
+and `subsumes_term/2` take attributes into account: `f(X) =@= f(_)` is false
+once X carries a constraint, and two variables carrying *different* ones are
+never variants. So a recursion whose steps constrain their own variable never
+looks like a loop — which is every recursion over time in an event-calculus
+program. `bec_loan` descends
+`not holdsAt(requested_on(the_borrower, 1000, 2), T)` →
+`not initiates(ends(1), is_liable_to_litigation(the_lender), T)` → the same
+pair one step earlier, and the ancestor chain reaches **6,677** frames of it.
+
+`solve.pl:same_question/2` compares the bare terms and then asks whether the
+goal is an *instance*: the ancestor's disequalities must be among the goal's
+(`herbrand_instance/2`) and its dense store must be entailed by the goal's
+(`dense_instance/2`). Both halves are needed, and simply ignoring the store
+is not the shortcut it looks like — `ancestor/4` unifies the goal with the
+ancestor it matched, so a goal that is *less* constrained would be narrowed
+by one that is more, and that unification then fails, leaving the loop
+unreported anyway. Upstream states the same rule as
+`prolog/scasp/clp/clpq.pl:entail_terms/2`.
+
+Order matters for cost, because this is asked once per ancestor per goal and
+the chain is long: functors first, then an ordinary `=@=`, and only then the
+comparison that has to take the store apart. `within/2` — `inf/2` and `sup/2`,
+simplex over the store the two already share — rejects most candidates before
+`dense_instance/2` reaches for a projection.
+
+The Herbrand half is the one that decides whether a loop is seen at all: on
+`bec_loan`, of 1,378 ancestors that are the goal's question with the stores
+set aside, only **2** are still variants with the dense store put back, so
+what separates them is the disequalities `consistent/3` posts. It is strict
+by design — it holds where they accumulate down one branch and not where two
+goals were each constrained against literals the other never met, and a
+recursion of the second kind is still not detected. That is the safe
+direction: the verdict on a positive zero-transition cycle is to **fail** the
+goal, so accepting one that does not hold would lose answers.
+
 **Coinduction is four rules, not six.** Compiling to predicates makes a goal's
 polarity static (it is the `Kind` field), so a frame records it and the number
 of negations on a path is the number of **polarity transitions** along it —
@@ -344,7 +416,7 @@ positive call to `p`.
 | the goal's negation unifies with an ancestor or a proved literal | fail |
 | an ancestor unifies with the goal, **0** transitions | by polarity — below |
 | an ancestor unifies with the goal, **even, non-zero** | succeed coinductively |
-| the goal is ground and already proved | succeed |
+| the goal is ground and already proved, **from no assumption** | succeed |
 
 There is no odd case: two frames of the same polarity have an even number of
 transitions between them by construction, so an odd loop reaches the goal's
@@ -358,15 +430,392 @@ dualising it gives `not c :- not c`, and `c` being unfounded is exactly why
 `[a, b, (c :- c), (:- not c, not b)]` has the answer set `{a, b}` and nothing
 can reach it. `test_solve.pl` pins both readings and that program.
 
-Negation is constructive through `dif/2` (decision 4), so `not q(X)` for an
-unbound X answers with the constraint rather than merely succeeding, and the
+### Constraints
+
+Two stores, because two stores is what s(CASP) is (decision 4): `dif/2` for
+Herbrand disunification and `library(clpq)` for the dense order, both reached
+through `emit.pl`'s `builtin/2`. A constraint is not a literal — it is not in
+the model and not a step in the justification. It says what the answer *is*,
+and it says it on the variable:
+
+```prolog
+?- sscasp([(p(X) :- X #> 3, X #< 10)], not p(V), M), copy_term(V,_,A).
+A = [{V =< 3}] ;
+A = [{V >= 10}].          % the complement of an interval is two regions
+```
+
+Negation over both is constructive and needs nothing special: `dual.pl` pairs
+`#<` with `#>=` and so on, so the dual of a comparison is a comparison. The
 model **shares variables with the query** — it is collected by walking, not
 with `findall/3`, which would copy the constraints away.
 
-**Still missing:** `forall/2` implements only decision 5's case 2 (the goal
-leaves the variable unconstrained) and raises otherwise; a declared domain
-makes it a complete `for_domain/3` enumeration instead. CLP(Q) and the
-justification tree are not there yet.
+The **CHS check constrains rather than tests**, which is the same move. Asking
+`not dom(X)` for an unbound X where `dom(1)` is proved is not a contradiction —
+it is one only at `X = 1` — so `consistent/3` posts `dif(Goal, Neg)` between
+literals that could be made to contradict, instead of refusing. Refusing lost
+every answer that needed the other values; the oracle went from 100
+disagreements to none on the first-order fragment when this changed.
+
+### The quantifier
+
+`forall/5` is one recursion for all of decision 5's decidable cases: solve the
+goal once, see from what the quantified variables are left constrained to
+**which part** of the domain that answer covered, then cover the rest the same
+way. The cases are not clauses any more — they fall out of what the store says
+when `snapshot/3` is asked (`residue/3`):
+
+| the answer left them alone | nothing is left — case 2 |
+| it left disequalities | the prohibited values, a finite set — case 3 |
+| it left a CLP(Q) region | the negation of each constraint — case 4 |
+
+**All of a clause's body-only variables are covered as one tuple**, not one
+nested quantifier each. `forall([B, C], Inner)` says what `forall(B, forall(C,
+Inner))` says and costs differently: covering a nest means covering C's domain
+once per region of B's, so the work is the *product* of the coverings, where
+covering the pair reads one answer's constraints on both at once and the
+pieces add up. `bec_tap_02` made 83,593 coverings of a three-variable nest,
+and none of the five event calculus programs finished; with the tuple they
+answer in milliseconds. `solve_c_forall/8` collects its nest into one
+`c_forall(Vars, Goal)` for the same reason. A variable with a *declared*
+domain keeps a `for_domain/3` of its own, outside: each value is a search
+rather than a region to complement.
+
+The tuple also decides what an answer that **binds** may do. Per variable it
+could be rejected outright — a point covers nothing of an infinite domain — and
+the goal asked for another; a tuple answer with one component bound is the
+ordinary case, and refusing it costs `queens.pl` and `family.pl` every answer
+they have. So a ground binding is accepted and its complement is the
+disequality, which is `find_duals/4` upstream. It is not free: `queens.pl`
+goes from 0.063 s to 0.34 s.
+
+#### One rule, three places
+
+Everything that made the quantifier loop was the same mistake: **negating a
+constraint that relates the quantified variable to something the answer
+itself invented**. Such a constraint says nothing about the variable — its
+true projection is `true` — so its negation narrows nothing, the next answer
+invents another, and the recursion adds a level per round without closing.
+
+It has to be got right in four places, because four things can produce one:
+
+| | |
+|---|---|
+| the linear store | `dump/3`, never `copy_term/3` — the latter reports the store in internal form with **slack variables** |
+| CLP(Q) disequalities | `dump/3` cannot eliminate a variable from `A + B =\= c`, so drop constraints whose variables are not exactly the quantified one |
+| `dif/2`, per variable | the excluded value must be **ground**; `dif(T, X)` for free X excludes one unknown point |
+| `dif/2`, jointly | `escapable/3` — a disequality that differs at a position holding an invented variable can be satisfied by moving *it*, so it says nothing about the quantified ones at all |
+
+The last is the same rule as the second, arrived at later: `consistent/3`
+posts a disequality between **whole literals**, so `dif(f(A, C), f(B,
+tapOff))` with C a variable of the literal compared against is the ordinary
+shape rather than a corner case — 27,767 of the 49,818 disequalities
+`bec_tap_01` reads. "Invented" is meant strictly: a variable in the dense
+store may be pinned to a point, so those keep the over-approximation.
+
+**A constraint said twice says nothing the second time.** `disequalities/4`
+**sorts**, and that is not tidiness. `consistent/3` posts one disequality per
+proved literal a goal might contradict; several collapse to the same thing
+once the answer has bound what they differ in, and `bec_tap_01` reaches a
+quantifier carrying `dif(T, 5)` eight times from eight different pairs of
+literals. The disjoint decomposition then turns each duplicate into a piece
+of complement that contradicts the piece before it — ten pieces where three
+are the answer. The old implementation never had this: `loop_term/2` posts
+one *per-argument* exclusion into the `∉` store, which is idempotent per
+variable. Together with `escapable/3` this is 7.8 complement pieces per
+covering down to 1.43.
+
+Each one on its own took an event-calculus program from looping to
+terminating, and each looked like slowness until the narrowing was printed.
+`bec_tap_01` carried a region of 155 constraints, every one of the form
+`Slot + _Fresh =\= 15`.
+
+The complement is also decomposed **disjointly** — `(¬C₁) ∨ (C₁ ∧ ¬C₂) ∨ …`
+rather than a bare `¬Cᵢ` each time, which is what `solve.pl:make_duals/2`
+does upstream. Both are correct; this one does not re-cover ground the answer
+has already ruled out.
+
+**One covering, and then somewhere else.** A covering is a *proof* that the
+goal holds everywhere, and the goal holding everywhere is one fact however
+many ways there are to show it — so a second covering of the same ground is a
+second copy of the same answer. `bec_light` enumerating its answers gave
+**500 answers carrying one model** and never finished. So the covering is
+committed to, and the alternatives come from partitioning the goal's *other*
+variables against what it fixed them to. That is
+`solve.pl:solve_other_forall/11`'s shape and **decision 5c reversed**: the
+decision was right that cutting alone loses answers — it leaves `family.pl`'s
+NMR check and `bec_tap_01`'s query with none — and wrong that the cut was
+therefore not transferable.
+
+**And the complement leaves nothing behind but its narrowing.** A branch
+contributes no proof, and it must contribute no *constraint store* either:
+it invents variables, CLP(Q) keeps every variable a constraint ever reached
+in one class, and nothing collects the ones that go out of scope, so the
+class grows by everything every branch ever touched and `dump/3` — Fourier–
+Motzkin over that class — is asked once per covering. `solve.pl:covered/7`
+runs the whole complement inside a run that `fail` undoes and carries **one**
+snapshot of the caller's variables back out over fresh plain names. That is
+what made the event-calculus family answer; the details, and the two things
+that did not work, are under the corpus below.
+
+Three things it needs. The commitment is to the covering of the whole
+**nest**, since `dualise.pl` nests one quantifier per body-only variable and
+the outermost's search runs through them all; committing at each level costs
+9.2 s of `make check` against 4.8 s for no answer either way. The snapshot is
+**projected** with `dump/3`, for the reason below — an unprojected constraint
+would invent a variable again on every round. And nothing attributed leaves
+the discarded run: the covering is run once more, `fail` undoes it and
+`nb_setarg/3` carries out a description over fresh plain names, so no
+constraint store is copied. That second run is only paid when a second answer
+is asked for.
+
+An answer that **binds** the variable is rejected and the goal asked for
+another: it covers one point of an infinite domain, so no finite number of
+them could cover it, and any real covering contains an answer that leaves the
+variable free or in a region — the points then fall out of *that* answer's
+complement. Enumerating them instead is not a small waste: it took 37 s on a
+five-clause program the old implementation answers in 9 ms.
+
+Where the domain really is finite it has to be declared, and `for_domain/6`
+enumerates it — including a range, which compiles to a CLP(Q) region and is
+covered rather than listed. That is case 6 against case 1, and the difference
+is one annotation.
+
+### The justification
+
+`sscasp/4` returns it. It is not a second structure: the proof the solver
+threads up **is** the tree. A node is `n(Goal, Status, Children)`, and a
+literal's children are exactly what its body added — the body gets the
+literal's own `S0` and returns `S2`, a proof is only ever prepended to, so
+`S0` is a suffix of `S2` and `children/3` splits it by walking to the shared
+tail.
+
+```prolog
+?- sscasp([(p :- not q), (q :- not p)], p, M, J).
+M = [p, not q],
+J = [p-[(not q)-[chs(p)-[]]], nmr-[]].
+```
+
+`chs/1` marks a literal established by the coinductive hypothesis and
+`proved/1` one an earlier branch established; showing them is the point, since
+a justification that dropped them would claim a literal was proved from
+nothing. Built-ins are not steps — `dif(X, 1)` is a constraint on the answer,
+already said on the variable. The query's literals are at the top and
+everything the NMR check needed is under one `nmr` node: same proof, different
+question.
+
+The model is the literals of that forest, sorted, and nothing else — which is
+`doc/design-next.md` open question 5's property (the model is a function of
+the proof) holding by construction rather than by measurement.
+
+### Against the corpus
+
+`test/test_corpus.pl` points the new implementation at `test/all_programs/`
+and compares the models with the `.pass` data. That is a *different* kind of
+evidence from the oracle: `stable_models.pl` shares no design decision with
+either implementation and can say who is right, while the corpus shares all
+of them with the old one and can only say whether they agree. Both matter,
+and the corpus is what says whether the reimplementation is finished.
+
+#### Where it stands
+
+Every golden program, **both implementations in one process**, at the same
+moment, all answers enumerated:
+
+| | old | new | |
+|---|---|---|---|
+| `hanoi` | 1 answer, 0.042 s | 1, **0.005 s** | 7.7× |
+| `hanoi_7` | 1, 0.013 s | 1, **0.003 s** | 5.2× |
+| `hanoi_scasp_7` | 1, 0.015 s | 1, **0.003 s** | 4.9× |
+| `queens` | 2, 0.980 s | 2, **0.35 s** | 2.8× |
+| `bec_tap_04` | 2, 0.053 s | 2, **0.031 s** | 1.7× |
+| `birds` | 1, 0.004 s | 1, **0.003 s** | 1.5× |
+| `bec_light` | 2, 0.062 s | 2, **0.39 s** | 0.2× |
+| `classic_negation_inconstistent`, `family`, `forall_arity`, `haplotype`, `min_model`, `olon_unreachable`, `pq`, `rat`, `solve_findall`, `vars` | | same count, 1.3–1.6× | |
+| `bec_tap_01` | 1, 0.028 s | 1, **0.087 s** | 0.3× |
+| `bec_tap_02` | 1, 0.028 s | 1, **0.086 s** | 0.3× |
+| `bec_tap_03` | 2, 0.034 s | 2, **0.171 s** | 0.2× |
+| `bec_loan` | 4, ~0.03 s | **no answer in 120 s** | |
+
+**20 of 21 match the old implementation's answer count.** The one that does
+not is the gap list below, and the three that used to be beside it are worth
+reading about: they answered in milliseconds until `disequality_goals/2`
+stopped **deleting**
+the disequalities it read. `dif:attribute_goals//1` calls `del_attr/2` on each
+or-node as it reports it — `copy_term/3` and the toplevel undo that, a direct
+call does not — so a quantifier that read a variable's disequalities destroyed
+them, covered a domain it had not covered, and lost the narrowing a branch had
+just applied. `lion.pl` reached a narrowing **964 deep** and proved
+`-live(rat, apartment)` alongside `not -live(rat, apartment)`.
+
+Reading them without destroying them is six lines and is not optional. What it
+costs is the measure of what those programs were getting for free: one
+sub-check of `bec_tap_01` goes from **8 coverings to 4,859**, because every
+value `consistent/3` excludes is a piece of the domain the quantifier has to
+cover. Those pieces are not spurious — leaving consistency constraints out of
+the region makes `queens.pl` answer 256 times instead of twice, and so does
+projecting a compound disequality only where the terms agree elsewhere. The
+work is real and the quantifier has to get cheaper at it.
+
+**Two strengths of agreement**, because models legitimately differ where
+proofs do (open question 5 again). `answers_agree/1` asks whether the two
+implementations bind the **query** the same way — that is what was asked for,
+and a difference in it means something about the program. `agrees/1`
+additionally requires the models to match, which is a real regression test but
+not the definition of correct: `hanoi_scasp_7`'s golden model is a strict
+*subset* of ours, missing the `not negmove(...)` that proving each `move(...)`
+needs.
+
+**20 of 21 golden programs agree on the answer; 11 of those also on the
+model.** The rest are in `gap/2` with a reason, and their test asserts they
+still *fail* — so a gap cannot outlive the problem it records, exactly as
+`known_issues.pl` works:
+
+| `slow` | `bec_loan` — its query answers in 0.027 s; its NMR check opens a quantifier over a seven-variable tuple, measured below |
+| `comparison` | `hanoi_scasp_7` — the golden model has no query literal to read an answer out of |
+
+##### What the event-calculus family was waiting for
+
+**Not the queries.** With `scasp_compile_nmr` set to false, `bec_tap_01`
+answers all ten of the queries written in its comments in **6–19 ms**, and
+agrees with the old implementation on every one — including
+`holdsAt(leak(L), 14)`, where both say no and the comment says `L = 0`.
+`test_corpus.pl:corpus_without_nmr` pins that, and it was the measurement
+that found the rest: what did not terminate was the **NMR check** that
+`sscasp/3` appends to every query — here one classical-negation consistency
+check, `:- -holdsAt(F, T), holdsAt(F, T)`, quantified over every fluent and
+every time. (Comparing against the old implementation without it is not
+like-for-like: `solve/4` takes the query alone, and `solve([Q, o_nmr_check],
+...)` is the call to make.)
+
+That check reaches `not holdsAt(filling, T)` for `T > 20`, a goal **neither
+implementation could prove** — `holdsAt(filling, 25)` fails in 19 ms and its
+dual did not terminate in either tree. The old one never reaches it: it
+covers the check out of the first dual clause alone, `not -holdsAt(F, T)`,
+and never calls `not holdsAt` at all. That covering cannot be right, because
+`-holdsAt(filling, 25)` is **true** — `tapOff` terminates `filling` at 20 and
+nothing restarts it, and we prove it in 3 ms — so `not -holdsAt(filling, 25)`
+is false and the first clause does not cover the domain. Asked directly, the
+old implementation answers `-holdsAt(filling, 25)` no. **It prunes too much**,
+and matching its timings would have meant reproducing that.
+
+###### What the fix turned out to be
+
+`solve.pl:covered/7`. **The complement leaves its constraint store behind.**
+A branch already contributes no proof; what it also must not contribute is a
+store. A branch invents variables, CLP(Q) keeps every variable a constraint
+ever reached in one class, and nothing collects the ones that go out of
+scope — so the class grew by everything every branch had ever touched, and
+`dump/3` is Fourier–Motzkin over that class, asked once per covering. The
+quantifier got quadratically slower at the thing it does most: a class of 199
+variables on `not holdsAt(level(10), T)` for `T > 5`, 67 ms a projection,
+no answer in 20 s.
+
+So the complement is covered inside a run that `fail` undoes, and **one**
+snapshot of the caller's variables comes back out through `nb_setarg/3` over
+fresh plain names — the device `elsewhere/7` already uses. Three things it
+needs:
+
+- **The narrowing has to survive.** `not s(B)` for `s(B) :- u(X), X #> B,
+  X #< B+3` over `u(5)` holds where 5 is outside the window, and that is said
+  by the branch covering X = 5, not by the first answer. Dropping it makes
+  `not s(4)` succeed, which is the one test that fails if the store is simply
+  discarded.
+- **One snapshot, not one per branch.** The branches are a conjunction, so
+  what survives them is the projection of the store they leave. Taking it per
+  branch was 12.4 of `bec_tap_01`'s 20 seconds and bought nothing.
+- **The complement is covered once.** Without `once/1` the run is not a run
+  but an enumeration of every way to cover it, and even
+  `not holdsAt(level(10), T)`, which answers in 4 ms, does not finish.
+
+`not holdsAt(filling, 25)`: **yes in 42 ms**. `bec_tap_01`, `bec_tap_02` and
+`bec_tap_03` answer, agreeing with the golden data, and `queens` is unmoved
+at 0.21 s.
+
+###### And what `bec_loan` is still waiting for
+
+Not a descent any more — `same_question/2` (above) takes its ancestor chain
+from 6,677 frames to 21, and with the NMR check off its query
+`?- holdsAt(F, T).` answers in **0.027 s** where it used to answer never.
+`test_corpus.pl` pins that.
+
+What is left is the size of the search its NMR check opens. The check is the
+same classical-negation consistency check as `bec_tap_01`'s, but `bec_loan`
+has seven `initiates` clauses and one of them,
+
+    initiates(ends(_), is_potentially_defaulted(B), A) :-
+        B = pays_to(C, D, E), is_due_on_from_to(D, A, C, E),
+        holdsAt(it_is(F), F), not holdsAt(paid_to_on(C, D, E, _), F).
+
+dualises to a quantifier over **seven** body-only variables in one tuple.
+The search is 39,507 goals in 10 seconds at depth 20 — wide, not deep, and
+spread evenly over all seven clauses' duals. That is a different problem from
+the ones above, and the first thing to measure is whether it terminates at
+all.
+
+What the corpus no longer measures, the oracle does. Widening the differential
+sweep to 4,410 seeded programs turned up **one** disagreement — a program with
+no answer set that both implementations answer anyway. It is fixed, and the
+sweep is now clean:
+
+```prolog
+p :- not q, r.        % the only answer set is {q}
+q :- not r.
+r :- p.
+```
+
+`p` needs `r` and `r` needs `p`, a loop over no negation and so unfounded. The
+route is `p` → `not q` → (`q`'s dual needs `r`) → `r` → `r :- p` → `chs(p)`,
+two negations, so the even-loop rule lets it stand; then **`r` is reused for
+`p`'s own body as already proved**, closing the positive loop unnoticed. The
+old implementation answers `p` too, and then fails `r` — a literal in the
+model it just reported.
+
+`proved/4` now records whether a proof rested on the coinductive hypothesis
+and `check/7` reuses only one that did not. P4 §3.2 offers the reuse as an
+optimisation ("it avoids recomputation"), and qualifying it costs 4% of the
+sweep and nothing measurable on the corpus; dropping it altogether costs the
+sweep 19.5 s against 217 s, which is why the rule is about the *proof* rather
+than about the reuse.
+
+Notable: `clpq_equality.pl`, which the old implementation does not terminate
+on (`known_issues.pl`), answers here in half a millisecond.
+
+### Two things that made the quantifier unusable
+
+`queens.pl` did not finish in two minutes; it now answers in 0.26 s, against
+0.95 s for the old implementation. Both causes were found by measuring rather
+than reading, and both are worth knowing about before touching `solve.pl`:
+
+- **The proof-literal lookup was unindexed.** `consistent/3` walked the whole
+  proof forest for every literal, which is quadratic in the proof. The proof
+  now carries an index from `Name/Arity` to the goals proved under it, which
+  is what the old implementation does (`proved_relatives/3`). It is *derived*
+  state, which decision 3 was wary of — but that decision objects to
+  **rebuilding** one structure from another on every entry, which is what
+  `stack_parents/2` and `stack_proved/2` do; this is maintained as the proof
+  grows and shares the goal terms.
+
+- **A quantifier's branches accumulated proofs.** `cover_each/6` threaded each
+  branch's proof into the next, so every branch re-solved the same goal and
+  added a near-duplicate. The proof doubled per level: **131,135 nodes** on
+  `queens.pl` holding 1.3M attributed variables, where the answer has 53
+  literals. That is what exhausted a 4 GB stack — inside `term_attvars/2`, at
+  frame depth 85, so a small search over enormous terms rather than a deep
+  one. Branches now **check** without contributing; the quantifier's proof is
+  the one its first answer gave, as `solve_other_forall/11` also keeps.
+
+A consequence worth stating: a model no longer contains what only a
+complement branch established, which is why the model comparison is the
+stricter of the corpus's two checks rather than the definition of agreement.
+
+**Still missing:** `∉`, `:- prolog p/2`, and the renderers — a model still
+comes back as literals with attributes rather than with the store inlined,
+which is what `output.pl` does for the old one. `findall/3` solves its goal
+rather than calling it, so what the collection proved is in the model; its
+negation is refused rather than failed. `#abducible` is four rules, two of
+them an even loop, and gets **no** `:- p, -p` sub-check — proving that means
+proving `not -p(X)` for a quantified X, which decides the abducible for every
+individual at once (`abdbirds.pl`: 3 answers without it, 48 with).
 
 ### Testing the new tree
 
@@ -378,14 +827,17 @@ justification tree are not there yet.
 | `test/test_graph.pl` | odd loops, against brute-force cycle enumeration |
 | `test/test_nmr.pl`, `test_compile.pl` | the NMR check and the whole pipeline |
 | `test/test_emit.pl` | the threading and the wrappers |
-| `test/test_solve.pl` | the solver, and **the oracle** |
+| `test/test_solve.pl` | the solver, the constraints, the quantifier, and **the oracle** |
+| `test/test_corpus.pl` | the golden corpus, and what the four slow gaps answer with the NMR check off |
 
 Two units compare an argument against something that enumerates, because two
 steps here are arguments rather than transcriptions: `test_graph.pl` checks
 the balance criterion against brute-force cycle enumeration, and
-`test_solve.pl` checks brave entailment against `test/stable_models.pl` on 340
-seeded random programs. Widening either sweep is a one-line change to a
-`shape/N` fact.
+`test_solve.pl` checks brave entailment against `test/stable_models.pl` on 420
+seeded random programs — propositional, classically negated, first-order and
+CLP(Q). The last two are what bring the *quantifier* into range, since the NMR
+sub-check of a rule with a variable is a `forall` over it. Widening either
+sweep is a one-line change to a `shape/N` fact.
 
 ## Architecture
 

@@ -53,6 +53,13 @@ comparisons pair off:
 | `A #= B` | `A #<> B` |
 | `A #< B` | `A #>= B` |
 | `A #> B` | `A #=< B` |
+| `A < B` | `A >= B` |
+| `A is B` | `not (A is B)` |
+
+`is/2` is the one with no partner.  It is a *function*, not a relation that
+can be turned round, so its negation stays a negation and the compiler emits
+it as "evaluate the right side and disagree with it" — which is constructive
+in the left one, where `\+ (A is B)` would only fail.
 
 `#=` negates to a *single* literal rather than splitting into `#<` and `#>`.
 The complement of a point is two regions, but that is the solver's business:
@@ -88,6 +95,18 @@ dual_operator(Goal, Dual) :-
     !,
     Goal =.. [_, A, B],
     Dual =.. [DualName, A, B].
+
+%   Prolog's arithmetic comparisons pair off like the CLP ones.  They
+%   are not the same relation — these evaluate and test, where `#<`
+%   constrains — but a program may use either and negating one has to
+%   give the other.
+
+dual_pair(<,   >=).
+dual_pair(>=,  <).
+dual_pair(>,   =<).
+dual_pair(=<,  >).
+dual_pair(=:=, =\=).
+dual_pair(=\=, =:=).
 
 dual_pair(=,   \=).
 dual_pair(\=,  =).
@@ -140,7 +159,33 @@ clause_duals([Literal|Literals], Prefix, [Dual|Duals]) :-
 body_variables(Head, Body, BodyOnly) :-
     term_variables(Head, HeadVars),
     term_variables(Body, BodyVars),
-    exclude_vars(BodyVars, HeadVars, BodyOnly).
+    quantified(Body, Bound, HeadVars),
+    exclude_vars(BodyVars, Bound, BodyOnly).
+
+%!  quantified(+Body, -Bound, +Tail) is det.
+%
+%   The variables a `forall/2` the *author wrote* already binds.  They
+%   are not body-only variables to quantify: the clause says what it
+%   means about them, and the dual of `forall(X, g(X))` is
+%   "for **some** X, not g(X)" — which is a variable left free, not
+%   another quantifier.
+
+quantified(Term, Vars, Tail) :-
+    (   var(Term)
+    ->  Vars = Tail
+    ;   Term = forall(Var, Goal)
+    ->  Vars = [Var|More],
+        quantified(Goal, More, Tail)
+    ;   Term = [Goal|Goals]
+    ->  quantified(Goal, Vars, Middle),
+        quantified(Goals, Middle, Tail)
+    ;   Term = (A, B)
+    ->  quantified(A, Vars, Middle),
+        quantified(B, Middle, Tail)
+    ;   Term = not(Goal)
+    ->  quantified(Goal, Vars, Tail)
+    ;   Vars = Tail
+    ).
 
 exclude_vars([], _, []).
 exclude_vars([Var|Vars], Exclude, Rest) :-

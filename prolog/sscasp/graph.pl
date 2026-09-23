@@ -123,6 +123,7 @@ body_literal(Var, _) :-
 body_literal((A, B), L) :- !, (body_literal(A, L) ; body_literal(B, L)).
 body_literal((A ; B), L) :- !, (body_literal(A, L) ; body_literal(B, L)).
 body_literal((A -> B), L) :- !, (body_literal(A, L) ; body_literal(B, L)).
+body_literal(findall(_, A, _), L) :- !, body_literal(A, L).
 body_literal(L, L).
 
 %!  literal_node(+Literal, -Node, -Sign) is semidet.
@@ -145,6 +146,12 @@ flip(-, +).
 
 %!  node(+Literal, -Node) is det.
 
+node(abducible(-(Goal)), key(abducibleneg, PI)) :-
+    !,
+    pi(Goal, PI).
+node(abducible(Goal), key(abducible, PI)) :-
+    !,
+    pi(Goal, PI).
 node(-(Goal), key(neg, PI)) :-
     !,
     pi(Goal, PI).

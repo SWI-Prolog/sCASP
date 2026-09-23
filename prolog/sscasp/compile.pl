@@ -79,7 +79,8 @@ compile_program(Module, Terms, Program) :-
     program_annotations(Terms, Annotations),
     annotation_clauses(Annotations, DomainClauses),
     program_clauses(Terms, UserClauses),
-    append(DomainClauses, UserClauses, Clauses),
+    abducible_clauses(Terms, Abducibles),
+    append([DomainClauses, UserClauses, Abducibles], Clauses),
     constraints(Terms, Constraints),
     predicate_groups(Clauses, Groups),
     maplist(compile_predicate(Module, Annotations), Groups, Compiled),
@@ -117,10 +118,27 @@ olon_source(Clause, olon(Clause)).
 constraint_source(Body, constraint(Body)).
 
 consistency_source(Groups, consistency(Name/Arity, Denial)) :-
-    member(key(neg, Name/Arity)-_, Groups),
+    member(key(neg, Name/Arity)-Clauses, Groups),
     memberchk(key(plain, Name/Arity)-_, Groups),
+    \+ abduced_only(Clauses),
     functor(Positive, Name, Arity),
-    Denial = (Positive, -(Positive)).
+    Denial = (-(Positive), Positive).
+
+%   An abducible needs no such check and must not have one.  Its even
+%   loop already makes the two halves exclusive — assuming both means
+%   holding `abducible(p(X))` and `not abducible(p(X))` in one proof, and
+%   `solve.pl:consistent/3` rejects that where the literal is, which is
+%   the cheap place to reject it.
+%
+%   The check is not merely redundant: proving it means proving
+%   `not -p(X)` for a *quantified* X, and the only way to do that is to
+%   assume `p(X)` — so the check decides the abducible for every
+%   individual at once, and the answers multiply by the number of ways
+%   to do it.  `abdbirds.pl` gives 3 answers without it and 48 with.
+
+abduced_only(Clauses) :-
+    forall(member(Clause, Clauses),
+           Clause = (-(Head) :- abducible(-(Head)))).
 
 %!  compile_predicate(+Module, +Annotations, +Group, -Clauses) is det.
 %
@@ -139,6 +157,10 @@ compile_predicate(Module, Annotations, key(Polarity, PI)-Clauses, Compiled) :-
 %   the negation of *classical* `-p' rather than of `p' is carried by the
 %   `dualneg' kind, not by the term.
 
+strip_polarity((abducible(-(Head)) :- Body), (Head :- Body)) :- !.
+strip_polarity((abducible(Head) :- Body), (Head :- Body)) :- !.
+strip_polarity(abducible(-(Head)), Head) :- !.
+strip_polarity(abducible(Head), Head) :- !.
 strip_polarity((-(Head) :- Body), (Head :- Body)) :- !.
 strip_polarity(-(Head), Head) :- !.
 strip_polarity(Clause, Clause).
@@ -184,9 +206,48 @@ program_clauses(Terms, Clauses) :-
 constraints(Terms, Constraints) :-
     findall(Body,
             ( member((:- Body), Terms),
-              \+ annotation(Body, _)
+              \+ annotation(Body, _),
+              \+ Body = abducible(_)
             ),
             Constraints).
+
+%!  abducible_clauses(+Terms, -Clauses) is det.
+%
+%   `#abducible p(X)` says p(X) may be assumed, either way, with nothing
+%   to prove.  Written out:
+%
+%       p(X)             :- abducible(p(X)).
+%       -p(X)            :- abducible(-p(X)).
+%       abducible(p(X))  :- not abducible(-p(X)).
+%       abducible(-p(X)) :- not abducible(p(X)).
+%
+%   The last two are an **even** loop over negation, and an even loop is
+%   exactly a free choice: the solver meets the call again across two
+%   negations, the coinductive hypothesis lets it stand, and neither half
+%   is preferred.  That is the whole mechanism — there is no special case
+%   in the solver for an abducible.
+%
+%   `abducible/1` is a wrapper on the head, like `-`/1, rather than a
+%   predicate of its own: two abducibles must be two predicates, not two
+%   clauses of one, or assuming either would decide the other.
+%   `head_key/2` keys it, `dualise.pl:goal_kind/6` mangles it and
+%   `graph.pl:node/2` keeps the loop out of the NMR check — which it is
+%   not: nothing here says anything must *not* hold.
+%
+%   Generated as source rather than as compiled clauses because `p` may
+%   have rules of its own, and then its dual has to account for both.
+
+abducible_clauses(Terms, Clauses) :-
+    findall(Clause,
+            ( member((:- abducible(Head)), Terms),
+              abducible_clause(Head, Clause)
+            ),
+            Clauses).
+
+abducible_clause(Head, (Head :- abducible(Head))).
+abducible_clause(Head, (-(Head) :- abducible(-(Head)))).
+abducible_clause(Head, (abducible(Head) :- not(abducible(-(Head))))).
+abducible_clause(Head, (abducible(-(Head)) :- not(abducible(Head)))).
 
 %!  predicate_groups(+Clauses, -Groups) is det.
 %
@@ -214,6 +275,12 @@ select_group(Key, Groups, Before, Clauses, After) :-
 clause_key((Head :- _), Key) :- !, head_key(Head, Key).
 clause_key(Fact, Key) :- head_key(Fact, Key).
 
+head_key(abducible(-(Head)), key(abducibleneg, Name/Arity)) :-
+    !,
+    head_parts(Head, Name, Arity).
+head_key(abducible(Head), key(abducible, Name/Arity)) :-
+    !,
+    head_parts(Head, Name, Arity).
 head_key(-(Head), key(neg, Name/Arity)) :-
     !,
     head_parts(Head, Name, Arity).
@@ -301,6 +368,7 @@ body_goal(forall(_, A), Goal) :- !, body_goal(A, Goal).
 body_goal(for_domain(_, Gen, A), Goal) :-
     !,
     (body_goal(Gen, Goal) ; body_goal(A, Goal)).
+body_goal(findall(_, A, _), Goal) :- !, body_goal(A, Goal).
 body_goal(Goal, Goal).
 
 		 /*******************************

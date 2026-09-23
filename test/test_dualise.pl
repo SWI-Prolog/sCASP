@@ -88,7 +88,7 @@ test(a_fact_dualises_to_a_disequality) :-
 test(a_body_variable_becomes_a_forall) :-
     example(Duals),
     nth1(3, Duals, Clause),
-    Clause = ('m$dual.2$p$1'(A) :- forall(B, Inner)),
+    Clause = ('m$dual.2$p$1'(A) :- forall([B], Inner)),
     assertion(Inner == 'm$dual.2.inner$p$1'(A, B)).
 
 test(the_innermost_dual_has_one_clause_per_literal) :-
@@ -100,13 +100,17 @@ test(the_innermost_dual_has_one_clause_per_literal) :-
     Second = ('m$dual.2.inner$p$1'(A2, B) :- B2),
     assertion(B2 == ('m$plain$q$1'(A2), 'm$plain$t$2'(A2, B))).
 
-%   Two body variables share one innermost dual, nested outermost first,
-%   rather than taking one each.
+%   Two body variables share one innermost dual, and take **one**
+%   quantifier between them rather than one each.  Nesting says the same
+%   thing and costs the product of the two coverings rather than their
+%   sum; `bec_tap_02` made 83,593 coverings of a three-variable nest and
+%   a few dozen of the tuple.
 
-test(two_body_variables_nest_and_share) :-
+test(two_body_variables_take_one_quantifier) :-
     duals([], p/1, [(p(X) :- t(X, Y, Z), u(Y, Z))], Duals),
     nth1(2, Duals, Clause),
-    Clause = ('m$dual.1$p$1'(_) :- forall(_, forall(_, Inner))),
+    Clause = ('m$dual.1$p$1'(_) :- forall(Quantified, Inner)),
+    assertion(Quantified = [_, _]),
     functor(Inner, Name, Arity),
     assertion(Name == 'm$dual.1.inner$p$1'),
     assertion(Arity == 3).
@@ -153,6 +157,34 @@ test(builtins_are_left_alone, [forall(member(G, [ (_ = _), (_ \= _),
 test(a_goal_that_is_not_a_builtin_is_renamed) :-
     translate_goal(m, edge(a, b), Call),
     assertion(Call == 'm$plain$edge$2'(a, b)).
+
+%   `findall/3` is a built-in whose second argument is a *goal*, so the
+%   translation goes inside it and the conjunction inside that.
+
+test(findall_is_translated_through_its_goal) :-
+    translate_goal(m, findall(X, (q(X), r(X)), L), Call),
+    assertion(Call =@= findall(A, ('m$plain$q$1'(A), 'm$plain$r$1'(A)), L)).
+
+%   And its negation has to be named, or the clause for `not/1` reads it
+%   as a user predicate called `findall`, dualises *that*, and closes it
+%   as undefined — so `not p` succeeds for a p that holds.
+
+test(and_so_is_its_negation) :-
+    translate_goal(m, not(findall(X, q(X), L)), Call),
+    assertion(Call =@= not(findall(A, 'm$plain$q$1'(A), L))).
+
+%   An abducible's two halves are literals of their own, with kinds of
+%   their own: two abducibles must not be two clauses of one predicate.
+
+test(the_halves_of_an_abducible_take_their_own_kinds) :-
+    translate_goal(m, abducible(p(X)), Positive),
+    translate_goal(m, abducible(-(p(X))), Negative),
+    translate_goal(m, not(abducible(p(X))), NotPositive),
+    translate_goal(m, not(abducible(-(p(X)))), NotNegative),
+    assertion(Positive    == 'm$abducible$p$1'(X)),
+    assertion(Negative    == 'm$abducibleneg$p$1'(X)),
+    assertion(NotPositive == 'm$dualabducible$p$1'(X)),
+    assertion(NotNegative == 'm$dualabducibleneg$p$1'(X)).
 
 :- end_tests(dualise_goals).
 

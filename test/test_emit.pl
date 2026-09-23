@@ -32,7 +32,7 @@ test_emit :-
 
 emitted(Terms, Clauses) :-
     compile_program(m, Terms, Program),
-    runnable_program(Program, Clauses).
+    runnable_program(program, Program, Clauses).
 
 clause_for(Clauses, Name, Clause) :-
     member(Clause, Clauses),
@@ -115,7 +115,7 @@ wrapper(Terms, Name, Goal, Neg, Polarity) :-
     emitted(Terms, Clauses),
     once(clause_for(Clauses, Name, Clause)),
     Clause = (_ :- Body),
-    Body = (sscasp_solve:check(Goal, Neg, Polarity, _, _, _, _, _), _).
+    Body = (sscasp_solve:check(Goal, Neg, Polarity, _, _, _, _), _).
 
 %   The goal, its negation and its polarity are constants the compiler
 %   knows from the `Kind` field, so nothing is demangled while solving.
@@ -142,7 +142,7 @@ test(the_arguments_are_shared_with_the_head) :-
     emitted([q(1)], Clauses),
     once(clause_for(Clauses, 'm$plain$q$1', Clause)),
     Clause = ('m$plain$q$1'(A, _, _, _) :- Body),
-    Body = (sscasp_solve:check(Goal, Neg, _, _, _, _, _, _), _),
+    Body = (sscasp_solve:check(Goal, Neg, _, _, _, _, _), _),
     assertion(Goal == 'm$plain$q$1'(A)),
     assertion(Neg == 'm$dual$q$1'(A)).
 
@@ -164,6 +164,24 @@ test(a_sub_check_has_no_wrapper) :-
     assertion(\+ defines(Clauses, 'm$body.dualchk.1$$0'/3)).
 
 %   One wrapper per predicate, however many clauses it has.
+
+%   `proved/4` gets both the proof before the body ran and the proof
+%   after, because the difference between them is the literal's
+%   children — which is how the justification comes back as a tree with
+%   no second structure to carry it.
+
+test(the_wrapper_hands_the_children_to_proved) :-
+    emitted([(p :- q), q], Clauses),
+    once(clause_for(Clauses, 'm$plain$p$0', Clause)),
+    Clause = ('m$plain$p$0'(_, S0, S) :- Body),
+    Body = (_, ( _ -> 'm$body.plain$p$0'(_, In, Out),
+                       sscasp_solve:proved(_, Before, After, Result)
+               ; sscasp_solve:done(_, _, _, _)
+               )),
+    assertion(In == S0),
+    assertion(Before == S0),
+    assertion(After == Out),
+    assertion(Result == S).
 
 test(one_wrapper_per_predicate) :-
     emitted([p(1), p(2), p(3)], Clauses),
@@ -229,14 +247,25 @@ test(for_domain_goes_to_the_runtime) :-
     emitted(Terms, Clauses),
     once(clause_for(Clauses, 'm$dual.1$p$1', Clause)),
     Clause = (_ :- sscasp_solve:for_domain(V, Gen, Goal, Anc, S0, S)),
-    assertion(Gen == 'm$plain$d$1'(V)),
-    assertion(Goal = 'm$dual.1.inner$p$1'(_, V)),
+    assertion(Gen == program:'m$plain$d$1'(V)),
+    assertion(Goal = program:'m$dual.1.inner$p$1'(_, V)),
     assertion(var(Anc)), assertion(var(S0)), assertion(var(S)).
+
+%   Qualified with the module the clauses will live in.  A
+%   `meta_predicate` declaration would be the usual way to carry the
+%   module across, but it applies when a clause is *compiled* and these
+%   are asserted, so the runtime would look in its own module.
+
+test(the_quantifier_goals_say_which_module_to_call_them_in) :-
+    emitted([(p(X) :- q(X), not t(X, _)), q(1)], Clauses),
+    once(clause_for(Clauses, 'm$dual.1$p$1', Clause)),
+    Clause = (_ :- sscasp_solve:forall(_, Module:_, _, _, _)),
+    assertion(Module == program).
 
 test(an_unbounded_quantifier_goes_to_the_runtime_too) :-
     emitted([(p(X) :- q(X), not t(X, _)), q(1)], Clauses),
     once(clause_for(Clauses, 'm$dual.1$p$1', Clause)),
-    Clause = (_ :- sscasp_solve:forall(V, Goal, _, _, _)),
+    Clause = (_ :- sscasp_solve:forall(V, _:Goal, _, _, _)),
     assertion(Goal = 'm$dual.1.inner$p$1'(_, V)).
 
 :- end_tests(emit_quantifiers).

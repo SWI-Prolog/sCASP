@@ -27,6 +27,7 @@ test_compile :-
                 compile_domains,
                 compile_closure,
                 compile_nmr,
+                compile_abducibles,
                 compile_unbounded
               ]).
 
@@ -298,7 +299,7 @@ test(the_sub_check_duals_are_in_the_program) :-
 
 test(a_classically_negated_predicate_gets_a_consistency_check) :-
     compiled([(p(X) :- q(X)), (-(p(X)) :- r(X)), q(1), r(2)], P),
-    assertion(P.nmr.checks =@= [check(1, consistency(p/1), (p(A), -(p(A))))]).
+    assertion(P.nmr.checks =@= [check(1, consistency(p/1), (-(p(A)), p(A)))]).
 
 %   Only where both polarities have clauses: if either has none it is
 %   false of everything and the conjunction could not hold anyway.
@@ -311,6 +312,23 @@ test(nor_when_the_negative_is_only_called) :-
     compiled([(p(X) :- q(X), not(-(p(X)))), q(1)], P),
     assertion(P.nmr.checks == []).
 
+%   An abducible does not get one, and the reason is not that it is
+%   redundant.  Proving `not -p(X)` for a quantified X means assuming
+%   p(X), so the check would decide the abducible for every individual at
+%   once; `abdbirds.pl` gives 3 answers without it and 48 with.  What
+%   keeps the two halves apart is the even loop, at the literal.
+
+test(an_abducible_does_not_get_one) :-
+    compiled([(:- abducible(maybe)), (rain :- maybe)], P),
+    assertion(P.nmr.checks == []).
+
+%   Unless the program has rules of its own for the negative half, and
+%   then the two really can interact.
+
+test(unless_the_negative_half_has_rules_too) :-
+    compiled([(:- abducible(maybe)), (-(maybe) :- storm), storm], P),
+    assertion(P.nmr.checks =@= [check(1, consistency(maybe/0), (-maybe, maybe))]).
+
 test(a_predicate_only_a_constraint_mentions_is_closed_over) :-
     compiled([p(1), (:- q(2))], P),
     assertion(defines(P, 'm$dual$q$1'/1)).
@@ -321,6 +339,69 @@ test(and_the_positive_when_a_later_literal_needs_it) :-
     assertion(defines(P, 'm$dual$r$1'/1)).
 
 :- end_tests(compile_nmr).
+
+		 /*******************************
+		 *        ABDUCIBLES		*
+		 *******************************/
+
+%   `#abducible p(X)` is written out as four rules.  Two of them give the
+%   two halves their name, and the other two are an even loop over
+%   negation between those halves — which is the whole mechanism: an even
+%   loop is a free choice, so there is nothing in the solver to add.
+%
+%   `abducible/1` is a wrapper on the *head*, like `-`/1, rather than a
+%   predicate of its own.  Two abducibles have to be two predicates: as
+%   clauses of one, assuming either would decide the other.
+
+:- begin_tests(compile_abducibles).
+
+test(the_positive_half_proves_the_predicate) :-
+    compiled([(:- abducible(p(_)))], P),
+    once(clause_for(P, 'm$plain$p$1', Clause)),
+    Clause = ('m$plain$p$1'(A) :- Body),
+    assertion(Body == 'm$abducible$p$1'(A)).
+
+test(and_the_negative_half_its_classical_negation) :-
+    compiled([(:- abducible(p(_)))], P),
+    once(clause_for(P, 'm$neg$p$1', Clause)),
+    Clause = ('m$neg$p$1'(A) :- Body),
+    assertion(Body == 'm$abducibleneg$p$1'(A)).
+
+%   Each half is proved by the negation of the other, which is the loop.
+
+test(the_two_halves_are_an_even_loop) :-
+    compiled([(:- abducible(p(_)))], P),
+    once(clause_for(P, 'm$abducible$p$1', Positive)),
+    once(clause_for(P, 'm$abducibleneg$p$1', Negative)),
+    assertion(Positive =@= ('m$abducible$p$1'(A) :- 'm$dualabducibleneg$p$1'(A))),
+    assertion(Negative =@= ('m$abducibleneg$p$1'(B) :- 'm$dualabducible$p$1'(B))).
+
+%   They are predicates like any other, so they are dualised like any
+%   other rather than by a rule written here.
+
+test(and_are_dualised_like_anything_else) :-
+    compiled([(:- abducible(p(_)))], P),
+    assertion(defines(P, 'm$dualabducible$p$1'/1)),
+    assertion(defines(P, 'm$dualabducibleneg$p$1'/1)).
+
+%   An even loop, so `graph.pl` must not read it as one to check.
+
+test(the_loop_is_not_an_odd_one) :-
+    compiled([(:- abducible(p(_)))], P),
+    assertion(P.nmr.checks == []).
+
+%   The declared predicate may have rules of its own, and then its dual
+%   has to account for both — which is why the four rules are generated
+%   as source and dualised, rather than emitted already compiled.
+
+test(a_predicate_may_be_both_abducible_and_derived) :-
+    compiled([(:- abducible(p(_))), (p(X) :- q(X))], P),
+    findall(C, clause_for(P, 'm$plain$p$1', C), Clauses),
+    assertion(length(Clauses, 2)),
+    assertion(defines(P, 'm$dual.1$p$1'/1)),
+    assertion(defines(P, 'm$dual.2$p$1'/1)).
+
+:- end_tests(compile_abducibles).
 
 		 /*******************************
 		 *        THE REPORT		*

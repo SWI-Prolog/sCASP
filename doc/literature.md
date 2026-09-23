@@ -193,6 +193,26 @@ with two refinements from P4 §3.2 that this port keeps:
   immediately: it avoids recomputation and keeps the justification tree smaller.
   This is the `proved/1` wrapper in `stack.pl`'s trees.
 
+  **This one is not sound as stated, and `prolog/sscasp/solve.pl` qualifies it.**
+  A proof that leaned on the coinductive hypothesis may not be reused, because
+  reusing it is how a positive loop closes without anything noticing:
+
+  ```prolog
+  p :- not q, r.        % the only answer set is {q}
+  q :- not r.
+  r :- p.
+  ```
+
+  Both implementations answer `p`, with the model `[p, r, not q]`, and then
+  fail `r` — a literal that model contains. The route is `p` → `not q` →
+  (`q`'s dual needs `r`) → `r` → `r :- p` → `chs(p)`: two negations, so the
+  even-loop rule lets it stand; then `r` is reused for `p`'s own body, and
+  `p`'s support is `r`, whose support is the assumption of `p`. The reduct of
+  {p, r} is `{p :- r, r :- p}`, whose least model is empty.
+  `solve.pl:proved/4` records whether a proof rested on an assumption and
+  `check/7` reuses only one that did not; the differential sweep goes from one
+  disagreement in 4,408 programs to none, for 4% of its running time.
+
 ## P4 — s(CASP): constraints, and the two forall algorithms
 
 **s(ASP) has no constraints at all** — the C in s(CASP) is precisely what P4

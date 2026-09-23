@@ -1,7 +1,7 @@
 :- module(test_nmr,
           [ test_nmr/0
           ]).
-:- use_module(scasp_plunit, []).        % sets the library search path
+:- use_module(scasp_plunit, [with_scasp_flag/3]).
 :- use_module(library(sscasp/ops)).
 :- use_module(library(sscasp/nmr)).
 :- use_module(library(sscasp/annotations), [program_annotations/2]).
@@ -27,7 +27,8 @@ test_nmr :-
     run_tests([ nmr_denials,
                 nmr_structure,
                 nmr_quantification,
-                nmr_checks
+                nmr_checks,
+                nmr_flags
               ]).
 
 %!  check(+Olon, +Constraints, -Nmr) is det.
@@ -174,7 +175,7 @@ test(loops_are_numbered_before_constraints) :-
 test(a_variable_in_a_constraint_is_quantified) :-
     check([], [(q(X), r(X))], Nmr),
     once(clause_for(Nmr, 'm$dualchk.1.1$$0', Clause)),
-    Clause = ('m$dualchk.1.1$$0' :- forall(V, Inner)),
+    Clause = ('m$dualchk.1.1$$0' :- forall([V], Inner)),
     assertion(Inner == 'm$dualchk.1.1.inner$$0'(V)).
 
 test(the_inner_dual_has_one_clause_per_literal) :-
@@ -256,3 +257,64 @@ test(the_indices_run_from_one) :-
     assertion(Is == [1, 2, 3]).
 
 :- end_tests(nmr_checks).
+
+:- begin_tests(nmr_flags).
+
+/** Turning the check off
+
+`scasp_compile_nmr` and `scasp_compile_olon` are upstream's, spelled and
+scoped the same way (`prolog/scasp/nmr_check.pl:olon_rules_/4`, the CLI's
+`--no-nmr` and `--no-olon`), so that a caller setting one gets the same
+thing from either tree.  Note what `--no-nmr` covers: upstream empties the
+list *after* adding the headless rules to it, and both a global constraint
+and the `:- -p, p` of a classically negated predicate are headless rules
+there, so neither survives it.
+
+The flag is set inside the test rather than in a `setup/1`, because a
+`scasp_*` flag is thread-local once set and a unit's setup runs in the main
+thread, where it would leak into every job plunit creates afterwards.
+*/
+
+sources([ olon((p :- not p)),
+          constraint(q),
+          consistency(r/1, (r(_), -(r(_)))) ]).
+
+flagged(Flag, Value, Checks) :-
+    program_annotations([], Annotations),
+    sources(Sources),
+    with_scasp_flag(Flag, Value,
+                    nmr_check(m, Annotations, Sources, Nmr)),
+    findall(What, member(check(_, What, _), Nmr.checks), Checks).
+
+test(all_three_kinds_are_checked_by_default) :-
+    flagged(scasp_compile_nmr, true, Checks),
+    assertion(Checks == [p/0, constraint, consistency(r/1)]).
+
+test(no_olon_drops_the_rules_on_a_loop) :-
+    flagged(scasp_compile_olon, false, Checks),
+    assertion(Checks == [constraint, consistency(r/1)]).
+
+test(no_nmr_drops_all_of_them_headless_rules_included) :-
+    flagged(scasp_compile_nmr, false, Checks),
+    assertion(Checks == []).
+
+%   A program with nothing to check still gets a goal, so the solver has
+%   one thing to call rather than a case to test.  That has to survive
+%   the flag: an empty check is a check that succeeds, not a missing one.
+
+test(an_empty_check_is_still_a_goal) :-
+    program_annotations([], Annotations),
+    sources(Sources),
+    with_scasp_flag(scasp_compile_nmr, false,
+                    nmr_check(m, Annotations, Sources, Nmr)),
+    assertion(Nmr.clauses == [Nmr.goal]).
+
+test(and_the_indices_still_run_from_one) :-
+    program_annotations([], Annotations),
+    sources(Sources),
+    with_scasp_flag(scasp_compile_olon, false,
+                    nmr_check(m, Annotations, Sources, Nmr)),
+    findall(I, member(check(I, _, _), Nmr.checks), Is),
+    assertion(Is == [1, 2]).
+
+:- end_tests(nmr_flags).

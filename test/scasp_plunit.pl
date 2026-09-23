@@ -10,6 +10,7 @@
             scasp_flags/1,              % -Flags
             set_scasp_flags/1,          % +Flags
             with_forall/2,              % +Algorithm, :Goal
+            with_scasp_flag/3,          % +Flag, +Value, :Goal
             answers_admit/4,            % :Query, ?Var, +Candidates, -Admitted
             expect_semantics/0          % for :- if/1
           ]).
@@ -224,14 +225,26 @@ prolog:message(scasp_test(should_exclude(Term, Value))) -->
 %   every other job alone, while a setup/1 runs in the main thread and
 %   would leak.
 
-:- meta_predicate with_forall(+, 0).
+:- meta_predicate
+    with_forall(+, 0),
+    with_scasp_flag(+, +, 0).
 
 with_forall(Algorithm, Goal) :-
-    current_prolog_flag(scasp_forall, Old),
+    with_scasp_flag(scasp_forall, Algorithm, Goal).
+
+%!  with_scasp_flag(+Flag, +Value, :Goal) is nondet.
+%
+%   Call Goal with Flag set to Value and put it back afterwards.  Inside
+%   a test, never in a unit `setup/1`: a flag is thread-local once set,
+%   and a unit's setup runs in the main thread, where it would leak into
+%   every job plunit creates after it.
+
+with_scasp_flag(Flag, Value, Goal) :-
+    current_prolog_flag(Flag, Old),
     setup_call_cleanup(
-        set_prolog_flag(scasp_forall, Algorithm),
+        set_prolog_flag(Flag, Value),
         Goal,
-        set_prolog_flag(scasp_forall, Old)).
+        set_prolog_flag(Flag, Old)).
 
 %!  scasp_flags(-Flags) is det.
 %!  set_scasp_flags(+Flags) is det.

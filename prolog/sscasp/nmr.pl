@@ -6,7 +6,15 @@
 :- use_module(dualise, [predicate_duals/6]).
 :- use_module(mangle,  [mangle/2]).
 :- use_module(library(lists), [append/3, numlist/3, member/2, memberchk/2]).
-:- use_module(library(apply), [maplist/3, maplist/4, maplist/5]).
+:- use_module(library(apply), [maplist/3, maplist/4, maplist/5, exclude/3]).
+
+%   Upstream's names and defaults (`prolog/scasp/nmr_check.pl`), so that
+%   both trees in one process read one flag.  `keep(true)`: whichever
+%   loads second must not put back the default over a value the caller
+%   set.
+
+:- create_prolog_flag(scasp_compile_olon, true, [keep(true)]).
+:- create_prolog_flag(scasp_compile_nmr,  true, [keep(true)]).
 
 /** <module> The NMR check
 
@@ -82,7 +90,8 @@ a predicate of another arity.
 %   succeeds — so that the solver has one goal to call rather than a case
 %   to test.
 
-nmr_check(Module, Annotations, Sources, Nmr) :-
+nmr_check(Module, Annotations, Sources0, Nmr) :-
+    compiled_sources(Sources0, Sources),
     length(Sources, Count),
     numlist_or_empty(Count, Indices),
     maplist(sub_check(Module, Annotations), Indices, Sources, Clauses, Calls),
@@ -93,6 +102,36 @@ nmr_check(Module, Annotations, Sources, Nmr) :-
     Nmr = nmr{ goal:    Goal,
                clauses: [Check|Flat],
                checks:  Checks }.
+
+%!  compiled_sources(+Sources, -Compiled) is det.
+%
+%   The sub-checks the flags leave.  Both are the old implementation's,
+%   spelled and scoped the same way so that a caller setting one gets the
+%   same thing from either tree (`prolog/scasp/nmr_check.pl:olon_rules_/4`,
+%   `--no-nmr` and `--no-olon`):
+%
+%     - `scasp_compile_nmr` false drops the check altogether, odd loops
+%       included.  Upstream reaches that by emptying the list *after*
+%       adding the headless rules to it, and a global constraint and the
+%       consistency of a classically negated predicate are both headless
+%       rules there, so both go too.
+%     - `scasp_compile_olon` false drops only the rules on an odd loop.
+%
+%   Neither is a thing to run a program with.  They are for asking what a
+%   query costs on its own — `bec_tap_01` answers all ten of the queries
+%   in its comments in 6-19 ms with the check off and none of them with
+%   it on — and for telling a wrong answer from an unreachable one while
+%   working on the solver.
+
+compiled_sources(Sources0, Sources) :-
+    (   current_prolog_flag(scasp_compile_nmr, false)
+    ->  Sources = []
+    ;   current_prolog_flag(scasp_compile_olon, false)
+    ->  exclude(olon_source, Sources0, Sources)
+    ;   Sources = Sources0
+    ).
+
+olon_source(olon(_)).
 
 check_description(Index, Source, check(Index, What, Denial)) :-
     denial(Source, Denial),

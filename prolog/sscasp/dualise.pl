@@ -6,7 +6,8 @@
           ]).
 :- use_module(ops).
 :- use_module(abstract,    [abstract_head/3]).
-:- use_module(dual,        [clause_duals/2, body_variables/3]).
+:- use_module(dual,        [clause_duals/2, body_variables/3,
+                            negate_literal/2]).
 :- use_module(mangle,      [mangle/2]).
 :- use_module(annotations, [argument_domain/4]).
 :- use_module(domains,     [domain_goal/3]).
@@ -146,6 +147,8 @@ predicate_duals(Module, Annotations, Polarity, Name/Arity, Clauses, Duals) :-
 dual_kind(plain, dual).
 dual_kind(neg, dualneg).
 dual_kind(chk(I), dualchk(I)).
+dual_kind(abducible, dualabducible).
+dual_kind(abducibleneg, dualabducibleneg).
 
 numlist_or_empty(0, []) :- !.
 numlist_or_empty(Count, Indices) :- numlist(1, Count, Indices).
@@ -271,29 +274,54 @@ dual_clause(Name, Args, Body, Clause) :-
 
 %!  quantify(+Module, +Variables, +VarDomains, +Goal, -Quantified) is det.
 %
-%   One quantifier per body-only variable, outermost first, so two of
-%   them nest and share one innermost dual rather than taking one each.
+%   **One** quantifier over all the body-only variables nothing bounds,
+%   as a list — `forall([B, C], Inner)` and not `forall(B, forall(C,
+%   Inner))`.  The two say the same thing and cost differently: covering
+%   a nest means covering C's domain once per region of B's, so the work
+%   is the *product* of the coverings, where covering the pair reads one
+%   answer's constraints on both variables at once and the pieces add up
+%   instead.  `bec_tap_02` made 83,593 coverings of a three-variable nest
+%   where the tuple needs a few dozen.  `solve.pl:solve_c_forall/8`
+%   collects its nest into one `c_forall(Vars, Goal)` for the same
+%   reason.
 %
-%   A variable with a domain gets `for_domain(Var, Generator, Goal)`
-%   rather than `forall/2`: the domain is named in the term, and what to
-%   do with it is the solver's business — enumerate a handful of facts,
-%   or post a region and label it.  Expanding here instead would commit
+%   A variable with a *domain* keeps a quantifier of its own, outside:
+%   it has something to enumerate, and each value is a separate search
+%   rather than a region to complement.  It gets
+%   `for_domain(Var, Generator, Goal)` rather than going in the list: the
+%   domain is named in the term, and what to do with it is the solver's
+%   business — enumerate a handful of facts, or post a region and label
+%   it.  Expanding here instead would commit
 %   to enumeration at compile time, which is right for `[a,b]` and wrong
 %   for `0..23`.
 %
-%   So `forall/2` in a compiled program means exactly one thing: a
-%   quantifier nothing bounds.  That is decision 5's undecidable case,
+%   So `forall/2` in a compiled program means exactly one thing: the
+%   quantifiers nothing bounds.  That is decision 5's undecidable case,
 %   and now it is greppable.
 
-quantify(_, [], _, Goal, Goal).
-quantify(Module, [Var|Vars], VarDomains, Goal, Quantified) :-
-    quantify(Module, Vars, VarDomains, Goal, Inner),
-    (   memberchk_eq(Var, VarDomains, Domain)
-    ->  domain_goal(Domain, Var, Generator0),
-        translate_goal(Module, Generator0, Generator),
-        Quantified = for_domain(Var, Generator, Inner)
-    ;   Quantified = forall(Var, Inner)
-    ).
+quantify(Module, Variables, VarDomains, Goal, Quantified) :-
+    split_domains(Variables, VarDomains, Bounded, Free),
+    (   Free == []
+    ->  Inner = Goal
+    ;   Inner = forall(Free, Goal)
+    ),
+    enumerated(Module, Bounded, VarDomains, Inner, Quantified).
+
+split_domains([], _, [], []).
+split_domains([Var|Vars], VarDomains, Bounded, Free) :-
+    (   memberchk_eq(Var, VarDomains, _)
+    ->  Bounded = [Var|Rest], Free = More
+    ;   Bounded = Rest, Free = [Var|More]
+    ),
+    split_domains(Vars, VarDomains, Rest, More).
+
+enumerated(_, [], _, Goal, Goal).
+enumerated(Module, [Var|Vars], VarDomains, Goal, Quantified) :-
+    enumerated(Module, Vars, VarDomains, Goal, Inner),
+    memberchk_eq(Var, VarDomains, Domain),
+    domain_goal(Domain, Var, Generator0),
+    translate_goal(Module, Generator0, Generator),
+    Quantified = for_domain(Var, Generator, Inner).
 
 memberchk_eq(Var, [V-Value|T], Found) :-
     (   Var == V
@@ -352,12 +380,59 @@ literal_goal(Goal, Goal).
 %!  translate_goal(+Module, +Goal, -Call) is det.
 %
 %   A user goal becomes a call to its mangled predicate; its negation
-%   becomes a call to the dual.  Built-ins are left as they are.
+%   becomes a call to the dual.  `findall/3` is neither: it is a
+%   built-in whose *second argument* is a goal, so the translation goes
+%   inside it.  Built-ins are left as they are, and so
+%   is the negation of one: `not (A is B)` has no partner to turn into,
+%   so it stays and `emit.pl` says what to do with it.  `not findall/3` is
+%   in that group and has to be named here, or the clause below would
+%   read it as a user predicate called `findall` and dualise *that* —
+%   which closes as undefined, so the negation comes out true of
+%   everything and `not p` succeeds although p holds.
 %
 %   `-p(X)` is classical negation, a literal of its own, so it gets the
-%   `neg` kind and its negation `dualneg`.
+%   `neg` kind and its negation `dualneg`.  `abducible(p(X))` and
+%   `abducible(-p(X))` are the two halves of an abducible's even loop,
+%   which are literals of their own for the same reason.
 
+%   A `forall/2` the author wrote is a goal with a goal inside it, so
+%   the translation goes in — and the solver's `forall/2` takes a list,
+%   so a nest of them collapses into one.
+
+translate_goal(Module, Quantified, forall(Vars, Inner)) :-
+    nonvar(Quantified),
+    Quantified = forall(_, _),
+    !,
+    quantifier(Quantified, Vars, Body),
+    translate_conjunction(Module, Body, Inner).
+
+%   Its negation is an **existential**: "not for every X" is "for some X,
+%   not", and a dual clause body is where a free variable already means
+%   some.  So the quantifier drops and what is left is the negated body.
+
+translate_goal(Module, not(Quantified), Translated) :-
+    nonvar(Quantified),
+    Quantified = forall(_, _),
+    !,
+    quantifier(Quantified, _, Body),
+    (   Body = (_, _)
+    ->  throw(error(sscasp_error(negated_conjunction(Quantified)), _))
+    ;   negate_literal(Body, Negated),
+        translate_goal(Module, Negated, Translated)
+    ).
+
+translate_goal(Module, not(findall(Template, Goal, List)), Translated) :-
+    !,
+    translate_conjunction(Module, Goal, Inner),
+    Translated = not(findall(Template, Inner, List)).
+translate_goal(Module, findall(Template, Goal, List), Translated) :-
+    !,
+    translate_conjunction(Module, Goal, Inner),
+    Translated = findall(Template, Inner, List).
 translate_goal(_, Goal, Goal) :-
+    builtin(Goal),
+    !.
+translate_goal(_, not(Goal), not(Goal)) :-
     builtin(Goal),
     !.
 translate_goal(Module, not(Goal), Call) :-
@@ -375,6 +450,10 @@ translate_goal(Module, Goal, Call) :-
 %   Positive is the kind wanted for an ordinary goal; a classically
 %   negated one takes the matching negative kind.
 
+goal_kind(abducible(-(Goal)), dual, dualabducibleneg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
+goal_kind(abducible(-(Goal)), plain, abducibleneg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
+goal_kind(abducible(Goal), dual, dualabducible, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
+goal_kind(abducible(Goal), plain, abducible, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
 goal_kind(-(Goal), dual, dualneg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
 goal_kind(-(Goal), plain, neg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
 goal_kind(Goal, Kind, Kind, Name, Arity, Args) :- goal_parts(Goal, Name, Arity, Args).
@@ -388,6 +467,29 @@ goal_parts(Goal, Name, Arity, Args) :-
 
 translate_body(Module, Body, Translated) :-
     maplist(translate_goal(Module), Body, Translated).
+
+%!  translate_conjunction(+Module, +Body, -Translated) is det.
+%
+%   A body written as a conjunction rather than a list, which is what
+%   `findall/3` carries.
+
+%!  quantifier(+Goal, -Vars, -Body) is det.
+%
+%   A nest of author-written `forall/2` as the variables it binds and
+%   the goal beneath them.
+
+quantifier(forall(Var, Goal), [Var|Vars], Body) :-
+    !,
+    quantifier(Goal, Vars, Body).
+quantifier(Body, [], Body).
+
+translate_conjunction(Module, Body, Translated) :-
+    (   Body = (A, B)
+    ->  translate_conjunction(Module, A, TA),
+        translate_conjunction(Module, B, TB),
+        Translated = (TA, TB)
+    ;   translate_goal(Module, Body, Translated)
+    ).
 
 %!  builtin(@Goal) is semidet.
 %
@@ -413,6 +515,18 @@ builtin_pi(#=<, 2).
 builtin_pi(#>=, 2).
 builtin_pi(forall, 2).
 builtin_pi(for_domain, 3).
+
+%   Prolog arithmetic.  Distinct from the CLP(Q) comparisons above: these
+%   evaluate their arguments and test, so they need them bound, where
+%   `#<` constrains and does not.  A program may use either.
+
+builtin_pi(is, 2).
+builtin_pi(<, 2).
+builtin_pi(>, 2).
+builtin_pi(=<, 2).
+builtin_pi(>=, 2).
+builtin_pi(=:=, 2).
+builtin_pi(=\=, 2).
 
 		 /*******************************
 		 *           CLAUSES		*

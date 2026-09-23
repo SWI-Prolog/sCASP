@@ -75,6 +75,8 @@ too, one test per program.
 :- use_module(test_nmr,            []).
 :- use_module(test_emit,           []).
 :- use_module(test_solve,          []).
+:- use_module(test_corpus,         []).
+:- use_module(test_source,         []).
 
 %!  test_all is semidet.
 %!  test_all(+Options) is semidet.
