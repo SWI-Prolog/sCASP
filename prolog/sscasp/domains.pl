@@ -79,6 +79,16 @@ annotation(Var, _) :-
 annotation(domain(Spec), Annotation) :-
     !,
     domain_spec(Spec, Annotation).
+%   Not `pred(_ :: _)`, which is a *description* and `describe.pl`'s.
+%   The two share a directive because the old implementation spelled a
+%   description that way; here `:- pred` is a signature, and a signature
+%   is the one that changes what is proved.
+
+annotation(pred(Head), _) :-
+    nonvar(Head),
+    Head = (_ :: _),
+    !,
+    fail.
 annotation(pred(Head), Annotation) :-
     !,
     signature(Head, Annotation).

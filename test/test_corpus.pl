@@ -61,8 +61,12 @@ test_corpus :-
 %       bec_tap_04     2 answers, 0.032 s against 0.049 s
 %       lion           1 answer,  0.021 s against 0.018 s   (was a hang)
 %
-%   `bec_loan` is the one left, and it is the hardest query in the
-%   corpus: `?- holdsAt(F, T).` with both arguments free.
+%   `bec_loan` is the one left, and it is no longer a descent: its query
+%   `?- holdsAt(F, T).` answers in 0.027 s with the check off, where it
+%   used to spend 6,677 ancestor frames walking backwards in time.  With
+%   the check on it still answers -- in **376 s**, against 0.85 s for the
+%   old implementation, so what is left is a factor of 440 and not a
+%   hang.  `CLAUDE.md` has the measurements.
 
 gap(bec_loan,               slow).
 
@@ -228,14 +232,18 @@ then not checked.  It is here to keep the gap honest about what it is.
 %   The queries written in `bec_tap_01_overflow.pl`, with what both
 %   implementations answer.
 
-expected(holdsAt(level(H), -1),  []).
-expected(holdsAt(level(H), 4),   [0]).
-expected(holdsAt(level(H), 8),   [3]).
-expected(holdsAt(level(H), 14),  [9]).
+%   The variable is underscored and still named: it is what the answer
+%   binds, and `level(_H)` says which argument that is where `level(_)`
+%   would not.
+
+expected(holdsAt(level(_H), -1), []).
+expected(holdsAt(level(_H), 4),  [0]).
+expected(holdsAt(level(_H), 8),  [3]).
+expected(holdsAt(level(_H), 14), [9]).
 expected(holdsAt(level(12), _),  []).
-expected(holdsAt(leak(L), 14),   []).
-expected(holdsAt(leak(L), 19),   [4]).
-expected(holdsAt(leak(L), 22),   []).
+expected(holdsAt(leak(_L), 14),  []).
+expected(holdsAt(leak(_L), 19),  [4]).
+expected(holdsAt(leak(_L), 22),  []).
 
 %   `bec_loan` is the remaining gap, and it is worth a test of its own:
 %   its query is `?- holdsAt(F, T).` with both arguments free, and what

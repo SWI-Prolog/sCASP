@@ -76,7 +76,17 @@ too, one test per program.
 :- use_module(test_emit,           []).
 :- use_module(test_solve,          []).
 :- use_module(test_corpus,         []).
+:- use_module(test_crossings,      []).
+:- use_module(test_api,            []).
 :- use_module(test_source,         []).
+:- use_module(test_describe,       []).
+:- use_module(test_html,           []).
+:- use_module(test_render,         []).
+:- use_module(test_herbrand,       []).
+:- use_module(test_listing,        []).
+:- use_module(test_abducible,      []).
+:- use_module(test_json,           []).
+:- use_module(test_main,           []).
 
 %!  test_all is semidet.
 %!  test_all(+Options) is semidet.

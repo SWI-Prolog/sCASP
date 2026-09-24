@@ -513,6 +513,12 @@ builtin_pi(#<, 2).
 builtin_pi(#>, 2).
 builtin_pi(#=<, 2).
 builtin_pi(#>=, 2).
+
+%   The Herbrand store's own spelling.  `∈` is here because it is what
+%   `∉` dualises to, and a dual has to be something to run.
+
+builtin_pi('∉', 2).
+builtin_pi('∈', 2).
 builtin_pi(forall, 2).
 builtin_pi(for_domain, 3).
 

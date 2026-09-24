@@ -5,7 +5,9 @@
 :- use_module(library(sscasp/ops)).
 :- use_module(library(sscasp/source)).
 :- use_module(library(plunit)).
+:- use_module(library(sscasp/annotations), [program_annotations/2, described/3]).
 :- use_module(library(lists), [member/2, memberchk/2]).
+:- use_module(library(debug), [assertion/1]).
 
 /** <module> Reading an s(CASP) source file
 
@@ -77,10 +79,25 @@ test(a_query_is_not_a_clause) :-
 
 :- begin_tests(source_directives).
 
-test(a_template_is_not_a_clause) :-
+%   A template is a **description**, so it is a directive of the program
+%   as well as a report about the file.  The bindings come with it: the
+%   placeholder says `X` and a read term does not carry that.
+
+test(a_template_is_a_description) :-
     read_temp("#pred p(X) :: '@(X) is p'.\np(1).\n", S),
-    assertion(S.terms == [p(1)]),
-    assertion(S.templates = [(p(_) :: '@(X) is p')]).
+    assertion(S.templates = [(p(_) :: '@(X) is p')]),
+    assertion(S.terms = [(:- describe((p(V) :: '@(X) is p'), ['X'=V])), p(1)]).
+
+test(a_template_reaches_the_annotation_table) :-
+    read_temp("#pred p(X) :: '@(X) is p'.\np(1).\n", S),
+    program_annotations(S.terms, A),
+    assertion(described(A, p(1), '1 is p')).
+
+test(the_describe_spelling_says_the_same) :-
+    read_temp(":- describe p(X) :: '@(X) is p'.\np(1).\n", S),
+    program_annotations(S.terms, A),
+    assertion(described(A, p(1), '1 is p')),
+    assertion(S.templates == []).
 
 test(shown_predicates) :-
     read_temp("#show p/1.\np(1).\n", S),

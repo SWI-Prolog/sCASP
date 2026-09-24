@@ -1,11 +1,19 @@
 :- module(sscasp_annotations,
           [ program_annotations/2,      % +Terms, -Annotations
+            annotation/2,               % +Directive, -Annotation
             argument_domain/4,          % +Annotations, +PI, +ArgNo, -Domain
             domain_kind/3,              % +Annotations, +Name, -Kind
+            description/3,              % +Annotations, +Literal, -Description
+            described/3,                % +Annotations, +Literal, -Text
+            described_actions/3,        % +Annotations, +Literal, -Actions
             annotation_clauses/2        % +Annotations, -Clauses
           ]).
 :- use_module(ops).
-:- use_module(domains, [annotation/2, domain_clauses/2]).
+:- use_module(domains,  [domain_clauses/2]).
+:- use_module(domains,  [annotation/2 as domain_annotation]).
+:- use_module(describe, [annotation/2 as description_annotation,
+                         description_actions/3,
+                         description_text/3]).
 :- use_module(library(error), [existence_error/2, permission_error/3]).
 :- use_module(library(lists), [member/2, nth1/3, append/3]).
 :- use_module(library(apply), [foldl/4, maplist/3]).
@@ -53,7 +61,9 @@ program defines it, or `:- domain` declares it.  Exactly one, never both —
 %   else's business.
 
 program_annotations(Terms, Annotations) :-
-    foldl(collect, Terms, annotations{domains: #{}, signatures: #{}}, Collected),
+    foldl(collect, Terms,
+          annotations{domains: #{}, signatures: #{}, descriptions: []},
+          Collected),
     program_predicates(Terms, Defined),
     check_annotations(Collected, Defined),
     Annotations = Collected.
@@ -71,6 +81,9 @@ add_annotation(domain(Name, Kind), In, Out) :-
     ;   put_dict(Name, In.domains, Kind, Domains),
         Out = In.put(domains, Domains)
     ).
+add_annotation(description(Kind, PI, Literal, Format), In, Out) :-
+    Description = description(Kind, PI, Literal, Format),
+    Out = In.put(descriptions, [Description|In.descriptions]).
 add_annotation(signature(Name/Arity, Domains), In, Out) :-
     (   get_dict(Name, In.signatures, Arities)
     ->  true
@@ -81,6 +94,55 @@ add_annotation(signature(Name/Arity, Domains), In, Out) :-
     ;   put_dict(Name, In.signatures, [Arity-Domains|Arities], Signatures),
         Out = In.put(signatures, Signatures)
     ).
+
+%!  annotation(+Directive, -Annotation) is semidet.
+%
+%   True when Directive is an annotation of any kind — a domain, a
+%   signature or a description.  One entry point, because a caller
+%   deciding "is this an annotation or a global constraint?" should not
+%   have to know how many kinds there are.
+
+annotation(Directive, Annotation) :-
+    (   domain_annotation(Directive, Annotation)
+    ->  true
+    ;   description_annotation(Directive, Annotation)
+    ).
+
+%!  description(+Annotations, +Literal, -Description) is nondet.
+%
+%   A description that applies to Literal, most specific first — a
+%   program may describe `flies(tweety)` as well as `flies(X)`, and the
+%   one naming the individual says more.  "Most specific" is *later
+%   declaration first*, which is the order a reader would expect: a
+%   description written after another is the more particular case.
+
+description(Annotations, Literal, Description) :-
+    member(Description, Annotations.descriptions),
+    Description = description(_, _, Described, _),
+    \+ \+ Described = Literal.
+
+%!  described(+Annotations, +Literal, -Text) is semidet.
+%
+%   Literal said in words, by the first description that fits.  Fails
+%   when nothing describes it, which is the ordinary case — a program
+%   need not describe anything.
+
+described(Annotations, Literal, Text) :-
+    description(Annotations, Literal, Description),
+    description_text(Description, Literal, Text),
+    !.
+
+%!  described_actions(+Annotations, +Literal, -Actions) is semidet.
+%
+%   The same, taken apart: a list of `text/1` and `@(Value:Type)`, or
+%   `html(Spec)`.  This is what a renderer wants — `html.pl` emits a
+%   variable, a constrained variable or "the <type> <value>" where
+%   `described/3` would have printed one.
+
+described_actions(Annotations, Literal, Actions) :-
+    description(Annotations, Literal, Description),
+    description_actions(Description, Literal, Actions),
+    !.
 
 %!  program_predicates(+Terms, -Defined) is det.
 %

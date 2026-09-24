@@ -258,13 +258,26 @@ clp_op(#=<).
 clp_op(#>=).
 
 %!  clp_true(+Constraint) is semidet.
+%
+%   A comparison whose operands are not both numbers is **false**, not an
+%   error.  Grounding is naive — every variable takes every constant of the
+%   program — so a rule that constrains a number is offered every atom and
+%   compound term in it as well, and `q #< 2` is simply an instance that does
+%   not apply.  Throwing there would make the oracle refuse any program that
+%   mixes arithmetic with terms, which is most of a crossing.
 
-clp_true(A #=  B) :- A =:= B.
-clp_true(A #<> B) :- A =\= B.
-clp_true(A #<  B) :- A <  B.
-clp_true(A #>  B) :- A >  B.
-clp_true(A #=< B) :- A =< B.
-clp_true(A #>= B) :- A >= B.
+clp_true(Constraint) :-
+    Constraint =.. [Operator, A, B],
+    number(A),
+    number(B),
+    compare_numbers(Operator, A, B).
+
+compare_numbers(#=,  A, B) :- A =:= B.
+compare_numbers(#<>, A, B) :- A =\= B.
+compare_numbers(#<,  A, B) :- A <  B.
+compare_numbers(#>,  A, B) :- A >  B.
+compare_numbers(#=<, A, B) :- A =< B.
+compare_numbers(#>=, A, B) :- A >= B.
 
 instance(Rule, Constants, Ground) :-
     copy_term(Rule, Ground),

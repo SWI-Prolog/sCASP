@@ -77,6 +77,8 @@ them:
 | compound terms × CLP(Q) | **0** |
 | disequality × CLP(Q) | **0** |
 
+(Counted against the old tree's suites, before `test_crossings.pl`.)
+
 Five of these were probed by hand — an NMR sub-check over a free variable
 (the example in P4 §2.4), nested `forall`, `not -p` in a body, OLON × CLP(Q),
 and even-loop coinduction × CLP(Q). **All five behave correctly.** So this is
@@ -87,6 +89,28 @@ at once, which is why 26 of 37 programs generate nested `forall`s. But a golden
 failure says *"queens.pl changed"*, not *"constraint propagation through
 coinduction broke"*. Regression detection without localisation. During a rewrite
 that difference is most of the debugging cost.
+
+**Addressed** for the new implementation, in `test/test_crossings.pl`. Every
+zero in the table above now has tests, and the crossings are split by what can
+judge them:
+
+| | |
+|---|---|
+| 18 programs in the oracle's fragment | asked `oracle_agreement.pl:agrees_with_oracle/1`, which compares **every** literal against the Gelfond–Lifschitz definition — nothing pinned, and a failure names the literal |
+| 9 outside it | unbound answers, dense regions, a constraint store in the answer, `findall/3`, `#abducible`, a declared domain — written out with the reasoning |
+
+It paid for itself immediately. `a_dense_region_under_a_compound_head` found
+the solver answering `not p(f(V))` with one answer constraining nothing, for a
+`p(f(X)) :- X #> 3, X #< 10` where `not p(f(5))` correctly failed — the general
+answer contradicting the specific one. That is `doc/bugs.md` §15 arriving as
+**unsoundness** where the old implementation merely has incompleteness, and
+`solve.pl:between_kept/6` is the fix.
+
+Writing them also turned up a defect in the oracle: a CLP comparison landing on
+a non-numeric constant threw rather than failing, so the oracle *refused* every
+program mixing arithmetic with terms — which is most of a crossing. Grounding is
+naive, so a rule that constrains a number is offered every atom in the program
+as well, and `q #< 2` is simply an instance that does not apply.
 
 ### Gap 2 — the suite pins bugs as expected behaviour
 

@@ -117,6 +117,13 @@ dual_pair(#>=, #<).
 dual_pair(#>,  #=<).
 dual_pair(#=<, #>).
 
+%   `X ∉ [a, b]` is a constraint and its negation is a *generator* —
+%   "one of these" — which is what makes the pair work at all: a dual
+%   has to be something to run rather than something to fail.
+
+dual_pair('∉', '∈').
+dual_pair('∈', '∉').
+
 		 /*******************************
 		 *          A CLAUSE		*
 		 *******************************/

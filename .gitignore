@@ -3,9 +3,11 @@
 *.po
 *~
 *.cov
-# Exclude main executable, but keep directory
+# Exclude main executables, but keep directories
 scasp
+sscasp
 !prolog/scasp/
+!prolog/sscasp/
 /TAGS
 buildenv.sh
 status.db

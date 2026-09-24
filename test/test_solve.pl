@@ -560,7 +560,7 @@ test(an_unbound_negation_constrains_the_query) :-
     !,
     assertion(var(V)),
     copy_term(V, _, Attributes),
-    assertion(Attributes =@= [dif(_, 1)]).
+    assertion(Attributes =@= ['∉'(_, [1])]).
 
 %   And the model shares with the query.  It is collected by walking
 %   rather than with findall/3, which copies: a model collected that way
@@ -699,7 +699,7 @@ test(an_unbound_negation_over_a_range) :-
     sscasp(P, not q(V), _),
     !,
     copy_term(V, _, Attributes),
-    assertion(Attributes =@= [{H >= 0, H =< 23}, dif(H, 9)]).
+    assertion(Attributes =@= [{H >= 0, H =< 23}, '∉'(H, [9])]).
 
 %   The quantifier really does cover the region: with `q` true of every
 %   hour there is no hour it is false of.
@@ -1181,7 +1181,14 @@ test(abduced_birds) :-
               ],
     models(Program, not flies(tweety), Models),
     assertion(length(Models, 3)),
-    assertion(memberchk([ab(tweety), bird(tweety), not flies(tweety)], Models)).
+    assertion(memberchk([ab(tweety), bird(tweety), not -ab(_), not flies(tweety)],
+                        Models)).
+
+%   `ab/1` has rules of its own as well as being abducible, so it gets a
+%   consistency check and `not -ab(X)` is in every model: the check
+%   discharges by there being nothing known *not* to be abnormal.
+%   `penguin/1` and `wounded_bird/1` are abducible and nothing else, so
+%   they get none — see `test_compile.pl:compile_nmr`.
 
 :- end_tests(solve_abducibles).
 

@@ -8,6 +8,7 @@
             call_goal/4,                % :Goal, +Anc, +S0, -S
             findall_/6,                 % +Template, :Goal, -List, +Anc,
                                         %   +S0, -S
+            sld_goal/5,                 % +Goal, +Type, +Anc, +S0, -S
             model/2,                    % +Proof, -Model
             justification/2,            % +Proof, -Forest
             children/3,                 % +S2, +S0, -Children
@@ -15,11 +16,28 @@
           ]).
 :- use_module(ops).
 :- use_module(mangle, [demangle/2]).
+:- use_module(sld, [sld_proof/3]).
 :- use_module(library(lists), [member/2, append/3, same_length/2, nth1/3]).
 :- use_module(library(pairs), [pairs_keys_values/3]).
 :- use_module(library(clpq), [dump/3, entailed/1, inf/2, sup/2, {}/1]).
+
+%   CLP(R) for nothing it exports.  `library(clpqr)` compiles one source
+%   into a `_q` and an `_r` instance and its shared modules name both, so
+%   loading only CLP(Q) leaves the `_r` halves referenced and undefined.
+%   Nothing calls them, but `swipl -c --undefined=error` cannot know that
+%   and the saved state will not build.  The old implementation does the
+%   same, in `scasp/clp/clpq.pl`.
+
+:- use_module(library(clpr), []).
                                         % also: the emitted program calls clpq:{}/1
-:- use_module(library(dif), []).        % for its attribute_goals//1
+%   The Herbrand store is `herbrand.pl`'s: `dif/2` and `∉` behind one
+%   interface, so that nothing here has to know which of the two holds a
+%   given disequality.  `apart/2` is both the constraint's name in a
+%   description and the way to post it again.
+
+:- use_module(herbrand, [ apart/2, constrained/1, node_count/2,
+                          read_store/2, projection/4
+                        ]).
 :- use_module(library(apply), [maplist/2, maplist/3, include/3, foldl/4]).
 :- use_module(library(assoc), [empty_assoc/1, get_assoc/3, put_assoc/4]).
 
@@ -203,14 +221,14 @@ consistent(Neg, Anc, proof(_, Index)) :-
 consistent_ancestors([], _, _, _).
 consistent_ancestors([a(Goal, _, _)|T], Name, Arity, Neg) :-
     (   functor(Goal, Name, Arity)
-    ->  dif(Goal, Neg)
+    ->  apart(Goal, Neg)
     ;   true
     ),
     consistent_ancestors(T, Name, Arity, Neg).
 
 consistent_relatives([], _).
 consistent_relatives([_-Goal|T], Neg) :-
-    dif(Goal, Neg),
+    apart(Goal, Neg),
     consistent_relatives(T, Neg).
 
 %!  relatives(+PI, +Index, -Goals) is det.
@@ -366,24 +384,12 @@ same_question(A, Goal) :-
 %   one that does not hold would lose answers.
 
 herbrand_instance(A, Goal) :-
-    disequality_nodes(Goal, Before),
+    node_count(Goal, Before),
     (   Before == 0
     ->  \+ \+ A = Goal          % nothing to lose, but they must agree
     ;   \+ \+ ( A = Goal,
-                 disequality_nodes(Goal, After),
+                 node_count(Goal, After),
                  After == Before )
-    ).
-
-disequality_nodes(Term, Count) :-
-    term_attvars(Term, Vars),
-    foldl(nodes_of, Vars, 0, Count).
-
-nodes_of(Var, Count0, Count) :-
-    (   get_attr(Var, dif, vardif(Vars, Goals))
-    ->  length(Vars, Left),
-        length(Goals, Right),
-        Count is Count0 + Left + Right
-    ;   Count = Count0
     ).
 
 %!  dense_instance(+A, +Goal) is semidet.
@@ -748,7 +754,7 @@ bound([Kept|Rest], [Name|Names], Equations) :-
 disequalities(Kept, Wanted, Names, Difs) :-
     (   include(constrained, Kept, [_|_])
     ->  State = state([]),
-        (   \+ \+ ( gathered(Kept, Goals),
+        (   \+ \+ ( read_store(Kept, Goals),
                      descriptions(Goals, Kept, Wanted, Sets),
                      nb_setarg(1, State, Sets) )
         ->  arg(1, State, Sets0),
@@ -759,34 +765,85 @@ disequalities(Kept, Wanted, Names, Difs) :-
     ;   Difs = []
     ).
 
-constrained(Var) :-
-    var(Var),
-    get_attr(Var, dif, _).
-
-gathered([], []).
-gathered([Kept|Rest], Goals) :-
-    (   constrained(Kept)
-    ->  dif:attribute_goals(Kept, Mine, [])
-    ;   Mine = []
-    ),
-    gathered(Rest, More),
-    append(Mine, More, Goals).
 
 descriptions([], _, _, []).
 descriptions([Goal|Goals], Kept, Wanted, Sets) :-
-    (   Goal = dif(A, B),
+    (   Goal = apart(A, B),
         escapable(A, B, Kept)
     ->  Sets = Rest
-    ;   Goal = dif(A, B),
-        apart(A, B, Kept, Wanted, Pairs, []),
+    ;   Goal = apart(A, B),
+        differ(A, B, Kept, Wanted, Pairs, []),
         Pairs \== []
     ->  Sets = [Pairs|Rest]
-    ;   Goal = dif(A, B)
+    ;   Goal = apart(A, B),
+        between_kept(A, B, Kept, Wanted, I, J)
+    ->  Sets = [kept(I, J)|Rest]
+    ;   Goal = apart(A, B)
     ->  approximate(Kept, 1, A, B, Singles),
         append(Singles, Rest, Sets)
     ;   Sets = Rest
     ),
     descriptions(Goals, Kept, Wanted, Rest).
+
+%!  between_kept(+A, +B, +Kept, +Wanted, -I, -J) is semidet.
+%
+%   The disequality keeps one quantified variable away from **another
+%   variable the snapshot has a name for**, and from nothing else.  That
+%   is describable after all: both ends get a name, the complement is the
+%   equation between them, and `restrict/2` posts it.
+%
+%   `apart/6` will not have it because it wants a ground value, and there
+%   is none — but a ground value is what it needs to build a *tuple*, and
+%   this is one pair.  Dualising `p(f(X)) :- X #> 3, X #< 10` gives
+%   `not p(A) :- forall(X, A \= f(X))`, and asked for `not p(f(V))` that
+%   quantifier's answer leaves exactly `dif(V, X)`: its region is
+%   everything but the one point `X = V`, and covering that point is what
+%   turns up the two answers, `V =< 3` and `V >= 10`.
+%
+%   Reading it as "no constraint left" instead claimed the whole domain,
+%   so `not p(f(V))` came back as one answer saying nothing while
+%   `not p(f(5))` correctly failed — the general answer contradicting the
+%   specific one.  That is `doc/bugs.md` §15 arriving as **unsoundness**
+%   rather than as the incompleteness the old implementation has, and it
+%   is the reason `test_crossings.pl` exists.
+
+between_kept(A, B, Kept, Wanted, I, J) :-
+    apart_variables(A, B, Kept, Pairs, []),
+    Pairs = [I-J],
+    (   wanted_at(I, Kept, Wanted)
+    ;   wanted_at(J, Kept, Wanted)
+    ),
+    !.
+
+apart_variables(A, B, Kept, Pairs, Tail) :-
+    (   A == B
+    ->  Pairs = Tail
+    ;   var(A),
+        var(B),
+        position(A, Kept, I),
+        position(B, Kept, J)
+    ->  Pairs = [I-J|Tail]
+    ;   compound(A),
+        compound(B),
+        functor(A, Name, Arity),
+        functor(B, Name, Arity)
+    ->  apart_variable_arguments(1, Arity, A, B, Kept, Pairs, Tail)
+    ;   fail
+    ).
+
+apart_variable_arguments(I, Arity, A, B, Kept, Pairs, Tail) :-
+    (   I > Arity
+    ->  Pairs = Tail
+    ;   arg(I, A, Ai),
+        arg(I, B, Bi),
+        apart_variables(Ai, Bi, Kept, Pairs, Middle),
+        J is I+1,
+        apart_variable_arguments(J, Arity, A, B, Kept, Middle, Tail)
+    ).
+
+wanted_at(I, Kept, Wanted) :-
+    nth1(I, Kept, Variable),
+    memberchk_eq(Variable, Wanted).
 
 %!  escapable(+A, +B, +Kept) is semidet.
 %
@@ -830,12 +887,12 @@ loose(Var, Kept) :-
     \+ dense(Var),
     \+ memberchk_eq(Var, Kept).
 
-%!  apart(+A, +B, +Kept, +Wanted, -Pairs, ?Tail) is semidet.
+%!  differ(+A, +B, +Kept, +Wanted, -Pairs, ?Tail) is semidet.
 %
 %   Pairs are the positions where A and B differ, as `Index-Value` over
 %   Kept.  Fails where a difference has no such reading.
 
-apart(A, B, Kept, Wanted, Pairs, Tail) :-
+differ(A, B, Kept, Wanted, Pairs, Tail) :-
     (   A == B
     ->  Pairs = Tail
     ;   var(A),
@@ -859,7 +916,7 @@ apart_arguments(I, Arity, A, B, Kept, Wanted, Pairs, Tail) :-
     ->  Pairs = Tail
     ;   arg(I, A, Ai),
         arg(I, B, Bi),
-        apart(Ai, Bi, Kept, Wanted, Pairs, Middle),
+        differ(Ai, Bi, Kept, Wanted, Pairs, Middle),
         J is I+1,
         apart_arguments(J, Arity, A, B, Kept, Wanted, Middle, Tail)
     ).
@@ -906,10 +963,14 @@ position_([K|Ks], I, Var, Index) :-
 %   single position keeps the plain shape, so that its complement is the
 %   equation `Name = Value` rather than a tuple unification.
 
-joint(Names, [I-Value], dif(Name, Value)) :-
+joint(Names, kept(I, J), apart(Left, Right)) :-
+    !,
+    nth1(I, Names, Left),
+    nth1(J, Names, Right).
+joint(Names, [I-Value], apart(Name, Value)) :-
     !,
     nth1(I, Names, Name).
-joint(Names, Pairs, dif(Tuple, Values)) :-
+joint(Names, Pairs, apart(Tuple, Values)) :-
     named(Pairs, Names, Vars, Vs),
     Tuple =.. [t|Vars],
     Values =.. [t|Vs].
@@ -999,8 +1060,8 @@ known([V|Vs], Others) :-
     memberchk_eq(V, Others),
     known(Vs, Others).
 
-flipped((Name = Value), dif(Name, Value)).
-flipped(dif(A, B), (A = B)).
+flipped((Name = Value), apart(Name, Value)).
+flipped(apart(A, B), (A = B)).
 flipped(clpq:{Comparison}, clpq:{Flipped}) :-
     negated(Comparison, Flipped).
 
@@ -1341,92 +1402,6 @@ restriction(Fresh, Piece, Fresh-Piece).
 		 *       THE HERBRAND HALF	*
 		 *******************************/
 
-%!  disequality_goals(+Var, -Values) is det.
-%
-%   The **ground** values `dif/2` excludes from Var.  Those are the ones
-%   worth having: an excluded value that is not ground excludes one
-%   unknown point and so says nothing about Var on its own, which is the
-%   Herbrand twin of what `region_constraints/3` says about projection.
-%
-%   `dif:attribute_goals/3` rather than `copy_term/3`, because
-%   `copy_term/3` asks every constraint module for its residual goals and
-%   CLP(Q)'s answer is the expensive one — a projection over everything
-%   the variable can reach, which `snapshot/3` computes itself for
-%   exactly the variables it wants.  On `bec_loan` that duplicate
-%   accounted for 71% of the time.
-%
-%   **But the hook is destructive.**  It is written to be called by
-%   `copy_term/3` and by the toplevel, which undo what it does; called
-%   directly it *removes* the constraints it reports:
-%
-%       ?- dif(X, a), dif:attribute_goals(X, G, []), X = a.
-%       G = [dif(_, a)],
-%       X = a.                        % the dif is gone
-%
-%   So it is called inside a double negation, and the one thing worth
-%   keeping is carried out by `nb_setarg/3` — which is safe here because
-%   what is kept is a list of ground values.  Reading a `dif/2` used to
-%   destroy it, and a quantifier that cannot see a disequality covers a
-%   domain it has not covered: `lion.pl` answered `-live(rat, apartment)`
-%   and `not -live(rat, apartment)` at once.
-
-disequality_goals(Var, Values) :-
-    (   get_attr(Var, dif, _)
-    ->  State = state([]),
-        (   \+ \+ ( dif:attribute_goals(Var, Goals, []),
-                     excluded_values(Goals, Var, Excluded),
-                     nb_setarg(1, State, Excluded) )
-        ->  arg(1, State, Values)
-        ;   Values = []
-        )
-    ;   Values = []
-    ).
-
-excluded_values([], _, []).
-excluded_values([Goal|Goals], Var, Values) :-
-    (   Goal = dif(A, B),
-        projection(A, B, Var, Value),
-        ground(Value)
-    ->  Values = [Value|Rest]
-    ;   Values = Rest
-    ),
-    excluded_values(Goals, Var, Rest).
-
-%!  projection(+A, +B, +Plain, -Excluded) is semidet.
-%
-%   Excluded is what B has where A has Plain, descending through
-%   matching functors.  The first such position is enough: a variable
-%   occurring twice makes the disequality weaker, not stronger, so any
-%   one projection still covers what is left.
-%
-%   A disequality between **compound** terms is a disjunction, not a
-%   restriction on any one variable: `dif(f(A,B), f(1,2))` says the pair
-%   is not (1,2), which excludes nothing from A on its own.  Projecting
-%   it — taking `A = 1` as what is left to check — covers *more* of the
-%   domain than is left, and that is the safe direction: the quantifier
-%   then proves the goal somewhere it was already proved, where missing a
-%   part would claim a `forall` that does not hold.
-%
-%   These arise from `consistent/3`, which posts `dif/2` between whole
-%   literals, so they are the ordinary case rather than a corner of it.
-
-projection(A, B, Plain, B) :-
-    A == Plain,
-    !.
-projection(A, B, Plain, A) :-
-    B == Plain,
-    !.
-projection(A, B, Plain, Excluded) :-
-    compound(A),
-    compound(B),
-    functor(A, Name, Arity),
-    functor(B, Name, Arity),
-    between(1, Arity, I),
-    arg(I, A, Ai),
-    arg(I, B, Bi),
-    projection(Ai, Bi, Plain, Excluded),
-    !.
-
 		 /*******************************
 		 *       THE DENSE HALF	*
 		 *******************************/
@@ -1491,6 +1466,50 @@ call_in(for_domain(Var, Generator, Inner), Module, Anc, S0, S) :-
 call_in(Goal, Module, Anc, S0, S) :-
     call(Module:Goal, Anc, S0, S).
 
+
+%!  sld_goal(+Goal, +Type, +Anc, +S0, -S) is nondet.
+%
+%   Prove a goal by SLD resolution.  `compile.pl:sld_bridges/3` puts this
+%   under the two predicates a `:- sld p/2.` declaration stands for, so
+%   by the time it is reached the goal is either `p(...)` or
+%   `not p(...)` and nothing else has to know.
+%
+%   The negation is the interesting half, and it is the same move as
+%   everywhere else here: **constrain rather than test**.  A ground goal
+%   can simply be run and refused, but `not p(X)` for an unbound X is not
+%   a question Prolog can answer — `\+ p(X)` asks whether *some* X works
+%   and says nothing about the others.  So all the solutions are
+%   collected and the variable is kept away from each of them, which is
+%   what the answer actually says.  The old implementation does the same
+%   (`solve.pl`, `bindings_inequality_constraints/2`).
+%
+%   No node for the goal itself: the predicate that got here is one, and
+%   `literal/2` demangles it into exactly the literal wanted, so it is
+%   already in the model and already in the justification.  What goes in
+%   is what the interpreter found *under* it, which for `opaque` is
+%   nothing.
+
+sld_goal(Module:not(Goal), Type, _Anc, S0, S) :-
+    !,
+    term_variables(Goal, Variables),
+    (   Variables == []
+    ->  \+ sld_proof(Module:Goal, Type, _)
+    ;   Witness =.. [v|Variables],
+        findall(Witness, Module:Goal, Solutions),
+        maplist(apart(Witness), Solutions)
+    ),
+    S = S0.
+sld_goal(Module:Goal, Type, _Anc, S0, S) :-
+    sld_proof(Module:Goal, Type, Children),
+    maplist(sld_node, Children, Nodes),
+    splice(Nodes, S0, S).
+
+%   The interpreter reports `Literal-Children`, which is the shape a
+%   justification comes *out* in rather than the one the proof is kept
+%   in, so it is turned round here.
+
+sld_node(Literal-Children, n(sld(Literal), proof, Nodes)) :-
+    maplist(sld_node, Children, Nodes).
 
 %!  findall_(+Template, :Goal, -List, +Anc, +S0, -S) is det.
 %
@@ -1608,6 +1627,8 @@ status(proved, Literal, proved(Literal)).
 
 %!  literal(+Goal, -Literal) is semidet.
 
+literal(sld(Goal), Goal) :-
+    !.
 literal(Goal, Literal) :-
     Goal =.. [Mangled|Args],
     demangle(Mangled, pred(_, Kind, Name, _)),

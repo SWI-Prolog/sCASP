@@ -3,10 +3,12 @@
 SWIPL?=swipl
 SWIPL_PREFIX?=$(shell dirname $$(dirname $$(which ${SWIPL})))
 
-all:	scasp prolog/scasp/main.qlf
+all:	scasp sscasp prolog/scasp/main.qlf
 
 scasp:
 	${SWIPL} --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
+sscasp:
+	${SWIPL} --no-pce --undefined=error -O -o sscasp -c prolog/sscasp/main.pl
 prolog/scasp/main.qlf:
 	${SWIPL} qlf compile --include prolog/scasp/main.pl
 
@@ -26,11 +28,15 @@ check_semantics:
 check_load:
 	${SWIPL} -q -l prolog/scasp.pl -g check --on-warning=status -t halt
 	${SWIPL} -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
+	${SWIPL} -q -p library=prolog -l prolog/sscasp.pl -g check --on-warning=status -t halt
+	${SWIPL} -q -p library=prolog -l prolog/sscasp/main.pl -g check --on-warning=status -t halt
 
 ifneq ($(strip $(SWIPL_PREFIX)),)
 install:
 	@echo "Installing scasp in $(SWIPL_PREFIX)/bin/scasp"
 	ln -sf "$(CURDIR)/scasp" "$(SWIPL_PREFIX)/bin/scasp"
+	@echo "Installing sscasp in $(SWIPL_PREFIX)/bin/sscasp"
+	ln -sf "$(CURDIR)/sscasp" "$(SWIPL_PREFIX)/bin/sscasp"
 else
 install:
 	@echo 'Warning: No $$SWIPL_PREFIX defined.'
@@ -42,4 +48,4 @@ clean:
 	@-find . -name "*~" -type f -delete
 
 distclean: clean
-	${RM} scasp prolog/scasp/main.qlf
+	${RM} scasp sscasp prolog/scasp/main.qlf

@@ -9,8 +9,10 @@
 :- use_module(dualise,  [translate_goal/3]).
 :- use_module(solve,    [call_goal/4, model/2, justification/2,
                          children/3, empty_proof/1]).
+:- use_module(herbrand, [normalise/1]).
 :- use_module(library(modules), [in_temporary_module/3]).
 :- use_module(library(lists), [member/2]).
+:- use_module(library(error), [instantiation_error/1]).
 
 /** <module> Answering a query
 
@@ -88,6 +90,7 @@ answer(Module, Program, Query, Model, Justification) :-
     solve_goals(Module, Goals, [], Empty, Proof0),  % into the goal it appears in,
     call_goal(Module:Nmr, [], Proof0, Proof),    % and a meta-argument is one
     model(Proof, Model),
+    normalise(Query-Model),
     children(Proof, Proof0, Checked),
     justification(Proof0, Asked),
     justification(Checked, Because),
@@ -113,6 +116,14 @@ share_variables([Literal|Literals], [Goal0|Goals0], [Goal|Goals]) :-
     Goal = Goal0,
     share_variables(Literals, Goals0, Goals).
 
+%   An unbound query has no literals to ask for, and saying so beats
+%   what it used to do: `(A, B)` unifies with a variable, so the query
+%   grew a conjunct per step and the stack ran out.
+
+conjunction(Query, _) :-
+    var(Query),
+    !,
+    instantiation_error(Query).
 conjunction((A, B), Literals) :-
     !,
     conjunction(A, As),

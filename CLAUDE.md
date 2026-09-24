@@ -14,7 +14,7 @@ Everything is Prolog; there is no C code and no external build system beyond `ma
 ## Commands
 
 ```bash
-make                    # build ./scasp executable + prolog/scasp/main.qlf
+make                    # build ./scasp and ./sscasp + prolog/scasp/main.qlf
 make check_load         # load both entry points, fail on warnings/undefined preds
 make check              # full test suite: regression tests, --dcc suite, plunit
 make install            # symlink ./scasp into $SWIPL_PREFIX/bin
@@ -135,6 +135,40 @@ no second branch: the test carries a `% PINNED, no semantics branch yet.` commen
 saying what has to be settled first. Assertions about how many answers a solution
 set arrives in are pinned too and marked as such — the set is semantics, the number
 of answers it is split into is an implementation choice.
+
+### No test may rest on an undefined predicate
+
+`sscasp/2` collects by **name**: a goal is looked up where the query's module
+can see it, so a predicate a test program leaves undefined resolves to
+whatever a loaded library happens to export under that name — and the test
+then passes or fails depending on what *else* is in the process.
+
+Not hypothetical. `test_api.pl` declared `maybe` abducible and called it;
+`maybe/0` is a predicate of `library(random)`, so the moment another suite
+loaded that library the collector took its one clause, `random(2) =:= 0`, and
+the query answered with a coin toss in the model. The test passed on its own
+and failed under `make check`.
+
+So, in any test whose program is a **module's clauses** rather than a term
+list:
+
+- **Define it.** `p :- fail.` where the predicate is meant to have no
+  solutions. An undefined predicate and one that fails mean the same thing to
+  the compiler, which closes the program either way — they do not mean the
+  same thing to the *collector*.
+- **Or declare it**, where it is an abducible, a domain or an `:- sld`.
+  `dyncall.pl:declared/2` reads those and stops the walk, which is what makes
+  them safe; it is also why that predicate exists.
+- **Or give it a name nothing else could own**, for one that exists only
+  between `setup` and `cleanup` — `api_shared_head/1` rather than `shared/1`.
+
+`test_api.pl:api_hygiene` enforces this: it walks what each query actually
+collects and checks every predicate is the test module's own or declared. It
+was confirmed to fail on the `maybe/0` case before being trusted.
+
+A program written as a **term list** — `sscasp/3,4`, and every suite except
+`test_api.pl` — is not exposed: there is no module to look a name up in, and
+an undefined predicate is closed to false-of-everything by the compiler.
 
 **Do not use `fixme` for that.** plunit does not run the body of a `fixme` test — nor of
 a `blocked` one — so it can never report that the problem has gone away. A test declared
@@ -276,6 +310,7 @@ can point the same program at both, with the Gelfond–Lifschitz oracle as refer
 |---|---|
 | `ops.pl` | every operator, in one place |
 | `domains.pl` | reading one domain annotation — `:- domain`, `:- pred` |
+| `describe.pl` | reading one description — `:- describe flies(X) :: "@(X) can fly"` |
 | `annotations.pl` | a program's annotation table, as a value rather than a store |
 | `mangle.pl` | functor names — `m$dual.2.inner$flies$1`, always four fields |
 | `abstract.pl` | head abstraction — making head unification explicit |
@@ -288,6 +323,19 @@ can point the same program at both, with the Gelfond–Lifschitz oracle as refer
 | `solve.pl` | the runtime the emitted clauses call |
 | `run.pl` | `sscasp/3,4` — compile, emit, load into a module, answer |
 | `source.pl` | reading an s(CASP) source file, `#include` and all |
+| `dyncall.pl` | `sscasp/1,2` over the clauses of a Prolog module |
+| `render.pl` | an answer made readable — names, and the stores inlined |
+| `sld.pl` | the goals a `:- sld p/2.` hands to SLD resolution |
+| `herbrand.pl` | the Herbrand store — `dif/2` and `∉` behind one interface |
+| `listing.pl` | the compiled program, read back into the language it was written in |
+| `json.pl` | an answer as data, for a consumer that is a program |
+| `main.pl` | the `sscasp` executable |
+| `html.pl` | an answer described once, as HTML |
+| `html_text.pl` | the same description read as plain text |
+| `lang.pl` | the words a justification is made of |
+
+and `prolog/sscasp.pl` beside them, the user-facing `library(sscasp)`:
+operators, the `?`-prefixed query shortcuts, and what the two above export.
 
 Its tests live in `test/` like the rest, so there is one `make check`.
 
@@ -432,9 +480,9 @@ can reach it. `test_solve.pl` pins both readings and that program.
 
 ### Constraints
 
-Two stores, because two stores is what s(CASP) is (decision 4): `dif/2` for
-Herbrand disunification and `library(clpq)` for the dense order, both reached
-through `emit.pl`'s `builtin/2`. A constraint is not a literal — it is not in
+Two stores, because two stores is what s(CASP) is (decision 4): `herbrand.pl`
+for Herbrand disunification and `library(clpq)` for the dense order, both
+reached through `emit.pl`'s `builtin/2`. A constraint is not a literal — it is not in
 the model and not a step in the justification. It says what the answer *is*,
 and it says it on the variable:
 
@@ -455,6 +503,65 @@ it is one only at `X = 1` — so `consistent/3` posts `dif(Goal, Neg)` between
 literals that could be made to contradict, instead of refusing. Refusing lost
 every answer that needed the other values; the oracle went from 100
 disagreements to none on the first-order fragment when this changed.
+
+#### The Herbrand store has two backings
+
+`herbrand.pl` holds it, and what it holds is in one of two places:
+
+| | holds | |
+|---|---|---|
+| `dif/2` | a disequality between whole terms | `dif(f(A,B), f(a,b))` is `A \= a` *or* `B \= b`, and commits to neither |
+| `∉` | the ground values one variable may not take | `X ∉ [a, b]` |
+
+They are **not** interchangeable and the direction matters: `X ∉ [a,b]` is
+always `dif(X,a), dif(X,b)`, but a `dif/2` becomes a prohibited value only
+where the two terms disagree in *one* place, that place being a variable
+against a ground term. Anything else is a disjunction and no set of values
+per variable can hold one. (The old implementation resolves the disjunction
+by **backtracking** — `clp/disequality.pl`'s `.\=.` picks one binding to
+negate and leaves an alternative — which is a different and more expensive
+semantics than `dif`'s single or-node.)
+
+So `apart/2` posts into whichever can say it and everything else goes
+through the same interface: `read_store/2` reports both as `apart(A, B)`
+terms, `excluded_values/2` gives the ground values from both,
+`node_count/2` sizes both. **`solve.pl` names neither**, which is the point
+— a reader is asking what the answer says, not which attribute holds it.
+
+Three reasons, and the first is what prompted it:
+
+- **A set is idempotent.** `consistent/3` posts one disequality per proved
+  literal a goal might contradict and several collapse to the same thing
+  once the answer has bound what they differ in, so a variable carried
+  `dif(X, john)` twice and the toplevel said so twice.
+- **Reading a `dif/2` destroys it** and a `∉` set is one variable's, so
+  there is nothing shared and nothing to delete.
+- **`X ∉ [a, b]` is how an answer reads** — the old implementation's
+  spelling, and the one its `.pass` data is written in.
+
+Every post must go through `apart/2` or `not_in/2`. A bare `dif(X, ground)`
+anywhere else puts a prohibited value where the set already has one, and the
+duplication is back by another door.
+
+**One case no hook can see**, and `normalise/1` is the answer to it. A
+disequality between two *variables* is `dif/2`'s, correctly — neither side
+is ground. Once one of them is bound there is a value to prohibit, and
+`library(dif)` simplifies its or-nodes internally without telling anyone.
+So when an answer is complete, `run.pl` rebuilds the store over the
+variables the answer is about: `dif:attribute_goals//1` deletes each node
+as it reports it — the one time that is useful — and what comes back is
+posted again through `apart/2`. It costs nothing measurable and it is why
+
+    ?- ? -bird(X).
+    X ∉ [john,tweety]
+
+says it once rather than as a set and two or-nodes saying the same.
+
+**`∉` is also a language feature**: `p(X) :- X ∉ [a, b]` compiles to the
+store, and `dual.pl` pairs it with `∈`, which is a *generator* — the
+negation of "not one of these" is "one of these", and a dual has to be
+something to run rather than something to fail. `∈` is ours; the old
+implementation has only `∉`.
 
 ### The quantifier
 
@@ -560,7 +667,14 @@ that did not work, are under the corpus below.
 Three things it needs. The commitment is to the covering of the whole
 **nest**, since `dualise.pl` nests one quantifier per body-only variable and
 the outermost's search runs through them all; committing at each level costs
-9.2 s of `make check` against 4.8 s for no answer either way. The snapshot is
+9.2 s of `make check` against 4.8 s for no answer either way. (Re-measured
+after `covered/7`: `once/1` at every nested `call_in/5` now keeps the whole
+suite green and the corpus's answer counts, and buys 0.395 s → 0.288 s on
+`bec_light` and nothing anywhere else. It is still a strengthening of what
+the quantifier means, bought for one program, so it is not taken — but the
+old claim that it leaves `family.pl`'s NMR check with no answer no longer
+holds, and a future change that wants it should re-measure rather than
+believe this paragraph.) The snapshot is
 **projected** with `dump/3`, for the reason below — an unprojected constraint
 would invent a variable again on every round. And nothing attributed leaves
 the discarded run: the covering is run once more, `fail` undoes it and
@@ -579,6 +693,300 @@ Where the domain really is finite it has to be declared, and `for_domain/6`
 enumerates it — including a range, which compiles to a CLP(Q) region and is
 covered rather than listed. That is case 6 against case 1, and the difference
 is one annotation.
+
+### Using it from Prolog
+
+`library(sscasp)` is the way in: load it, write the program as ordinary
+Prolog clauses, and ask.
+
+```prolog
+:- use_module(library(sscasp)).
+
+bird(tweety).
+flies(X) :- bird(X), not penguin(X).
+
+?- ? flies(X).
+Model:
+    bird(tweety)
+    flies(tweety)
+    not penguin(tweety)
+X = tweety.
+```
+
+`dyncall.pl` collects the clauses **reachable from the query** plus the
+global constraints whose call tree overlaps them — not the whole module,
+which is what makes it usable on a program of any size, and why a
+contradiction the query cannot reach does not constrain the answer.
+`collect(Goal)` widens the collection without widening the query.
+
+Three things that are not obvious and cost an afternoon each:
+
+- **A query is a `:` meta-argument, never a `0`.** With `0` the compiler
+  expands the argument where it is written, and `-p(X)` — a goal only
+  s(CASP) gives a meaning to — comes back as a predicate named `'-p'`
+  when `library(scasp)` is loaded alongside. `scasp/dyncall.pl` uses `:`
+  for the same reason.
+- **`p` and `-p` are one predicate.** The compiler writes `:- p(X), -p(X)`
+  for every classically negated predicate, so reaching one reaches the
+  other and reaching it drags in whatever *it* calls —
+  `dyncall.pl:add_counterpart/3`, inside the closure. Left out, this was
+  unsound rather than untidy: `q. p :- q. -p :- q.` has no answer set, and
+  `?- sscasp(p).` said yes, because nothing reachable from `p` mentions
+  `-p` and the consistency check was therefore never generated. It is not
+  "collect the whole program" creeping back — a global constraint the
+  query cannot reach still does not constrain it; what this says is that
+  the *rest of a predicate* is not somewhere else.
+- **A declaration belongs with the clauses, not with the asker.** A
+  global constraint and a `sscasp_directive/1` are recorded against the
+  module they were written in, and the query often runs somewhere else —
+  plunit gives every test a module of its own, which inherits the
+  predicates and holds none of the declarations. So they are gathered
+  from every module that contributes a clause, plus the query module's
+  inheritance chain.
+- **`false :- Body` is expanded away at load time**, because `:- Body` is
+  a Prolog directive and `false/0` cannot be given clauses. Both
+  libraries install a `user:term_expansion/2` for it and the first one
+  declared wins, so `global_constraint/2` reads what *either* leaves
+  behind — ours records it, the old one makes a clause of `-/0`.
+
+#### The listing
+
+`sscasp_show(Query, code)` writes the program the query would run: the
+question and the user predicates, with `duals(true)` and
+`constraints(true)` for what the compiler made of them, `source(true)`
+for the terms as collected (the only section that shows a `:- describe`
+or a `:- domain`) and `compiled(true)` for the clauses the solver
+actually runs. The defaults are the old implementation's — most of the
+time the question is about the program rather than about the compiler.
+
+`listing.pl` reads the compiled program back into the language it was
+written in, and the one thing it does beyond demangling is **inline the
+helpers as a disjunction**:
+
+    not flies(A) :-
+        (   not bird(A)
+        ;   bird(A),
+            ab(A)
+        ).
+
+`dualise.pl` writes that as `not flies` calling a generated helper per
+clause, each with one clause per way its body can fail. Printed as it
+stands it is a hierarchy of `scasp$dual.1$flies$1` names that the reader
+has to put back together; printed as a disjunction it is the dual, which
+is the one thing a reader of a dual is asking about. Disjunction and not
+separate clauses is the whole trick: a conjunction of two three-clause
+helpers is one body with two `;` groups, where splitting it into clauses
+would be nine of them. A helper is inlined only where it is called
+**once**, which is how they are generated, and that is checked rather
+than assumed.
+
+What is left keeps a name. A sub-check prints as `check(1)` under a
+comment saying what it came from — a global constraint, the consistency
+of a classically negated predicate, an odd loop — which `nmr.checks`
+records and nothing else can reconstruct.
+
+**A listing must not fail.** It is what a reader falls back on when
+something is wrong, so `wrap/3` has a catch-all: a kind nobody thought of
+prints as `generated(Kind, Goal)` rather than taking the listing with it.
+`test_listing.pl:listing_corpus` runs every corpus program through it and
+checks no mangled name survives — which is what caught the four kinds an
+`#abducible` compiles to, and a `not findall(...)` whose inner goal was
+being left alone.
+
+It is a listing and not a program: `check(1)` is nothing anybody can call
+and a body may hold a `forall/2` only the solver understands. The old
+implementation's `--code` *is* loadable (`--compiled`), and gets there by
+printing the generated names as they are.
+
+`portray_clause/3` does all of it — the `;` shape, the line width, the
+variable names, and, given `module(sscasp_ops)`, this language's
+operators, without which `not p(X)` is `not(p(X))`.
+
+**Two things had to be fixed in SWI-Prolog for that to be true**, and
+both are in `/home/jan/src/swipl-devel` rather than in this pack:
+
+- `listing/2` dropped its options before `portray_clause/3` saw them, so
+  `module/1` had no effect. It now forwards everything that is not one of
+  its own (`variable_names/1` means something different to it), which is
+  what its `predicate_options` declaration already claimed with
+  `pass_to(portray_clause/3, 3)`.
+- The writer wrote `not -p(X)` as `not-p(X)`. That reads back correctly —
+  SWI's reader always prefers the prefix operator, so `not-x` *is*
+  `not(-(x))` — and it looks like an infix `-`. `needSpace()` in
+  `pl-write.c` already had the machinery: `C_PREFIX_SIGN` puts a space
+  after `-` as a prefix operator when a symbol follows, and the same now
+  holds for `C_PREFIX_OP` generally. Nothing changes for a *symbolic*
+  prefix operator, where the generic symbol-symbol rule already spaced
+  it.
+
+That is why this file has no layout code. `portray/1` is not the tool for
+it: `portray_clause/3` produces output that is still **machine**
+readable, and `portray/1` is for output that is not.
+
+#### `:- sld p/2.`
+
+A predicate proved by **SLD resolution** — the way Prolog proves things,
+left to right, first clause first — rather than the way the rest of the
+program is. It is not dualised, not closed, and its clauses are not
+collected; `compile.pl:sld_bridges/3` writes the two clauses that hand
+the goal over instead, in the *translated* language, so nothing above has
+to know it is special.
+
+The declaration names the **resolution**, not the language, and that is
+deliberate twice over. It leaves room — a goal proved by tabled
+resolution, or handed to a constraint solver, would want its own word —
+and it avoids the obvious name: a prefix operator called `prolog` makes
+`prolog:message//1` a syntax error in every file that can see it, which
+is a wart `library(scasp)` has today.
+
+`:- sld p/2 as opaque.` runs it instead of interpreting it. The
+difference is only in the justification: `justified` shows the SLD
+derivation beneath the literal, `opaque` shows the call and no more.
+Foreign and meta predicates are run whatever was declared, because there
+is nothing to interpret.
+
+Negating one **constrains rather than tests**, like everything else here.
+`\+ p(X)` for an unbound X asks whether *some* X works and says nothing
+about the others, so the solutions are collected and the variable kept
+away from each:
+
+```prolog
+:- sld small/1.
+small(1).  small(2).
+
+?- sscasp(not small(V), M).      % V is anything but 1 or 2
+```
+
+A ground one is simply run and refused.
+
+**A declaration is also how a program says a name is its own.** `maybe/0`
+is a predicate of `library(random)`, so a program declaring `maybe`
+abducible and calling it collected *that* — one clause, `random(2) =:= 0`
+— the moment anything in the process had loaded the library, and the
+query still answered with a coin toss in the model. `declared/2` stops
+the walk at anything a directive has already spoken for. The general
+hazard remains and `library(scasp)` has it too: a predicate whose name a
+loaded library exports gets the library's clauses, because that is what
+the name resolves to.
+
+`render.pl` makes an answer readable, which means reading the stores,
+naming the variables and putting the two back together: `not p(A | {A =<
+3})` where the term alone says `not p(_123)`. One `copy_term/3` for the
+whole answer — never a direct `dif:attribute_goals//1`, and never
+`findall/3`, which copies the constraint away from the variable it is
+about. Model and justification are made readable **together**, or a
+variable they share is named twice and the two names mean different
+things.
+
+### Saying a literal in words
+
+    :- describe flies(X) :: "@(X) can fly".
+    :- describe not flies(X) :: "@(X) cannot fly".
+    :- describe -flies(X)   :: "@(X) is known not to fly".
+
+`describe.pl` reads one; `annotations.pl` holds them and answers
+`described(+Annotations, +Literal, -Text)`, most specific first — a
+description written *later* is the more particular case, so a program may
+describe `flies(tweety)` after `flies(X)` and have the individual win. A
+description has no effect on what is proved, and `test_describe.pl` pins
+that too.
+
+Three things it turns on:
+
+- **The name is the point.** `@(X)` means the variable the directive calls
+  `X`, and a name is the one thing a read term does not carry. So the two
+  directives that want one are read with `variable_names/1` and handed the
+  bindings — `source.pl:named_term/3` for an s(CASP) file,
+  `dyncall.pl:describe/1` and `pred/1` for a Prolog one. A program given as
+  a **term list** has no reader to ask, and there the variable says its own
+  name: `describe(flies('$VAR'('X')) :: "@(X) can fly")`.
+- **The Prolog reader calls the variable a singleton**, since it occurs once
+  in the directive and the rest of its occurrences are inside a string.
+  Underscore it — `:- describe flies(_X) :: "@(X) can fly"` — and note that
+  the leading underscore is ignored on either side, so `@(X)` still finds it.
+- **The literal is one of four kinds**, in `mangle.pl`'s vocabulary:
+  `plain`, `dual`, `neg`, `dualneg`. A renderer looking at a proof node asks
+  for the description of exactly the literal it has, so `not flies(X)` reads
+  its own description and not `flies(X)`'s.
+
+**Three spellings, one thing.** `#pred p(X) :: 'text'` is what the existing
+files say and `source.pl` turns it into a `:- describe`; `:- describe` is
+the spelling going forward (decision 6a); and `:- pred p(X) :: "..."` is
+deprecated and **warns**, because in this implementation `:- pred p(dom)` is
+a *signature* and a signature changes what is proved. The warning is the
+reader's — `dyncall.pl:pred/1` and `source.pl:named_term/3` — and not
+`annotation/2`'s, which is asked once per compile and would repeat it once
+per query.
+
+Nothing consumes a description yet: `--human` is the consumer, and is still
+to come.
+
+**`:- pred` is a directive both libraries claim.** `scasp/dyncall.pl`
+installs an *unconditional* `user:term_expansion/2` for it, so in a process
+holding both trees a `:- pred p(dom)` written for this one reached that
+expansion, which knows only the `p(X) :: "..."` spelling and raised on
+anything else. `sscasp.pl:claimed_directive/2` claims it back for a file
+that imported us — guarded on `pred/1` resolving to ours, and `asserta`-ed,
+because two `user:term_expansion/2` clauses are tried in load order and
+which library loaded first is not something a program should be able to
+feel.
+
+**A directive travels with the program it is about.** `sscasp/2` is
+relevance-scoped and a module's directives are not: collecting
+`:- pred shading(shade)` for a query about birds raised
+`existence_error(procedure, shading/1)` on a program that is perfectly well
+formed, because a signature is *checked* against the definitions
+(`annotations.pl:check_signature_arity/4`). So
+`dyncall.pl:about_collected/3` keeps a signature or a description only where
+its subject is among the callees or is declared by another directive. What
+names no predicate — a `domain`, a `#show` — travels with everything; a
+`domain` declares a predicate rather than describing one and has no
+definition to be checked against.
+
+#### `#abducible` and the consistency check
+
+`#abducible p` is four rules and no special case in the solver:
+
+    p :- abducible(p).            -p :- abducible(-p).
+    abducible(p)  :- not abducible(-p).
+    abducible(-p) :- not abducible(p).
+
+The last two are an even loop, and an even loop is a free choice.
+
+**A predicate that is only an abducible gets no `:- p, -p` sub-check**,
+because the check is *entailed*: those four rules have the answer sets
+`{p}` and `{-p}` and never both. Generating it anyway costs — it is a
+choice the solver has to make, once per query that drags the declaration
+in, and the answers double. `test_api.pl` has one `#abducible` and every
+query in the file answered twice.
+
+**Both halves have to be abducible-only**, and testing one was a
+soundness bug:
+
+    #abducible p.  q.  p :- q.
+
+has the single answer set `{p, q}` — assuming `-p` gives a model holding
+`p` too, which is not one — so `-p` is not entailed. The compiler asked
+whether `-p`'s clauses were all abducible, which they were, and left the
+check out; `?- -p.` was then answered with the model `[-p]`.
+`stable_models.pl` says the program has one answer set and `-p` is not
+in it. `test_abducible.pl` pins both halves and hands three shapes to
+the oracle.
+
+`abdbirds.pl` is the corpus program for this: `ab/1` has rules of its own
+as well as being abducible, so it gets a check and `not -ab(X)` is in
+every model; `penguin/1` and `wounded_bird/1` are abducible and nothing
+else, so they get none. Three answers, as before and as the old
+implementation gives, in 4 ms.
+
+The old implementation reaches the same answers a different way, and
+`doc/semantics.md` has the detail: its two front ends disagree about
+whether an abducible even *has* a `-p`, and where it does, `scasp/2`
+simply does not collect an abducible the query cannot reach — so the
+question of exempting it never arises. Ours keeps the declaration (it
+declares a predicate rather than describing one, so `about_collected/3`
+cannot tell whether the query reaches it), and the exemption does that
+work instead.
 
 ### The justification
 
@@ -606,6 +1014,216 @@ question.
 The model is the literals of that forest, sorted, and nothing else — which is
 `doc/design-next.md` open question 5's property (the model is a function of
 the proof) holding by construction rather than by measurement.
+
+### Saying an answer
+
+`html.pl` describes an answer **once**, as HTML, and `html_text.pl` reads
+the same description as coloured plain text. That is the old
+implementation's design and this is a port of it. The alternative — two
+renderers — is what it exists to avoid, and the reason is drift rather than
+economy: the two would disagree about a case neither author remembered, and
+the text one is what a test reads.
+
+`emit//1` is `html//1` inside `emit_as(Goal, html)` and message-line tokens
+inside `emit_as(Goal, plain)`. The mode is read off the **stack**, by
+`emitting_as/1` asking for the enclosing `emit_as/4` frame, which is what
+lets `html.pl` be written as ordinary `html//1` rules with nothing about
+text in them. Layout is a second pass: `emit//1` leaves `nl(N)`,
+`indent(N)`, `bullet`, `ansi(Attrs)` in the token list and
+`fixup_layout/2` turns them into spaces, newlines and colour — two passes
+because indentation and colour are state and there is no argument to carry
+it in, for the same reason the mode has none.
+
+Two things are different here, and both are simplifications:
+
+- **The terms arrive readable.** `render.pl` has already read the
+  constraint stores and named the variables, so this layer sees
+  `'$VAR'(Name)` and `Name | {Constraints}` — where the old one calls
+  `inline_constraints/2` and `ovar_var_name/2` itself. Reading the stores
+  once, for the model and the justification together, is also what makes a
+  variable they share carry one name.
+- **A literal is said three ways**, in order: by the program's own
+  `:- describe`, by `lang.pl`'s vocabulary for the things every program has
+  (`not`, classical negation, the comparisons, "holds for"), and failing
+  both by the term itself. `show(human|machine|both)` chooses, `both` being
+  the default: it emits both and lets a stylesheet show one, and in text
+  there is no stylesheet so `html_text.pl` drops the machine half.
+
+**A description may be HTML.** `:- describe bird(X) :: html(['the bird ',
+b(X)])` is the principled way to generate output — the program says how its
+literals look and the renderer places them. A variable in such a template
+is a *value*, not an element, so `html_values/3` replaces it by a call that
+renders it; handing it to `html//1` as it stands produces `<| $VAR="A">`,
+which means the only kind of HTML template worth writing could not be
+written at all. In text, `html_text.pl` drops the markup and keeps the
+content, or `<b>tweety</b>` comes out as `b(tweety)`.
+
+`sscasp_human/1,2` is the whole of what the old `human.pl` did, which is
+why there is no such module: it is `--human`, over `library(sscasp)`.
+
+#### The toplevel
+
+The `?`-shortcuts **show nothing themselves**. They leave the answer in a
+backtrackable global (`dyncall.pl:remember/4`) and `sscasp.pl` registers a
+`residual_goals//0` hook that hands the toplevel a goal to portray. That is
+the old implementation's arrangement (`scasp/embed.pl`) and the reason is
+naming: the model then comes *after* the bindings, and the toplevel names
+the bindings, the model and the constraints still on the answer's variables
+in one go, so a variable two of them share is one name. A model printed on
+its own could not say that.
+
+    ?- ? flies(X).
+    X = tweety,
+    % s(CASP) model
+    { ab(sam),                   not ¬ wounded_bird(john),
+      bird(tweety),              not ab(tweety),
+      ...
+      not ¬ penguin(sam)
+    }.
+
+`??+-`, `??-+` and `??++` are the same in words, which is the old
+implementation's spelling too. To print from a *program* — where there is
+no toplevel — use `sscasp_human/1,2`, or `sscasp/2` with `portray_model/2`
+and `portray_justification/2`.
+
+Three things `render.pl` does that are not obvious:
+
+- **Down the columns, not across.** The model is sorted, so a column is a
+  run of related literals and the eye can find a predicate.
+  `layout(columns)` fits them to `tty_size/2`; `layout(lines)` is the
+  default and is one per line.
+- **Neither printer ends with a newline.** A printer that does cannot
+  portray a term, because whatever the toplevel writes next — a comma, a
+  full stop — lands on a line of its own.
+- **The connector is written, not left to the operator table.** The writer
+  prints `not -p(X)` as `not-p(X)`, which reads back correctly and reads
+  *wrong* to a person, `-` looking like an infix there. It is `not ¬ p(X)`,
+  or `not -p(X)` under `format(ascii)`. And the four shapes are four
+  different claims, so they get four colours: what holds is bold, what is
+  known not to hold is bold red, what there is no evidence for is red, and
+  the connectors are cyan.
+
+    ?- sscasp_human(flies(X)).
+    Model:
+       • tweety is a bird
+       • tweety can fly
+       • there is no evidence that tweety is a penguin
+    Justification:
+       tweety can fly, because
+          tweety is a bird, and
+          there is no evidence that tweety is a penguin
+       The global constraints hold
+
+**Not ported**, and deliberately: the old `#pred` may match a *subtree* —
+`-` collapses what is under a literal, `^` gathers one from anywhere below,
+and a spec may carry a condition. No program in the corpus or the examples
+uses any of it. Neither is the program listing (`html_program//1`), which
+needs the compiler's pr-representation, nor the source references, which
+need a `goal_origin/2` the new solver does not produce.
+
+#### As data
+
+`sscasp_json(Query, Dict)` gives every answer as a dict
+`json_write_dict/3` writes. Where `html.pl` renders an answer for a
+person, this reports it for a program: the *shape* of every term is said
+rather than shown, so a variable is `{"type":"var","name":"A"}` and not
+the letter A.
+
+**The variables are named once and their constraints kept apart.**
+`render.pl:sscasp_readable/3` names query, model and justification
+together, so a variable two of them share is one name — a consumer needs
+that as much as a reader does — and the stores it inlines come straight
+back out: a term says the variable, and the answer carries one
+`constraints` entry per name. Repeating the store at every occurrence
+would say the same thing many times and leave the consumer to work out
+that they were the same.
+
+Four differences from the old `json.pl`, all forced:
+
+- **`tree` is a list.** The proof is a forest here — the query's literals
+  and the NMR check beside them — not one rooted tree.
+- **A `constraints` entry is a list.** `∉` and CLP(Q) are two stores and
+  a variable may be in both; the old assumes one kind per variable.
+- **`truth` is always a string.** The old writes `true` and `false` as
+  JSON booleans and `likely`/`unlikely` as strings, and one field with
+  two types is a trap for a consumer switching on it.
+- `module`, `source_file`, `source_line`, `assume` and `abduced` do not
+  appear: the solver is not module aware, keeps no source references,
+  assumes nothing but by the coinductive hypothesis (`chs`), and gives an
+  abducible no node of its own.
+
+`sscasp_json/3` is **deterministic** — a document is a whole thing rather
+than something to backtrack into — and `limit(Count)` bounds it. Each
+answer's dict is built *inside* the solve: `findall/3` copies, and a
+copied answer is no longer the one whose query variables the caller
+holds.
+
+#### The executable
+
+`make sscasp` builds it; `prolog/sscasp/main.pl` is the source and runs
+without building (`swipl -p library=prolog prolog/sscasp/main.pl -- ...`),
+which is how `test_main.pl` drives it.
+
+    $ sscasp --tree birds.pl
+    % Query
+    ?- flies(X).
+    % ――――――――――――――――――――――――――――――――――――――――――――――――――――――
+    %                  Answer 1 (0.001 sec)
+    % ――――――――――――――――――――――――――――――――――――――――――――――――――――――
+    % Model
+    { bird(tweety),  flies(tweety),  not penguin(tweety) }
+    % Justification
+        flies(tweety)
+            bird(tweety)
+            not penguin(tweety)
+        nmr
+    % Bindings
+    X = tweety
+
+`library(main)` does the plumbing: `argv_options/3` reads the command
+line against `opt_type/3` and prints `--help` from `opt_help/2`, so a
+flag and its documentation are one thing rather than two —
+`test_main.pl` checks that every flag it tests appears in the help.
+
+Two things the file owes a caller:
+
+- **The exit status says what happened.** 0 for at least one answer, 1
+  for none, 2 for an error. A program that cannot be told apart from a
+  program with no answers is no use in a script, and every test in
+  `test_main.pl` asserts a status for that reason.
+- **A document is all that is written.** `--json` and `--html` suppress
+  the terminal output; a JSON file with a `% Query` heading in front of
+  it is not JSON. They also *collect* and write at the end, so a run cut
+  short leaves no half a document.
+
+**The query keeps the reader's variable names.** `source.pl` now returns
+`bindings` beside `query` — `?-(Goal, Bindings)` from `named_term/3` —
+so the query prints as `?- flies(X)` and the answer as `X = tweety`,
+which is what the person who wrote the file will recognise. It reaches
+`portray_clause/3` as `variable_names/1` through
+`render.pl:write_options/2`, and getting it there needed the
+`findall/3` trap avoided for the third time: a copied binding list names
+some *other* variable, and the query prints `?- flies(_)` with the names
+carefully attached to nothing.
+
+**`:- use_module(library(clpr), []).`** in `solve.pl` is for the saved
+state and nothing else. `library(clpqr)` compiles one source into a `_q`
+and an `_r` instance and its shared modules name both, so loading only
+CLP(Q) leaves the `_r` halves referenced and undefined; nothing calls
+them, but `swipl -c --undefined=error` cannot know that and the state
+will not build. The old implementation has the same line for the same
+reason.
+
+**`--version` is frozen at compile time.** `term_expansion/2` reads
+`pack.pl` while `main.pl` is being loaded, because a saved state has no
+`pack.pl` beside it and would report `unknown` from the one place it
+matters — and the version is still written in one place. The helpers
+come *above* the expansion, since a term is expanded as it is read and
+anything the expansion calls has to exist by then.
+
+Not there: the interactive toplevel (`-i`), `--dcc`, `--forall`,
+`--plaindual`, `--variant` and `--real` — none of which the solver has
+either.
 
 ### Against the corpus
 
@@ -747,10 +1365,37 @@ has seven `initiates` clauses and one of them,
         holdsAt(it_is(F), F), not holdsAt(paid_to_on(C, D, E, _), F).
 
 dualises to a quantifier over **seven** body-only variables in one tuple.
-The search is 39,507 goals in 10 seconds at depth 20 — wide, not deep, and
-spread evenly over all seven clauses' duals. That is a different problem from
-the ones above, and the first thing to measure is whether it terminates at
-all.
+
+It does terminate: the first answer comes after **376 s**, against 0.85 s and
+880 quantifier entries for the old implementation — so the question is a
+factor of 440, not a hang. The search is wide rather than deep: 39,507 goals
+in 10 s at depth 20, ~90,000 coverings spread evenly over all seven clauses'
+duals, and the complement is *narrow* — 0.6 to 4.2 pieces per covering, with
+four of those quantifiers producing **no** pieces at all while being entered
+12,000 times each. So it is the caller re-entering them, not the covering
+branching, and the next thing to find is what makes `not holdsAt/2`'s own
+covering ask for them so often.
+
+Where the recursion starts is the *query*, not the check:
+`initiates(ends(2), is_terminated(the_agreement), _) :-
+not holdsAt(requested_on(the_borrower, 1000, 2), 2).` The check's own
+quantifier is entered **6 times** and yields three pieces each; everything
+after that is what proving `not chk(F, T)` at those points costs.
+
+Five things ruled out by measurement, each of which looked likely:
+
+| | |
+|---|---|
+| the complement being wide | 0.6 to 4.2 pieces per covering |
+| `coverable/1` rejecting a tuple member bound to a non-ground term | it never rejects here — 0 of 95,158 answers |
+| the **constraining CHS** | making `consistent/3` refuse instead, which is the old implementation's rule and prunes hugely on `bec_tap_01`, leaves `bec_loan` timing out just the same |
+| ground goals being re-proved | there are only 24 distinct ones, and the existing reuse already fires 7,542 times against 299 ground expansions |
+| committing per nested quantifier | see the note under the quantifier: green, and worth 0.395 s → 0.288 s on `bec_light` alone |
+
+What is left is 25,271 expansions of **non-ground** goals in 10 s — the
+quantifiers' inner goals, with their own fresh variables — against 8,395
+goals for the old implementation's entire answer. That is the number to
+attack, and nothing measured so far says which part of it is avoidable.
 
 What the corpus no longer measures, the oracle does. Widening the differential
 sweep to 4,410 seeded programs turned up **one** disagreement — a program with
@@ -808,20 +1453,22 @@ A consequence worth stating: a model no longer contains what only a
 complement branch established, which is why the model comparison is the
 stricter of the corpus's two checks rather than the definition of agreement.
 
-**Still missing:** `∉`, `:- prolog p/2`, and the renderers — a model still
-comes back as literals with attributes rather than with the store inlined,
-which is what `output.pl` does for the old one. `findall/3` solves its goal
+**Still missing:** nothing in the renderers. `findall/3` solves its goal
 rather than calling it, so what the collection proved is in the model; its
-negation is refused rather than failed. `#abducible` is four rules, two of
-them an even loop, and gets **no** `:- p, -p` sub-check — proving that means
-proving `not -p(X)` for a quantified X, which decides the abducible for every
-individual at once (`abdbirds.pl`: 3 answers without it, 48 with).
+negation is refused rather than failed.
 
 ### Testing the new tree
 
 | Suite | Covers |
 |---|---|
-| `test/test_domains.pl`, `test_annotations.pl` | reading annotations |
+| `test/test_domains.pl`, `test_annotations.pl`, `test_describe.pl` | reading annotations |
+| `test/test_source.pl` | reading an s(CASP) source file |
+| `test/test_html.pl` | the renderer, both ways out of one description |
+| `test/test_render.pl` | the machine rendering — connectors, colour, columns |
+| `test/test_herbrand.pl` | the Herbrand store, and which of its two backings gets what |
+| `test/test_listing.pl` | the compiled program read back, over the whole corpus |
+| `test/test_json.pl` | an answer as data, round-tripped through `json_write_dict/3` |
+| `test/test_main.pl` | the `sscasp` executable, in a subprocess: flags, formats and **exit status** |
 | `test/test_mangle.pl` | the naming scheme, both ways |
 | `test/test_abstract.pl`, `test_dual.pl`, `test_dualise.pl` | head abstraction and duals |
 | `test/test_graph.pl` | odd loops, against brute-force cycle enumeration |
@@ -829,6 +1476,8 @@ individual at once (`abdbirds.pl`: 3 answers without it, 48 with).
 | `test/test_emit.pl` | the threading and the wrappers |
 | `test/test_solve.pl` | the solver, the constraints, the quantifier, and **the oracle** |
 | `test/test_corpus.pl` | the golden corpus, and what the four slow gaps answer with the NMR check off |
+| `test/test_crossings.pl` | language features crossed with each other — `doc/test-strategy.md` Gap 1 |
+| `test/test_api.pl` | `library(sscasp)` over ordinary Prolog clauses: what is collected, what comes back, what it looks like printed |
 
 Two units compare an argument against something that enumerates, because two
 steps here are arguments rather than transcriptions: `test_graph.pl` checks
@@ -944,6 +1593,12 @@ ground, otherwise `findall/3` + disequality constraints.
   solver's six coinduction cases to the renderers. Start here.
 - `doc/design-next.md` is the design round for a fresh implementation: the
   measurements it rests on, the decisions taken, and the questions still open.
+- `doc/performance.md` is where the reimplementation stands against the old one
+  on the golden corpus — answer counts, times, the two strengths of agreement,
+  and the harness to re-measure. Re-measure before quoting any of it.
+- `doc/semantics.md` is what the two answer *differently*, split into gaps
+  closed, gaps open, choices that are not defects, what is not implemented, and
+  the limitations they share. Read it before reporting a difference.
 - `doc/test-strategy.md` assesses the suite against the goal of reimplementing the
   reasoner: what is covered, the two gaps that matter (feature *crossings*, and tests
   that pin known bugs as expected), and which tests survive a change of data

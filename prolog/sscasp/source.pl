@@ -7,6 +7,7 @@
             op(1150, fx,  [table, show])
           ]).
 :- use_module(ops).
+:- use_module(describe, [deprecated_description/1]).
 :- use_module(library(lists), [append/3, member/2]).
 :- use_module(library(apply), [maplist/3]).
 :- use_module(library(error), [existence_error/2]).
@@ -18,6 +19,7 @@ A program written for the `scasp` executable, read into the value
 
     source{ terms:     [...],   % clauses, constraints and annotations
             query:     Goal,    % the last `?- ...` in the file, or `none`
+            bindings:  [...],   % its variable names, as the reader saw them
             templates: [...],   % `#pred p(X) :: '...'` — for a renderer
             shown:     [...],   % `#show p/1`
             abducible: [...],   % `#abducible p(X)`
@@ -53,9 +55,20 @@ predicate indicators in a signature are unaffected.
 Keeping them apart is what lets `pred` mean two things without ambiguity.
 `#pred p(X) :: 'text'` is a natural-language template and arrives wrapped in
 `#/1`; `:- pred p(day)` is an argument-domain signature and arrives wrapped in
-`:-/1`.  Decision 6a proposes renaming the first to `#describe`, which would
-retire the clash rather than manage it; until then the wrapper tells them
-apart.
+`:-/1`.
+
+## A template is a description
+
+Decision 6a proposed renaming the first to `#describe`, and `:- describe` is
+that: one directive for the thing, spelled the way the rest of the language
+is spelled.  `#pred p(X) :: 'text'` is still read — it is what the existing
+programs say — and becomes `:- describe p(X) :: 'text'`, so the annotation
+table has it whichever way the program wrote it.  It is also still reported
+in `templates`, for a caller that wants to know what the *file* said.
+
+A description names its variables by name, and a name is the one thing a read
+term does not carry.  So the two directives that want one are read with
+`variable_names/1` and handed the bindings; see `named_term/3`.
 */
 
 :- op(1200, fx,  #).
@@ -113,7 +126,10 @@ read_terms(File, Seen, Terms, Files, FilesTail) :-
     ).
 
 read_stream(Stream, Path, Seen, Terms, Files, FilesTail) :-
-    read_term(Stream, Term, [module(sscasp_source)]),
+    read_term(Stream, Term0, [ module(sscasp_source),
+                               variable_names(Bindings)
+                             ]),
+    named_term(Term0, Bindings, Term),
     (   Term == end_of_file
     ->  Terms = [], Files = FilesTail
     ;   include_directive(Term, Included)
@@ -126,6 +142,33 @@ read_stream(Stream, Path, Seen, Terms, Files, FilesTail) :-
         read_stream(Stream, Path, Seen, Rest, Files, FilesTail)
     ).
 
+%!  named_term(+Read, +Bindings, -Term) is det.
+%
+%   A description says which variable a placeholder means *by name* —
+%   `:- describe flies(X) :: "@(X) can fly"` — and a name is the one
+%   thing a read term does not carry.  So the two directives that want
+%   one are handed the reader's bindings and everything else is left
+%   alone.
+
+named_term(Term, _, Named), var(Term) =>
+    Named = Term.
+named_term((:- describe Spec), Bindings, Named) =>
+    Named = (:- describe(Spec, Bindings)).
+named_term((:- pred Spec), Bindings, Named), nonvar(Spec), Spec = (_ :: _) =>
+    deprecated_description(Spec),
+    Named = (:- pred(Spec, Bindings)).
+named_term(#(pred(Spec)), Bindings, Named), nonvar(Spec), Spec = (_ :: _) =>
+    Named = #(pred(Spec, Bindings)).
+
+%   The query keeps its variable names too, for the same reason and for
+%   a plainer one: an answer is reported as `X = tweety`, and `X` is
+%   what the *reader* called it.
+
+named_term((?- Goal), Bindings, Named) =>
+    Named = ?-(Goal, Bindings).
+named_term(Term, _, Named) =>
+    Named = Term.
+
 include_directive(#(include(File)), File).
 
 %!  partition_terms(+Read, -Source) is det.
@@ -135,20 +178,30 @@ include_directive(#(include(File)), File).
 %   executable answers.
 
 partition_terms(Read, Source) :-
-    partition_terms(Read, Terms, Templates, Shown, Abducible, none, Query),
+    partition_terms(Read, Terms, Templates, Shown, Abducible,
+                    none-[], Query-Bindings),
     Source = source{ terms:     Terms,
                      query:     Query,
+                     bindings:  Bindings,
                      templates: Templates,
                      shown:     Shown,
                      abducible: Abducible }.
 
 partition_terms([], [], [], [], [], Query, Query).
 partition_terms([Term|Read], Terms, Templates, Shown, Abducible, Q0, Query) :-
-    (   Term = (?-(Goal))
+    (   Term = ?-(Goal, Named)
     ->  Terms = Terms1, Templates = Templates1, Shown = Shown1,
-        Abducible = Abducible1, Q1 = Goal
+        Abducible = Abducible1, Q1 = Goal-Named
+    ;   Term = (?-(Goal))
+    ->  Terms = Terms1, Templates = Templates1, Shown = Shown1,
+        Abducible = Abducible1, Q1 = Goal-[]
+    ;   Term = #(pred(Template, Bindings))
+    ->  Templates = [Template|Templates1],
+        Terms = [(:- describe(Template, Bindings))|Terms1], Shown = Shown1,
+        Abducible = Abducible1, Q1 = Q0
     ;   Term = #(pred(Template))
-    ->  Templates = [Template|Templates1], Terms = Terms1, Shown = Shown1,
+    ->  Templates = [Template|Templates1],
+        Terms = [(:- describe(Template, []))|Terms1], Shown = Shown1,
         Abducible = Abducible1, Q1 = Q0
     ;   Term = #(show(What))
     ->  Shown = [What|Shown1], Terms = Terms1, Templates = Templates1,

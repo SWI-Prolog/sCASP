@@ -3,10 +3,10 @@
           ]).
 :- use_module(ops).
 :- use_module(annotations, [program_annotations/2,
-                                            annotation_clauses/2]).
+                            annotation_clauses/2,
+                            annotation/2]).
 :- use_module(dualise,     [predicate_duals/6, translate_goal/3]).
-:- use_module(domains,     [annotation/2]).
-:- use_module(mangle,      [demangle/2]).
+:- use_module(mangle,      [demangle/2, mangle/2]).
 :- use_module(graph,       [olon_clauses/3]).
 :- use_module(nmr,         [nmr_check/4]).
 :- use_module(library(lists), [append/3, member/2]).
@@ -84,7 +84,9 @@ compile_program(Module, Terms, Program) :-
     constraints(Terms, Constraints),
     predicate_groups(Clauses, Groups),
     maplist(compile_predicate(Module, Annotations), Groups, Compiled),
-    append(Compiled, Translated),
+    append(Compiled, Translated0),
+    sld_bridges(Module, Terms, Bridges),
+    append(Translated0, Bridges, Translated),
     olon_clauses(Clauses, Olon, _Ordinary),
     check_sources(Groups, Olon, Constraints, Sources),
     nmr_check(Module, Annotations, Sources, Nmr),
@@ -117,28 +119,43 @@ check_sources(Groups, Olon, Constraints, Sources) :-
 olon_source(Clause, olon(Clause)).
 constraint_source(Body, constraint(Body)).
 
+%   A predicate that is **only** an abducible is the one exception, and
+%   it is an exception because the check is *entailed* rather than
+%   because it is expensive.  The four rules an `#abducible` compiles to
+%   are
+%
+%       p :- abducible(p).          -p :- abducible(-p).
+%       abducible(p) :- not abducible(-p).
+%       abducible(-p) :- not abducible(p).
+%
+%   whose answer sets are `{p}` and `{-p}` — never both — so `:- p, -p`
+%   holds in every one of them.  Generating it anyway costs: it is a free
+%   choice the solver has to make, and it makes it *again* for every
+%   query that drags the declaration in, doubling the answers.
+%
+%   **Both sides** have to be abducible-only.  Testing one was the bug:
+%
+%       #abducible p.  q.  p :- q.
+%
+%   has the single answer set `{p, q}` — assuming `-p` gives a model
+%   holding `p` too, which is not one — so `-p` is not entailed, and with
+%   the check left out `?- -p.` was answered with the model `[-p]`.
+%   `test_abducible.pl` pins that against `stable_models.pl`.
+
 consistency_source(Groups, consistency(Name/Arity, Denial)) :-
-    member(key(neg, Name/Arity)-Clauses, Groups),
-    memberchk(key(plain, Name/Arity)-_, Groups),
-    \+ abduced_only(Clauses),
+    member(key(neg, Name/Arity)-Negative, Groups),
+    memberchk(key(plain, Name/Arity)-Positive0, Groups),
+    \+ ( abduced_only(Negative),
+         abduced_only(Positive0)
+       ),
     functor(Positive, Name, Arity),
     Denial = (-(Positive), Positive).
 
-%   An abducible needs no such check and must not have one.  Its even
-%   loop already makes the two halves exclusive — assuming both means
-%   holding `abducible(p(X))` and `not abducible(p(X))` in one proof, and
-%   `solve.pl:consistent/3` rejects that where the literal is, which is
-%   the cheap place to reject it.
-%
-%   The check is not merely redundant: proving it means proving
-%   `not -p(X)` for a *quantified* X, and the only way to do that is to
-%   assume `p(X)` — so the check decides the abducible for every
-%   individual at once, and the answers multiply by the number of ways
-%   to do it.  `abdbirds.pl` gives 3 answers without it and 48 with.
-
 abduced_only(Clauses) :-
-    forall(member(Clause, Clauses),
-           Clause = (-(Head) :- abducible(-(Head)))).
+    forall(member(Clause, Clauses), abduced(Clause)).
+
+abduced(-(Head) :- abducible(-(Head))).
+abduced(Head :- abducible(Head)).
 
 %!  compile_predicate(+Module, +Annotations, +Group, -Clauses) is det.
 %
@@ -207,7 +224,8 @@ constraints(Terms, Constraints) :-
     findall(Body,
             ( member((:- Body), Terms),
               \+ annotation(Body, _),
-              \+ Body = abducible(_)
+              \+ Body = abducible(_),
+              \+ Body = sld(_)
             ),
             Constraints).
 
@@ -248,6 +266,61 @@ abducible_clause(Head, (Head :- abducible(Head))).
 abducible_clause(Head, (-(Head) :- abducible(-(Head)))).
 abducible_clause(Head, (abducible(Head) :- not(abducible(-(Head))))).
 abducible_clause(Head, (abducible(-(Head)) :- not(abducible(Head)))).
+
+%!  sld_bridges(+Module, +Terms, -Clauses) is det.
+%
+%   `:- sld p/2.` says p/2 is proved by SLD resolution rather than by the
+%   solver.  It gets no clauses of its own and no dual generated from
+%   them — there is nothing here to dualise — so both are written out,
+%   as the two clauses that hand the goal over:
+%
+%       m$plain$p$2(A, B) :- sld(user:p(A, B), justified).
+%       m$dual$p$2(A, B)  :- sld(user:(not p(A, B)), justified).
+%
+%   Written in the *translated* language rather than the user's, because
+%   that is the point: the predicate exists as far as the solver is
+%   concerned, so nothing above it has to know it is special.  It is
+%   defined, so `close_program/2` leaves it alone; it has no user clauses,
+%   so `graph.pl` sees a leaf and no loop can run through it.
+%
+%   `:- sld p/2 as opaque.` runs it instead of interpreting it.  The
+%   difference is only in the justification — see `sld.pl`.
+
+sld_bridges(Module, Terms, Clauses) :-
+    findall(Clause,
+            ( member((:- sld(Declaration)), Terms),
+              sld_declaration(Declaration, Where:Name/Arity, Type),
+              sld_bridge(Module, Where, Name, Arity, Type, Clause)
+            ),
+            Clauses).
+
+%   The declaration may name the module the clauses are in —
+%   `:- sld lists:member/2.` — and `dyncall.pl` always does, because it
+%   knows.  A bare one means `user`, which is where a file read by
+%   `source.pl` puts its Prolog predicates.
+
+sld_declaration(Declaration, Where:PI, Type) :-
+    (   Declaration = (Rest as Type0)
+    ->  Type = Type0
+    ;   Rest = Declaration,
+        Type = justified
+    ),
+    (   Rest = Where:PI
+    ->  true
+    ;   Where = user,
+        PI = Rest
+    ).
+
+sld_bridge(Module, Where, Name, Arity, Type, (Head :- sld(Where:Called, Type))) :-
+    functor(Goal, Name, Arity),
+    Goal =.. [_|Args],
+    (   Kind = plain,
+        Called = Goal
+    ;   Kind = dual,
+        Called = not(Goal)
+    ),
+    mangle(pred(Module, Kind, Name, Arity), Mangled),
+    Head =.. [Mangled|Args].
 
 %!  predicate_groups(+Clauses, -Groups) is det.
 %

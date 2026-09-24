@@ -312,21 +312,31 @@ test(nor_when_the_negative_is_only_called) :-
     compiled([(p(X) :- q(X), not(-(p(X)))), q(1)], P),
     assertion(P.nmr.checks == []).
 
-%   An abducible does not get one, and the reason is not that it is
-%   redundant.  Proving `not -p(X)` for a quantified X means assuming
-%   p(X), so the check would decide the abducible for every individual at
-%   once; `abdbirds.pl` gives 3 answers without it and 48 with.  What
-%   keeps the two halves apart is the even loop, at the literal.
+%   A predicate that is **only** an abducible does not get one, because
+%   the check is *entailed*: the four rules an `#abducible` compiles to
+%   have the answer sets `{p}` and `{-p}` and never both, so `:- p, -p`
+%   holds in each.  Generating it anyway is a free choice the solver has
+%   to make, once per query that drags the declaration in, and the
+%   answers double.
 
-test(an_abducible_does_not_get_one) :-
+test(a_pure_abducible_does_not_get_one) :-
     compiled([(:- abducible(maybe)), (rain :- maybe)], P),
     assertion(P.nmr.checks == []).
 
-%   Unless the program has rules of its own for the negative half, and
-%   then the two really can interact.
+%   Both halves have to be abducible-only.  Rules for the negative half
+%   give a second route to it, and then the two really can interact.
 
 test(unless_the_negative_half_has_rules_too) :-
     compiled([(:- abducible(maybe)), (-(maybe) :- storm), storm], P),
+    assertion(P.nmr.checks =@= [check(1, consistency(maybe/0), (-maybe, maybe))]).
+
+%   And so do rules for the **positive** half, which is the half that was
+%   not being looked at: `maybe` is derivable from `storm`, so assuming
+%   `-maybe` gives a model holding both and the check is what says so.
+%   `test_abducible.pl` shows what it costs to leave out.
+
+test(or_the_positive_half) :-
+    compiled([(:- abducible(maybe)), (maybe :- storm), storm], P),
     assertion(P.nmr.checks =@= [check(1, consistency(maybe/0), (-maybe, maybe))]).
 
 test(a_predicate_only_a_constraint_mentions_is_closed_over) :-

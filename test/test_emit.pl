@@ -213,10 +213,11 @@ test(a_builtin_does_not_advance_the_proof) :-
 %   That is what makes the dual of `p(0)` answer `not p(X)` with the
 %   values X may take rather than with "yes".
 
-test(disequality_becomes_dif) :-
+test(disequality_goes_into_the_herbrand_store) :-
     emitted([p(0)], Clauses),
     once(clause_for(Clauses, 'm$dual.1$p$1', Clause)),
-    Clause = ('m$dual.1$p$1'(A, _, S0, S) :- (dif(B, 0), Out = In)),
+    Clause = ('m$dual.1$p$1'(A, _, S0, S)
+                 :- (sscasp_herbrand:apart(B, 0), Out = In)),
     assertion(B == A),
     assertion(In == S0),
     assertion(Out == S).

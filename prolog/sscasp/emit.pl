@@ -3,7 +3,8 @@
             body/6,                     % +Body, +Module, +Anc, +S0, -S,
                                         %   -Runnable
             checked_kind/1,             % ?Kind
-            polarity/2                  % ?Kind, ?Polarity
+            polarity/2,                 % ?Kind, ?Polarity
+            builtin/2                   % ?Goal, -Runnable
           ]).
 :- use_module(ops).
 :- use_module(mangle, [mangle/2, demangle/2]).
@@ -211,6 +212,9 @@ body(not(findall(Template, Goal, List)), _, _, S0, S, Runnable) :-
                  throw(error(sscasp_error(
                           negated_findall(findall(Template, Goal, List))), _))
                ).
+body(sld(Goal, Type), _, Anc, S0, S, Runnable) :-
+    !,
+    Runnable = sscasp_solve:sld_goal(Goal, Type, Anc, S0, S).
 body(Goal, _, Anc, S0, S, Runnable) :-
     Goal =.. [Name|Args],
     demangle(Name, _),
@@ -231,9 +235,9 @@ body(Goal, _, _, _, _, _) :-
 %   said on the variable instead, which is the point of using solvers
 %   that constrain rather than tests that fail.
 %
-%   `\=` becomes `dif/2` — the same relation, stated so that it
-%   *constrains* an unbound argument rather than merely succeeding on it,
-%   which is what makes the dual of `p(0)` answer `not p(X)` with the
+%   `\=` goes into the Herbrand store — the same relation, stated so that
+%   it *constrains* an unbound argument rather than merely succeeding on
+%   it, which is what makes the dual of `p(0)` answer `not p(X)` with the
 %   values X may take rather than with "yes".
 %
 %   The comparisons become CLP(Q).  Decision 4 keeps two stores because
@@ -250,7 +254,15 @@ body(Goal, _, _, _, _, _) :-
 %   because failing means `not p` succeeds where p holds.
 
 builtin((A = B), (A = B)).
-builtin((A \= B), dif(A, B)).
+builtin((A \= B), sscasp_herbrand:apart(A, B)).
+
+%   The Herbrand store, said the way a program says it.  `apart/2` and
+%   not `dif/2` because `herbrand.pl` owns which of its two backings
+%   holds a given disequality, and a post that went round it would put a
+%   prohibited value where the set already has one — see there.
+
+builtin('∉'(X, Values), sscasp_herbrand:not_in_list(X, Values)).
+builtin('∈'(X, Values), sscasp_herbrand:'∈'(X, Values)).
 
 %   `true` and `fail` negate to each other.  `dual.pl` leaves them for
 %   here rather than pairing them in `dual_operator/2`, because that
@@ -265,7 +277,7 @@ builtin(not(fail), true).
 %   `\+ (A is B)` would only fail on an unbound one.
 
 builtin(is(A, B), is(A, B)).
-builtin(not(is(A, B)), (Value is B, dif(A, Value))).
+builtin(not(is(A, B)), (Value is B, sscasp_herbrand:apart(A, Value))).
 builtin(Goal, Goal) :-
     nonvar(Goal),
     functor(Goal, Name, 2),
