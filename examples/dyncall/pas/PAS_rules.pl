@@ -12,11 +12,11 @@
 %%                                        %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- pred chose('T') :: '@(T:treatment) has been chosen'.
-:- pred recommendation('T') :: 'it is a recommendation to use @(T)'.
-:- pred discarded('T') :: '@(T) is discarded'.
-:- pred available('T') :: 'available holds for @(T)'.
-:- pred exclude('T') :: '@(T:treatment) is excluded'.
+#pred chose(_T) :: '@(T:treatment) has been chosen'.
+#pred recommendation(_T) :: 'it is a recommendation to use @(T)'.
+#pred discarded(_T) :: '@(T) is discarded'.
+#pred available(_T) :: 'available holds for @(T)'.
+#pred exclude(_T) :: '@(T:treatment) is excluded'.
 
 :- show chose/1, recommendation/1, discarded/1.
 :- show not contraindication/1.

@@ -1,3 +1,19 @@
+%   `swipl -Dsscasp` makes library(scasp) the new implementation: this
+%   file then re-exports library(sscasp) and defines nothing of its own.
+%   A program written for library(scasp) -- an example, a Logical English
+%   export, a test -- runs against either without being edited, which is
+%   the switch sscasp promises: its predicates have the same names.
+%
+%   Before the module declaration, because the two branches declare
+%   different exports.
+
+:- if(current_prolog_flag(sscasp, true)).
+
+:- module(scasp, []).
+:- reexport(sscasp).
+
+:- else.
+
 :- module(scasp,
           [ scasp/1,                    % :Goal
             scasp/2,                    % :Goal, +Options
@@ -172,3 +188,5 @@ sandbox:safe_prolog_flag(scasp_compile_nmr, _).
 sandbox:safe_prolog_flag(scasp_forall, _).
 sandbox:safe_prolog_flag(scasp_dcc, _).
 
+
+:- endif.

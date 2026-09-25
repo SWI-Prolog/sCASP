@@ -8,15 +8,25 @@ not across machines or across runs.  Reproduce it with the harness sketched at
 the end; re-measure before quoting any of it.
 
 The claim this document supports is narrow: *the new implementation answers
-the corpus the way the old one does, and is faster on the programs that were
-already fast.* It is not a claim that the new one is faster in general — on
-five programs it is slower, for a reason given below.
+the corpus the way the old one does, except where the old one is known to be
+wrong, and is about as fast overall* — faster on long deterministic proofs,
+slower where the NMR check opens quantifiers it covers more thoroughly.
 
 ## The corpus
 
-`test/all_programs/` holds 22 programs, 21 of which carry `.pass` data
-recording what the old implementation answers.  That data is the corpus;
-`test/corpus.pl` reads it and `test/test_corpus.pl` turns it into tests.
+Forty-nine programs in four corpora, each named by the directory it lives in,
+each carrying `.pass` data recording what the old implementation answers:
+
+| corpus | programs | |
+|---|---:|---|
+| `all_programs` | 21 | the regression corpus |
+| `sasp` | 14 | from the original s(ASP) distribution |
+| `min_programs` | 13 | one feature each, cut down |
+| `dcc` | 1 | recorded under `--dcc` |
+
+They overlap — `hanoi_7` is in two, `bec_loan` in two others.
+`test/sscasp/corpus.pl` describes the comparison and
+`test/sscasp/test_corpus.pl` turns it into tests.
 
 The `.pass` files are **not** an independent oracle — they record what one
 implementation produces.  What judges *correctness* is `test/stable_models.pl`,
@@ -24,76 +34,106 @@ a brute-force Gelfond–Lifschitz oracle that shares no design decision with
 either implementation.  The corpus can only say whether the two agree.  Both
 matter, and they answer different questions.
 
-## Answer counts and times
+## The comparison
 
-All answers enumerated, 20 s limit, one process:
+All answers enumerated, CPU time, the median of three runs (one where a run
+took over 5 s), 60 s limit per run, both implementations in one process.  The
+old implementation runs `dcc/` under `--dcc`, which forces `--forall=prev`,
+as its golden data was recorded; the new one runs everything with its
+defaults, dynamic consistency checking included.
 
-| program | old | new | ratio |
-|---|---:|---:|---:|
-| `hanoi` | 1, 0.040 s | 1, **0.006 s** | 7.0× |
-| `hanoi_7` | 1, 0.012 s | 1, **0.003 s** | 4.7× |
-| `hanoi_scasp_7` | 1, 0.015 s | 1, **0.003 s** | 4.6× |
-| `queens` | 2, 0.961 s | 2, **0.209 s** | 4.6× |
-| `birds` | 1, 0.004 s | 1, **0.002 s** | 1.8× |
-| `vars` | 1, 0.0003 s | 1, **0.0002 s** | 1.7× |
-| `bec_tap_04` | 2, 0.050 s | 2, **0.032 s** | 1.6× |
-| `solve_findall` | 1, 0.0005 s | 1, **0.0004 s** | 1.4× |
-| `family` | 1, 0.003 s | 1, **0.002 s** | 1.4× |
-| `haplotype` | 8, 0.0012 s | 8, **0.0009 s** | 1.3× |
-| `pq`, `min_model`, `olon_unreachable`, `forall_arity`, `classic_negation_inconstistent`, `rat` | | same count, 1.1–1.3× | |
-| `bec_tap_02` | 1, 0.029 s | 1, 0.112 s | 0.26× |
-| `bec_tap_01` | 1, 0.021 s | 1, 0.114 s | 0.19× |
-| `bec_tap_03` | 2, 0.038 s | 2, 0.224 s | 0.17× |
-| `bec_light` | 2, 0.061 s | 2, 0.393 s | 0.15× |
-| `bec_loan` | 4, 0.209 s | **no answer in 20 s** | |
+- **speed** is old ÷ new, so **above 1× the new one is faster**; "–" where
+  either took under a millisecond or the new one timed out.
+- **answer**: the new implementation binds the query as the golden data does
+  (`answers_agree/1`); **model**: its models match as well (`agrees/1`).
+- **disposition**: `corpus.pl:disposition/2` — `gap(slow)` is a to-do,
+  `golden` means the old answer is known to be wrong and the new one right.
 
-**20 of 21 match the old implementation's answer count.**
-
-Two things are worth saying about the five event-calculus programs, since
-they are the whole of the slower half.
-
-*They are slower for a reason that is a correctness fix.*  The quantifier used
-to read a variable's disequalities with `dif:attribute_goals/3`, a hook that
-**deletes** what it reports.  A quantifier that cannot see a disequality covers
-a domain it has not covered: `lion.pl` proved `-live(rat, apartment)` and
-`not -live(rat, apartment)` at once.  Reading them properly is six lines and is
-not optional, and what it costs is the measure of what those programs had been
-getting for free — one sub-check of `bec_tap_01` went from 8 coverings to
-4,859, because every value the coinductive-hypothesis check excludes is a piece
-of domain the quantifier now has to cover separately.
-
-*`bec_loan` terminates.*  Its first answer comes after 376 s.  The gap is a
-factor of about 440 in search size, not a hang, and `CLAUDE.md` records the
-five hypotheses that have been measured and ruled out.
-
-## Agreement, at two strengths
-
-Models legitimately differ where proofs do — the model is a function of the
-proof, so a solver that reaches the same answer by another route carries a
-different model with it.  So the corpus asks two questions:
-
-- `answers_agree/1` — do the two bind the **query** the same way?  That is what
-  was asked for, and a difference in it means something about the program.
-- `agrees/1` — do the models match as well?  A real regression test, but not
-  the definition of correct.
+| program | old answers | old s | new answers | new s | speed | answer | model | disposition |
+|---|---:|---:|---:|---:|---:|:-:|:-:|---|
+| all_programs/bec_light | 2 | 0.072 | 2 | 0.149 | 0.5× | ✓ | ✗ |  |
+| all_programs/bec_loan | 4 | 0.200 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
+| all_programs/bec_tap_01_overflow | 1 | 0.018 | 1 | 0.055 | 0.3× | ✓ | ✗ |  |
+| all_programs/bec_tap_02_no_overflow | 1 | 0.025 | 1 | 0.054 | 0.5× | ✓ | ✗ |  |
+| all_programs/bec_tap_03_two_models | 2 | 0.034 | 2 | 0.108 | 0.3× | ✓ | ✗ |  |
+| all_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.045 | 2 | 0.023 | 2.0× | ✓ | ✗ |  |
+| all_programs/birds | 1 | 0.002 | 1 | 0.002 | 1.0× | ✓ | ✗ |  |
+| all_programs/classic_negation_inconstistent | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
+| all_programs/family | 1 | 0.001 | 1 | 0.002 | 0.5× | ✓ | ✗ |  |
+| all_programs/forall_arity | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
+| all_programs/hanoi | 1 | 0.038 | 1 | 0.006 | 6.3× | ✓ | ✓ |  |
+| all_programs/hanoi_7 | 1 | 0.011 | 1 | 0.003 | 3.7× | ✓ | ✓ |  |
+| all_programs/hanoi_scasp_7 | 1 | 0.014 | 1 | 0.003 | 4.7× | ✓ | ✓ |  |
+| all_programs/haplotype | 8 | < 0.001 | 8 | 0.001 | – | ✓ | ✓ |  |
+| all_programs/min_model | 4 | < 0.001 | 4 | < 0.001 | – | ✓ | ✓ |  |
+| all_programs/olon_unreachable | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
+| all_programs/pq | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
+| all_programs/queens | 2 | 0.940 | 2 | 0.089 | 10.6× | ✓ | ✗ |  |
+| all_programs/rat | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
+| all_programs/solve_findall | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
+| all_programs/vars | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
+| dcc/hamilton_c | 3 | 0.029 | 10 | 0.027 | 1.1× | ✓ | ✗ |  |
+| min_programs/bec_loan | 4 | 0.195 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
+| min_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.045 | 2 | 0.023 | 2.0× | ✓ | ✗ |  |
+| min_programs/clpq_gt_gte_lt_lte_equal | 2 | 0.001 | 2 | 0.001 | 1.0× | ✓ | ✗ |  |
+| min_programs/clpq_intercept | 9 | 0.053 | 9 | 0.011 | 4.8× | ✓ | ✗ |  |
+| min_programs/ex01-dual | 3 | < 0.001 | 3 | < 0.001 | – | ✓ | ✗ |  |
+| min_programs/ex02-member | 1 | 0.003 | 1 | 0.001 | 3.0× | ✓ | ✗ |  |
+| min_programs/hamiltonian_scasp | 2 | 0.090 | 2 | 0.596 | 0.2× | ✓ | ✓ |  |
+| min_programs/nixon-diamond | 3 | 0.002 | 3 | 0.001 | 2.0× | ✓ | ✗ |  |
+| min_programs/solve_findall_superset | 16 | 0.001 | 16 | 0.001 | 1.0× | ✓ | ✓ |  |
+| min_programs/solve_not_is | 2 | 0.002 | 1 | 0.255 | 0.01× | ✗ | ✗ | `golden` |
+| min_programs/solve_not_true | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
+| min_programs/stream_reasoning | 4 | 0.024 | 3 | 0.029 | 0.8× | ✗ | ✗ | `golden` |
+| min_programs/yale_shooting_casp_v2 | 7 | 0.012 | 7 | 0.005 | 2.4× | ✓ | ✓ |  |
+| sasp/abdbirds | 3 | < 0.001 | 3 | 0.001 | – | ✓ | ✗ |  |
+| sasp/gpa | 1 | < 0.001 | 1 | 0.001 | – | ✓ | ✗ |  |
+| sasp/hamcycle | 1 | 0.007 | 1 | 0.005 | 1.4× | ✓ | ✗ |  |
+| sasp/hamcycle_two | 1 | 0.022 | 1 | 0.034 | 0.6× | ✓ | ✗ |  |
+| sasp/hanoi_7 | 1 | 0.011 | 1 | 0.003 | 3.7× | ✓ | ✓ |  |
+| sasp/left-rec-succ_BAD | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
+| sasp/lion | 1 | 0.005 | 1 | 0.003 | 1.7× | ✓ | ✗ |  |
+| sasp/loop_pos | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
+| sasp/loop_succ_pos | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
+| sasp/loopvar | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✗ |  |
+| sasp/loopvar2 | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✗ |  |
+| sasp/natnum | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
+| sasp/path_loop | 3 | 0.006 | 3 | 0.002 | 3.0× | ✓ | ✗ |  |
+| sasp/queens_old | 2 | 0.006 | 2 | 0.005 | 1.2× | ✓ | ✓ |  |
 
 | | |
 |---|---|
-| agree on the answer | **19 of 21** |
-| agree on the model as well | 11 of 21 |
+| agree on the answer | **45 of 49** |
+| agree on the model as well | 22 of 49 |
+| same number of answers | 44 of 49 |
+| speed, geometric mean over the 28 measurable | **1.17×** |
+| faster / slower (by more than 10%) | 15 / 9 |
+| total, `bec_loan` excluded | old 1.52 s, new 1.50 s |
 
-The two that do not agree on the answer:
+**The four that do not agree on the answer** are all recorded.  `bec_loan`,
+in both corpora it is in, does not finish within the limit (`gap(slow)`); its
+query alone answers in 0.027 s and the time goes to its NMR check, which opens a
+quantifier over a seven-variable tuple — `CLAUDE.md` has the five hypotheses
+measured and ruled out.  `solve_not_is` and `stream_reasoning` are the two
+where the old implementation is wrong: its dual of `V is X+Y` misses a case,
+and it misses a cancellation.  `solve_not_is`'s 0.26 s is the price of
+checking the case the old one skips.
 
-- `bec_loan` — the timeout above.
-- `hanoi_scasp_7` — an artefact of the comparison rather than a disagreement.
-  Its golden model has no query literal to read an answer out of, so there is
-  nothing to compare; the golden model is also a strict *subset* of ours,
-  missing the `not negmove(...)` that proving each `move(...)` needs.
+**Answer counts differ** where the same answer set arrives in a different
+number of answers, which is an implementation's choice: `hamilton_c` gives
+the old one's three answers as ten.
+
+**Models differ** where the proofs do — the model is a function of the proof,
+so a solver that reaches the same answer by another route carries a different
+model with it.  That is why agreement on the answer is the definition of
+agreeing and agreement on the model a regression test.  `hanoi_scasp_7` and
+`hamilton_c` say `#show`, and their golden models are the shown part only;
+since `#show` is implemented, the first agrees on the model too.
 
 ## Where the new implementation is faster, and why
 
-`hanoi` (7×) and `queens` (4.6×) are the two that show it, and both come from
-the same two changes:
+`hanoi` (6.5×), `queens` (10×) and the other `hanoi` programs (4–5×) show
+it, and come from the same changes:
 
 - **Compiling to predicates instead of interpreting `pr_rule/3`.**  That is
   decision 1 of `doc/design-next.md` and it is most of the constant factor.
@@ -106,9 +146,42 @@ complement branches — the proof reached 131,135 nodes holding 1.3M attributed
 variables where the answer has 53 literals, which is what exhausted a 4 GB
 stack.
 
+## Where it is slower, and why
+
+The event-calculus programs (`bec_light`, `bec_tap_01`–`03`, 0.31–0.48×),
+`hamiltonian_scasp` (0.15×) and the Hamiltonian-cycle programs from `sasp`.
+All of it is the NMR check, not the query: `hamiltonian_scasp`'s query answers
+in 26 ms and `bec_tap_01` answers each of its ten documented queries in
+6–19 ms with the check off.
+
+*The quantifier reads what the CHS check posts.*  It used to read a variable's
+disequalities with `dif:attribute_goals/3`, a hook that **deletes** what it
+reports, and so covered domains it had not covered: `lion.pl` proved
+`-live(rat, apartment)` and `not -live(rat, apartment)` at once.  Reading
+them properly is not optional, and every value the coinductive-hypothesis check
+excludes is a piece of domain the quantifier now covers — one sub-check of
+`bec_tap_01` went from 8 coverings to 4,859.
+
+*Backtracking into the check used to re-run coverings for nothing.*  When the
+answers are enumerated, each one backtracks into the NMR check's quantifiers,
+which ask `elsewhere/7` for an alternative: it re-ran the whole covering and
+then partitioned the goal's other variables against what it bound them to.  A
+sub-check has arity zero, so there were no other variables and nothing to find.
+Skipping that run took `hamiltonian_scasp` from 3.1 s to 0.6 s — its first
+answer came at 0.15 s and 2.9 s went on retrying the check after it — and
+roughly halved every program with more than one answer.  Before it the
+geometric mean was 0.76×.
+
+*Dynamic consistency checking* (`sscasp_dcc`, on by default) prunes a branch
+as soon as it completes a global constraint.  It changes no answer and takes
+about 12% off the corpus when it was measured, most of it on
+`hamiltonian_scasp` and `bec_light`;
+the old implementation, where it is off by default, gets 7× from it on
+`hamilton_c`, which this one already answers without the pruning.
+
 ## Programs the old implementation cannot do
 
-`test/known_issues.pl` lists three, and the new implementation answers two of
+`test/scasp/known_issues.pl` lists three, and the new implementation answers two of
 them:
 
 | program | old | new |
@@ -133,17 +206,19 @@ supported one means.  `doc/semantics.md` treats it with the rest.
 
 ## The test suite
 
-`make check` is a single `swipl` call: **900 tests, 1,018 sub-tests, 4.7 s**
-(6.7 s wall including load).  `test/test_all.pl` loads every suite — the golden
-tests included — into one process and runs whole units concurrently with
-`jobs(4)`.
+`make check` is `check_load` and then `test/test_all.pl` twice, once per
+implementation: **518 tests and 430 sub-tests** against the old library,
+**1,070 and 1,196** against the new one, 42 of whose shared tests are recorded
+gaps.  About 4 s of CPU each, 22 s wall for the whole target including the
+executables' load checks.  Units run concurrently with `jobs(4)`.
 
-Two sweeps run inside it, and they are what the soundness claim rests on:
+The sweeps against the Gelfond–Lifschitz oracle are what the soundness claim
+rests on:
 
 | sweep | size | what it compares |
 |---|---:|---|
-| `test_solve.pl:solve_differential` | 420 seeded programs | the new solver against the Gelfond–Lifschitz oracle |
-| `test_differential.pl:diff_random` | 291 seeded programs | the *old* solver against the same oracle |
+| `sscasp/test_solve.pl:solve_differential` | ~420 seeded programs | the new solver, through its term-list interface |
+| `test_differential.pl:diff_random` | 291 seeded programs | whichever library is under test — a shared suite, run against both |
 
 Both compare **brave entailment**, which is what a goal-directed solver
 computes: the solver answers `a` iff `a` is in some answer set, and `not a` iff
@@ -151,18 +226,18 @@ computes: the solver answers `a` iff `a` is in some answer set, and `not a` iff
 catches an answer no answer set supports *and* an answer set the solver cannot
 reach.
 
-The 420 is tuned so `make check` stays quick; the oracle is exponential in the
-Herbrand base while the solver is not.  Widening it is a one-line change to the
-`shape/5` facts, and the widened sweep — **8,408 programs**, propositional,
-classically negated, first-order and CLP(Q) — is clean.  Run that before
-landing anything that changes what the solver means; it is 40 s.
+The counts are tuned so `make check` stays quick; the oracle is exponential in
+the Herbrand base while the solver is not.  Widening one is a one-line change
+to the `shape/5` facts, and the widened sweep — **8,408 programs**,
+propositional, classically negated, first-order and CLP(Q) — is clean.  Run
+that before landing anything that changes what the solver means; it is 40 s.
 
 ## Reproducing this
 
 Both implementations in one process, per program, all answers:
 
 ```prolog
-:- use_module(library(sscasp/run),    [sscasp/3]).      % new
+:- use_module(library(sscasp/run),    [scasp/3]).      % new
 :- use_module(library(sscasp/source), [read_program/2]).
 :- use_module(library(scasp/compile)).                  % old
 :- use_module(library(scasp/solve)).
@@ -170,12 +245,13 @@ Both implementations in one process, per program, all answers:
 new(File, Count, Time) :-
     read_program(File, S),
     statistics(cputime, T0),
-    findall(x, sscasp(S.terms, S.query, _), As),
+    findall(x, scasp(S.terms, S.query, _), As),
     statistics(cputime, T1), Time is T1-T0, length(As, Count).
 
 old(File, Count, Time) :-
     statistics(cputime, T0),
-    scasp_load(File, [unknown(fail)]),
+    scasp_load(File, [unknown(fail)]),     % for dcc/: scasp_dcc and
+                                           % scasp_forall = prev first
     scasp_query(Q, _, []),
     findall(x, solve(Q, [], _, _), As),
     statistics(cputime, T1), Time is T1-T0, length(As, Count).
@@ -184,4 +260,6 @@ old(File, Count, Time) :-
 Run it with `swipl -p library=prolog` from the repository top, or the pack's
 `library(scasp)` resolves to a different checkout — see the gotcha in
 `CLAUDE.md`.  Wrap each call in `call_with_time_limit/2`; `bec_loan` needs
-several minutes and everything else is under a second.
+several minutes and everything else is under a second.  The table above took
+the median of three runs and read agreement from `corpus.pl`'s
+`answers_agree/1` and `agrees/1`.

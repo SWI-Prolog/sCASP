@@ -1,6 +1,4 @@
 :- use_module(library(scasp)).
-:- use_module(library(scasp/html)).
-:- use_module(library(scasp/output)).
 
 :- use_module('PAS_rules').
 :- use_module('PAS_guide').
@@ -75,7 +73,7 @@ case(1,
 
 patient_form(Case) -->
     html_requires(jquery),
-    html_requires(scasp),
+    html_requires(sscasp),
     { case(Case, Data),
       length(Data, Length),
       Rows is max(20,Length+1),
@@ -135,17 +133,29 @@ solve(Request) :-
         close(In)),
     patient_data(Terms),
     term_string(Query, QueryS, [variable_names(VNames)]),
-    call_time(findall(result(N, Time, VNames, Model, Justification),
-                      call_nth(call_time(scasp(Query, Model, Justification), Time), N),
+    call_time(findall(result(N, Time, Answer, Annotations),
+                      call_nth(call_time(answer(Query, VNames, Answer,
+                                                Annotations),
+                                         Time),
+                               N),
                       Results),
               TotalTime),
     reply_html_page([],
                     \results(Results, TotalTime)).
 
-scasp(Query, Model, Justification) :-
-    scasp(Query),
-    scasp_model(Model),
-    scasp_justification(Justification, []).
+%!  answer(+Query, +VNames, -Answer, -Annotations) is nondet.
+%
+%   Answer is t(Bindings, Model, Justification), made readable together
+%   so that a variable they share has one name, and before findall/3
+%   copies it: the constraints are on the variables, and a copy would
+%   leave them behind.
+
+answer(Query, VNames, Answer, Annotations) :-
+    scasp(Query, [ model(Model),
+                   tree(Justification),
+                   annotations(Annotations)
+                 ]),
+    scasp_readable(t(VNames, Model, Justification), Answer).
 
 results([], Time) -->
     !,
@@ -153,14 +163,15 @@ results([], Time) -->
 results(Results, _Time) -->
     sequence(result, Results).
 
-result(result(N, Time, Bindings, Model, Justification)) -->
-    { ovar_analyze_term(t(Bindings,Model,Justification))
-    },
+result(result(N, Time, t(Bindings, Model, Justification), Annotations)) -->
     html(div(class(result),
              [ h3('Result #~D (~3f sec)'-[N, Time.cpu]),
                \binding_section(Bindings),
-               \html_model(Model, [class('collapsable-content')]),
-               \html_justification_tree(Justification, [])
+               \html_model(Model, [ class('collapsable-content'),
+                                    annotations(Annotations)
+                                  ]),
+               \html_justification(Justification,
+                                   [annotations(Annotations)])
              ])).
 
 read_terms(In, Terms) :-
@@ -197,5 +208,5 @@ binding(Name=Value) -->
     html(div(class(binding),
              [ var(Name),
                ' = ',
-               \term(Value, [])
+               \term(Value, [numbervars(true)])
              ])).

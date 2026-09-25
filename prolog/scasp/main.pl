@@ -224,8 +224,15 @@ main_solve(Query, Options) :-
 
     print_query(Query, Bindings, Options),
     statistics(cputime, T0),
-    (   solve_results(Query, Bindings, Result, Options)
-    *-> true
+    State = state(false),
+    (   solve_results(Query, Bindings, Result, Options),
+        nb_setarg(1, State, true)
+    ;   arg(1, State, true)
+    ->  (   MaxAnswers == -1
+        ->  ansi_format(fg(red), '~N% no more models~n', [])
+        ;   true
+        ),
+        fail
     ;   statistics(cputime, T1),
         T is T1-T0,
         print_message(warning, scasp(no_models(T))),

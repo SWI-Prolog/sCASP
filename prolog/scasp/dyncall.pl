@@ -202,10 +202,19 @@ scasp_call_and_results(Query, SrcModule, Options) :-
 %       use:
 %
 %           ?- scasp_show(Query, code(user(false), constraints(true))).
+%
+%   An option given as a bare name means `true`: `code(constraints)` is
+%   `code(constraints(true))`.
 
 scasp_show(Query, What) :-
-    What =.. [Type|Options],
+    What =.. [Type|Options0],
+    maplist(show_option, Options0, Options),
     scasp_show(Query, Type, Options).
+
+show_option(Name, Option), atom(Name) =>
+    Option =.. [Name, true].
+show_option(Option0, Option) =>
+    Option = Option0.
 
 scasp_show(Query, code, Options) =>
     Query = SrcModule:_,
@@ -492,7 +501,14 @@ scasp_dynamic(Name/Arity, M, Scoped) =>
 
 :- multifile system:term_expansion/2.
 
+%   `ours/0' is below, with the rest of the expansions and the reason
+%   they all ask it.  This one is a `system:' expansion rather than a
+%   `user:' one, which loses to a `user:' clause -- but losing is not
+%   the same as not firing, and without the guard it still claims the
+%   directive from a file that never asked this library for it.
+
 system:term_expansion((:- scasp_dynamic(Spec)), Directives) :-
+    ours,
     phrase(scasp_dynamic_direcives(Spec), Directives).
 
 scasp_dynamic_direcives(Spec as Scope) -->
@@ -735,44 +751,82 @@ prolog_decls(PI, Type) -->
 		 *            EXPAND		*
 		 *******************************/
 
+%!  ours is semidet.
+%
+%   True when the file being compiled uses **this** library.  Every
+%   expansion below asks it first, and that is not tidiness: they are
+%   installed in `user`, so without it they fire for every file in the
+%   process.
+%
+%   That matters because `library(sscasp)` is the same language with the
+%   same spellings and a different representation.  A file of *its*
+%   writing `-dead(X) :- alive(X).` had the head interned here into a
+%   predicate named `'-dead'`, where that tree keeps a clause of `-/1`;
+%   the clause then existed under a name nothing would look for, and the
+%   query raised `existence_error(scasp_predicate, dead/1)` on a program
+%   that is perfectly well formed.  Which library was loaded first
+%   decided it.
+%
+%   `scasp/2` is the marker rather than any one directive, because it is
+%   what a file imports the library *for*, and the property survives the
+%   re-export through `library(scasp)`.  `library(sscasp)` asks the
+%   mirror-image question in `sscasp.pl:ours/1`, so a file gets exactly
+%   one library's expansions and load order decides nothing.
+
+ours :-
+    prolog_load_context(module, Module),
+    predicate_property(Module:scasp(_, _), imported_from(scasp_dyncall)).
+
 user:term_expansion(-Fact, MFact) :-
     callable(Fact),
     Fact \= _:_,
+    ours,
     intern_negation(-Fact, MFact).
 user:term_expansion((-Head :- Body), (MHead :- Body)) :-
     callable(Head),
     Head \= _:_,
+    ours,
     intern_negation(-Head, MHead).
-user:term_expansion((false :- Body), ((-) :- Body)).
+user:term_expansion((false :- Body), ((-) :- Body)) :-
+    ours.
 user:term_expansion((:- pred(SpecIn)),
                     [ (:- dynamic(pr_pred_predicate/4)),
                       pr_pred_predicate(Atom, Children, Cond, Human)
                     ]) :-
+    ours,
     process_pr_pred(SpecIn, Atom, Children, Cond, Human).
 user:term_expansion((:- show(SpecIn)),
                     [(:- dynamic(pr_show_predicate/1))|Clauses]) :-
+    ours,
     phrase(show(SpecIn), Clauses).
 user:term_expansion((:- abducible(SpecIn)), Clauses) :-
+    ours,
     phrase(abducible(SpecIn), Clauses).
 user:term_expansion((# pred(SpecIn)),
                     [ (:- dynamic(pr_pred_predicate/4)),
                       pr_pred_predicate(Atom, Children, Cond, Human)
                     ]) :-
+    ours,
     process_pr_pred(SpecIn, Atom, Children, Cond, Human).
 user:term_expansion((# show(SpecIn)),
                     [(:- dynamic(pr_show_predicate/1))|Clauses]) :-
+    ours,
     phrase(show(SpecIn), Clauses).
 user:term_expansion((# abducible(SpecIn)), Clauses) :-
+    ours,
     phrase(abducible(SpecIn), Clauses).
 user:term_expansion((# prolog(SpecIn)),
                     [(:- dynamic(pr_prolog_predicate/2))|Clauses]) :-
+    ours,
     phrase(prolog_decl(SpecIn), Clauses).
 user:term_expansion((:- prolog(SpecIn)),
                     [(:- dynamic(pr_prolog_predicate/2))|Clauses]) :-
+    ours,
     phrase(prolog_decl(SpecIn), Clauses).
 
 user:goal_expansion(-Goal, MGoal) :-
     callable(Goal),
+    ours,
     intern_negation(-Goal, MGoal).
 
 

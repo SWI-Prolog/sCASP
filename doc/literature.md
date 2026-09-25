@@ -317,8 +317,12 @@ P5 also introduces the natural-language rendering driven by `#pred` patterns —
 Worth knowing before treating any of it as settled design:
 
 - **The four `forall` algorithms and their cuts.** See above.
-- **`--dcc` (dynamic consistency checking).** No paper; forces `--forall=prev`
-  and errors on any other value, which is why it needs its own process.
+- **`--dcc` (dynamic consistency checking).** Marple and Gupta, "Dynamic
+  Consistency Checking in Goal-Directed Answer Set Programming", TPLP 14(4-5),
+  2014, from s(ASP) — so it does have a paper, though not one of the five
+  above. This port forces `--forall=prev` with it and errors on any other
+  value, which is why it needs its own process; the new implementation
+  (`sscasp`) has it without that restriction.
 - **Calling Prolog from s(CASP)** (`:- prolog p/2`, `as opaque`, the justified
   meta-interpreter in `prolog.pl`).
 - **Module interning** (`modules.pl`): the solver is not module aware and the

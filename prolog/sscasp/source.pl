@@ -1,3 +1,37 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_source,
           [ read_program/2,             % +File, -Source
 
@@ -21,7 +55,7 @@ A program written for the `scasp` executable, read into the value
             query:     Goal,    % the last `?- ...` in the file, or `none`
             bindings:  [...],   % its variable names, as the reader saw them
             templates: [...],   % `#pred p(X) :: '...'` — for a renderer
-            shown:     [...],   % `#show p/1`
+            shown:     [...],   % `#show p/1`, also in terms as `:- show(p/1)`
             abducible: [...],   % `#abducible p(X)`
             files:     [...] }  % what was read, includes last
 
@@ -204,8 +238,8 @@ partition_terms([Term|Read], Terms, Templates, Shown, Abducible, Q0, Query) :-
         Terms = [(:- describe(Template, []))|Terms1], Shown = Shown1,
         Abducible = Abducible1, Q1 = Q0
     ;   Term = #(show(What))
-    ->  Shown = [What|Shown1], Terms = Terms1, Templates = Templates1,
-        Abducible = Abducible1, Q1 = Q0
+    ->  Shown = [What|Shown1], Terms = [(:- show(What))|Terms1],
+        Templates = Templates1, Abducible = Abducible1, Q1 = Q0
     ;   Term = #(abducible(What))
     ->  Abducible = [What|Abducible1], Terms = [(:- abducible(What))|Terms1],
         Templates = Templates1, Shown = Shown1, Q1 = Q0

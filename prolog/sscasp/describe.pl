@@ -1,3 +1,37 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_describe,
           [ annotation/2,               % +Directive, -Annotation
             deprecated_description/1,   % +Specification
@@ -101,7 +135,7 @@ annotation(pred(Spec, Bindings), Annotation) :-
 %   queried in a loop would otherwise repeat the warning once a query.
 
 deprecated_description(Spec) :-
-    print_message(warning, sscasp(deprecated_pred_description(Spec))).
+    print_message(warning, scasp(deprecated_pred_description(Spec))).
 
 %!  description(+Spec, +Bindings, -Annotation) is det.
 
@@ -345,7 +379,7 @@ description_actions(description(_, _, Literal, Actions0), Query, Actions) :-
 
 :- multifile prolog:message//1.
 
-prolog:message(sscasp(deprecated_pred_description(Spec))) -->
+prolog:message(scasp(deprecated_pred_description(Spec))) -->
     [ 's(CASP): `:- pred ~p` is deprecated for a description.'-[Spec], nl,
       'Write `:- describe ~p` instead.'-[Spec], nl,
       'Here `:- pred p(dom)` is a signature -- it says which domain an'-[], nl,

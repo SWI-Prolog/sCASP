@@ -1,9 +1,10 @@
 :- module(test_compound,
           [ test_compound/0
           ]).
-:- use_module('../prolog/scasp').
+:- use_module(under_test).
 :- use_module(scasp_plunit).
 :- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 
 /** <module> Compound terms in heads, bodies and negation
 

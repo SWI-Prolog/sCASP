@@ -1,4 +1,38 @@
-:- module(sscasp_json,
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+:- module(scasp_json,
           [ answer_json/2,              % +Answer, -Dict
             answer_json/3,              % +Answer, -Dict, +Options
             answers_json/2,             % +Answers, -Dict
@@ -7,7 +41,7 @@
             justification_json/2        % +Justification, -Dicts
           ]).
 :- use_module(ops).
-:- use_module(render, [sscasp_readable/3]).
+:- use_module(render, [scasp_readable/3]).
 :- use_module(library(lists), [member/2, memberchk/2, append/3]).
 :- use_module(library(apply), [maplist/2, maplist/3]).
 :- use_module(library(option), [option/3]).
@@ -18,16 +52,16 @@ For a consumer that is a program rather than a person.  `html.pl` renders an
 answer for reading; this reports it as **data**, with the shape of every
 term said rather than shown:
 
-    ?- sscasp([(p(X) :- X #> 3)], p(V), M, J),
+    ?- scasp([(p(X) :- X #> 3)], p(V), M, J),
        answer_json(answer(p(V), M, J), Dict).
 
-    Dict = sscasp_answer{ bindings: #{'A': prolog{name:'A', type:var}},
+    Dict = scasp_answer{ bindings: #{'A': prolog{name:'A', type:var}},
                           constraints: #{'A': [constraint{type: #>, value:...}]},
                           model: [...], tree: [...] }.
 
 ## The variables are named once, and their constraints kept apart
 
-`render.pl:sscasp_readable/3` names the variables of the whole answer
+`render.pl:scasp_readable/3` names the variables of the whole answer
 together — query, model and justification — so a variable two of them share
 is one name, which a consumer needs as much as a reader does.  It also
 inlines the constraint stores, and here they come straight back out: a term
@@ -61,11 +95,11 @@ out that they were the same.
 answers_json(Answers, Dict) :-
     maplist(as_dict, Answers, Dicts),
     number_answers(Dicts, 1, JAnswers),
-    Dict = sscasp_result{ answers: JAnswers }.
+    Dict = scasp_result{ answers: JAnswers }.
 
 %   Takes either the answers or the dicts they make, so that a caller
 %   that had to build each dict while its answer was still live — which
-%   `dyncall.pl:sscasp_json/3` does — can hand them straight over.
+%   `dyncall.pl:scasp_json/3` does — can hand them straight over.
 
 as_dict(Dict, Dict) :-
     is_dict(Dict),
@@ -96,19 +130,19 @@ answer_json(Answer, Dict) :-
 %       Name the bindings as the *reader* named them — `X` rather than
 %       the `A` a renderer would give it — which is what a caller that
 %       read the query from a file has and what its user will recognise.
-%       The bindings go through the same `sscasp_readable/3` as the
+%       The bindings go through the same `scasp_readable/3` as the
 %       answer, or they would name variables the answer no longer has.
 
 answer_json(answer(Query, Model, Justification), Dict, Options) :-
     option(variable_names(Named), Options, []),
-    sscasp_readable(answer(Query, Model, Justification)-Named,
+    scasp_readable(answer(Query, Model, Justification)-Named,
                     answer(RQuery, RModel, RJustification)-RNamed,
                     [constraints(true)]),
     bindings_json(RQuery, RNamed, Bindings),
     model_json(RModel, JModel),
     justification_json(RJustification, JTree),
     constraints_json(answer(RQuery, RModel, RJustification), Constraints),
-    Dict = sscasp_answer{ bindings:    Bindings,
+    Dict = scasp_answer{ bindings:    Bindings,
                           model:       JModel,
                           tree:        JTree,
                           constraints: Constraints }.
@@ -177,16 +211,16 @@ exclude_key([Key0-Value|Pairs], Key, Rest) :-
 %   consumer here to keep.
 
 literal_json(not(-(Term)), Dict) =>
-    Dict = sscasp_model_term{truth: "likely",   value: JTerm},
+    Dict = scasp_model_term{truth: "likely",   value: JTerm},
     term_json(Term, JTerm).
 literal_json(-(Term), Dict) =>
-    Dict = sscasp_model_term{truth: "false",    value: JTerm},
+    Dict = scasp_model_term{truth: "false",    value: JTerm},
     term_json(Term, JTerm).
 literal_json(not(Term), Dict) =>
-    Dict = sscasp_model_term{truth: "unlikely", value: JTerm},
+    Dict = scasp_model_term{truth: "unlikely", value: JTerm},
     term_json(Term, JTerm).
 literal_json(Term, Dict) =>
-    Dict = sscasp_model_term{truth: "true",     value: JTerm},
+    Dict = scasp_model_term{truth: "true",     value: JTerm},
     term_json(Term, JTerm).
 
 model_json(Model, Dicts) :-
@@ -221,12 +255,12 @@ root_json(proved(Literal), Dict) =>
     root_json(Literal, Dict0),
     Dict = Dict0.put(proved, true).
 root_json(nmr, Dict) =>
-    Dict = sscasp_node{node: sscasp_model_term{truth: "true",
+    Dict = scasp_node{node: scasp_model_term{truth: "true",
                                                value: atom{type: atom,
                                                            value: nmr}}}.
 root_json(Literal, Dict) =>
     literal_json(Literal, JLiteral),
-    Dict = sscasp_node{node: JLiteral}.
+    Dict = scasp_node{node: JLiteral}.
 
 		 /*******************************
 		 *           A TERM		*
@@ -342,10 +376,10 @@ json:json_dict_pairs(Dict, Pairs) :-
             Rest),
     append(Ordered, Rest, Pairs).
 
-key_order(sscasp_result,     [answers]).
-key_order(sscasp_answer,     [answer, bindings, model, tree, constraints]).
-key_order(sscasp_model_term, [truth, value]).
-key_order(sscasp_node,       [node, chs, proved, children]).
+key_order(scasp_result,     [answers]).
+key_order(scasp_answer,     [answer, bindings, model, tree, constraints]).
+key_order(scasp_model_term, [truth, value]).
+key_order(scasp_node,       [node, chs, proved, children]).
 key_order(prolog,            [type, functor, numerator, denominator, name, value]).
 key_order(atom,              [type, value]).
 key_order(constraint,        [type, set, value]).

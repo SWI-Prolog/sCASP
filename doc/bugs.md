@@ -73,7 +73,7 @@ member(X, [_|R])   :- member(X, R).
 
 Runs past any timeout. `test/min_programs/clpq_intercept.pl` is the same shape
 with `#=<` instead of `#=` and terminates (with no models), so the two are
-worth comparing. Recorded in `test/known_issues.pl`.
+worth comparing. Recorded in `test/scasp/known_issues.pl`.
 
 ### 3. `call/1` and `forall/2` cannot be used as goals
 
@@ -83,7 +83,7 @@ worth comparing. Recorded in `test/known_issues.pl`.
 `forall/2` is a control construct that `comp_duals.pl` *generates* for dual
 rules; a program cannot write it. Via `scasp/2` it fails differently, with
 `permission_error(scasp, procedure, '$apply':forall/2)`, because the name
-resolves to the SWI built-in. Both recorded in `test/known_issues.pl`.
+resolves to the SWI built-in. Both recorded in `test/scasp/known_issues.pl`.
 
 ### 4. The tabling path is dead code
 

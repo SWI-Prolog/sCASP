@@ -8,7 +8,7 @@
             answers_agreement/3,        % +TreesA, +TreesB, -Level
             proof_literals/2            % +Tree, -Literals
           ]).
-:- use_module(library(apply), [maplist/3, maplist/2, foldl/4, foldl/6]).
+:- use_module(library(apply), [maplist/3, maplist/2, foldl/4, foldl/5, foldl/6]).
 :- use_module(library(lists), [append/3, member/2, reverse/2]).
 :- use_module(library(pairs), [pairs_keys_values/3]).
 

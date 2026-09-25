@@ -1,9 +1,12 @@
 :- module(test_proof_skeleton,
           [ test_proof_skeleton/0
           ]).
-:- use_module('../prolog/scasp/ops').
+:- use_module(under_test, [op(_,_,_)]).   % the operators, from either tree
+%   `'| '` is written canonically below: it inlines a constraint store
+%   when an answer is printed, and library(scasp) does not export it.
 :- use_module(proof_skeleton).
 :- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 
 /** <module> Tests for the justification abstraction
 
@@ -97,8 +100,8 @@ test(variable_names_absorbed) :-
             refless).
 
 test(constraint_order_absorbed) :-
-    same_at(query-[p('$VAR'('X') '| ' {'$VAR'('X') #> 1, '$VAR'('X') #< 9})-[]],
-            query-[p('$VAR'('X') '| ' {'$VAR'('X') #< 9, '$VAR'('X') #> 1})-[]],
+    same_at(query-[p('| '('$VAR'('X'), {'$VAR'('X') #> 1, '$VAR'('X') #< 9}))-[]],
+            query-[p('| '('$VAR'('X'), {'$VAR'('X') #< 9, '$VAR'('X') #> 1}))-[]],
             refless).
 
 test(answer_order_absorbed) :-

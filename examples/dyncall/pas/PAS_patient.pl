@@ -5,8 +5,7 @@
             case_history/1,
             case_diagnosis/1,
             case_evidence/1,
-            case_contraindication/1,
-            '-case_contraindication'/1
+            case_contraindication/1
           ]).
 :- use_module(library(scasp)).
 
@@ -22,23 +21,23 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Evidence
-:- pred case_evidence(accf_stage_c) ::
+#pred case_evidence(accf_stage_c) ::
         'the patient is in ACCF stage C [case data]'.
-:- pred case_evidence(pregnancy) ::
+#pred case_evidence(pregnancy) ::
         'the patient is pregnant or planning to get pregnant [case data]'.
-:- pred case_evidence('E') ::
+#pred case_evidence(_E) ::
         'the patient is/has @(E) [case data]'.
 
 %% Diagnosis
-:- pred case_diagnosis('D') ::
+#pred case_diagnosis(_D) ::
         'the patient is diagnosed with @(D) [case data]'.
 
 %% History
-:- pred case_history('H') ::
+#pred case_history(_H) ::
         'the patient has a history of @(H) [case data]'.
 
 %% Measurement
-:- pred case_measurement('M','V') ::
+#pred case_measurement(_M,_V) ::
         'there is a measurement of @(M) of @(V) [case data]'.
 
 patient_data(Data) :-

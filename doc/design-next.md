@@ -664,7 +664,7 @@ a CSS class or DOM node moves. Generating HTML and deriving text through
 5. ~~**Which partial model should a query return?**~~ **Largely settled.**
    The model is a **function of the proof**: two answers whose proofs are equal
    as sets of literal parent-child edges always carry the same model. Checked
-   by `test/test_proof_model.pl` over ten programs spanning `forall`,
+   by `test/scasp/test_proof_model.pl` over ten programs spanning `forall`,
    constraints, even loops and classical negation — and on those, the number of
    distinct models equals the number of distinct proofs exactly.
 

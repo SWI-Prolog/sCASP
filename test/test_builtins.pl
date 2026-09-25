@@ -1,9 +1,10 @@
 :- module(test_builtins,
           [ test_builtins/0
           ]).
-:- use_module('../prolog/scasp').
+:- use_module(under_test).
 :- use_module(scasp_plunit).
 :- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [memberchk/2]).
 
 /** <module> Built-ins, findall/3, abducibles and classical negation
@@ -383,8 +384,11 @@ test(negated_findall_always_fails, fail) :-
 
 :- begin_tests(builtin_abducible).
 
-:- abducible maybe.
-holds :- maybe.
+%   Not `maybe`: that is a predicate of library(random), and where the
+%   declaration does not load, `holds` would reach it and toss a coin.
+
+:- abducible abd_maybe.
+holds :- abd_maybe.
 
 :- abducible pick(1).
 chosen(X) :- pick(X).
@@ -395,7 +399,7 @@ test(and_fails_by_assuming_the_other_way) :-
     scasp(not holds).
 test(the_assumption_is_recorded_in_the_model, [nondet]) :-
     scasp(holds, [model(Model)]),
-    assertion(memberchk(maybe, Model)),
+    assertion(memberchk(abd_maybe, Model)),
     assertion(memberchk(holds, Model)).
 test(an_abducible_with_arguments, [nondet]) :-
     scasp(chosen(1)).

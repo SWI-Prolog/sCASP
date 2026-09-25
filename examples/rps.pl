@@ -1,17 +1,16 @@
 :- use_module(library(scasp)).
-:- use_module(library(scasp/human)).
 
-#pred player('G', 'X') :: '@(X) played in @(G)'.
-#pred winner('Game','Player') :: 'The winner of @(Game) is @(Player)'.
-#pred throw('Player','Sign') :: '@(Player) threw @(Sign)'.
-#pred beat('Sign','OtherSign') :: '@(Sign) beats @(OtherSign)'.
+#pred player(_G, _X) :: '@(X) played in @(G)'.
+#pred winner(_Game, _Player) :: 'The winner of @(Game) is @(Player)'.
+#pred throw(_Player, _Sign) :: '@(Player) threw @(Sign)'.
+#pred beat(_Sign, _OtherSign) :: '@(Sign) beats @(OtherSign)'.
 
 beat(rock,scissors).
 beat(scissors,paper).
 beat(paper,rock).
 
-#abducible player(Game, Player).
-#abducible throw(Player, Sign).
+#abducible player(_Game, _Player).
+#abducible throw(_Player, _Sign).
 
 winner(Game,Player) :-
   player(Game, Player),

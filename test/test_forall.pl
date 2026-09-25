@@ -1,9 +1,10 @@
 :- module(test_forall,
           [ test_forall/0
           ]).
-:- use_module('../prolog/scasp').
+:- use_module(under_test).
 :- use_module(scasp_plunit).
 :- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [member/2]).
 
 /** <module> The forall construct and the four algorithms for it

@@ -1,4 +1,4 @@
-:- use_module('../../prolog/sscasp').
+:- use_module(library(scasp)).
 
 % Given 3 birds, which can fly?
 

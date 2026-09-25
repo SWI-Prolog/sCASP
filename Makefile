@@ -1,19 +1,39 @@
-.PHONY: clean distclean
+.PHONY: clean distclean check check_scasp check_sscasp check_semantics check_load
 
 SWIPL?=swipl
 SWIPL_PREFIX?=$(shell dirname $$(dirname $$(which ${SWIPL})))
 
 all:	scasp sscasp prolog/scasp/main.qlf
 
-scasp:
-	${SWIPL} --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
-sscasp:
-	${SWIPL} --no-pce --undefined=error -O -o sscasp -c prolog/sscasp/main.pl
-prolog/scasp/main.qlf:
+# The sources each executable is built from.  Without these the targets
+# have no prerequisites, so editing a source never rebuilds and the
+# binary is silently stale -- which is a bad way to find out that
+# something behaves differently in a saved state.
+#
+# `pack.pl' is in both because `main.pl' reads the version out of it at
+# *compile* time.
+
+SCASP_SOURCES  := pack.pl prolog/scasp.pl \
+		  $(wildcard prolog/scasp/*.pl prolog/scasp/*/*.pl)
+SSCASP_SOURCES := pack.pl prolog/sscasp.pl $(wildcard prolog/sscasp/*.pl)
+
+scasp:	$(SCASP_SOURCES)
+	${SWIPL} -f none --no-pce --undefined=error -O -o scasp -c prolog/scasp/main.pl
+sscasp:	$(SSCASP_SOURCES)
+	${SWIPL} -f none --no-pce --undefined=error -O -o sscasp -c prolog/sscasp/main.pl
+prolog/scasp/main.qlf: $(SCASP_SOURCES)
 	${SWIPL} qlf compile --include prolog/scasp/main.pl
 
-check:	check_load
+# The shared suites in test/ run against both implementations, each
+# with its own suites from test/scasp/ or test/sscasp/.  Shared tests the
+# new implementation does not pass yet are recorded in test/gaps.pl.
+check:	check_load check_scasp check_sscasp
+
+check_scasp:
 	${SWIPL} -g test_all -t halt test/test_all.pl
+
+check_sscasp:
+	${SWIPL} -Dsscasp -g test_all -t halt test/test_all.pl
 
 # Run the suite holding it to the *semantics* rather than to current
 # behaviour.  Tests wrapped in `:- if(expect_semantics)' switch to the

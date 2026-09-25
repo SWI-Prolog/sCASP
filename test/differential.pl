@@ -9,7 +9,7 @@
                               program_literals/2, op(900, fy, not),
                               op(700, xfx, [#=, #<>, #<, #>, #=<, #>=])]).
 :- use_module(scasp_plunit, []).
-:- use_module(library(scasp), [scasp/2, scasp_assert/1]).
+:- use_module(under_test, [scasp/2, scasp_assert/1]).
 :- use_module(library(lists), [member/2, numlist/3]).
 :- use_module(library(apply), [maplist/3, include/3]).
 :- use_module(library(random), [random_between/3, random_member/2]).

@@ -322,7 +322,9 @@ Worth knowing before relying on any of it:
 
 - **The four `forall` algorithms**, above: they disagree, and the cuts in
   `prev`/`sasp` are documented only by two code comments naming test cases.
-- **`--dcc`** (dynamic consistency checking): no paper, forces `--forall=prev`.
+- **`--dcc`** (dynamic consistency checking): Marple and Gupta, "Dynamic
+  Consistency Checking in Goal-Directed Answer Set Programming", TPLP 14(4-5),
+  2014, from s(ASP); forces `--forall=prev`.
 - **Unsafe rules.** s(CASP) accepts them and reads them over an *extended*
   Herbrand universe, so `:- not married(X).` means "everyone is married". Which
   quantifier a body-only variable gets, and where, is not written down

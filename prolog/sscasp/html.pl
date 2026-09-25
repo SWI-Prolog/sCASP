@@ -1,3 +1,37 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_html,
           [ html_justification//2,      % +Justification, +Options
             html_model//2,              % +Model, +Options
@@ -69,18 +103,26 @@ references, which need a `goal_origin/2` the new solver does not produce.
 
 :- multifile user:file_search_path/2.
 
-%   The stylesheet and the script are the old implementation's and are
-%   shared: they are assets of this pack rather than of either tree, and
-%   the DOM below is deliberately the DOM they were written for.
+%   The stylesheet and the script are **copies** of the old
+%   implementation's, so that this tree loads nothing out of the other
+%   one.  The DOM below is deliberately the DOM they were written for,
+%   which is why the class names still say `scasp-`.
+%
+%   Named `sscasp.css` and `sscasp.js` rather than copied under their old
+%   names, because `js` and `css` are aliases both trees register: with
+%   two search paths and one file name, which copy `js('scasp.js')`
+%   found would depend on the order the clauses were loaded in.  The
+%   resource is `sscasp` for the same reason — two `html_resource/2`
+%   declarations of one identity are one resource, whichever was meant.
 
-user:file_search_path(js,  library(scasp/web/js)).
-user:file_search_path(css, library(scasp/web/css)).
+user:file_search_path(js,  library(sscasp/web/js)).
+user:file_search_path(css, library(sscasp/web/css)).
 
 :- html_resource(sscasp,
                  [ virtual(true),
                    requires([ jquery,
-                              js('scasp.js'),
-                              css('scasp.css')
+                              js('sscasp.js'),
+                              css('sscasp.css')
                             ]),
                    ordered(true)
                  ]).
@@ -91,7 +133,7 @@ user:file_search_path(css, library(scasp/web/css)).
 
 %!  html_justification(+Justification, +Options)// is det.
 %
-%   Justification is what `sscasp/4` returns: a list of `Literal-Children`
+%   Justification is what `scasp/4` returns: a list of `Literal-Children`
 %   with the NMR check under a node of its own.
 
 html_justification(Justification, Options) -->
@@ -162,7 +204,7 @@ connect(_) -->
 
 %!  html_model(+Model, +Options)// is det.
 %
-%   Model is the list of literals `sscasp/3` returns.
+%   Model is the list of literals `scasp/3` returns.
 
 html_model(Model, Options) -->
     { option(class(Class), Options)

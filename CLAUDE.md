@@ -16,7 +16,9 @@ Everything is Prolog; there is no C code and no external build system beyond `ma
 ```bash
 make                    # build ./scasp and ./sscasp + prolog/scasp/main.qlf
 make check_load         # load both entry points, fail on warnings/undefined preds
-make check              # full test suite: regression tests, --dcc suite, plunit
+make check              # check_load, then the whole suite against both implementations
+make check_scasp        # shared suites + test/scasp/, against the old implementation
+make check_sscasp       # shared suites + test/sscasp/, against the new one
 make install            # symlink ./scasp into $SWIPL_PREFIX/bin
 make distclean          # remove scasp and main.qlf
 
@@ -25,18 +27,19 @@ swipl prolog/scasp/main.pl -- [scasp-options] test/all_programs/family.pl
 swipl scasp [options] file...          # as a SWI-Prolog app (slower startup)
 
 # Tests
-swipl -g 'run_tests(golden)' -t halt test/test_scasp.pl      # only the golden tests
-swipl -g "run_tests(golden:'all_programs/birds')" -t halt test/test_scasp.pl
-swipl -g "save_golden('test/all_programs')" -t halt test/test_scasp.pl
-swipl -g coverage_by_test -t halt test/coverage_by_test.pl   # which tests add coverage
-swipl -g test_all -t halt test/test_all.pl                   # every plunit suite, jobs(4)
+swipl -g 'run_tests(golden)' -t halt test/scasp/test_scasp.pl      # only the golden tests
+swipl -g "run_tests(golden:'all_programs/birds')" -t halt test/scasp/test_scasp.pl
+swipl -g "save_golden('test/all_programs')" -t halt test/scasp/test_scasp.pl
+swipl -g coverage_by_test -t halt test/scasp/coverage_by_test.pl   # which tests add coverage
+swipl -g test_all -t halt test/test_all.pl                   # every suite for scasp, jobs(4)
+swipl -Dsscasp -g test_all -t halt test/test_all.pl   # ... for sscasp
 swipl -g 'test_all([jobs(1)])' -t halt test/test_all.pl      # ... sequentially
 swipl -g 'run_tests(embed_birds)' -t halt test/test_all.pl   # ... one unit
-swipl -g test_embed -t halt test/test_embed.pl               # ... or one suite on its own
+swipl -g test_embed -t halt test/scasp/test_embed.pl               # ... or one suite on its own
 ```
 
 For ordinary coverage there is nothing to write — wrap the run:
-`coverage(run_tests(golden), [dir(cov)])`. `test/coverage_by_test.pl` does the other
+`coverage(run_tests(golden), [dir(cov)])`. `test/scasp/coverage_by_test.pl` does the other
 thing: it runs each golden program alone and reports the smallest set that covers the
 same clauses, so a program that only repeats another shows as contributing 0.
 
@@ -51,7 +54,7 @@ by both — recording their output would record the bug as the expected answer.
   to `/home/jan/src/prolog/sCASP` (branch `master`), so a test that says
   `use_module(library(scasp))` silently tests that tree instead of this one. Run
   `swipl -p library=prolog ...` from the repo top, or use the idiom in
-  `test/test_scasp.pl`, which derives the root from its own source file.
+  `test/scasp/test_scasp.pl`, which derives the root from its own source file.
 - `make check` runs `test/all_programs/dcc` as a separate invocation, with `--dcc`
   enabled; those `.pass` files are only valid under that flag, and `--dcc` forces
   `--forall=prev` and errors on any other value.
@@ -69,7 +72,45 @@ by both — recording their output would record the bug as the expected answer.
 
 ## Test conventions
 
-Regression tests are *golden-output* tests. `test/test_scasp.pl` generates one plunit
+### Where the tests are
+
+Three places, because a test says one of three things:
+
+| | | loaded against |
+|---|---|---|
+| `test/` | what s(CASP) **means**: the suites written against `scasp/1,2` (`test_builtins`, `test_clpq`, `test_compound`, `test_disequality`, `test_forall`, `test_olon`, `test_prolog_calls`, `test_dyncall`, `test_le`, `test_examples`, `test_differential`), the Gelfond–Lifschitz oracle, `proof_skeleton.pl`, the harness `scasp_plunit.pl`, and the program data | either implementation |
+| `test/scasp/` | how the old implementation works: the golden front end, the CLI, the obsolete block API and its justification trees | `library(scasp)` |
+| `test/sscasp/` | how the new one works | `library(sscasp)` |
+
+A shared suite loads **`under_test.pl`** instead of either library, and the flag
+`sscasp` says which one that is: `-Dsscasp` for the new library, the old one otherwise.
+The switch is `library(scasp)` itself: under `-Dsscasp`, `prolog/scasp.pl` re-exports
+`library(sscasp)` and defines nothing, so a program written for `library(scasp)` — a
+Logical English export, an example in `examples/` — runs against either unedited.
+`scasp_plunit.pl` takes its `scasp/2` from there too, so `scasp_models/2` and friends
+test the same implementation as the suite that calls them. Where one library exports
+what the other keeps internal, `under_test.pl` makes them agree: `scasp_query_clauses/2`
+is in `library(sscasp)`'s interface and only in `scasp/dyncall.pl` in the old tree.
+
+A suite belongs in `test/` when it tests what **both libraries export** — the question is
+the API, not how the answer is found. Cross-running decides it: `test_dyncall` passes 35
+of 41 against the new library (the other six are gaps), while `sscasp/test_api`
+passes 23 of 88 against the old one, being mostly about what only the new one has
+(`scasp_show`, JSON, `:- sld`, `:- describe`), so it stays. `make check` runs
+`test_all.pl` twice, once per value.
+
+A shared test the new implementation does not pass yet is a **gap**, recorded in
+`test/gaps.pl` with the reason. `test_all/1` leaves the gaps out of the main run, then
+runs each on its own, quietly, and **fails if one passes** — so an entry cannot
+outlive the problem it records, which is `known_issues.pl`'s discipline again. A clause
+that does not even *load* against an implementation (an operator it does not define)
+is a test that is silently not there, so load errors are counted per file and must
+match `load_errors/4` in the same file; the unit `loading` checks it.
+
+Not plunit's `fixme` for that: it does run the body, but a `fixme` test whose only
+failure is an `assertion/1` is counted as *passed*.
+
+Regression tests are *golden-output* tests. `test/scasp/test_scasp.pl` generates one plunit
 test per program — solving it with `scasp_load/2` + `scasp_query/3` + `solve/4`, the
 front end the executable uses — and compares against `<base>.pass` (a single
 `write_term/2` term read back with `module(scasp_ops)` so the s(CASP) operators parse).
@@ -80,7 +121,7 @@ the *location* of steps in its justification moves whenever the solver changes:
 
 - **Model: exactly.** `answers_model_key/2` normalises variable naming and ignores the
   order of the answers, nothing else. There is no option to weaken it — and it does not
-  need one: the model is a *function of the proof* (`test/test_proof_model.pl`), so two
+  need one: the model is a *function of the proof* (`test/scasp/test_proof_model.pl`), so two
   answers with the same proof at `support` always carry the same model. Comparing the
   proof therefore subsumes comparing the model rather than competing with it.
 - **Justification: at a declared level.** `proof_skeleton/3` (`test/proof_skeleton.pl`)
@@ -90,14 +131,14 @@ the *location* of steps in its justification moves whenever the solver changes:
   parent→child edges) or `reached` (the set of (literal,status) pairs). Variable naming
   is normalised at every level, and inlined constraint stores are sorted.
 
-Every test compares at `exact` unless `test/proof_levels.pl` records a reason to be
+Every test compares at `exact` unless `test/scasp/proof_levels.pl` records a reason to be
 looser, so a change to the shape of a proof is a failure by default. A failing test
 names the strongest level at which it *would* agree — exactly the entry `proof_levels.pl`
 would need — so loosening one is a deliberate act rather than a silent `--pass` rewrite.
 `test/test_proof_skeleton.pl` pins both halves of that guarantee against hand-built trees.
 
 A program that cannot be solved gets no `.pass` file: that would record the bug as the
-expected answer. It goes in `test/known_issues.pl` with the reason, which shapes its
+expected answer. It goes in `test/scasp/known_issues.pl` with the reason, which shapes its
 generated test — `blocked(Reason)` for one that does not terminate (`clpq_equality.pl`
 alone was two thirds of `make check`), and for one that fails fast, a test declared
 `fail` whose body checks whether the program now yields a model.
@@ -138,7 +179,7 @@ of answers it is split into is an implementation choice.
 
 ### No test may rest on an undefined predicate
 
-`sscasp/2` collects by **name**: a goal is looked up where the query's module
+`scasp/2` collects by **name**: a goal is looked up where the query's module
 can see it, so a predicate a test program leaves undefined resolves to
 whatever a loaded library happens to export under that name — and the test
 then passes or fails depending on what *else* is in the process.
@@ -166,7 +207,7 @@ list:
 collects and checks every predicate is the test module's own or declared. It
 was confirmed to fail on the `maybe/0` case before being trusted.
 
-A program written as a **term list** — `sscasp/3,4`, and every suite except
+A program written as a **term list** — `scasp/3,4`, and every suite except
 `test_api.pl` — is not exposed: there is no module to look a name up in, and
 an undefined predicate is closed to false-of-everything by the compiler.
 
@@ -183,26 +224,45 @@ except the three known issues.
 `test/le_programs/` is different: those are **embedded** examples — Prolog modules that
 load `library(scasp)` and are queried through `scasp/2`. Running them through the file
 front end (`scasp_load/2`) reads their `:- module/2` and `:- dynamic` directives as
-s(CASP) global constraints and is meaningless. They are driven by `test/test_le.pl`.
+s(CASP) global constraints and is meaningless.
+
+`test/le_corpus.pl` is the description — which programs, what each is asked, what it
+answers, and what the new library answers where it differs (`le_differs/4`) — and
+`test/test_le.pl`, a shared suite, runs it against the library under test. One
+description, because written twice they would drift. Each program says
+`:- use_module(library(scasp))`, and `-Dsscasp` makes that the new library
+(`prolog/scasp.pl`), so the files run as they are. The justification tests
+are shared too: they name steps the proof must contain, and `test_le.pl:literals/2`
+takes both libraries' trees apart; the one that pins the old tree's *shape* is a gap.
+
+**12 of 13 agree.** `le_differs/4` records the one that does not, with what the new
+library answers and why, and the tests compare against that — so the entry fails the
+day the difference goes. `list-scasp` defines its own `forall/2`; both libraries refuse
+to run it and name a different unsupported thing first. `subset-scasp` does the same and
+both name the redefinition. `turingcomplete-scasp` agrees by a different route: it calls
+`append/3` without defining it, `library(scasp)` reads that as a predicate the program
+never defined and closes it to false, while we follow the name into `library(lists)` and
+collect its clauses.
 
 ### The plunit suites
 
 `test_scasp.pl` covers only the file front end. The suites below cover what
-`library(scasp)` actually offers, and load `test/scasp_plunit.pl`, which provides the
+`library(scasp)` actually offers — those in `test/` itself for either implementation,
+through `under_test.pl` — and load `test/scasp_plunit.pl`, which provides the
 model comparison, the `scasp_*` flag save/restore for units that change options, and —
 importantly — makes `library(scasp)` resolve to *this* tree.
 
 | Suite | Covers |
 |---|---|
 | `test/test_dyncall.pl` | `scasp/1,2` over ordinary Prolog clauses: clause collection, global-constraint overlap, directives, `scasp_dynamic` |
-| `test/test_embed.pl` | `begin_scasp`/`end_scasp` — an **obsolete** API, kept running so it does not rot silently |
-| `test/test_le.pl` | the Logical English examples, run through `scasp/2` |
-| `test/test_cli.pl` | argument parsing, exit status and output formats, by running `main.pl` in a subprocess |
+| `test/scasp/test_embed.pl` | `begin_scasp`/`end_scasp` — an **obsolete** API, kept running so it does not rot silently |
+| `test/test_le.pl` | the Logical English examples, run through `scasp/2`, against either library |
+| `test/scasp/test_cli.pl` | argument parsing, exit status and output formats, by running `main.pl` in a subprocess |
 | `test/test_proof_skeleton.pl` | the comparison itself, against hand-built trees |
-| `test/test_proof_model.pl` | that the model is a function of the proof |
+| `test/scasp/test_proof_model.pl` | that the model is a function of the proof |
 | `test/test_stable_models.pl` | the brute-force oracle, against worked examples |
 | `test/test_differential.pl` | s(CASP) vs. that oracle, on hand-written and random programs |
-| `test/test_scasp.pl` | the golden-output tests for the file front end |
+| `test/scasp/test_scasp.pl` | the golden-output tests for the file front end |
 | `test/test_clpq.pl` | CLP(Q) constraints and the duals that make `not` constructive |
 | `test/test_forall.pl` | the `forall` construct and its four algorithms |
 | `test/test_olon.pl` | loops over negation, coinduction and the NMR check |
@@ -240,8 +300,8 @@ because the *oracle* is exponential in the Herbrand base — three predicates ov
 three constants is 2¹² interpretations — while s(CASP) is unaffected, never grounding
 at all. Widening a sweep is a one-line change to those counts.
 
-`test/test_all.pl` loads every suite — the golden tests included — into one process:
-`make check` is a single `swipl` call, 171 tests in 2.5s. The timeout is per *test*,
+`test/test_all.pl` loads the shared suites and one implementation's own into one
+process — the golden tests included. The timeout is per *test*,
 so a program that does not terminate reports itself and the rest of its unit still runs.
 
 plunit's `jobs(N)` parallelises whole *units*, and two things have to hold for a unit to
@@ -306,6 +366,38 @@ reserving `library(...)` for what comes from outside the directory.
 That is the point of starting beside rather than inside: the differential harness
 can point the same program at both, with the Gelfond–Lifschitz oracle as referee.
 
+**The *predicate* names deliberately do not.** ssCASP is to become sCASP, so its
+predicates are the ones a caller will keep: `scasp/1,2,3,4`, `scasp_show/2`,
+`scasp_readable/2,3`, `scasp_json/2,3` — the same spellings `library(scasp)`
+exports, in a module that is not the same module. A file switches library by
+editing one `use_module` line and changes nothing else:
+
+```prolog
+:- use_module(library(sscasp)).     % or library(scasp) — the rest is identical
+?- scasp(flies(X)).
+```
+
+Three consequences worth knowing:
+
+- **A module atom is not a predicate name**, so `module(sscasp_ops)`,
+  `imported_from(sscasp_dyncall)` and the attribute name `sscasp_herbrand` keep
+  their spelling. The attribute name *must* equal its module's.
+- **Anything installed in `user` has to ask which library it is firing for**,
+  because both claim `:- pred` and `false :- Body`. `sscasp.pl:ours/1` is that
+  question: `prolog_load_context(module, M)` for the file being compiled, then
+  `predicate_property(M:scasp(_,_), imported_from(sscasp_dyncall))`. The
+  property survives the re-export through `library(sscasp)`.
+- **No one file may import both.** In one process two libraries are fine; in
+  one file a bare `scasp(Goal)` would resolve by import order.
+  `test_all.pl:no_suite_imports_both_libraries` checks it, reading directives
+  rather than text so that a file *writing about* an import is not taken for
+  one making it. `scasp_plunit.pl` is exempt: it is the harness both trees
+  share, and it imports the old `scasp/2` without re-exporting it.
+
+One collision to know about: `scasp_program/2` is ours, and `scasp_program` is
+also the name of an old-tree *module* (`prolog/scasp/program.pl`). Different
+namespaces, so nothing breaks, and the old one goes when the old tree does.
+
 | Module | |
 |---|---|
 | `ops.pl` | every operator, in one place |
@@ -321,9 +413,9 @@ can point the same program at both, with the Gelfond–Lifschitz oracle as refer
 | `compile.pl` | the whole pipeline — terms in, `program{clauses, nmr, unbounded}` out |
 | `emit.pl` | the backend — the logical program made runnable |
 | `solve.pl` | the runtime the emitted clauses call |
-| `run.pl` | `sscasp/3,4` — compile, emit, load into a module, answer |
+| `run.pl` | `scasp/3,4` — compile, emit, load into a module, answer |
 | `source.pl` | reading an s(CASP) source file, `#include` and all |
-| `dyncall.pl` | `sscasp/1,2` over the clauses of a Prolog module |
+| `dyncall.pl` | `scasp/1,2` over the clauses of a Prolog module |
 | `render.pl` | an answer made readable — names, and the stores inlined |
 | `sld.pl` | the goals a `:- sld p/2.` hands to SLD resolution |
 | `herbrand.pl` | the Herbrand store — `dif/2` and `∉` behind one interface |
@@ -337,7 +429,8 @@ can point the same program at both, with the Gelfond–Lifschitz oracle as refer
 and `prolog/sscasp.pl` beside them, the user-facing `library(sscasp)`:
 operators, the `?`-prefixed query shortcuts, and what the two above export.
 
-Its tests live in `test/` like the rest, so there is one `make check`.
+Its own tests live in `test/sscasp/`; the shared suites in `test/` run against it
+as well (see "Where the tests are"), and `make check` runs both.
 
 ### What the new compiler produces
 
@@ -378,6 +471,32 @@ wrong, and with the check off nothing says so. They are for asking what a
 traced to the one check they all wait on. `test/scasp_plunit.pl` has
 `with_scasp_flag/3` for setting either inside a test.
 
+**Dynamic consistency checking moves part of the check forward**, and is on
+by default: the flag `sscasp_dcc`, `--no-dcc` to turn it off. After Marple
+and Gupta (TPLP 14(4-5), 2014) and upstream's `create_dcc_rules/2`. For each
+global constraint and each user literal in it, `compile.pl:dcc_rules/3` makes a
+rule saying what else would complete the constraint; `emit.pl` adds
+`solve.pl:dcc/4` to the wrapper of every literal that triggers one, so a
+literal in no constraint pays nothing. When a ground literal is established
+and the rest holds of the proof or the open ancestors, the goal fails there.
+The NMR check still runs, so it only prunes — a branch that completes a
+constraint fails anyway or ends in a model the check rejects — except inside a
+quantifier's complement, whose proof is thrown away: `covered/7` and
+`elsewhere/7` turn it off there with the backtrackable `sscasp_no_dcc`.
+
+It was measured before it was made the default: the golden corpus answers the
+same with it, and so do the oracle sweeps; it takes 12% off the corpus's time,
+most of it on `hamiltonian_scasp` and `bec_light`, and costs nothing beyond
+noise anywhere. `dcc/hamilton_c`, which upstream answers seven times faster
+with it, is unchanged — this solver's CHS check already constrains literals
+apart before a bad pair is completed.
+
+**Not upstream's flag**, and deliberately. Upstream's `scasp_dcc` is off by
+default and forces `--forall=prev`, and its DCC has no complement exemption;
+one flag with a default of `true` here and `false` there would take its
+default from whichever library loaded first. So this is the one place the
+two trees spell a flag differently.
+
 `unbounded` lists where a quantifier has no declared domain. It is a scan, not
 decision 5's undecidability analysis — the solver's `forall` decides many of
 them at run time — but it is exactly the list of places where adding a `:- pred`
@@ -385,7 +504,7 @@ annotation would replace a search over the universe with an enumeration.
 
 ### The solver
 
-`sscasp(+Terms, ?Query, -Model)` compiles, emits, loads into a temporary
+`scasp(+Terms, ?Query, -Model)` compiles, emits, loads into a temporary
 module and answers. The query is the literals asked for **followed by** the
 NMR check, sharing one proof, so a constraint the query's own answer violates
 is caught.
@@ -395,6 +514,27 @@ solver carries state: three arguments (`Anc` down, `S0`/`S` up) and a wrapper
 per literal, so that the coinductive check happens before a predicate's
 clauses are tried. The logical form stays what a listing shows and what the
 compiler's tests read.
+
+**Two kinds of module qualification, and only one is written.** A goal
+`emit.pl` writes *into a clause body* — `check/7`, `forall/5`, `apart/2`,
+`{}/1` — is bare, because `run.pl:load_program/2` does
+
+```prolog
+add_import_module(Module, sscasp_solve, start),
+add_import_module(Module, sscasp_herbrand, start),
+add_import_module(Module, clpq, start),
+```
+
+before asserting, and `in_temporary_module/3` runs its Setup with the context
+module set to the new module, so that is the place to do it. Every asserted
+head is mangled, so nothing imported can be shadowed, and importing `clpq`
+says once which `{}/1` is meant where `library(clpr)` defines another.
+
+A goal a quantifier *holds as a term* keeps its `M:`, because nothing resolves
+it until the runtime calls it and `meta_predicate` cannot help: it applies
+when a clause is compiled, and these are `assertz/1`-ed. So
+`forall(_, Module:Goal, _, _, _)` has exactly one qualifier in it, and
+`test_emit.pl` is written to show which.
 
 **A `dif/2` is destroyed by reading it.** `dif:attribute_goals//1` calls
 `del_attr/2` on each or-node as it reports it, so that a node shared by
@@ -487,7 +627,7 @@ the model and not a step in the justification. It says what the answer *is*,
 and it says it on the variable:
 
 ```prolog
-?- sscasp([(p(X) :- X #> 3, X #< 10)], not p(V), M), copy_term(V,_,A).
+?- scasp([(p(X) :- X #> 3, X #< 10)], not p(V), M), copy_term(V,_,A).
 A = [{V =< 3}] ;
 A = [{V >= 10}].          % the complement of an interval is two regions
 ```
@@ -721,24 +861,25 @@ contradiction the query cannot reach does not constrain the answer.
 
 Three things that are not obvious and cost an afternoon each:
 
-- **A query is a `:` meta-argument, never a `0`.** With `0` the compiler
-  expands the argument where it is written, and `-p(X)` — a goal only
-  s(CASP) gives a meaning to — comes back as a predicate named `'-p'`
-  when `library(scasp)` is loaded alongside. `scasp/dyncall.pl` uses `:`
-  for the same reason.
+- **A query is a `:` meta-argument, never a `0`.** A query is a term to
+  take apart, not a goal to call, and with `0` the compiler expands the
+  argument where it is written. That used also to intern `-p(X)` into a
+  predicate named `'-p'` whenever `library(scasp)` was loaded alongside;
+  its `goal_expansion/2` is guarded now, but the reason for `:` is the
+  first one and stands on its own. `scasp/dyncall.pl` uses `:` too.
 - **`p` and `-p` are one predicate.** The compiler writes `:- p(X), -p(X)`
   for every classically negated predicate, so reaching one reaches the
   other and reaching it drags in whatever *it* calls —
   `dyncall.pl:add_counterpart/3`, inside the closure. Left out, this was
   unsound rather than untidy: `q. p :- q. -p :- q.` has no answer set, and
-  `?- sscasp(p).` said yes, because nothing reachable from `p` mentions
+  `?- scasp(p).` said yes, because nothing reachable from `p` mentions
   `-p` and the consistency check was therefore never generated. It is not
   "collect the whole program" creeping back — a global constraint the
   query cannot reach still does not constrain it; what this says is that
   the *rest of a predicate* is not somewhere else.
 - **A declaration belongs with the clauses, not with the asker.** A
-  global constraint and a `sscasp_directive/1` are recorded against the
-  module they were written in, and the query often runs somewhere else —
+  global constraint and a `scasp_directive/1` are kept in the module
+  they were written in, and the query often runs somewhere else —
   plunit gives every test a module of its own, which inherits the
   predicates and holds none of the declarations. So they are gathered
   from every module that contributes a clause, plus the query module's
@@ -747,11 +888,24 @@ Three things that are not obvious and cost an afternoon each:
   a Prolog directive and `false/0` cannot be given clauses. Both
   libraries install a `user:term_expansion/2` for it and the first one
   declared wins, so `global_constraint/2` reads what *either* leaves
-  behind — ours records it, the old one makes a clause of `-/0`.
+  behind — ours a clause of `'scasp$constraint'/1`, the old one a clause
+  of `-/0`. Both are clauses **in the module**, and that is not a detail:
+  ours used to be a fact in a table keyed by the module's *name*, which
+  outlived the program. A constraint deleted from the source survived a
+  reload, and `in_temporary_module/3` — which names its modules from the
+  random state — gave one program the constraints of an earlier one run
+  under the same seed. Compiled, it is wiped with the file's other
+  clauses on reload and destroyed with the module; asserted at run time,
+  it survives a reload like any asserted clause.
+  A `scasp_directive/1` — and so `:- sld`, `:- describe`, `:- pred`,
+  `:- domain` — is kept the same way, in `'scasp$directive'/1`; being a
+  goal rather than a term to expand, it gets there through
+  `compile_aux_clauses/1` while its file loads, which the reload wipes
+  in the same way. `test_api.pl:api_constraint_lifetime` pins both.
 
 #### The listing
 
-`sscasp_show(Query, code)` writes the program the query would run: the
+`scasp_show(Query, code)` writes the program the query would run: the
 question and the user predicates, with `duals(true)` and
 `constraints(true)` for what the compiler made of them, `source(true)`
 for the terms as collected (the only section that shows a `:- describe`
@@ -823,6 +977,72 @@ That is why this file has no layout code. `portray/1` is not the tool for
 it: `portray_clause/3` produces output that is still **machine**
 readable, and `portray/1` is for output that is not.
 
+#### A name the program does not own
+
+A goal the compiler gives a meaning of **its own** — `forall/2`,
+`findall/3`, `not/1`, `for_domain/3`, `sld/2`, and everything
+`emit.pl:builtin/2` covers — is intercepted before anything looks for
+clauses for it. So a module that *defines* one and calls it meaning its
+own has written something that can never run, and not loudly:
+`test/le_programs/subset-scasp.pl` writes
+
+```prolog
+forall(A, B) :- not(A, not(B)).
+```
+
+and calls `forall(belongs_to(C, A), belongs_to(C, B))` meaning it. Read as
+the quantifier — which is `forall(Vars, Goal)`, with a *literal* where the
+variables go — the whole program answered **nothing**, which looks exactly
+like a scenario with no solution. Its call tree was not followed either,
+so the `not/2` it also calls, which does not exist, went unmentioned.
+
+`dyncall.pl:reinterpreted/2` and `redefined/2` refuse it, with the term
+`library(scasp)` refuses it with — `permission_error(define,
+scasp_control_construct, PI)` — so a caller catching one catches both. The
+check is at the **call**: a definition nothing calls is misread by nobody,
+and finding one would mean scanning the module rather than the query's call
+tree. `-/1` is deliberately not in the table, since every `-p(X)` in a
+program is a clause of it.
+
+#### A program that changes
+
+`scasp_dynamic/1`, `scasp_assert/1,2`, `scasp_retract/1`,
+`scasp_retractall/1` and `scasp_abolish/1` mean what they mean in
+`library(scasp)`. `scasp/2` reads the module's clauses at query time, so
+nothing has to be invalidated — `query_callees/2` recomputes and the next
+answer is about what is there now. What they add over `assertz/1` is the
+two things an s(CASP) clause can be that a Prolog clause cannot.
+
+**A classically negated head needs no translation here**, and that is the
+difference from `library(scasp)` when porting. The old implementation
+interns `-p(X)` into a predicate literally named `'-p'`, so its
+`scasp_assert/1` renames the functor; this tree leaves the term alone —
+`-p(X)` is a clause of `-/1` carrying `p(X)`, which is what the compiler
+writes for a file and what `callee_head/2` looks for.
+
+The price is that `-/1` is **one predicate per module**, holding every
+negated head in it, so `scasp_dynamic p/1` declares `p/1` and `-/1` and
+the latter's scope is settled by the first declaration to reach it. The
+old one gives each its own `'-p'/1` and can scope them separately.
+
+**A global constraint cannot be asserted at all.** `false/0` is a
+built-in, so `scasp_assert(M:(false :- Body))` — and the `:- Body`
+spelling — asserts it into `'scasp$constraint'/1` through
+`scasp_constraint/2`, the predicate the load-time expansion of the same
+term compiles it into.
+
+`scasp_assert/2`'s position argument is accepted and ignored: the old
+implementation records it so a justification can point back at the text,
+and this solver keeps no source references. Taking it means a caller
+written against `library(scasp)` ports without losing an argument.
+
+**`:- scasp_dynamic` is one of the directives both libraries claim** — see
+"Each library reads only its own files" above. Left to the other library's
+expansion, a file of ours got `'-p'/1` declared dynamic: the interned
+spelling, which this tree never puts a clause in, while `-/1`, which holds
+them, was left undeclared. Found by `test_api.pl:api_dynamic` failing, and
+pinned there and in `api_expansion`.
+
 #### `:- sld p/2.`
 
 A predicate proved by **SLD resolution** — the way Prolog proves things,
@@ -854,7 +1074,7 @@ away from each:
 :- sld small/1.
 small(1).  small(2).
 
-?- sscasp(not small(V), M).      % V is anything but 1 or 2
+?- scasp(not small(V), M).      % V is anything but 1 or 2
 ```
 
 A ground one is simply run and refused.
@@ -921,17 +1141,37 @@ per query.
 Nothing consumes a description yet: `--human` is the consumer, and is still
 to come.
 
-**`:- pred` is a directive both libraries claim.** `scasp/dyncall.pl`
-installs an *unconditional* `user:term_expansion/2` for it, so in a process
-holding both trees a `:- pred p(dom)` written for this one reached that
-expansion, which knows only the `p(X) :: "..."` spelling and raised on
-anything else. `sscasp.pl:claimed_directive/2` claims it back for a file
-that imported us — guarded on `pred/1` resolving to ours, and `asserta`-ed,
-because two `user:term_expansion/2` clauses are tried in load order and
-which library loaded first is not something a program should be able to
-feel.
+**Each library reads only its own files.** The two trees read the same
+spellings and represent them differently — `-p(X)`, `:- pred`, `#pred`,
+`:- scasp_dynamic`, `false :- Body` — and both install their expansions in
+`user`, where they see *every* file in the process. Unguarded, what a file
+meant by one of them depended on which library had loaded first:
 
-**A directive travels with the program it is about.** `sscasp/2` is
+```prolog
+:- use_module(library(sscasp)).
+alive(tweety).
+-dead(X) :- alive(X).        % a clause of -/1 ... or of '-dead'/1
+```
+
+With `library(scasp)` also loaded, that head was interned to
+`'-dead'/1`, `-/1` was left empty, and `?- scasp(-dead(X))` raised
+`existence_error(scasp_predicate, dead/1)` on a program that is perfectly
+well formed.
+
+So each asks whether the file being compiled imported **it**:
+`sscasp.pl:ours/1` and `scasp/dyncall.pl:ours/0`, both
+`prolog_load_context(module, M)` then
+`predicate_property(M:scasp(_,_), imported_from(...))`. `scasp/2` is the
+marker rather than any one directive, because it is what a file imports the
+library *for*, and the property survives the re-export through the facade.
+
+The two never both fire, so ours is a single `user:term_expansion/2`
+clause: `sscasp.pl:claimed/3` is a table of the spellings and what
+each expands to, and the expansion is that table plus `ours/1`.
+`test_api.pl:api_expansion` pins where each spelling lands, and four of its
+five tests were confirmed to fail with the guard removed.
+
+**A directive travels with the program it is about.** `scasp/2` is
 relevance-scoped and a module's directives are not: collecting
 `:- pred shading(shade)` for a query about birds raised
 `existence_error(procedure, shading/1)` on a program that is perfectly well
@@ -990,7 +1230,7 @@ work instead.
 
 ### The justification
 
-`sscasp/4` returns it. It is not a second structure: the proof the solver
+`scasp/4` returns it. It is not a second structure: the proof the solver
 threads up **is** the tree. A node is `n(Goal, Status, Children)`, and a
 literal's children are exactly what its body added — the body gets the
 literal's own `S0` and returns `S2`, a proof is only ever prepended to, so
@@ -998,7 +1238,7 @@ literal's own `S0` and returns `S2`, a proof is only ever prepended to, so
 tail.
 
 ```prolog
-?- sscasp([(p :- not q), (q :- not p)], p, M, J).
+?- scasp([(p :- not q), (q :- not p)], p, M, J).
 M = [p, not q],
 J = [p-[(not q)-[chs(p)-[]]], nmr-[]].
 ```
@@ -1058,7 +1298,7 @@ which means the only kind of HTML template worth writing could not be
 written at all. In text, `html_text.pl` drops the markup and keeps the
 content, or `<b>tweety</b>` comes out as `b(tweety)`.
 
-`sscasp_human/1,2` is the whole of what the old `human.pl` did, which is
+`scasp_human/1,2` is the whole of what the old `human.pl` did, which is
 why there is no such module: it is `--human`, over `library(sscasp)`.
 
 #### The toplevel
@@ -1083,7 +1323,7 @@ its own could not say that.
 
 `??+-`, `??-+` and `??++` are the same in words, which is the old
 implementation's spelling too. To print from a *program* — where there is
-no toplevel — use `sscasp_human/1,2`, or `sscasp/2` with `portray_model/2`
+no toplevel — use `scasp_human/1,2`, or `scasp/2` with `portray_model/2`
 and `portray_justification/2`.
 
 Three things `render.pl` does that are not obvious:
@@ -1103,7 +1343,7 @@ Three things `render.pl` does that are not obvious:
   known not to hold is bold red, what there is no evidence for is red, and
   the connectors are cyan.
 
-    ?- sscasp_human(flies(X)).
+    ?- scasp_human(flies(X)).
     Model:
        • tweety is a bird
        • tweety can fly
@@ -1123,14 +1363,14 @@ need a `goal_origin/2` the new solver does not produce.
 
 #### As data
 
-`sscasp_json(Query, Dict)` gives every answer as a dict
+`scasp_json(Query, Dict)` gives every answer as a dict
 `json_write_dict/3` writes. Where `html.pl` renders an answer for a
 person, this reports it for a program: the *shape* of every term is said
 rather than shown, so a variable is `{"type":"var","name":"A"}` and not
 the letter A.
 
 **The variables are named once and their constraints kept apart.**
-`render.pl:sscasp_readable/3` names query, model and justification
+`render.pl:scasp_readable/3` names query, model and justification
 together, so a variable two of them share is one name — a consumer needs
 that as much as a reader does — and the stores it inlines come straight
 back out: a term says the variable, and the answer carries one
@@ -1152,7 +1392,7 @@ Four differences from the old `json.pl`, all forced:
   assumes nothing but by the coinductive hypothesis (`chs`), and gives an
   abducible no node of its own.
 
-`sscasp_json/3` is **deterministic** — a document is a whole thing rather
+`scasp_json/3` is **deterministic** — a document is a whole thing rather
 than something to backtrack into — and `limit(Count)` bounds it. Each
 answer's dict is built *inside* the solve: `findall/3` copies, and a
 copied answer is no longer the one whose query variables the caller
@@ -1214,21 +1454,92 @@ them, but `swipl -c --undefined=error` cannot know that and the state
 will not build. The old implementation has the same line for the same
 reason.
 
-**`--version` is frozen at compile time.** `term_expansion/2` reads
-`pack.pl` while `main.pl` is being loaded, because a saved state has no
-`pack.pl` beside it and would report `unknown` from the one place it
-matters — and the version is still written in one place. The helpers
-come *above* the expansion, since a term is expanded as it is read and
-anything the expansion calls has to exist by then.
+**`--version` and the stylesheet are frozen at compile time.**
+`term_expansion/2` reads `pack.pl` and `web/css/sscasp.css` while
+`main.pl` is being loaded, because a saved state has neither beside it.
+The helpers come *above* the expansions, since a term is expanded as it
+is read and anything the expansion calls has to exist by then.
 
-Not there: the interactive toplevel (`-i`), `--dcc`, `--forall`,
-`--plaindual`, `--variant` and `--real` — none of which the solver has
-either.
+For the stylesheet that is not tidiness. Read at run time through
+`library(sscasp/web/...)` it resolved, in the **built** executable, to
+whatever the *installed pack* pointed at — on this machine a different
+checkout of this project, so `./sscasp --html` styled its pages from
+another working tree, and on a machine without one `stylesheet/2` would
+have fallen back to `""` and produced an unstyled page in silence. The
+path now comes from `prolog_load_context(source, _)`, so it is this
+file's neighbour rather than whichever copy the search path reaches
+first. `test_main.pl:main_built` pins it.
+
+Not there: `--forall`, `--plaindual`, `--variant` and `--real` —
+none of which the solver has either. `scasp_assert/1` and friends **are**
+there; see "A program that changes" above.
+
+**`-i` reads queries until end of input**, and differs from the old one
+twice on purpose. `run.pl:scasp_loaded/3` holds the compiled program open
+for the length of the loop and `scasp_ask/4` asks in it, so the program is
+compiled **once** — 92 ms of setup against 1.8 ms per further query on
+`bec_tap_01_overflow`. And the solve is caught: the old `main_loop/1` has
+no `catch/3`, so one misspelled goal reaches `error/1` and `halt(1)` and
+the session dies with a status saying the *program* was wrong.
+
+A typo is reported in the reader's language rather than the compiler's.
+`run.pl:query_error/2` turns `existence_error(procedure,
+'tmp-1-884':'scasp$plain$nosuchgoal$0'/3)` into
+`existence_error(scasp_predicate, nosuchgoal/0)` — the kind
+`library(scasp)` raises for the same mistake, so a caller catching one
+catches both. Only a *mangled* name is rewritten; anything else the solver
+could not find is a bug here rather than a typo in a query.
+
+Answers are offered one at a time only at a terminal. `get_single_char/1`
+on a pipe would read the next query's first character, so a non-tty run
+honours `--answers` — which is what makes `-i` testable, and what a pipe
+wants anyway. History is a terminal's too: `read_term_with_history/2`
+reaches `editline:el_history/2`, which **raises** on a pipe, so a non-tty
+run reads with `read_term/2`.
+
+**Two of those were found only in the saved state**, and neither is
+visible from source:
+
+- `read_term_with_history/2` raising on a pipe, which the loop printed,
+  recovered from without consuming anything, and printed again — forever.
+  Recovery from an unreadable term now stops when the read made no
+  progress, which a syntax error does not trigger because it consumes up
+  to the full stop.
+- SWI's `on_error(print)` makes `halt/0` exit **1** once any error has
+  been printed. Right for a script, wrong for a toplevel: a session that
+  reported a typo and carried on did what was asked. `interactive/2` ends
+  with an explicit `halt(0)`; a run that could not start still exits 2.
+
+So `test_main.pl:main_built` runs `./sscasp` itself when there is one and
+is skipped when there is not — everything else in that suite runs
+`swipl prolog/sscasp/main.pl`, deliberately, so the suite does not need
+`make`. **And the `Makefile` now gives both executables their sources as
+prerequisites**; without them editing a source never rebuilt, and a stale
+binary is a bad way to learn that something behaves differently in a
+state.
+
+#### It stands on its own
+
+`prolog/sscasp/` loads nothing out of `prolog/scasp/`. The only thing it
+ever did was the stylesheet and the script, which are **copies** now —
+`web/css/sscasp.css` and `web/js/sscasp.js`, under names of their own
+because `js` and `css` are aliases *both* trees register: with two search
+paths and one file name, which copy `js('scasp.js')` found would depend on
+load order. The resource is `sscasp` for the same reason. The DOM is still
+the one the CSS was written for, so the class names say `scasp-`.
+
+`test_main.pl:main_standalone` pins it three ways: nothing from
+`prolog/scasp/` is loaded, both web resources resolve under
+`/sscasp/web/`, and the program runs from a library root holding only
+this tree. **That last one needs `--no-packs`** — `-p library=Dir`
+prepends rather than replaces, so without it the installed pack is still
+on the path and `library(scasp/...)` resolves through it. An earlier
+version of the test passed with the dependency deliberately put back.
 
 ### Against the corpus
 
-`test/test_corpus.pl` points the new implementation at `test/all_programs/`
-and compares the models with the `.pass` data. That is a *different* kind of
+`test/sscasp/corpus.pl` describes the comparison and `test/sscasp/test_corpus.pl` runs
+it: 49 programs across four corpora, compared with the `.pass` data. That is a *different* kind of
 evidence from the oracle: `stable_models.pl` shares no design decision with
 either implementation and can say who is right, while the corpus shares all
 of them with the old one and can only say whether they agree. Both matter,
@@ -1279,17 +1590,46 @@ proofs do (open question 5 again). `answers_agree/1` asks whether the two
 implementations bind the **query** the same way — that is what was asked for,
 and a difference in it means something about the program. `agrees/1`
 additionally requires the models to match, which is a real regression test but
-not the definition of correct: `hanoi_scasp_7`'s golden model is a strict
-*subset* of ours, missing the `not negmove(...)` that proving each `move(...)`
-needs.
+not the definition of correct: a model carries what the proof that was found
+needed, and two correct proofs may need different things.
 
-**20 of 21 golden programs agree on the answer; 11 of those also on the
-model.** The rest are in `gap/2` with a reason, and their test asserts they
-still *fail* — so a gap cannot outlive the problem it records, exactly as
-`known_issues.pl` works:
+**45 of 49 golden programs agree on the answer; 22 of those also on the
+model.** The rest are in `corpus.pl:disposition/2`, and their test asserts
+they still *fail* — so an entry cannot outlive the problem it records,
+exactly as `known_issues.pl` works.
 
-| `slow` | `bec_loan` — its query answers in 0.027 s; its NMR check opens a quantifier over a seven-variable tuple, measured below |
-| `comparison` | `hanoi_scasp_7` — the golden model has no query literal to read an answer out of |
+**Four corpora**, named by the directory each lives in, because a
+program's name should say where to find it. They overlap — `hanoi_7` is
+in two and `bec_loan` in two others — so a name is `Corpus/Base`:
+
+| `all_programs` | 21 | the regression corpus |
+| `sasp` | 14 | from the original s(ASP) distribution |
+| `min_programs` | 13 | one feature each, cut down |
+| `dcc` | 1 | needs `--dcc` |
+
+**A disposition is one of two things, and they mean opposite things:**
+
+| `gap(Reason)` | the reimplementation does not match, and should |
+| `golden(Reason)` | the old implementation is wrong and the `.pass` records it |
+
+Only the first is a to-do list. Today:
+
+| `gap(slow)` | `bec_loan`, in both corpora it appears in — its query answers in 0.027 s; its NMR check opens a quantifier over a seven-variable tuple, measured below |
+| `golden(...)` | `min_programs/solve_not_is` and `min_programs/stream_reasoning` |
+
+**Widening the corpus from 21 programs to 49 found two answers the old
+implementation should not give**, and nothing wrong with this one:
+
+- `solve_not_is` asks `?- invalid_value(X)` of `invalid_value(X) :- not
+  valid_value(X). valid_value(V) :- coord(X), coord(Y), V is X+Y.` over
+  `coord(1..3)`. The old answers `invalid_value(2)` as well as the
+  constrained answer, and its own justification shows why: under `not
+  valid_value(2)` it tries `2 is 2+1`, `2 is 2+2`, `2 is 2+3` and never
+  `2 is 1+1`. One clause of the dual is missing.
+- `stream_reasoning` answers `valid_stream(1, p(a))`, which is cancelled —
+  `higher_prio(2, 1)`, `stream(2, q(a))` and `incompt(p(a), q(a))` all
+  hold. Ours is `p(A)` with `A ∉ [a, b]`: the same answer with the
+  cancelled individuals taken out.
 
 ##### What the event-calculus family was waiting for
 
@@ -1299,7 +1639,7 @@ agrees with the old implementation on every one — including
 `holdsAt(leak(L), 14)`, where both say no and the comment says `L = 0`.
 `test_corpus.pl:corpus_without_nmr` pins that, and it was the measurement
 that found the rest: what did not terminate was the **NMR check** that
-`sscasp/3` appends to every query — here one classical-negation consistency
+`scasp/3` appends to every query — here one classical-negation consistency
 check, `:- -holdsAt(F, T), holdsAt(F, T)`, quantified over every fluent and
 every time. (Comparing against the old implementation without it is not
 like-for-like: `solve/4` takes the query alone, and `solve([Q, o_nmr_check],
@@ -1461,23 +1801,23 @@ negation is refused rather than failed.
 
 | Suite | Covers |
 |---|---|
-| `test/test_domains.pl`, `test_annotations.pl`, `test_describe.pl` | reading annotations |
-| `test/test_source.pl` | reading an s(CASP) source file |
-| `test/test_html.pl` | the renderer, both ways out of one description |
-| `test/test_render.pl` | the machine rendering — connectors, colour, columns |
-| `test/test_herbrand.pl` | the Herbrand store, and which of its two backings gets what |
-| `test/test_listing.pl` | the compiled program read back, over the whole corpus |
-| `test/test_json.pl` | an answer as data, round-tripped through `json_write_dict/3` |
-| `test/test_main.pl` | the `sscasp` executable, in a subprocess: flags, formats and **exit status** |
-| `test/test_mangle.pl` | the naming scheme, both ways |
-| `test/test_abstract.pl`, `test_dual.pl`, `test_dualise.pl` | head abstraction and duals |
-| `test/test_graph.pl` | odd loops, against brute-force cycle enumeration |
-| `test/test_nmr.pl`, `test_compile.pl` | the NMR check and the whole pipeline |
-| `test/test_emit.pl` | the threading and the wrappers |
-| `test/test_solve.pl` | the solver, the constraints, the quantifier, and **the oracle** |
-| `test/test_corpus.pl` | the golden corpus, and what the four slow gaps answer with the NMR check off |
-| `test/test_crossings.pl` | language features crossed with each other — `doc/test-strategy.md` Gap 1 |
-| `test/test_api.pl` | `library(sscasp)` over ordinary Prolog clauses: what is collected, what comes back, what it looks like printed |
+| `test/sscasp/test_domains.pl`, `test_annotations.pl`, `test_describe.pl` | reading annotations |
+| `test/sscasp/test_source.pl` | reading an s(CASP) source file |
+| `test/sscasp/test_html.pl` | the renderer, both ways out of one description |
+| `test/sscasp/test_render.pl` | the machine rendering — connectors, colour, columns |
+| `test/sscasp/test_herbrand.pl` | the Herbrand store, and which of its two backings gets what |
+| `test/sscasp/test_listing.pl` | the compiled program read back, over the whole corpus |
+| `test/sscasp/test_json.pl` | an answer as data, round-tripped through `json_write_dict/3` |
+| `test/sscasp/test_main.pl` | the `sscasp` executable, in a subprocess: flags, formats and **exit status** |
+| `test/sscasp/test_mangle.pl` | the naming scheme, both ways |
+| `test/sscasp/test_abstract.pl`, `test_dual.pl`, `test_dualise.pl` | head abstraction and duals |
+| `test/sscasp/test_graph.pl` | odd loops, against brute-force cycle enumeration |
+| `test/sscasp/test_nmr.pl`, `test_compile.pl` | the NMR check and the whole pipeline |
+| `test/sscasp/test_emit.pl` | the threading and the wrappers |
+| `test/sscasp/test_solve.pl` | the solver, the constraints, the quantifier, and **the oracle** |
+| `test/sscasp/test_corpus.pl` | the golden corpus, and what the four slow gaps answer with the NMR check off |
+| `test/sscasp/test_crossings.pl` | language features crossed with each other — `doc/test-strategy.md` Gap 1 |
+| `test/sscasp/test_api.pl` | `library(sscasp)` over ordinary Prolog clauses: what is collected, what comes back, what it looks like printed, and a program that changes under `scasp_assert/1` |
 
 Two units compare an argument against something that enumerates, because two
 steps here are arguments rather than transcriptions: `test_graph.pl` checks
@@ -1609,6 +1949,13 @@ ground, otherwise `findall/3` + disequality constraints.
   algorithm. It also lists what in this port has no paper behind it.
 - `doc/bugs.md` lists the defects found while building the test suite: what is
   fixed (and therefore guarded by a test) and what is still open.
+- **A `:- meta_predicate` for an exported predicate goes before the first clause**,
+  with the imports — not beside the predicate it describes. A meta-predicate mode is
+  part of the module's *signature*: a reader, or a tool, taking the interface from the
+  head of the file stops at the first clause, and a declaration below that point
+  changes how a caller must pass an argument without saying so where the interface is
+  stated. A declaration for a *private* helper may stay next to it
+  (`scasp/json.pl:query_json/2` does).
 - Run `make check_load` after touching imports/exports — it catches undefined predicates
   in both entry points, which plain loading does not.
 - CI is `.github/workflows/ci.yml` (build + `make check`). The old `.gitlab-ci.yml` was

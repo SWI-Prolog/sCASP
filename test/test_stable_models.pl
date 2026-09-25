@@ -2,8 +2,9 @@
           [ test_stable_models/0
           ]).
 :- use_module(stable_models).
-:- use_module(library(lists), [memberchk/2]).
+:- use_module(library(lists), [memberchk/2, append/3]).
 :- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 
 /** <module> The oracle, checked against worked examples
 

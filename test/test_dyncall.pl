@@ -1,10 +1,10 @@
 :- module(test_dyncall,
           [ test_dyncall/0
           ]).
-:- use_module('../prolog/scasp').
-:- use_module('../prolog/scasp/dyncall', [scasp_query_clauses/2]).
+:- use_module(under_test).
 :- use_module(scasp_plunit).
 :- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 
 /** <module> Tests for scasp/1,2 over ordinary Prolog clauses
 
@@ -211,11 +211,12 @@ test(non_overlapping_constraint_is_ignored) :-
 :- abducible maybe_it(1).
 holds :- maybe_it(1).
 
-% The template variable is reported singleton because the expansion of
-% :- pred keeps it only in the head.  Real programs carry the same
-% directive; every file in test/le_programs/ does.
+% The template variable is reported singleton because the expansion keeps
+% it only in the head.  `#pred`, the spelling every file in
+% test/le_programs/ uses, because both libraries read it as a description;
+% `library(sscasp)` reads `:- pred` as a signature and warns.
 :- style_check(-singleton).
-:- pred shown(Thing) :: '@(Thing) is shown'.
+#pred shown(Thing) :: '@(Thing) is shown'.
 :- style_check(+singleton).
 shown(1).
 
@@ -228,6 +229,34 @@ test(pred_directive_does_not_break_solving) :-
     scasp(shown(1)).
 
 :- end_tests(dyncall_directives).
+
+%   `#show` says which literals the model shows: `p/1` the literals
+%   `p(...)`, `not p/1` the literals `not p(...)`.  Without it the whole
+%   model is shown, which is what every other unit here relies on.
+
+:- begin_tests(dyncall_show).
+
+%   scasp_show/2 options: a bare name means `true`.
+
+test(a_bare_show_option_is_true) :-
+    with_output_to(string(Bare), scasp_show(sh_flies(_), code(duals))),
+    with_output_to(string(Full), scasp_show(sh_flies(_), code(duals(true)))),
+    assertion(Bare == Full),
+    with_output_to(string(Plain), scasp_show(sh_flies(_), code)),
+    assertion(Bare \== Plain).
+
+#show sh_flies/1, not sh_ab/1.
+
+sh_bird(tweety).
+sh_bird(sam).
+sh_ab(sam).
+sh_flies(X) :- sh_bird(X), not sh_ab(X).
+
+test(the_model_is_what_show_asks_for) :-
+    scasp_models(sh_flies(_), Models),
+    assertion(models_equal(Models, [[sh_flies(tweety), not sh_ab(tweety)]])).
+
+:- end_tests(dyncall_show).
 
 		 /*******************************
 		 *           DYNAMIC		*

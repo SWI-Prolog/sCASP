@@ -1,3 +1,37 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_compile,
           [ compile_program/3           % +Module, +Terms, -Program
           ]).
@@ -5,12 +39,13 @@
 :- use_module(annotations, [program_annotations/2,
                             annotation_clauses/2,
                             annotation/2]).
-:- use_module(dualise,     [predicate_duals/6, translate_goal/3]).
+:- use_module(dualise,     [predicate_duals/6, translate_goal/3, builtin/1]).
 :- use_module(mangle,      [demangle/2, mangle/2]).
 :- use_module(graph,       [olon_clauses/3]).
 :- use_module(nmr,         [nmr_check/4]).
-:- use_module(library(lists), [append/3, member/2]).
+:- use_module(library(lists), [append/3, member/2, select/3]).
 :- use_module(library(apply), [maplist/3, maplist/4, foldl/4]).
+:- use_module(library(error), [type_error/2]).
 
 /** <module> Compiling a program
 
@@ -19,7 +54,9 @@ need, as a value:
 
     program{ clauses:   [...],   % the whole compiled program
              nmr:       nmr{...}, % what in it is the NMR check
-             unbounded: [...] }   % duals still carrying an unbounded forall
+             unbounded: [...],    % duals still carrying an unbounded forall
+             shown:     [...],    % what `#show` asks the model to show
+             dcc:       [...] }   % the dynamic consistency check's rules
 
 `clauses` is everything, the NMR check included.  `nmr` *describes* part of
 it — its goal, which of the clauses are its, and what each sub-check is for —
@@ -94,9 +131,109 @@ compile_program(Module, Terms, Program) :-
     close_program(Defined, Closure),
     append(Defined, Closure, All),
     unbounded(All, Nmr.checks, Unbounded),
+    shown(Terms, Shown),
+    dcc_rules(Module, Nmr.checks, Dcc),
     Program = program{ clauses:   All,
                        nmr:       Nmr,
-                       unbounded: Unbounded }.
+                       unbounded: Unbounded,
+                       shown:     Shown,
+                       dcc:       Dcc }.
+
+%!  dcc_rules(+Module, +Checks, -Rules) is det.
+%
+%   The rules of the **dynamic consistency check**, when the flag
+%   `sscasp_dcc` is `true`, which is the default (`--no-dcc` to turn it
+%   off); `[]` otherwise.  Marple and Gupta,
+%   "Dynamic Consistency Checking in Goal-Directed Answer Set
+%   Programming" (TPLP 14(4-5), 2014); the old implementation's
+%   `nmr_check.pl:create_dcc_rules/2`.
+%
+%   For every global constraint and every user literal L in it, a rule
+%   `dcc(L, Others)`: when L is proved, ground, and the others hold of
+%   what the proof already has, the constraint is violated and the goal
+%   fails there rather than at the NMR check.  The check still runs at
+%   the end, so this only prunes: a branch that completes a constraint
+%   either fails or yields a model the check rejects.
+%
+%   Only the headless rules — the program's constraints and the
+%   consistency of a classically negated predicate — as upstream.  The
+%   literals are in the form the proof records them, mangled; a built-in
+%   among the others stays in program syntax for `emit.pl`.
+
+dcc_rules(Module, Checks, Rules) :-
+    (   current_prolog_flag(sscasp_dcc, true)
+    ->  findall(Rule, dcc_rule(Module, Checks, Rule), Rules)
+    ;   Rules = []
+    ).
+
+dcc_rule(Module, Checks, dcc(Trigger, Others)) :-
+    member(check(_, What, Denial0), Checks),
+    headless(What),
+    copy_term(Denial0, Denial),
+    conjunction_list(Denial, Literals),
+    select(Literal, Literals, Rest),
+    dcc_literal(Literal),
+    translate_goal(Module, Literal, Trigger),
+    maplist(translate_goal(Module), Rest, Others).
+
+headless(constraint).
+headless(consistency(_)).
+
+conjunction_list((A, B), List) =>
+    conjunction_list(A, LA),
+    conjunction_list(B, LB),
+    append(LA, LB, List).
+conjunction_list(Goal, List) =>
+    List = [Goal].
+
+%   A literal that can be proved and so trigger the check: not a built-in,
+%   and not a construct with a goal inside it.
+
+dcc_literal(Literal) :-
+    \+ builtin_literal(Literal),
+    \+ Literal = forall(_, _),
+    \+ Literal = findall(_, _, _),
+    \+ Literal = not(findall(_, _, _)).
+
+builtin_literal(not(Goal)) :- !, builtin_literal(Goal).
+builtin_literal(Goal) :- builtin(Goal).
+
+%!  shown(+Terms, -Specs) is det.
+%
+%   What `#show` asks the model to show, as a list of `Name/Arity`,
+%   `not(Name/Arity)`, `-(Name/Arity)` and `not(-(Name/Arity))`.  Empty
+%   means everything: a program without `#show` shows its whole model.
+%
+%   `-p/1` reads as `(-p)/1`, since `-` binds tighter than `/`, and is
+%   normalised to `-(p/1)`; a comma list is spread out.
+
+shown(Terms, Specs) :-
+    findall(Spec,
+            ( member((:- show(List)), Terms),
+              comma_member(List, Spec0),
+              show_spec(Spec0, Spec)
+            ),
+            Specs0),
+    sort(Specs0, Specs).
+
+comma_member((A, B), X) =>
+    (   comma_member(A, X)
+    ;   comma_member(B, X)
+    ).
+comma_member(X, Y) =>
+    Y = X.
+
+show_spec(not(Spec0), Spec) =>
+    show_spec(Spec0, Spec1),
+    Spec = not(Spec1).
+show_spec((-Name)/Arity, Spec) =>
+    Spec = -(Name/Arity).
+show_spec(-(Name/Arity), Spec) =>
+    Spec = -(Name/Arity).
+show_spec(Name/Arity, Spec), atom(Name), integer(Arity) =>
+    Spec = Name/Arity.
+show_spec(Spec0, _) =>
+    type_error(scasp_show_spec, Spec0).
 
 %!  check_sources(+Groups, +Olon, +Constraints, -Sources) is det.
 %
@@ -225,7 +362,8 @@ constraints(Terms, Constraints) :-
             ( member((:- Body), Terms),
               \+ annotation(Body, _),
               \+ Body = abducible(_),
-              \+ Body = sld(_)
+              \+ Body = sld(_),
+              \+ Body = show(_)
             ),
             Constraints).
 

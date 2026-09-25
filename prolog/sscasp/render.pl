@@ -1,6 +1,40 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_render,
-          [ sscasp_readable/2,             % +Term, -Readable
-            sscasp_readable/3,             % +Term, -Readable, +Options
+          [ scasp_readable/2,             % +Term, -Readable
+            scasp_readable/3,             % +Term, -Readable, +Options
             portray_model/1,               % +Model
             portray_model/2,               % +Model, +Options
             portray_justification/1,       % +Justification
@@ -24,7 +58,7 @@ An answer is literals carrying attributed variables.  Printed as they stand
 that is `_12345` where the interesting part is, because what the answer *says*
 about a variable lives in the constraint stores rather than in the term:
 
-    ?- sscasp([(p(X) :- X #> 3, X #< 10)], not p(V), M).
+    ?- scasp([(p(X) :- X #> 3, X #< 10)], not p(V), M).
     M = [not p(_1234)].
 
 with `V` carrying `{V =< 3}`.  So rendering means three things — read the
@@ -53,8 +87,8 @@ about is noise.  A variable that appears once but *is* constrained keeps a
 name, because the constraint has to be attached to something.
 */
 
-%!  sscasp_readable(+Term, -Readable) is det.
-%!  sscasp_readable(+Term, -Readable, +Options) is det.
+%!  scasp_readable(+Term, -Readable) is det.
+%!  scasp_readable(+Term, -Readable, +Options) is det.
 %
 %   Readable is Term with its variables replaced by `'$VAR'(Name)`, or by
 %   `Name | {Constraints}` where the stores have something to say.  Ready
@@ -66,10 +100,10 @@ name, because the constraint has to be attached to something.
 %       Inline the constraint stores.  Default `true`; `false` names the
 %       variables and says no more.
 
-sscasp_readable(Term, Readable) :-
-    sscasp_readable(Term, Readable, []).
+scasp_readable(Term, Readable) :-
+    scasp_readable(Term, Readable, []).
 
-sscasp_readable(Term, Readable, Options) :-
+scasp_readable(Term, Readable, Options) :-
     copy_term(Term, Readable, Goals0),
     (   option(constraints(false), Options)
     ->  Goals = []
@@ -248,7 +282,7 @@ memberchk_eq(Variable, [Head|Tail]) :-
 
 %!  already_readable(+Term, -Readable, +Options) is det.
 %
-%   `readable(true)` says the caller has been through `sscasp_readable/3`
+%   `readable(true)` says the caller has been through `scasp_readable/3`
 %   already.  It matters when a model and its justification are printed
 %   together: run separately they name the same variable twice, and the
 %   two names then mean different things.
@@ -256,7 +290,7 @@ memberchk_eq(Variable, [Head|Tail]) :-
 already_readable(Term, Readable, Options) :-
     (   option(readable(true), Options)
     ->  Readable = Term
-    ;   sscasp_readable(Term, Readable, Options)
+    ;   scasp_readable(Term, Readable, Options)
     ).
 
 		 /*******************************
@@ -266,7 +300,7 @@ already_readable(Term, Readable, Options) :-
 %!  portray_model(+Model) is det.
 %!  portray_model(+Model, +Options) is det.
 %
-%   Write the model.  Options are `sscasp_readable/3`'s, plus:
+%   Write the model.  Options are `scasp_readable/3`'s, plus:
 %
 %     - layout(lines|columns)
 %       One literal per line (the default), or across the width of the
@@ -577,7 +611,7 @@ passed_on(Name, Options, List, Tail) :-
 %!  portray_justification(+Justification, +Options) is det.
 %
 %   Write the justification as an indented tree.  Options are
-%   `sscasp_readable/3`'s, plus:
+%   `scasp_readable/3`'s, plus:
 %
 %     - indent(Columns)
 %       Left margin of the roots.  Default 4.

@@ -1,7 +1,6 @@
 :- module(pas_guide,
           [ reason/1,
             contraindication/1,
-            '-contraindication'/1,
             concomitant/2,
             indispensable/2,
             second_line/2,
@@ -23,32 +22,32 @@
 %% Guide Interface
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% :- pred reason(T) :: 'there is a reason for @(T)'.
-:- pred contraindication('T') ::
+%% #pred reason(T) :: 'there is a reason for @(T)'.
+#pred contraindication(_T) ::
         'there is a danger in taking @(T)'.
-:- pred -contraindication('T') ::
+#pred -contraindication(_T) ::
         '@(T:treatment) is not harmful'.
-:- pred second_line('T0','T') ::
+#pred second_line(_T0,_T) ::
         '@(T:treatment) is the second choice of @(T0)'.
-:- pred concomitant('T0','T') ::
+#pred concomitant(_T0,_T) ::
         '@(T:treatment) is concomitant if @(T0) is chosen'.
-:- pred indispensable('T0','T') ::
+#pred indispensable(_T0,_T) ::
         '@(T:treatment) is indisplensable if @(T0) is chosen'.
-:- pred incompatibility('T0','T') ::
+#pred incompatibility(_T0,_T) ::
         '@(T:treatment) is incompatible with @(T0)'.
 
-:- pred diagnosis(hf_with_reduced_ef) ::
+#pred diagnosis(hf_with_reduced_ef) ::
         'the patient is diagnosed with heart failure with reduced \c
          ejection fraction'.
 
-:- pred diagnosis('D') ::
+#pred diagnosis(_D) ::
         'the patient is diagnosed with @(D)'.
 
-:- pred evidence(accf_stage_c) ::
+#pred evidence(accf_stage_c) ::
         'the patient is in ACCF stage C'.
-:- pred evidence(pregnancy) ::
+#pred evidence(pregnancy) ::
         'the patient is pregnant or planning to get pregnant'.
-:- pred evidence('E') ::
+#pred evidence(_E) ::
         'the patient is/has @(E)'.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

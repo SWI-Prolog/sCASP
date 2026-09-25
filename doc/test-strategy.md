@@ -90,7 +90,7 @@ failure says *"queens.pl changed"*, not *"constraint propagation through
 coinduction broke"*. Regression detection without localisation. During a rewrite
 that difference is most of the debugging cost.
 
-**Addressed** for the new implementation, in `test/test_crossings.pl`. Every
+**Addressed** for the new implementation, in `test/sscasp/test_crossings.pl`. Every
 zero in the table above now has tests, and the crossings are split by what can
 judge them:
 

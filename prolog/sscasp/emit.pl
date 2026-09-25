@@ -1,3 +1,37 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_emit,
           [ runnable_program/3,         % +Module, +Program, -Clauses
             body/6,                     % +Body, +Module, +Anc, +S0, -S,
@@ -9,7 +43,7 @@
 :- use_module(ops).
 :- use_module(mangle, [mangle/2, demangle/2]).
 :- use_module(library(lists), [append/3, member/2, memberchk/2]).
-:- use_module(library(apply), [maplist/3, foldl/4]).
+:- use_module(library(apply), [maplist/3, foldl/4, convlist/3, include/3]).
 :- use_module(library(error), [domain_error/2]).
 
 /** <module> Making the compiled program runnable
@@ -50,6 +84,14 @@ is why this pass takes one.  A `meta_predicate` declaration would be the usual
 way to carry the module across, but it is applied when a clause is *compiled*
 and these clauses are `assertz/1`-ed, so the runtime would look for them in
 its own module and not find them.
+
+The runtime predicates themselves — `check/7`, `forall/5`, `apart/2` and the
+rest — are written **unqualified**.  `run.pl:load_program/2` imports
+`sscasp_solve`, `sscasp_herbrand` and `clpq` into the module before asserting,
+so the names resolve there.  That is the one qualification and the other: a
+goal a quantifier *holds as a term* keeps its `M:`, because nothing resolves
+it until the runtime calls it; a goal this pass *writes into a clause body*
+does not, because the module it lands in can see it.
 
 ## A wrapper per literal
 
@@ -147,8 +189,32 @@ opposite(dualabducibleneg, abducibleneg).
 runnable_program(Module, Program, Clauses) :-
     Logical = Program.clauses,
     maplist(runnable_clause(Module), Logical, Rewritten),
-    findall(Wrapper, wrapper(Logical, Wrapper), Wrappers),
+    (   get_dict(dcc, Program, Dcc0)
+    ->  convlist(runnable_dcc(Module), Dcc0, Dcc)
+    ;   Dcc = []
+    ),
+    findall(Wrapper, wrapper(Logical, Dcc, Wrapper), Wrappers),
     append(Wrappers, Rewritten, Clauses).
+
+%!  runnable_dcc(+Module, +Rule, -Runnable) is semidet.
+%
+%   A rule of the dynamic consistency check (`compile.pl:dcc_rules/3`)
+%   made runnable: a literal among the others is looked for in the proof,
+%   `lit(Goal)`, and a built-in is run, `run(Module:Goal)`.  A rule
+%   holding a built-in with no runnable form is dropped, which only means
+%   less pruning: the NMR check still sees the constraint.
+
+runnable_dcc(Module, dcc(Trigger, Others0), dcc(Trigger, Others)) :-
+    maplist(runnable_other(Module), Others0, Others).
+
+runnable_other(Module, Goal, Other) :-
+    (   callable(Goal),
+        functor(Goal, Name, _),
+        demangle(Name, _)
+    ->  Other = lit(Goal)
+    ;   builtin(Goal, Runnable)
+    ->  Other = run(Module:Runnable)
+    ).
 
 %!  runnable_clause(+Module, +Clause, -Runnable) is det.
 
@@ -199,22 +265,22 @@ body(true, _, _, S, S, true) :- !.
 body(fail, _, _, S0, S, (S = S0, fail)) :- !.
 body(for_domain(Var, Gen, Goal), M, Anc, S0, S, Runnable) :-
     !,
-    Runnable = sscasp_solve:for_domain(Var, M:Gen, M:Goal, Anc, S0, S).
+    Runnable = for_domain(Var, M:Gen, M:Goal, Anc, S0, S).
 body(forall(Vars, Goal), M, Anc, S0, S, Runnable) :-
     !,
-    Runnable = sscasp_solve:forall(Vars, M:Goal, Anc, S0, S).
+    Runnable = forall(Vars, M:Goal, Anc, S0, S).
 body(findall(Template, Goal, List), M, Anc, S0, S, Runnable) :-
     !,
-    Runnable = sscasp_solve:findall_(Template, M:Goal, List, Anc, S0, S).
+    Runnable = findall_(Template, M:Goal, List, Anc, S0, S).
 body(not(findall(Template, Goal, List)), _, _, S0, S, Runnable) :-
     !,
     Runnable = ( S = S0,
-                 throw(error(sscasp_error(
+                 throw(error(scasp_error(
                           negated_findall(findall(Template, Goal, List))), _))
                ).
 body(sld(Goal, Type), _, Anc, S0, S, Runnable) :-
     !,
-    Runnable = sscasp_solve:sld_goal(Goal, Type, Anc, S0, S).
+    Runnable = sld_goal(Goal, Type, Anc, S0, S).
 body(Goal, _, Anc, S0, S, Runnable) :-
     Goal =.. [Name|Args],
     demangle(Name, _),
@@ -226,7 +292,7 @@ body(Goal, _, _, S0, S, Runnable) :-
     !,
     Runnable = (Runnable0, S = S0).
 body(Goal, _, _, _, _, _) :-
-    domain_error(sscasp_body_goal, Goal).
+    domain_error(scasp_body_goal, Goal).
 
 %!  builtin(+Goal, -Runnable) is semidet.
 %
@@ -242,10 +308,11 @@ body(Goal, _, _, _, _, _) :-
 %
 %   The comparisons become CLP(Q).  Decision 4 keeps two stores because
 %   two stores is what s(CASP) is: a dense order for arithmetic and
-%   Herbrand disunification for everything else.  `library(clpq)` is
-%   named explicitly rather than left to resolve, since `library(clpr)`
-%   defines the same `{}/1` over a different domain and the difference is
-%   not one to discover at run time.
+%   Herbrand disunification for everything else.  Which `{}/1` is meant
+%   still matters — `library(clpr)` defines the same one over a different
+%   domain, and that is not a difference to discover at run time — but it
+%   is said once, by `run.pl:load_program/2` importing `clpq` into the
+%   module the clauses are asserted into, rather than on every goal here.
 
 %   Not its negation, though.  `not findall(T, G, L)` asks what the old
 %   implementation's `exec_neg_findall/5` asks and does not answer: which
@@ -254,15 +321,15 @@ body(Goal, _, _, _, _, _) :-
 %   because failing means `not p` succeeds where p holds.
 
 builtin((A = B), (A = B)).
-builtin((A \= B), sscasp_herbrand:apart(A, B)).
+builtin((A \= B), apart(A, B)).
 
 %   The Herbrand store, said the way a program says it.  `apart/2` and
 %   not `dif/2` because `herbrand.pl` owns which of its two backings
 %   holds a given disequality, and a post that went round it would put a
 %   prohibited value where the set already has one — see there.
 
-builtin('∉'(X, Values), sscasp_herbrand:not_in_list(X, Values)).
-builtin('∈'(X, Values), sscasp_herbrand:'∈'(X, Values)).
+builtin('∉'(X, Values), not_in_list(X, Values)).
+builtin('∈'(X, Values), '∈'(X, Values)).
 
 %   `true` and `fail` negate to each other.  `dual.pl` leaves them for
 %   here rather than pairing them in `dual_operator/2`, because that
@@ -277,12 +344,12 @@ builtin(not(fail), true).
 %   `\+ (A is B)` would only fail on an unbound one.
 
 builtin(is(A, B), is(A, B)).
-builtin(not(is(A, B)), (Value is B, sscasp_herbrand:apart(A, Value))).
+builtin(not(is(A, B)), (Value is B, apart(A, Value))).
 builtin(Goal, Goal) :-
     nonvar(Goal),
     functor(Goal, Name, 2),
     arithmetic_comparison(Name).
-builtin(Goal, clpq:{Constraint}) :-
+builtin(Goal, {Constraint}) :-
     nonvar(Goal),
     Goal =.. [Name, A, B],
     comparison(Name, Operator),
@@ -317,11 +384,11 @@ comparison(#>=,  >=).
 %   One wrapper per literal the program defines, in the order the
 %   literals first appear.
 
-wrapper(Clauses, Wrapper) :-
+wrapper(Clauses, Dcc, Wrapper) :-
     findall(Spec, literal_predicate(Clauses, Spec), Specs0),
     sort(Specs0, Specs),
     member(Spec, Specs),
-    literal_wrapper(Spec, Wrapper).
+    literal_wrapper(Spec, Dcc, Wrapper).
 
 literal_predicate(Clauses, Name-Arity-Spec) :-
     member(Clause, Clauses),
@@ -331,7 +398,12 @@ literal_predicate(Clauses, Name-Arity-Spec) :-
     kind_of(Spec, Kind),
     checked_kind(Kind).
 
-literal_wrapper(_-Arity-Spec, Wrapper) :-
+%   With `--dcc`, a literal that occurs in a global constraint is checked
+%   against it as soon as it is established: `dcc/4` after the rest.  A
+%   literal in no constraint gets no such goal, so the check costs
+%   nothing where it cannot prune.
+
+literal_wrapper(_-Arity-Spec, Dcc, Wrapper) :-
     kind_of(Spec, Kind),
     rekind(Spec, Kind, Name),
     rekind(Spec, body(Kind), BodyName),
@@ -345,15 +417,23 @@ literal_wrapper(_-Arity-Spec, Wrapper) :-
     BodyCall =.. [BodyName|BodyArgs],
     append(Args, [Anc, S0, S], HeadArgs),
     Head =.. [Name|HeadArgs],
-    Wrapper =
-      ( Head :-
-          sscasp_solve:check(Goal, Neg, Polarity, Anc, S0, Anc1, Action),
-          (   Action == expand
-          ->  BodyCall,
-              sscasp_solve:proved(Anc1, S0, S2, S)
-          ;   sscasp_solve:done(Goal, Action, S0, S)
-          )
-      ).
+    Established =
+      ( check(Goal, Neg, Polarity, Anc, S0, Anc1, Action),
+        (   Action == expand
+        ->  BodyCall,
+            proved(Anc1, S0, S2, S)
+        ;   done(Goal, Action, S0, S)
+        )
+      ),
+    functor(Goal, GName, _),
+    include(dcc_triggered_by(GName/Arity), Dcc, Rules),
+    (   Rules == []
+    ->  Wrapper = (Head :- Established)
+    ;   Wrapper = (Head :- Established, dcc(Goal, Anc, S, Rules))
+    ).
+
+dcc_triggered_by(Name/Arity, dcc(Trigger, _)) :-
+    functor(Trigger, Name, Arity).
 
 
 		 /*******************************
@@ -362,5 +442,5 @@ literal_wrapper(_-Arity-Spec, Wrapper) :-
 
 :- multifile prolog:message//1.
 
-prolog:message(error(sscasp_error(negated_findall(Goal)), _)) -->
+prolog:message(error(scasp_error(negated_findall(Goal)), _)) -->
     [ 's(CASP): the negation of ~p is not implemented'-[Goal] ].

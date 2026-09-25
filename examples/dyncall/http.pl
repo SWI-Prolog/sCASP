@@ -32,9 +32,6 @@
 */
 
 :- use_module(library(scasp)).
-:- use_module(library(scasp/html)).
-:- use_module(library(scasp/output)).
-:- use_module(library(scasp/json)).
 
 :- use_module(library(http/http_server)).
 :- use_module(library(http/html_write)).
@@ -131,7 +128,7 @@ home(_Request) :-
 
 query_page -->
     html_requires(jquery),
-    html_requires(scasp),
+    html_requires(sscasp),
     styles,
     html([ div(class(section),
                [ div(class(select), \example_data),
@@ -328,7 +325,6 @@ solve(_Request, Dict) :-
        tree:Tree } >:< Dict,
 
     ignore(Limit = infinite),
-    solve_options(Format, Tree, Options),
 
     % prepare the program
     Error = error(Formal,_),
@@ -350,26 +346,12 @@ solve(_Request, Dict) :-
             ( use_module(library(scasp)),
               maplist(add_to_program(M), Terms)
             ),
-            ( call_time(findall(Result,
-                                scasp_result(M:Query, Bindings, Result, Options),
-                                Results),
-                        TotalTime),
-              ovar_set_bindings(Bindings),
-              ovar_analyze_term(Query, []),
-              inline_constraints(Query, []),
-              reply(Format, M:Query, TotalTime, Results)
-            ))
+            reply(Format, M:Query, Bindings, Limit, Tree))
     ).
 
 error(Error) -->
     { message_to_string(Error, Message) },
     html(div(class(error), Message)).
-
-solve_options(html, _, Options) =>
-    Options = [tree(true), unknown(fail)].
-solve_options(json, Tree, Options) =>
-    ignore(Tree=true),
-    Options = [tree(Tree), unknown(fail), inline_constraints(false)].
 
 %!  read_terms(+In:stream, -Terms) is det.
 %
@@ -385,10 +367,11 @@ read_terms(Term0, Pos0, In, [Term0-Pos0|T]) :-
     read_one_term(In, Term, Pos),
     read_terms(Term, Pos, In, T).
 
+%   Read with the operators this file imports from library(scasp).
+
 read_one_term(In, Term, Pos) :-
     read_term(In, Term,
-              [ module(scasp_dyncall),
-                variable_names(Bindings),
+              [ variable_names(Bindings),
                 term_position(Pos)
               ]),
     fixup_pred(Term, Bindings).
@@ -396,7 +379,8 @@ read_one_term(In, Term, Pos) :-
 %!  fixup_pred(+Term, +Bindings) is det.
 %
 %   If Term is a `pred` directive, bind the variables in the atom
-%   to '$VAR'(Name) if possible.
+%   to '$VAR'(Name) if possible: a description added at run time has no
+%   reader to ask for the names, so the variables have to say them.
 
 fixup_pred((#pred Atom :: _Template), Bindings) =>
     fixup_atom(Atom, Bindings).
@@ -426,14 +410,20 @@ fixup_atom_r(Bindings, Atom) :-
 %
 %   Add clauses to the program.  Also handles s(CASP) directives.
 
-add_to_program(M, (# Directive)-Pos) =>
-    #(M:Directive, Pos).
-add_to_program(M, (:- show Spec)-_) =>
-    show(M:Spec).
+add_to_program(M, (# pred(Spec))-_) =>
+    describe(M:Spec).
+add_to_program(M, (:- pred Spec)-_), Spec = (_ :: _) =>
+    describe(M:Spec).
 add_to_program(M, (:- pred Spec)-_) =>
     pred(M:Spec).
-add_to_program(M, (:- abducible Spec)-Pos) =>
-    abducible(M:Spec, Pos).
+add_to_program(M, (# abducible(Spec))-_) =>
+    scasp_directive(M:abducible(Spec)).
+add_to_program(M, (:- abducible Spec)-_) =>
+    scasp_directive(M:abducible(Spec)).
+add_to_program(M, (# show(Spec))-_) =>
+    scasp_directive(M:show(Spec)).
+add_to_program(M, (:- show Spec)-_) =>
+    scasp_directive(M:show(Spec)).
 add_to_program(M, Term-Pos) =>
     scasp_assert(M:Term, Pos).
 
@@ -454,191 +444,106 @@ query(_, _, _, _, _) :-
 is_query((?-_)-_) => true.
 is_query(_) => false.
 
-%!  scasp_result(+Query, +Bindings, -Dict, +Options) is nondet.
+%!  reply(+Format, :Query, +Bindings, +Limit, ?Tree)
 %
-%   True when we succeeded proving Query.  Dict contains details such as
-%   the model and justification tree.
+%   Solve Query and reply in either `html` or `json` format.  Tree says
+%   whether the JSON answers carry their justification; default `true`.
 
-scasp_result(Query,
-             Bindings,
-             scasp{ query:Query,
-                    answer:Counter,
-                    bindings:Bindings,
-                    model:Model,
-                    tree:Tree,
-                    time:Time
-                  },
-             Options) :-
-    option(tree(true), Options),
-    !,
-    Query = M:_,
-    call_nth(call_time(scasp(Query,
-                             [ model(M:Model),
-                               tree(M:Tree)
-                             | Options
-                             ]),
-                       Time), Counter),
-    analyze_variables(t(Bindings, Model, Tree), Bindings, Options).
-scasp_result(Query,
-             Bindings,
-             scasp{ query:Query,
-                    answer:Counter,
-                    bindings:Bindings,
-                    model:Model,
-                    time:Time
-                  },
-             Options) :-
-    Query = M:_,
-    call_nth(call_time(scasp(Query,
-                             [ model(M:Model)
-                             | Options
-                             ]), Time),
-             Counter),
-    analyze_variables(t(Bindings, Model), Bindings, Options).
-
-analyze_variables(Term, Bindings, Options) :-
-    ovar_set_bindings(Bindings),
-    (   option(inline_constraints(false), Options)
-    ->  ovar_analyze_term(Term, [name_constraints(true)])
-    ;   ovar_analyze_term(Term, []),
-        inline_constraints(Term, [])
-    ).
-
-%!  reply(+Format, :Query, +TotalTime, +Results)
-%
-%   Reply in either `html` or `json` format.
-
-reply(html, M:_Query, TotalTime, Results) =>
+reply(html, Query, Bindings, Limit, _Tree) =>
+    call_time(findall(Result,
+                      limit(Limit, scasp_result(Query, Bindings, Result)),
+                      Results),
+              TotalTime),
     reply_html_page([],
-                    \results(Results, M, TotalTime)).
-reply(json, Query, TotalTime, Results) =>
-    scasp_results_json(#{query:Query,
-                         answers:Results,
-                         cpu:TotalTime},
-                       JSON),
+                    \results(Results, TotalTime)).
+reply(json, Query, Bindings, Limit, Tree) =>
+    scasp_json(Query, JSON0, [limit(Limit), variable_names(Bindings)]),
+    (   Tree == false
+    ->  maplist([A0,A]>>del_dict(tree, A0, _, A), JSON0.answers, Answers),
+        JSON = JSON0.put(answers, Answers)
+    ;   JSON = JSON0
+    ),
     reply_json_dict(JSON, []).
+
+%!  scasp_result(:Query, +Bindings, -Result) is nondet.
+%
+%   Result is an answer as a dict holding the bindings, the model and
+%   the justification.  They are made readable together, so a variable
+%   they share has one name, and before findall/3 copies the answer: the
+%   constraints are on the variables, and a copy would leave them
+%   behind.
+
+scasp_result(Query, Bindings, Result) :-
+    call_nth(call_time(scasp(Query,
+                             [ model(Model),
+                               tree(Tree),
+                               annotations(Annotations)
+                             ]),
+                       Time),
+             Counter),
+    scasp_readable(t(Bindings, Model, Tree),
+                   t(RBindings, RModel, RTree)),
+    Result = scasp{ answer:Counter,
+                    bindings:RBindings,
+                    model:RModel,
+                    tree:RTree,
+                    annotations:Annotations,
+                    time:Time
+                  }.
 
 
 		 /*******************************
 		 *        HTML GENERATION	*
 		 *******************************/
 
-results([], _, Time) -->
+results([], Time) -->
     !,
     html(h3('No models (~3f sec)'-[Time.cpu])).
-results(Results, M, _Time) -->
-    sequence(result(M), Results).
+results(Results, _Time) -->
+    sequence(result, Results).
 
-result(M, Result) -->
+result(Result) -->
+    { How = [annotations(Result.annotations)] },
     html(div(class(result),
              [ h3('Result #~D (~3f sec)'-[Result.answer, Result.time.cpu]),
                \binding_section(Result.bindings),
-               \html_model(M:Result.model, [class('collapsable-content')]),
-               \justification_section(M:Result)
+               \html_model(Result.model, [class('collapsable-content')|How]),
+               \html_justification(Result.tree, How)
              ])).
 
 %!  binding_section(+Bindings)//
+%
+%   The bindings, as scasp_readable/2 left them: a variable is
+%   `'$VAR'(Name)` and a constrained one `Name | {Constraints}`.
 
 binding_section([]) -->
     !.
 binding_section(Bindings) -->
-    { copy_term(Bindings, Bindings1, Constraints0),
-      var_names(Constraints0, Constraints1),
-      exclude(no_op_binding, Bindings1, Bindings2)
-    },
+    { exclude(no_op_binding, Bindings, Shown) },
     html(div(class(bindings),
              [ h4('Bindings'),
-               \bindings(Bindings2, Constraints1)
+               \bindings(Shown)
              ])).
-
-var_names([], []).
-var_names([H|T0], T) :-
-    var_name(H),
-    !,
-    var_names(T0, T).
-var_names([H|T0], [H|T]) :-
-    var_names(T0, T).
-
-var_name(put_attr(Var, scasp_output, name(Name))) :-
-    Var = '$VAR'(Name).
-var_name(put_attr(Var, scasp_output, singleton)) :-
-    Var = '$VAR'('_').
 
 no_op_binding(Name = '$VAR'(Name)) => true.
 no_op_binding(_) => false.
 
-
-%!  bindings(+Bindings, +Constraints)//
-%
-%   Report on the bindings.
-
-bindings([], []) -->
-    !.
-bindings([], Constraints) -->
-    !,
-    constraints(Constraints).
-bindings([H|T], Constraints) -->
-    (   {T == [], Constraints == []}
+bindings([]) -->
+    [].
+bindings([H|T]) -->
+    (   {T == []}
     ->  binding(H, '')
     ;   binding(H, ',')
     ),
-    bindings(T, Constraints).
+    bindings(T).
 
 binding(Name=Value, End) -->
     html(div(class(binding),
              [ var(Name),
                ' = ',
-               \term(Value),
+               \term(Value, [quoted(true), numbervars(true)]),
                End
              ])).
-
-constraints([]) -->
-    [].
-constraints([H|T]) -->
-    (   {T==[]}
-    ->  constraint(H, '')
-    ;   constraint(H, ','),
-        constraints(T)
-    ).
-
-constraint(H, End) -->
-    html(div(class(constraint),
-             [ \constraint(H),
-               End
-             ])).
-
-constraint('\u2209'(V,S)) -->
-    !,
-    html([ \term(V), ' \u2209 ', \term(S) ]).
-constraint({ClpQ}) -->
-    !,
-    { comma_list(ClpQ, List),
-      maplist(to_clpq, List, Constraints)
-    },
-    constraints(Constraints).
-constraint(C) -->
-    term(C).
-
-to_clpq(A > B,   C) => C = (A #>  B).
-to_clpq(A < B,   C) => C = (A #<  B).
-to_clpq(A >= B,  C) => C = (A #>= B).
-to_clpq(A =< B,  C) => C = (A #=< B).
-to_clpq(A = B,   C) => C = (A #=  B).
-to_clpq(A =\= B, C) => C = (A #<> B).
-to_clpq(X, Y)       => Y = X.
-
-term(T) -->
-    term(T,
-         [ quoted(true),
-           numbervars(true)
-         ]).
-
-justification_section(M:Results) -->
-    { Tree = Results.get(tree) },
-    !,
-    html_justification_tree(M:Tree, []).
-justification_section(_) -->
-    [].
 
 
 		 /*******************************

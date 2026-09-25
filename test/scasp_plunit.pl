@@ -15,7 +15,7 @@
             expect_semantics/0          % for :- if/1
           ]).
 :- reexport(proof_skeleton, [proof_literals/2]).
-:- use_module('../prolog/scasp', [scasp/2]).
+:- use_module(under_test, [scasp/2]).
 
 % Make library(scasp) resolve to *this* tree.  Without it the name
 % resolves through the installed pack, which is a different checkout, so
@@ -45,9 +45,9 @@ add_library_path(Dir) :-
 :- set_scasp_library_path.
 :- use_module(proof_skeleton,
               [ answers_model_key/2, answers_skeleton/3, proof_literals/2 ]).
-:- use_module(library(apply), [maplist/3, include/3]).
+:- use_module(library(apply), [maplist/2, maplist/3, include/3]).
 :- use_module(library(lists), [member/2]).
-:- use_module(library(pairs), [pairs_keys_values/3]).
+:- use_module(library(pairs), [pairs_keys_values/3, pairs_values/2, map_list_to_pairs/3]).
 
 %!  answers_admit(:Query, ?Var, +Candidates, -Admitted) is det.
 %
@@ -168,11 +168,31 @@ scasp_tree(Query, Tree) :-
 %!  models_equal(+ModelsA, +ModelsB) is semidet.
 %
 %   True when the two sets of models are the same: variable naming is
-%   normalised and the order of the answers ignored, nothing else.
+%   normalised, and the order of the answers and of the literals within
+%   a model ignored.  Nothing else.
+%
+%   A model is a set, and the order its literals are listed in is the
+%   implementation's: the two libraries list the same four literals of
+%   `flies(tweety)` in different orders.  They are put in order by their
+%   shape, every variable standing for the same thing, because the
+%   standard order of two variables is their address; the sort is
+%   stable, and only then are the variables named.
 
 models_equal(A, B) :-
-    answers_model_key(A, Key),
-    answers_model_key(B, Key).
+    maplist(literal_order, A, A1),
+    maplist(literal_order, B, B1),
+    answers_model_key(A1, Key),
+    answers_model_key(B1, Key).
+
+literal_order(Model, Ordered) :-
+    map_list_to_pairs(shape, Model, Pairs),
+    keysort(Pairs, Sorted),
+    pairs_values(Sorted, Ordered).
+
+shape(Literal, Shape) :-
+    copy_term(Literal, Shape),
+    term_variables(Shape, Vars),
+    maplist(=('$VAR'('_')), Vars).
 
 %!  model_has(+Models, +Literal) is semidet.
 %
@@ -219,18 +239,28 @@ prolog:message(scasp_test(should_exclude(Term, Value))) -->
 
 %!  with_forall(+Algorithm, :Goal) is nondet.
 %
-%   Run Goal with the `scasp_forall` flag set to Algorithm.  Set here
-%   rather than in a unit setup/1: a Prolog flag is thread-local once
-%   set, so changing it in the thread plunit runs the test in leaves
-%   every other job alone, while a setup/1 runs in the main thread and
-%   would leak.
+%   Run Goal with the `scasp_forall` flag set to Algorithm.  Where the
+%   flag does not exist the implementation under test has one algorithm,
+%   and Goal is simply called.  The new implementation ignores the flag
+%   either way, but anything that sets a flag creates it, and the Logical
+%   English programs say `:- set_prolog_flag(scasp_forall, prev)`; without
+%   this a test would pass or fail depending on whether one of them had
+%   been loaded yet.
+%
+%   The flag is set here rather than in a unit setup/1: a Prolog flag is
+%   thread-local once set, so changing it in the thread plunit runs the
+%   test in leaves every other job alone, while a setup/1 runs in the
+%   main thread and would leak.
 
 :- meta_predicate
     with_forall(+, 0),
     with_scasp_flag(+, +, 0).
 
 with_forall(Algorithm, Goal) :-
-    with_scasp_flag(scasp_forall, Algorithm, Goal).
+    (   current_prolog_flag(scasp_forall, _)
+    ->  with_scasp_flag(scasp_forall, Algorithm, Goal)
+    ;   call(Goal)                      % one algorithm: nothing to select
+    ).
 
 %!  with_scasp_flag(+Flag, +Value, :Goal) is nondet.
 %

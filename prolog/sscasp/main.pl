@@ -1,12 +1,47 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_main,
           [ main/1                      % +Argv
           ]).
 :- use_module(ops).
 :- use_module(source,      [read_program/2]).
-:- use_module(run,         [sscasp/4, sscasp_program/2]).
-:- use_module(render,      [sscasp_readable/3, portray_model/2,
+:- use_module(run,         [scasp/4, scasp_program/2,
+                            scasp_loaded/3, scasp_ask/4]).
+:- use_module(render,      [scasp_readable/3, portray_model/2,
                             portray_justification/2, portray_query/2]).
-:- use_module(listing,     [portray_listing/3, titled/2]).
+:- use_module(listing,     [portray_listing/3, titled/2, commented/2]).
 :- use_module(json,        [answer_json/3, answers_json/2]).
 :- use_module(html,        [html_model//2, html_justification//2,
                             html_query//2]).
@@ -91,8 +126,12 @@ opt_type(color,    colour,        boolean).
 
 opt_type(nmr,      nmr,           boolean).
 opt_type(olon,     olon,          boolean).
+opt_type(dcc,      dcc,           boolean).
 
 opt_type(version,  version,       boolean).
+
+opt_type(i,           interactive, boolean).
+opt_type(interactive, interactive, boolean).
 
 opt_help(answers,  "Number of answers to report (0 = all)").
 opt_help(query,    "Query to answer, instead of the program's own").
@@ -109,7 +148,11 @@ opt_help(width,    "Assumed terminal width").
 opt_help(colour,   "Use ANSI colour").
 opt_help(nmr,      "Run the NMR check (--no-nmr to skip it)").
 opt_help(olon,     "Compile rules on odd loops (--no-olon to skip them)").
+opt_help(dcc,      "Check the global constraints as literals are proved \c
+                    (dynamic consistency checking; --no-dcc to leave \c
+                    them to the end)").
 opt_help(version,  "Print the version and exit").
+opt_help(interactive, "Read queries from the terminal until end of input").
 opt_help(help(usage), " [option ...] file ...").
 
 opt_meta(answers,  'COUNT').
@@ -137,7 +180,7 @@ run(_, Options) :-
     format("sscasp ~w~n", [Version]).
 run([], _) :-
     !,
-    print_message(error, sscasp(no_input_files)),
+    print_message(error, scasp(no_input_files)),
     halt(2).
 run(Files, Options) :-
     compile_flags(Options),
@@ -148,9 +191,11 @@ run(Files, Options) :-
         show_source(Terms, ListingOptions),
         portray_listing(Terms, Source.query, ListingOptions),
         show_compiled(Terms, ListingOptions)
+    ;   option(interactive(true), Options)
+    ->  interactive(Terms, Options)
     ;   query(Source, Query, Bindings, Options)
     ->  answer(Terms, Query, Bindings, Options)
-    ;   print_message(error, sscasp(no_query)),
+    ;   print_message(error, scasp(no_query)),
         halt(2)
     ).
 
@@ -184,7 +229,9 @@ show_source(Terms, Options) :-
 show_compiled(Terms, Options) :-
     (   option(compiled(true), Options)
     ->  titled('Emitted clauses', Options),
-        sscasp_program(Terms, Clauses),
+        commented('run in a module importing sscasp_solve, \c
+                   sscasp_herbrand and clpq', Options),
+        scasp_program(Terms, Clauses),
         forall(member(Clause, Clauses), show_term(Clause))
     ;   true
     ).
@@ -231,6 +278,9 @@ query(Source, Query, Bindings, _) :-
 %   `--no-nmr` and `--no-olon` are the old implementation's flags,
 %   spelled and scoped exactly as `prolog/scasp/nmr_check.pl` does so
 %   that a caller setting one gets the same thing from either tree.
+%   `--dcc` is on by default here and sets `sscasp_dcc`, not the old
+%   `scasp_dcc` (see `nmr.pl`); unlike the old one it forces no `forall`
+%   algorithm, there being one.
 
 compile_flags(Options) :-
     (   option(nmr(Nmr), Options)
@@ -239,6 +289,10 @@ compile_flags(Options) :-
     ),
     (   option(olon(Olon), Options)
     ->  set_prolog_flag(scasp_compile_olon, Olon)
+    ;   true
+    ),
+    (   option(dcc(Dcc), Options)
+    ->  set_prolog_flag(sscasp_dcc, Dcc)
     ;   true
     ).
 
@@ -279,8 +333,16 @@ term_expansion(version_from_pack, version(Version)) :-
     catch(pack_version(Pack, Version), _, fail),
     !.
 term_expansion(version_from_pack, version(unknown)).
+term_expansion(stylesheet_from_file, stylesheet_text(CSS)) :-
+    prolog_load_context(source, Here),
+    file_directory_name(Here, Dir),             % prolog/sscasp
+    atomic_list_concat([Dir, '/web/css/sscasp.css'], File),
+    catch(read_file_to_string(File, CSS, [encoding(utf8)]), _, fail),
+    !.
+term_expansion(stylesheet_from_file, stylesheet_text("")).
 
 version_from_pack.
+stylesheet_from_file.
 
 		 /*******************************
 		 *          ANSWERING		*
@@ -308,7 +370,7 @@ answer(Terms, Query, Bindings, Options) :-
     arg(1, State, Count),
     (   Count > 0
     ->  true
-    ;   print_message(warning, sscasp(no_answers)),
+    ;   print_message(warning, scasp(no_answers)),
         halt(1)
     ).
 
@@ -322,7 +384,7 @@ counted(State, N) :-
 
 wanted_answer(Terms, Query, Model, Justification, Time, N, Options) :-
     option(answers(Max), Options, 1),
-    call_nth(call_time(sscasp(Terms, Query, Model, Justification), Time), N),
+    call_nth(call_time(scasp(Terms, Query, Model, Justification), Time), N),
     (   Max =:= 0
     ->  true
     ;   N =< Max,
@@ -331,6 +393,178 @@ wanted_answer(Terms, Query, Model, Justification, Time, N, Options) :-
         ;   true
         )
     ).
+
+		 /*******************************
+		 *        INTERACTIVELY		*
+		 *******************************/
+
+/** `sscasp -i program.pl` reads queries until end of input.
+
+**The program is compiled once.**  `scasp/4` compiles, loads into a
+temporary module and destroys it again per call, which for a toplevel
+over one program is the whole of the cost.  `scasp_loaded/3` holds the
+module open for the length of the loop and `scasp_ask/4` asks in it.
+
+**A bad query does not end the session.**  The old implementation's
+`main_loop/1` has no `catch/3`, so one misspelled goal propagates to
+`error/1` and `halt(1)` — a typo ends the run, with a status that says
+the program was wrong.  Here the solve is caught, the error printed, and
+the loop goes on; end of input is the only way out and it exits 0.
+
+**Answers are offered one at a time only at a terminal.**  Asking
+`get_single_char/1` for "more?" when stdin is a pipe would read the next
+query's first character, so a non-tty run honours `--answers` instead —
+which makes the loop scriptable and is the behaviour a pipe wants
+anyway.
+*/
+
+interactive(Terms, Options) :-
+    scasp_loaded(Terms, Loaded, main_loop(Loaded, Terms, Options)),
+    halt(0).
+
+%   **Explicitly 0.**  SWI's `on_error(print)` makes `halt/0` exit 1 once
+%   any error has been printed, which is right for a script — an error
+%   means the job did not get done — and wrong for a toplevel, where a
+%   reported and recovered typo is an ordinary part of a session that
+%   otherwise did exactly what was asked.  A run that could not start at
+%   all still exits 2, from `run/2` above.
+%
+%   The flag only bites in a **saved state**, so this is invisible to a
+%   `swipl prolog/sscasp/main.pl` run and `main_built` below is what
+%   notices it.
+
+main_loop(Loaded, Terms, Options) :-
+    read_query(Read, Bindings),
+    (   Read == end
+    ->  format("~N")
+    ;   Read == skip
+    ->  main_loop(Loaded, Terms, Options)
+    ;   Read = query(Query),
+        ask(Loaded, Query, Bindings, Terms, Options),
+        main_loop(Loaded, Terms, Options)
+    ).
+
+%!  read_query(-Read, -Bindings) is det.
+%
+%   Read is `query(Term)`, `skip` for something that could not be read,
+%   or `end`.
+%
+%   **History only at a terminal.**  `read_term_with_history/2` is what
+%   a person wants — the history commands, and `!help` — but in a saved
+%   state it reaches `editline:el_history/2`, which raises a domain
+%   error when the input is a pipe rather than a libedit stream.  A
+%   pipe has no use for history anyway, so it gets `read_term/2`.
+%
+%   This was found by running the **built executable**, which
+%   `test_main.pl` does not: the same input through
+%   `swipl prolog/sscasp/main.pl` reads fine.  `main_built` below runs
+%   the executable when there is one, so the next thing of this shape is
+%   caught.
+
+read_query(Read, Bindings) :-
+    catch(read_input(Term, Bindings), Error, unreadable(Error, Term)),
+    (   Term == skip
+    ->  Read = skip
+    ;   atom(Term),
+        end_of_input(Term)
+    ->  Read = end
+    ;   Read = query(Term)
+    ).
+
+read_input(Term, Bindings) :-
+    (   interactive_input
+    ->  read_term_with_history(Term,
+                               [ prompt('sscasp ?- '),
+                                 variable_names(Bindings)
+                               ])
+    ;   read_term(user_input, Term, [variable_names(Bindings)])
+    ).
+
+%   A term that could not be read is reported and the loop goes on —
+%   but only if reading it got *somewhere*.  A syntax error has consumed
+%   up to the full stop, so the next read makes progress; an error that
+%   consumes nothing would otherwise spin forever printing it, which is
+%   how the editline bug above showed itself.
+
+unreadable(Error, Term) :-
+    print_message(error, Error),
+    (   at_end_of_stream(user_input)
+    ->  Term = end_of_file
+    ;   Term = skip
+    ).
+
+end_of_input(end_of_file).
+end_of_input(exit).
+end_of_input(quit).
+end_of_input(halt).
+
+%!  ask(+Loaded, +Query, +Bindings, +Terms, +Options) is det.
+%
+%   One query, and whatever goes wrong with it reported rather than
+%   thrown: an existence error for a predicate the program does not have
+%   is the ordinary way to mistype a goal.
+
+ask(Loaded, Query, Bindings, Terms, Options) :-
+    catch_with_backtrace(answers(Loaded, Query, Bindings, Terms, Options),
+                         Error,
+                         reported(Error)).
+
+%   A mistyped goal is reported in one line.  It is an ordinary thing to
+%   do at a toplevel and the reader knows where it happened — they just
+%   typed it — so twenty frames of solver stack say nothing.  Anything
+%   else is a bug in here rather than in the query, and keeps its
+%   backtrace.
+
+reported(error(Formal, _)) :-
+    mistyped(Formal),
+    !,
+    print_message(error, error(Formal, _)).
+reported(Error) :-
+    print_message(error, Error).
+
+mistyped(existence_error(scasp_predicate, _)).
+
+answers(Loaded, Query, Bindings, Terms, Options) :-
+    show_query(Query, Bindings, Terms, Options),
+    State = state(0),
+    (   call_nth(call_time(scasp_ask(Loaded, Query, Model, Justification),
+                           Time),
+                 N),
+        counted(State, N),
+        text_answer(Terms, Options, answer(Query, Model, Justification),
+                    Bindings, Time, N),
+        \+ another(N, Options)
+    ->  true
+    ;   arg(1, State, Count),
+        (   Count > 0
+        ->  coloured(Options, fg(red), '~N% no more models~n', [])
+        ;   print_message(warning, scasp(no_answers))
+        )
+    ).
+
+%!  another(+N, +Options) is semidet.
+%
+%   True when the loop should look for answer N+1.  At a terminal that
+%   is the reader's call; anywhere else it is `--answers`, since there
+%   is no one to ask and `get_single_char/1` would eat the next query.
+
+another(N, Options) :-
+    \+ interactive_input,
+    !,
+    option(answers(Max), Options, 1),
+    (   Max =:= 0
+    ->  true
+    ;   N < Max
+    ).
+another(_, Options) :-
+    coloured(Options, comment, '~N% more? (; for another) ', []),
+    flush_output,
+    get_single_char(Code),
+    nl,
+    memberchk(Code, [0';, 0' ]).
+
+interactive_input :-
+    stream_property(user_input, tty(true)).
 
 		 /*******************************
 		 *         THE REPORTS		*
@@ -390,7 +624,7 @@ collected(State, Items) :-
 text_answer(Terms, Options, Answer, Bindings, Time, N) :-
     Answer = answer(Query, Model, Justification),
     answer_heading(N, Time, Options),
-    sscasp_readable(answer(Query, Model, Justification),
+    scasp_readable(answer(Query, Model, Justification),
                     answer(RQuery, RModel, RJustification),
                     Options),
     how(Terms, Options, How),
@@ -443,7 +677,7 @@ show_bindings(Bindings, Options) :-
 %   variables and the next binding shares them.
 
 print_value(Value) :-
-    \+ \+ ( sscasp_readable(Value, Readable, []),
+    \+ \+ ( scasp_readable(Value, Readable, []),
             print(Readable)
           ).
 
@@ -496,7 +730,7 @@ json_options(Options, [width(Width)]) :-
 
 html_answer(_Out, State, Terms, Options, Answer, _Bindings, _Time, N) :-
     Answer = answer(Query, Model, Justification),
-    sscasp_readable(answer(Query, Model, Justification),
+    scasp_readable(answer(Query, Model, Justification),
                     answer(_, RModel, RJustification),
                     []),
     how(Terms, Options, How),
@@ -532,16 +766,24 @@ answers([answer(N, Model, Justification, How)|Answers]) -->
 
 %   The stylesheet is written into the page rather than linked, because
 %   a file of answers is something to send somebody and a link to a file
-%   on this machine is not.  It is the old implementation's, which is
-%   what the DOM was written for.
+%   on this machine is not.  It is a copy of the old implementation's,
+%   which is what the DOM was written for — see `html.pl` for why it is
+%   a copy and not a reference.
+%
+%   **Frozen at compile time**, for the reason `--version` is: a saved
+%   state has no `web/css/` beside it.  Read at run time through
+%   `library(sscasp/web/...)` it resolved, in the built executable, to
+%   whatever the *installed pack* pointed at — which here is a different
+%   checkout of this project, so `./sscasp --html` was styling its pages
+%   from another working tree and would have silently produced an
+%   unstyled one on a machine that had no such tree.
+%
+%   The path is taken from `prolog_load_context(source, _)` rather than
+%   from the library alias, so it is this file's neighbour and not
+%   whichever copy the search path happens to reach first.
 
 stylesheet(_Options, CSS) :-
-    (   absolute_file_name(library('scasp/web/css/scasp.css'), File,
-                           [access(read), file_errors(fail)]),
-        catch(read_file_to_string(File, CSS, []), _, fail)
-    ->  true
-    ;   CSS = ""
-    ).
+    stylesheet_text(CSS).
 
 		 /*******************************
 		 *          THE ERRORS		*
@@ -558,7 +800,7 @@ failed(Unwind) :-
     throw(Unwind).                      % halt/0,1 are not errors
 failed(error(existence_error(source_sink, File), _)) :-
     !,
-    print_message(error, sscasp(no_such_file(File))),
+    print_message(error, scasp(no_such_file(File))),
     halt(2).
 failed(Error) :-
     print_message(error, Error),
@@ -570,13 +812,13 @@ failed(Error) :-
 
 :- multifile prolog:message//1.
 
-prolog:message(sscasp(no_input_files)) -->
+prolog:message(scasp(no_input_files)) -->
     [ 'sscasp: no input files.  Try `sscasp --help`.'-[] ].
-prolog:message(sscasp(no_such_file(File))) -->
+prolog:message(scasp(no_such_file(File))) -->
     [ 'sscasp: no such file: ~w'-[File] ].
-prolog:message(sscasp(no_query)) -->
+prolog:message(scasp(no_query)) -->
     [ 'sscasp: the program has no `?- Query.` and none was given.'-[], nl,
       'Use --query=GOAL to say what to prove.'-[]
     ].
-prolog:message(sscasp(no_answers)) -->
+prolog:message(scasp(no_answers)) -->
     [ 'sscasp: no answers.'-[] ].

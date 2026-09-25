@@ -1,0 +1,131 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/* Collapsable objects */
+
+.collapse-toggler { cursor: pointer; }
+.collapse-toggler:before { display: inline-block; margin-right: 2pt; }
+
+.collapsable.collapsed > .collapsable-header > .collapse-toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: transparent blue;
+    border-style: solid;
+    border-width: 0.35em 0 0.35em 0.5em;
+}
+
+.collapsable > .collapsable-header > .collapse-toggler:before {
+    content: "";
+    height: 0;
+    width: 0;
+    border-color: blue transparent ;
+    border-style: solid;
+    border-width: 0.5em 0.35em 0 0.35em;
+}
+
+ul.scasp-justification li { list-style: none; }
+
+ul.scasp-justification { padding-left: 0px; }
+div.scasp-justification { padding-left: 1em; }
+div.scasp-model { padding-left: 1em; }
+div.scasp-tree-buttons { font-size: small; line-height: 1.8ex; }
+
+li.always-collapsed { opacity: 0.5; }
+
+/* The model */
+
+ul.scasp-model { list-style-type: "\027A2"; }
+ul.scasp-model > li > span { margin-left: 5px; }
+
+/* Query */
+
+div.scasp-query-title   { color: #888; }
+div.scasp-query-literal { margin-left: 1em; }
+
+/* s(CASP) atoms */
+
+.scasp-atom .human .atom.not.neg { color: green; }
+.scasp-atom .human .atom.not     { color: orange; }
+.scasp-atom .human .atom.neg     { color: red; }
+.scasp-atom .human .atom.chs     { color: darkgreen; }
+.scasp-atom .human .atom.assume  { color: seagreen; }
+.scasp-atom .human .atom.proved  { color: blue; }
+.scasp-atom .human .atom.pos     { color: black; }
+.scasp-atom .human .atom         { font-weight: bold; }
+
+.atom.not.neg > .pl-compound > .pl-functor { color: green; }
+.atom.not.neg > .pl-atom                   { color: green; }
+.atom.not     > .pl-compound > .pl-functor { color: orange; }
+.atom.not     > .pl-atom                   { color: orange; }
+.atom.neg     > .pl-compound > .pl-functor { color: red; }
+.atom.neg     > .pl-atom                   { color: red; }
+.atom.chs     > .pl-compound > .pl-functor { color: darkgreen; }
+.atom.chs     > .pl-atom                   { color: darkgreen; }
+.atom.assume  > .pl-compound > .pl-functor { color: seagreen; }
+.atom.assume  > .pl-atom                   { color: seagreen; }
+.atom.proved  > .pl-compound > .pl-functor { color: blue; }
+.atom.proved  > .pl-atom                   { color: blue; }
+.atom.pos     > .pl-compound > .pl-functor { color: black; }
+.atom.pos     > .pl-atom                   { color: black; }
+.atom         > .pl-compound > .pl-functor { font-weight: bold; }
+.atom         > .pl-atom                   { font-weight: bold; }
+
+span.module { color: #aaa; }
+
+.connector { color: #2a9; }
+
+/* Human <-> machine switch */
+
+div.human   .machine {display: none;}
+div.machine .human   {display: none;}
+div.human   span.hm-switch:before { content: "\01f464"; }
+div.machine span.hm-switch:before { content: "\00267E"; }
+span.hm-switch { margin-left: 0.3em; }
+.collapsable.collapsed span.hm-switch { display: none; }
+
+/* SWISH embedding */
+
+div.scasp-answer { margin-left: 1em; }
+div.scasp-answer h4 { margin-bottom: 5px; }
+
+/* Main output */
+div.scasp-answer-header {
+  margin-top: 2em;
+  margin-bottom: 5px;
+  text-align: center;
+  font-weight: bold;
+  border-top: 2px solid #888;
+  border-bottom: 2px solid #888;
+}

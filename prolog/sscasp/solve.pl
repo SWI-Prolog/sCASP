@@ -1,8 +1,43 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(sscasp_solve,
           [ check/7,                    % +Goal, +Neg, +Pol, +Anc, +S0,
                                         %   -Anc1, -Action
             proved/4,                   % +Anc1, +S0, +S2, -S
             done/4,                     % +Goal, +Action, +S0, -S
+            dcc/4,                      % +Goal, +Anc, +S, +Rules
             for_domain/6,               % +Var, :Gen, :Goal, +Anc, +S0, -S
             forall/5,                   % +Vars, :Goal, +Anc, +S0, -S
             call_goal/4,                % :Goal, +Anc, +S0, -S
@@ -29,7 +64,8 @@
 %   same, in `scasp/clp/clpq.pl`.
 
 :- use_module(library(clpr), []).
-                                        % also: the emitted program calls clpq:{}/1
+                                        % also: the emitted program calls {}/1,
+                                        % via run.pl importing clpq into its module
 %   The Herbrand store is `herbrand.pl`'s: `dif/2` and `∉` behind one
 %   interface, so that nothing here has to know which of the two holds a
 %   given disequality.  `apart/2` is both the constraint's name in a
@@ -40,6 +76,19 @@
                         ]).
 :- use_module(library(apply), [maplist/2, maplist/3, include/3, foldl/4]).
 :- use_module(library(assoc), [empty_assoc/1, get_assoc/3, put_assoc/4]).
+
+%   With the imports and before the first clause, because a
+%   meta-predicate mode is part of the module's **signature**: a reader
+%   taking the interface from the head of the file stops at the first
+%   clause.
+%
+%   `call_goal/4` is the one goal here that is called in the *caller's*
+%   module.  Everything a quantifier holds as a term is qualified by
+%   `emit.pl` when it writes the call, because a declaration cannot do
+%   it: it applies when a clause is compiled and those are `assertz/1`-ed.
+
+:- meta_predicate
+    call_goal(0, +, +, -).
 
 
 /** <module> The solver's runtime
@@ -549,6 +598,50 @@ done(Goal, Action, proof(Forest, Index0), proof([n(Goal, Action, [])|Forest], In
     ),
     index(Goal, Status, Index0, Index).
 
+%!  dcc(+Goal, +Anc, +S, +Rules) is semidet.
+%
+%   The dynamic consistency check (`--dcc`, `compile.pl:dcc_rules/3`):
+%   fail when Goal, just established and ground, completes a global
+%   constraint with literals the proof already holds or is proving.
+%   Rules are the `dcc(Trigger, Others)` whose trigger is Goal's
+%   predicate; an other is `lit(Literal)`, found in the proof or among
+%   the ancestors, or `run(Goal)`, a built-in.
+%
+%   **Only prunes.**  Everything the proof holds and every open ancestor
+%   ends up in the model if this branch succeeds, so a constraint whose
+%   literals are all there would fail the NMR check anyway.  That is not
+%   true inside a quantifier's complement, whose proof is thrown away,
+%   so the check is off there: `sscasp_no_dcc`, which covered/7 and
+%   elsewhere/7 set for the length of the run.
+%
+%   Tried inside `\+ \+`: finding the others binds and constrains, and
+%   none of it is the answer's.
+
+dcc(Goal, Anc, S, Rules) :-
+    (   ground(Goal),
+        \+ nb_current(sscasp_no_dcc, true),
+        member(Rule, Rules),
+        copy_term(Rule, dcc(Goal, Others)),
+        \+ \+ dcc_holds(Others, Anc, S)
+    ->  fail
+    ;   true
+    ).
+
+dcc_holds([], _, _).
+dcc_holds([Other|Others], Anc, S) :-
+    dcc_other(Other, Anc, S),
+    dcc_holds(Others, Anc, S).
+
+dcc_other(lit(Literal), Anc, S) :-
+    (   S = proof(_, Index),
+        functor(Literal, Name, Arity),
+        relatives(Name/Arity, Index, Relatives),
+        member(_-Literal, Relatives)
+    ;   member(a(Literal, _, _), Anc)
+    ).
+dcc_other(run(Goal), _, _) :-
+    call(Goal).
+
 %!  empty_proof(-Proof) is det.
 
 empty_proof(proof([], Index)) :-
@@ -574,15 +667,6 @@ forest_children(F2, F0, Children) :-
 		 /*******************************
 		 *        QUANTIFIERS		*
 		 *******************************/
-
-%   The compiled program lives in a module of its own, so a goal a
-%   quantifier holds as a term has to be called there rather than here.
-%   `emit.pl` qualifies them when it writes the call: a `meta_predicate`
-%   declaration would not do it, being applied when a clause is compiled
-%   while these are `assertz/1`-ed.
-
-:- meta_predicate
-    call_goal(0, +, +, -).
 
 %!  for_domain(+Var, :Generator, :Goal, +Anc, +S0, -S) is nondet.
 %
@@ -675,9 +759,14 @@ forall_(Vars, Goal, Others, Anc, S0, S) :-
 %   answer is asked for: the first costs one covering, which is what the
 %   commitment was for.
 
+elsewhere(_Vars, _Goal, Others, _Anc, _S0, _Names, _Pieces) :-
+    ground(Others),
+    !,
+    fail.
 elsewhere(Vars, Goal, Others, Anc, S0, Names, Pieces) :-
     State = state(-),
-    (   once(cover(Vars, Goal, [], Anc, S0, _)),
+    (   b_setval(sscasp_no_dcc, true),
+        once(cover(Vars, Goal, [], Anc, S0, _)),
         snapshot(Others, Others, Names0, Constraints),
         alternatives(Constraints, [], Pieces0),
         Pieces0 \== [],
@@ -1026,7 +1115,7 @@ conjuncts(Constraint, Constraints, Tail) :-
     (   Constraint = (A, B)
     ->  conjuncts(A, Constraints, Middle),
         conjuncts(B, Middle, Tail)
-    ;   Constraints = [clpq:{Constraint}|Tail]
+    ;   Constraints = [{Constraint}|Tail]
     ).
 
 %!  alternatives(+Constraints, +Prefix, -Pieces) is det.
@@ -1062,7 +1151,7 @@ known([V|Vs], Others) :-
 
 flipped((Name = Value), apart(Name, Value)).
 flipped(apart(A, B), (A = B)).
-flipped(clpq:{Comparison}, clpq:{Flipped}) :-
+flipped({Comparison}, {Flipped}) :-
     negated(Comparison, Flipped).
 
 %!  cover(+Vars, :Goal, +Narrowing, +Anc, +S0, -S) is nondet.
@@ -1204,7 +1293,8 @@ covered([], _, _, _, _, S, S) :- !.
 covered(Rest, Vars, Goal, Narrowing, Anc, S0, S0) :-
     outer_variables(Goal, Vars, Shared),
     State = state(-),
-    (   once(cover_each(Rest, Vars, Goal, Narrowing, Anc, S0, _)),
+    (   b_setval(sscasp_no_dcc, true),
+        once(cover_each(Rest, Vars, Goal, Narrowing, Anc, S0, _)),
         snapshot(Shared, Shared, Names, Constraints),
         nb_setarg(1, State, Names-Constraints),
         fail
@@ -1414,7 +1504,7 @@ negated(Constraint, Flipped) :-
     Constraint =.. [Operator, A, B],
     (   opposite_comparison(Operator, Opposite)
     ->  true
-    ;   throw(error(sscasp_error(unrepresentable_complement(Constraint)), _))
+    ;   throw(error(scasp_error(unrepresentable_complement(Constraint)), _))
     ),
     Flipped =.. [Opposite, A, B].
 
@@ -1647,5 +1737,5 @@ wrap(dualneg,  Goal, not(-(Goal))).
 
 :- multifile prolog:message//1.
 
-prolog:message(error(sscasp_error(unrepresentable_complement(C)), _)) -->
+prolog:message(error(scasp_error(unrepresentable_complement(C)), _)) -->
     [ 's(CASP): no constraint store can say the complement of ~p'-[C] ].

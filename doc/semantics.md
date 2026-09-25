@@ -50,7 +50,7 @@ Found by the oracle, on a 4,410-program sweep.
 
 ### `clpq_equality.pl` terminates
 
-`test/known_issues.pl` records it as a hang for the old implementation — a
+`test/scasp/known_issues.pl` records it as a hang for the old implementation — a
 ten-line `mutually_exclusive/2` plus `#=` program that on its own was two
 thirds of `make check`.  The new implementation answers it in **0.008 s**.
 
@@ -111,7 +111,7 @@ p :- not all([1, 2]).
 | | |
 |---|---|
 | old | 0 answers, silently |
-| new | raises `sscasp_error(negated_findall(...))` |
+| new | raises `scasp_error(negated_findall(...))` |
 
 Neither answers it.  The new behaviour is louder, which is better for a
 program author and worse for one who was relying on the failure.
@@ -197,8 +197,11 @@ run rather than running differently:
 | the four `forall` algorithms | the new tree has one; `scasp_forall` selects nothing |
 | `--dcc` | disjunctive consistency checking |
 | `begin_scasp`/`end_scasp` | deliberately, per `doc/design-next.md` decision 2a |
-| `scasp_assert/1` and friends | building a program at run time |
-| `scasp -i` | the interactive toplevel; `swipl` and `library(sscasp)` is the one to use |
+
+**The new tree stands on its own.** `prolog/sscasp/` loads nothing from
+`prolog/scasp/`; the stylesheet and script it used to share are copies,
+and `main.pl` embeds the stylesheet at compile time so a saved state
+carries it.
 
 **The executable is there.** `make sscasp` builds it and it takes the
 old one's flags where the solver has the feature: `--tree`, `--human`,
@@ -207,17 +210,71 @@ old one's flags where the solver has the feature: `--tree`, `--human`,
 `--no-nmr`, `--no-olon`, `--version`. It exits 0 for an answer, 1 for
 none and 2 for an error, which the old one does not distinguish.
 
+`-i` is there and differs in two ways, both deliberate. The program is
+compiled **once** for the session rather than per query — on
+`bec_tap_01_overflow` that is 92 ms of setup against 1.8 ms per further
+query. And a query that does not compile, or names a predicate the
+program does not have, is **reported and survived**: the old loop has no
+`catch/3`, so one typo ends the session and exits 1. Away from a
+terminal the loop does not offer answers one at a time, because
+`get_single_char/1` would read the next query's first character; it
+honours `--answers` instead, which is what makes `-i` scriptable.
+
 **The renderers are all there.** `sscasp/html.pl` describes an answer once
 and `html_text.pl` reads that description as coloured text, which is
-`--human` (`sscasp_human/1,2`); `sscasp/render.pl` prints the machine form
+`--human` (`scasp_human/1,2`); `sscasp/render.pl` prints the machine form
 in columns and colour, which is what the `?`-shortcuts hand the toplevel;
 `sscasp/listing.pl` is `--code`; and `sscasp/json.pl` is `--json`. What
 each does differently is below.
 
-`library(sscasp)` covers the rest of the Prolog interface: `sscasp/1,2`
+`library(sscasp)` covers the rest of the Prolog interface: `scasp/1,2`
 over ordinary Prolog clauses, the `?`-prefixed query shortcuts,
-`sscasp_show/2`, and `sscasp_directive/1` for what Prolog has no syntax
+`scasp_show/2`, and `scasp_directive/1` for what Prolog has no syntax
 for. A global constraint is written `false :- Body.` in both.
+
+**Building a program at run time is there too**, and differs in one way
+worth knowing when porting. `scasp_dynamic/1`, `scasp_assert/1,2`,
+`scasp_retract/1`, `scasp_retractall/1` and `scasp_abolish/1` mean what
+they mean in `library(scasp)`, but the old implementation *interns*
+`-p(X)` into a predicate literally named `'-p'` and so has to rename the
+functor on the way in; here `-p(X)` is a clause of `-/1` and the term is
+asserted as written. Two consequences:
+
+- `scasp_dynamic p/1` declares `p/1` and `-/1` — one predicate holding
+  every negated head in the module, so its scope is decided by the first
+  declaration to reach it rather than per predicate. The old one gives
+  each its own `'-p'/1` and can scope them separately.
+- `scasp_assert/2`'s position argument is accepted and ignored. This
+  solver keeps no source references for a justification to point at.
+
+A global constraint cannot be asserted in either tree — `false/0` is a
+built-in — so `scasp_assert(M:(false :- Body))` **records** it, which is
+what the load-time expansion of the same term does.
+
+**The Logical English examples run against both.** `test/le_corpus.pl`
+describes the 13 programs in `test/le_programs/`, and the shared suite
+`test/test_le.pl` runs it against either library. 12 of 13 agree.
+`list-scasp` defines its own `forall/2` and is refused by both — each
+naming a different unsupported thing first; `subset-scasp` does the same
+and both name the redefinition. `turingcomplete-scasp` agrees
+by a different route: it calls `append/3` without defining it, which
+`library(scasp)` reads as a predicate the program never defined (so the
+query fails) while `library(sscasp)` follows the name into
+`library(lists)` and collects its clauses.
+
+**Each library reads only its own files.** Both install their expansions in
+`user`, so unguarded each saw every file in the process and which had loaded
+first decided what a `-p(X)` head, a `:- pred` or a `#pred` meant. Each now
+asks whether the file being compiled imported it
+(`predicate_property(M:scasp(_,_), imported_from(...))`), so the two never
+both fire. This is a change to `library(scasp)` as well as to
+`library(sscasp)`.
+
+**A redefined control construct is refused rather than reinterpreted.**
+A module defining `forall/2`, `findall/3`, `not/1` or another goal the
+compiler owns has written clauses that can never run, because the goal is
+intercepted before anything looks for them. Both libraries refuse, with
+the same error term.
 
 **Calling out to Prolog is spelled differently.** The old implementation
 declares `:- prolog p/2.`; the new one declares `:- sld p/2.`, naming the
@@ -320,7 +377,7 @@ Two things account for it, and neither is a wrong answer:
   proof into the next doubled the proof per level, 131,135 nodes on
   `queens.pl` where the answer has 53 literals, and exhausted a 4 GB stack.
 
-What is *not* a difference any more is relevance scoping. `sscasp/2` used
+What is *not* a difference any more is relevance scoping. `scasp/2` used
 to answer a query about `p` without collecting `-p`, so the consistency
 check was never generated — `q. p :- q. -p :- q.` has no answer set and it
 said yes. `p` and `-p` are now one predicate as far as collection goes.
@@ -354,7 +411,7 @@ which the old implementation does not have.
 generated names — `not'o_-ab_1'(A) :- ab(A).` — and what it prints is
 **loadable** (`--compiled`).
 
-`sscasp_show/2` inlines those helpers as a disjunction instead, so a dual
+`scasp_show/2` inlines those helpers as a disjunction instead, so a dual
 reads as what it is:
 
     not flies(A) :-
@@ -374,6 +431,32 @@ The layout is `portray_clause/3`'s in both implementations. Getting the
 `listing/2` forwarding its options, and the writer putting a space
 between a prefix operator and a following symbol — which are in
 `swipl-devel` rather than here.
+
+### Two answers the old implementation should not give
+
+Found by widening the corpus comparison from 21 programs to 49
+(`test/sscasp/corpus.pl`). Both are recorded as `golden(...)` dispositions
+rather than gaps: the `.pass` data is wrong, and the test asserts the
+disagreement is still there so that it cannot outlive a fix upstream.
+
+`min_programs/solve_not_is`:
+
+    invalid_value(X) :- not valid_value(X).
+    valid_value(V)   :- coord(X), coord(Y), V is X+Y.
+    coord(1). coord(2). coord(3).
+    ?- invalid_value(X).
+
+The old implementation answers `invalid_value(2)` as well as the
+constrained answer. `valid_value(2)` holds — 1+1 — so it should not, and
+its own justification shows why it does: under `not valid_value(2)` it
+tries `2 is 2+1`, `2 is 2+2` and `2 is 2+3`, and never `2 is 1+1`. One
+clause of the dual of `V is X+Y` is missing.
+
+`min_programs/stream_reasoning` answers `valid_stream(1, p(a))`. That is
+cancelled: `higher_prio(2, 1)`, `stream(2, q(a))` and `incompt(p(a),
+q(a))` all hold. The new implementation's first answer is `p(A)` with
+`A ∉ [a, b]` — the same answer with the cancelled individuals taken out —
+and it gives three answers where the old gives four.
 
 ## 5. Shared limitations
 
@@ -409,11 +492,11 @@ twice:
   it on 420 seeded programs in `make check` and 8,408 when widened;
   `test_differential.pl` runs the old one against it on 291.  Both compare
   brave entailment, which is sharp in both directions.
-- **The corpus.** `test/test_corpus.pl` points the new implementation at the
+- **The corpus.** `test/sscasp/test_corpus.pl` points the new implementation at the
   `.pass` data the old one produced.  That can only say whether they agree —
   it shares every design decision with the old one — which is why it is not
   the soundness argument.  `doc/performance.md` has the table.
-- **The crossings.** `test/test_crossings.pl`, 18 programs judged by the oracle
+- **The crossings.** `test/sscasp/test_crossings.pl`, 18 programs judged by the oracle
   and 9 by hand, for the feature combinations `doc/test-strategy.md` counted at
   zero tests.
 - **By hand, both implementations in one process**, for everything in this

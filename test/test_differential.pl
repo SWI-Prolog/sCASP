@@ -6,6 +6,7 @@
                               op(700, xfx, [#=, #<>, #<, #>, #=<, #>=])]).
 :- use_module(scasp_plunit, [expect_semantics/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [member/2]).
 
 /** <module> s(CASP) against the stable-model definition

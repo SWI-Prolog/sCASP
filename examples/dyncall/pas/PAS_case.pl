@@ -1,5 +1,4 @@
 :- use_module(library(scasp)).
-:- use_module(library(scasp/human)).
 
 :- use_module('PAS_rules').
 :- use_module('PAS_guide').
@@ -51,8 +50,8 @@ load_case(Case) :-
 
 %!  solve(+Query, +Case)
 %
-%   Solves Query and display the result in _human_ format. The latter is
-%   a hack for now, suppressing the normal output.
+%   Solve Query for Case and say the justification in words, from the
+%   `#pred` descriptions in PAS_rules.pl and PAS_guide.pl.
 %
 %   Examples
 %
@@ -60,38 +59,7 @@ load_case(Case) :-
 
 solve(Query, Case) :-
     load_case(Case),
-    setup_call_cleanup(
-        set_output(false, false, State),
-        ( scasp(Query),
-          scasp_justification(Tree, []),
-          human_justification_tree(Tree),
-          save_tree(Tree, us)
-        ),
-        restore_output(State)).
-
-set_output(Model, Justification, s(OldModel, OldJustification)) :-
-    current_prolog_flag(scasp_show_justification, OldJustification),
-    current_prolog_flag(scasp_show_model, OldModel),
-    set_prolog_flag(scasp_show_justification, Justification),
-    set_prolog_flag(scasp_show_model, Model).
-
-restore_output(s(OldModel, OldJustification)) :-
-    set_prolog_flag(scasp_show_justification, OldJustification),
-    set_prolog_flag(scasp_show_model, OldModel).
-
-%!  save_tree(+Tree, +File)
-%
-%   Write the justification tree to File.   Used for comparison with the
-%   original version.
-
-save_tree(Tree, File) :-
-    message_to_string(scasp_justification(Tree,
-                                          [ depth(1)
-                                          ]),
-                      String),
-    setup_call_cleanup(open(File, write, Out),
-                       write(Out, String),
-                       close(Out)).
+    scasp_human(Query, [show_model(false)]).
 
 %% %---------- Anticoagulation: There are 4 reasons to recommend it
 % ?- recommendation(anticoagulation).

@@ -3,7 +3,7 @@
 ## Running the system without building
 
     swipl prolog/scasp/main.pl -- [scasp-options] test/all_programs/family.pl
-    swipl test/test_scasp.pl -- [test options] [dir ...] [file ...]
+    swipl test/scasp/test_scasp.pl -- [test options] [dir ...] [file ...]
 
 ## Loading for debugging
 
@@ -67,7 +67,7 @@ search for undefined predicates and their call sites.
 Create annotated coverage file in _dir_ (default `cov`). Requires 8.3.27
 or later.
 
-    swipl test/test_scasp.pl --cov=dir test/all_programs/family.pl
+    swipl test/scasp/test_scasp.pl --cov=dir test/all_programs/family.pl
 
 ## Profiling
 
