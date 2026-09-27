@@ -43,7 +43,7 @@
 :- use_module(dual,        [clause_duals/2, body_variables/3,
                             negate_literal/2]).
 :- use_module(mangle,      [mangle/2]).
-:- use_module(annotations, [argument_domain/4]).
+:- use_module(annotations, [argument_domain/4, domain_kind/3]).
 :- use_module(domains,     [domain_goal/3]).
 :- use_module(library(lists), [append/3, numlist/3, member/2, nth1/3]).
 :- use_module(library(apply), [maplist/3, maplist/4, foldl/4]).
@@ -80,20 +80,25 @@ mean; only user predicates are renamed.
 
 ## Domains
 
-An argument with a declared domain is guarded in the dual:
+A signature is shorthand for guards, and `compile.pl` writes them in before
+the clauses get here — into every clause of the predicate
+(`signature_guarded/3`):
 
     :- pred wrap(shape).
+    wrap(f(X)) :- item(X).          % becomes
+    wrap(A) :- shape(A), A = f(X), item(X).
 
-    m$dual$wrap$1(A) :- shape(A), m$dual.1$wrap$1(A).
-
-which is the whole point of the annotation.  `not wrap(T)` for an unbound `T`
-is otherwise incomplete — it can offer the shapes the head matches but not the
-ones it does not, because saying so needs a universally quantified disequality
-that no store can express (`doc/bugs.md` #15).  Given a domain there is
-nothing to express: the dual enumerates it.
-
-A domain is a restriction of the universe of discourse for that argument, not
-a hint, so guarding is sound exactly when the declaration is meant.
+and in front of every negated literal of it a body writes
+(`use_site_guarded/3`): `not wrap(T)` becomes `shape(T), not wrap(T)`.  So
+the dual follows from the guarded clause like any other, outside the domain
+`wrap(T)` is false, and a program asking `not wrap(T)` asks only about the
+domain (`doc/design-next.md` open question 3).  The guard goes before the
+head unification, and that is what the annotation buys.  `not wrap(T)` for an
+unbound `T` is otherwise incomplete — it can offer the shapes the head matches
+but not the ones it does not, because saying so needs a universally quantified
+disequality that no store can express (`doc/bugs.md` #15).  With the guard
+first there is nothing to express: the dual enumerates the domain, and for a
+ground `T` the head unification is decidable.
 
 ### The quantifier
 
@@ -114,11 +119,16 @@ Now say where `t/2`'s second argument lives:
     :- domain thing = [a, b].
     :- pred t(_, thing).
 
-`Y` is used there, so it ranges over `thing`, and the quantifier says so —
-the *only* line that changes:
+The compiler puts the guard in front of the negated literal, so the clause
+that arrives is `p(X) :- q(X), thing(Y), not t(X, Y)`.  `thing(Y)` is a
+positive literal of a domain, so `Y` ranges over `thing`, and the quantifier
+says so:
 
     m$dual.1$p$1(A)          :- for_domain(B, m$plain$thing$1(B),
                                            m$dual.1.inner$p$1(A, B)).
+
+A positive `t(X, Y)` would bound it the same way, through `t`'s signature;
+a bare `not t(X, Y)` would not, since it holds outside `thing`.
 
 `for_domain(Var, Generator, Goal)` names the domain rather than expanding it.
 What to do with it is the solver's business: enumerate a handful of facts, or
@@ -143,8 +153,8 @@ is used**.
 
 Where a variable is used in several places, *any* of the domains will do and
 the first is taken.  That is not a shortcut: the inner dual negates a
-conjunction, so for a value outside the domain of any one literal that literal
-fails, the conjunction fails, and its negation holds — the instance is true for
+conjunction, so for a value outside the domain of any one positive literal
+that literal fails, the conjunction fails, and its negation holds — the instance is true for
 free.  Bounding the quantifier by one usage leaves nothing unchecked that
 could have failed.
 */
@@ -189,45 +199,22 @@ numlist_or_empty(Count, Indices) :- numlist(1, Count, Indices).
 
 %!  predicate_dual(+Module, +Annotations, +PI, +Indices, -Clause) is det.
 %
-%   The conjunction of the clause duals, guarded by whatever domains the
-%   signature gives the arguments.
+%   The conjunction of the clause duals.  A signature's domain is not a
+%   guard here: `compile.pl:signature_guarded/3` has already put it into
+%   the clauses, so their duals say what it means for the negation.
 
-predicate_dual(Module, Annotations, Base, Name/Arity, Indices, Clause) :-
+predicate_dual(Module, _Annotations, Base, Name/Arity, Indices, Clause) :-
     functor(Head0, Name, Arity),
     Head0 =.. [_|Args],
     mangle_kind(Module, Base, Name, Arity, DualName),
     Head =.. [DualName|Args],
-    domain_guards(Annotations, Name/Arity, Args, Guards0),
-    maplist(translate_goal(Module), Guards0, Guards),
     maplist(clause_dual_call(Module, Base, Name/Arity, Args), Indices, Calls),
-    append(Guards, Calls, Goals),
-    clause_of(Head, Goals, Clause).
+    clause_of(Head, Calls, Clause).
 
 clause_dual_call(Module, Base, Name/Arity, Args, Index, Call) :-
     indexed(Base, Index, Kind),
     mangle_kind(Module, Kind, Name, Arity, DualName),
     Call =.. [DualName|Args].
-
-%!  domain_guards(+Annotations, +PI, +Args, -Guards) is det.
-%
-%   One guard per argument that has a domain, in argument order.
-
-%   Built by walking the arguments rather than with findall/3, which
-%   copies: a guard collected that way carries a *fresh* variable and no
-%   longer constrains the argument it was made for.
-
-domain_guards(Annotations, PI, Args, Guards) :-
-    domain_guards(Args, 1, Annotations, PI, Guards).
-
-domain_guards([], _, _, _, []).
-domain_guards([Arg|Args], N, Annotations, PI, Guards) :-
-    (   argument_domain(Annotations, PI, N, Domain)
-    ->  domain_goal(Domain, Arg, Guard),
-        Guards = [Guard|Rest]
-    ;   Guards = Rest
-    ),
-    N1 is N+1,
-    domain_guards(Args, N1, Annotations, PI, Rest).
 
 		 /*******************************
 		 *         ONE CLAUSE		*
@@ -351,11 +338,66 @@ split_domains([Var|Vars], VarDomains, Bounded, Free) :-
 
 enumerated(_, [], _, Goal, Goal).
 enumerated(Module, [Var|Vars], VarDomains, Goal, Quantified) :-
-    enumerated(Module, Vars, VarDomains, Goal, Inner),
     memberchk_eq(Var, VarDomains, Domain),
-    domain_goal(Domain, Var, Generator0),
+    (   Domain = inferred(Literal)
+    ->  same_literal(Vars, VarDomains, Literal, Same, Rest),
+        Group = [Var|Same],
+        generator(Literal, Group, Generator0),
+        (   Same == []
+        ->  Quantified0 = Var
+        ;   Quantified0 = Group
+        )
+    ;   Rest = Vars,
+        domain_goal(Domain, Var, Generator0),
+        Quantified0 = Var
+    ),
+    enumerated(Module, Rest, VarDomains, Goal, Inner),
     translate_goal(Module, Generator0, Generator),
-    Quantified = for_domain(Var, Generator, Inner).
+    Quantified = for_domain(Quantified0, Generator, Inner).
+
+%   **The variables one fact literal bounds are enumerated together**,
+%   as tuples of its facts: `happens(E, T)` quantifies `[E, T]` over the
+%   pairs `happens/2` holds of, not E over every event and then T over
+%   every time for each.  The same argument as a tuple `forall/2`
+%   (quantify/5): nested, the coverings multiply, and where the values
+%   are not independent most combinations are ones no fact has.
+%   `bec_loan` has `happens/2` and `is_due_on_from_to/4`, and nesting
+%   their variables one at a time took it from 376 s to no answer in an
+%   hour.
+
+same_literal([], _, _, [], []).
+same_literal([Var|Vars], VarDomains, Literal, Same, Rest) :-
+    memberchk_eq(Var, VarDomains, Domain),
+    (   Domain = inferred(Other),
+        Other == Literal
+    ->  Same = [Var|Same1],
+        Rest = Rest1
+    ;   Same = Same1,
+        Rest = [Var|Rest1]
+    ),
+    same_literal(Vars, VarDomains, Literal, Same1, Rest1).
+
+%   The generator is the literal with every argument that is not one of
+%   the group made fresh: every tuple the facts hold at those positions,
+%   which is a superset of the ones that matter and so safe.
+
+generator(Literal, Group, Generator) :-
+    Literal =.. [Name|Args],
+    maplist(generator_arg(Group), Args, GenArgs),
+    Generator =.. [Name|GenArgs].
+
+generator_arg(Group, Arg, GenArg) :-
+    (   var(Arg),
+        memberchk_eq_(Arg, Group)
+    ->  GenArg = Arg
+    ;   true
+    ).
+
+memberchk_eq_(X, [Y|T]) :-
+    (   X == Y
+    ->  true
+    ;   memberchk_eq_(X, T)
+    ).
 
 memberchk_eq(Var, [V-Value|T], Found) :-
     (   Var == V
@@ -379,7 +421,7 @@ memberchk_eq(Var, [V-Value|T], Found) :-
 %   Where a variable is used in several places, *any* of the domains will
 %   do, and the first is taken.  That is not a shortcut.  The inner dual
 %   negates a conjunction, so for a value outside the domain of any one
-%   literal that literal fails, the conjunction fails, and its negation
+%   positive literal that literal fails, the conjunction fails, and its negation
 %   holds — the instance is true for free.  Bounding the quantifier by one
 %   usage therefore leaves nothing unchecked that could have failed.
 
@@ -396,16 +438,78 @@ var_domains_([Var|Vars], Annotations, Body, VarDomains) :-
 
 var_domain(Annotations, Body, Var, Domain) :-
     member(Literal, Body),
-    literal_goal(Literal, Goal),
-    goal_parts(Goal, Name, Arity, Args),
+    positive_literal(Literal),
+    goal_parts(Literal, Name, Arity, Args),
     nth1(N, Args, Arg),
     Arg == Var,
     argument_domain(Annotations, Name/Arity, N, Domain),
     !.
+var_domain(Annotations, Body, Var, Domain) :-
+    member(Literal, Body),
+    positive_literal(Literal),
+    compound(Literal),
+    Literal =.. [Domain, Arg],
+    Arg == Var,
+    domain_name(Annotations, Domain),
+    !.
+var_domain(Annotations, Body, Var, inferred(Literal)) :-
+    get_dict(fact_predicates, Annotations, Facts),
+    member(Literal, Body),
+    fact_literal(Literal, Facts),
+    goal_parts(Literal, _Name, _Arity, Args),
+    member(Arg, Args),
+    Arg == Var,
+    !.
 
-literal_goal(not(Goal), Goal) :- !.
-literal_goal(-(Goal), Goal) :- !.
-literal_goal(Goal, Goal).
+%   **An inferred domain.**  Where nothing is declared, a *positive*
+%   literal of a predicate defined by ground facts alone
+%   (`compile.pl:fact_predicates/2`) bounds the variable to the values
+%   those facts give at its position.  For any other value the literal
+%   is false, the conjunction is false and its negation holds, which is
+%   the argument above — and it has to be a positive literal for that:
+%   outside `q`'s facts `not q(W)` *holds*, so a negated literal bounds
+%   nothing.  The domain is the literal itself: enumerated/5 makes the
+%   generator, and enumerates every variable it bounds at once.
+%
+%   It is the `:- domain` a program did not write.  `hamiltonian_scasp`,
+%   whose nodes are four facts, answers in 0.06 s this way against 0.7 s
+%   searching the universe for them.
+
+%   **A domain's own literal.**  `d(W)` bounds W by `d` for the same
+%   reason: it is false outside.  That is what makes the guard a
+%   signature puts before `not q(W)` (`compile.pl:use_site_guarded/3`)
+%   bound the quantifier its dual needs, whether `d` is an enumeration,
+%   a range or a predicate of the program's own.  A domain is a name
+%   `:- domain` declares or a signature uses.
+
+domain_name(Annotations, Domain) :-
+    Domain \== any,
+    (   domain_kind(Annotations, Domain, _)
+    ->  true
+    ;   dict_pairs(Annotations.signatures, _, Pairs),
+        member(_-Arities, Pairs),
+        member(_-Domains, Arities),
+        memberchk(Domain, Domains)
+    ->  true
+    ).
+
+fact_literal(Literal, Facts) :-
+    positive_literal(Literal),
+    \+ builtin(Literal),
+    functor(Literal, Name, Arity),
+    memberchk(Name/Arity, Facts).
+
+%   **Only a positive literal bounds a variable**, declared or inferred.
+%   Outside a signature's domain `q(W)` is false, the guards the
+%   signature stands for being in `q`'s clauses; `not q(W)` is *true*
+%   there, so a negated literal says nothing about W, and neither does a
+%   classically negated one, which the signature does not guard.
+
+positive_literal(Literal) :-
+    callable(Literal),
+    \+ Literal = not(_),
+    \+ Literal = -(_).
+
 
 		 /*******************************
 		 *           GOALS		*
@@ -555,6 +659,11 @@ builtin_pi('∉', 2).
 builtin_pi('∈', 2).
 builtin_pi(forall, 2).
 builtin_pi(for_domain, 3).
+
+%   The check `compile.pl:guard_goals/6` puts before a signature's guard
+%   when domain errors are on.  Its goal is already translated.
+
+builtin_pi('$domain_check', 3).
 
 %   Prolog arithmetic.  Distinct from the CLP(Q) comparisons above: these
 %   evaluate their arguments and test, so they need them bound, where

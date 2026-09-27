@@ -68,9 +68,7 @@ gap_(sscasp, diseq_not_in,
      [ not_in_is_not_usable_in_a_program ],
      pinned("∉ in a program body works here, and raises in the old one")).
 gap_(sscasp, compound_negation,
-     [ the_unbound_answer_admits_only_the_f_shape,
-       the_unbound_answer_never_admits_the_one_that_holds
-     ],
+     [ the_unbound_answer_admits_only_the_f_shape ],
      pinned("doc/bugs.md #1: the old answer to not p(X) is incomplete")).
 gap_(sscasp, compound_head_rewriting_is_neutral,
      [ all_three_give_the_same_single_negative_answer ],

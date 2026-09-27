@@ -67,7 +67,7 @@
             op(1150, fx, scasp_dynamic)
           ]).
 :- use_module(ops).
-:- use_module(run,    [scasp/4, scasp_program/2]).
+:- use_module(run,    [scasp_run/3, scasp_program/2]).
 :- use_module(emit,   [builtin/2]).
 :- use_module(describe, [deprecated_description/1]).
 :- use_module(annotations, [program_annotations/2]).
@@ -337,6 +337,10 @@ scasp_constraint(Module, Body) :-
 %       `html_justification//2` say a literal in words by its
 %       `:- describe` when given `annotations(Annotations)`.  Computed
 %       only when asked for.
+%     - module(?Module)
+%       Leave the compiled program in Module rather than in a temporary
+%       module, for the profiler and for looking at.  See
+%       `run.pl:scasp_run/3`.
 
 scasp(Query) :-
     scasp(Query, []).
@@ -348,7 +352,7 @@ scasp(Module:Query, Options) :-
     ->  program_annotations(Terms, Annotations)
     ;   true
     ),
-    scasp(Terms, Query, Model, Justification),
+    scasp_run(Terms, Query, [model(Model), tree(Justification)|Options]),
     ignore(option(model(Model), Options)),
     ignore(option(tree(Justification), Options)),
     remember(Model, Justification, Terms, Options).

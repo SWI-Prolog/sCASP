@@ -205,57 +205,40 @@ wrap_program([ (:- domain shape = [f(a), g(a), b]),
                item(a)
              ]).
 
-%   The guard is a call like any other, so it is mangled: the compiled
-%   program defines `m$plain$shape$1', not `shape'.
+%   A signature is a guard in the predicate's *clauses*, which
+%   `compile.pl' adds before the dualiser sees them (decision B,
+%   `doc/design-next.md' open question 3).  The dual is derived from
+%   those clauses like any other, so it has no guard of its own: that is
+%   what makes `not wrap(v)' hold wherever `wrap(v)' fails, outside the
+%   domain included.
 
-test(a_declared_domain_guards_the_dual) :-
+test(a_signature_adds_no_guard_to_the_dual) :-
     wrap_program(P),
     duals(P, wrap/1, [(wrap(f(X)) :- item(X))], [Top|_]),
     Top = ('m$dual$wrap$1'(A) :- Body),
-    assertion(Body == ('m$plain$shape$1'(A), 'm$dual.1$wrap$1'(A))).
-
-%   The guard must constrain the head argument, not a fresh variable —
-%   which is what collecting the guards with findall/3 would have given,
-%   since it copies.
-
-test(the_guard_shares_the_head_variable) :-
-    wrap_program(P),
-    duals(P, wrap/1, [(wrap(f(X)) :- item(X))], [Top|_]),
-    Top = ('m$dual$wrap$1'(A) :- Guard, _),
-    Guard = 'm$plain$shape$1'(G),
-    assertion(G == A).
+    assertion(Body == 'm$dual.1$wrap$1'(A)).
 
 test(an_unannotated_predicate_has_no_guard) :-
     duals([], p/1, [p(0)], [Top|_]),
     Top = ('m$dual$p$1'(A) :- Body),
     assertion(Body == 'm$dual.1$p$1'(A)).
 
-test(only_the_annotated_positions_are_guarded) :-
-    Program = [ (:- domain d = [1]),
-                (:- pred e(d, _)),
-                e(1, x)
-              ],
-    duals(Program, e/2, [e(1, x)], [Top|_]),
-    Top = ('m$dual$e$2'(A, B) :- Guard, Call),
-    assertion(Guard == 'm$plain$d$1'(A)),
-    assertion(Call == 'm$dual.1$e$2'(A, B)).
-
-%   A body-only variable with a domain gets `for_domain/3' rather than
-%   `forall/2': the domain is named in the term and what to do with it —
+%   A body-only variable that a positive literal with a signature binds
+%   gets `for_domain/3' rather than `forall/2': the domain is named in the term and what to do with it —
 %   enumerate the facts, or post the region and label — is the solver's
 %   business.  Expanding here would commit to enumeration, which is right
 %   for [a,b] and wrong for 0..23.
 
 domained_body_var([ (:- domain thing = [a, b]),
                     (:- pred t(_, thing)),
-                    (p(X) :- q(X), not t(X, _)),
+                    (p(X) :- q(X), t(X, Y), not r(Y)),
                     q(1),
                     t(1, a)
                   ]).
 
 test(a_domained_body_variable_gets_for_domain) :-
     domained_body_var(P),
-    duals(P, p/1, [(p(X) :- q(X), not t(X, _Y))], Duals),
+    duals(P, p/1, [(p(X) :- q(X), t(X, Y), not r(Y))], Duals),
     nth1(2, Duals, Clause),
     Clause = ('m$dual.1$p$1'(A) :- for_domain(B, Generator, Inner)),
     assertion(Generator == 'm$plain$thing$1'(B)),
@@ -267,8 +250,20 @@ test(a_domained_body_variable_gets_for_domain) :-
 
 test(and_no_forall_remains) :-
     domained_body_var(P),
-    duals(P, p/1, [(p(X) :- q(X), not t(X, _Y))], Duals),
+    duals(P, p/1, [(p(X) :- q(X), t(X, Y), not r(Y))], Duals),
     assertion(\+ ( member(C, Duals), has_forall(C) )).
+
+%   Only a *positive* literal bounds the variable.  `not t(X, Y)' holds of
+%   every Y outside `thing' as well, so taking the domain from it would
+%   quantify over too little: the dual would claim `p' fails where it
+%   holds.
+
+test(a_negated_literal_does_not_bound_it) :-
+    domained_body_var(P),
+    duals(P, p/1, [(p(X) :- q(X), not t(X, _Y))], Duals),
+    nth1(2, Duals, Clause),
+    Clause = ('m$dual.1$p$1'(_) :- Body),
+    assertion(has_forall(Body)).
 
 has_forall(Term) :-
     compound(Term),
@@ -290,11 +285,11 @@ test(an_undomained_body_variable_keeps_its_forall) :-
 test(a_range_domain_looks_the_same) :-
     Program = [ (:- domain hour = 0..23),
                 (:- pred at(_, hour)),
-                (busy(D) :- day(D), not at(D, _)),
+                (busy(D) :- day(D), at(D, H), not free(H)),
                 day(mon),
                 at(mon, 9)
               ],
-    duals(Program, busy/1, [(busy(D) :- day(D), not at(D, _H))], Duals),
+    duals(Program, busy/1, [(busy(D) :- day(D), at(D, H), not free(H))], Duals),
     nth1(2, Duals, Clause),
     Clause = ('m$dual.1$busy$1'(_) :- for_domain(B, Generator, _)),
     assertion(Generator == 'm$plain$hour$1'(B)).

@@ -177,11 +177,26 @@ clause_duals(Body, Duals) :-
     clause_duals(Body, [], Duals).
 
 clause_duals([], _, []).
+clause_duals([Literal|Literals], Prefix, Duals) :-
+    no_dual(Literal),
+    !,
+    append(Prefix, [Literal], NextPrefix),
+    clause_duals(Literals, NextPrefix, Duals).
 clause_duals([Literal|Literals], Prefix, [Dual|Duals]) :-
     negate_literal(Literal, Negated),
     append(Prefix, [Negated], Dual),
     append(Prefix, [Literal], NextPrefix),
     clause_duals(Literals, NextPrefix, Duals).
+
+%   A literal whose negation is `fail` contributes no dual clause: the
+%   branch it would begin cannot succeed.  The domain check that
+%   `compile.pl:guard_goals/6` writes under `scasp_domain_error` is one —
+%   it is `true` or an error — and it still runs at the front of every
+%   later branch, which is what makes `not q(30)` raise.
+
+no_dual(Literal) :-
+    nonvar(Literal),
+    Literal = '$domain_check'(_, _, _).
 
 		 /*******************************
 		 *         BODY VARIABLES	*

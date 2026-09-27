@@ -373,12 +373,18 @@ That is decidable in exactly four cases, and undecidable outside them.
    bounds**, which makes decision 5a's report a grep. The domain is read off
    *where the variable is used* — argument 2 of `t/2` — rather than from the signature of
    the predicate being dualised, which says nothing about it. Where a variable
-   is used in several places any one of the domains will do, and taking the
-   first is not a shortcut: the inner dual negates a conjunction, so for a
-   value outside the domain of any single literal that literal fails, the
-   conjunction fails and its negation holds — the instance is true for free.
-   Bounding the quantifier by one usage leaves nothing unchecked that could
-   have failed.
+   is used in several **positive** literals any one of their domains will do,
+   and taking the first is not a shortcut: the inner dual negates a
+   conjunction, so for a value outside the domain of any single positive
+   literal that literal fails, the conjunction fails and its negation holds —
+   the instance is true for free. Bounding the quantifier by one usage leaves
+   nothing unchecked that could have failed. A *negated* literal gives no
+   bound: outside `t`'s domain `not t(X, W)` holds rather than fails, so the
+   instance is not true for free and a quantifier bounded by it misses exactly
+   the values that could have failed. That this argument holds at all rests
+   on the signature being a guard in `t`'s clauses — open question 3 — and
+   the guard it also puts in front of `not t(X, W)` is itself a positive
+   literal, which is what bounds `W` there.
 2. **Some answer leaves V wholly unconstrained.** Then G's success does not
    depend on V and that one answer covers the domain. Sound *provided every
    store is consulted* — `doc/bugs.md` #14 was precisely this check failing to
@@ -573,14 +579,19 @@ the tedious part:
 :- domain hour = 0..23.                                     % → a CLP region
 ```
 
-What the compiler does with it: when generating the dual of a predicate whose
-argument has a declared domain, insert the domain goal. `not wrap(T)` becomes
-`shape(T), not wrap(T)`, which moves it from decision 5's undecidable case 5
-into case 1 or 4.
+What the compiler does with it: it writes the domain goal where a programmer
+would write the guard by hand — into **every clause** of the predicate, and in
+front of every **negated literal** of it a body writes — and derives the duals
+from that program as usual. `wrap(f(X)) :- item(X)` becomes `wrap(T) :-
+shape(T), T = f(X), item(X)`, `not wrap(T)` in a body becomes `shape(T), not
+wrap(T)`, and the quantifier is covered by enumerating `shape`, which moves it
+from decision 5's undecidable case 5 into case 1 or 4.
 
 That is a real restriction of the universe of discourse for that argument, and
 should be understood as such rather than as a hint — which is the honest
-reading of a type anyway.
+reading of a type anyway. Outside the domain `wrap(v)` is false, and so is a
+written `not wrap(v)`; with `scasp_domain_error` both raise. Open question 3
+records why it is this reading and not the two others.
 
 #### Why not Hindley-Milner
 
@@ -621,6 +632,8 @@ one more clause each.
 
 ### 7. Tabling: probably not, and the reason is constraints
 
+*Revisited in §7a, which asks a narrower question with a different answer.*
+
 `ssCASP.md` lists tabling or hand-rolled memoisation as an option, and the
 current tabling path is dead code (`doc/bugs.md` #4, `:- if(fail).`).
 
@@ -634,6 +647,313 @@ tabling cannot simply be switched on.
 Where it *could* apply is the annotated, finite-domain fragment of decision 6,
 after constraints have been resolved into ground instances. That is worth
 revisiting once annotations exist, and not before.
+
+### 7a. Tabling revisited: the same question, asked a million times
+
+Decision 7 said no, and gave the right reason for SWI-Prolog's `:- table`:
+it would have to table s(CASP)'s *answers*, which are constraint stores
+and pieces of a proof. This section is about a different question, which
+is what the new solver's measurements put on the table: not "how do we
+table like Prolog" but "**when may an answer found in one branch of the
+search be used in another?**"
+
+#### What the search spends its time on
+
+`bec_loan` (see `CLAUDE.md`) has no first answer after an hour. A query
+it waits on, `not holdsAt(paid_to_on(the_borrower, 550, the_lender, _),
+4)` with the NMR check off, takes **28 s** here and **0.031 s** in the old
+implementation. Counting what the solver proves while answering it:
+
+| | proofs | distinct goals |
+|---|---|---|
+| resting on no coinductive assumption (`proved/4` status `proof`) | 821,656 | **138** |
+| resting on one (`assumed`) | 152,514 | 6 |
+
+A "distinct goal" is a variant, constraints included. The top of the list
+is `is_due_on_from_to(525, 5, the_borrower, the_lender)`, a ground fact
+lookup, proved 157,895 times, and then eight goals of the form `not
+initiates(requests(the_borrower, 1000), paid_to_on(the_borrower, 550,
+the_lender, A), 2)` at about 55,000 each — each of which holds for every
+`A` and takes a few milliseconds to prove once. Almost none of the work
+is new work.
+
+It is repeated for two reasons, and the second is the one that matters:
+
+- **The existing reuse is per branch.** `check/7` reuses a ground literal
+  already in *this branch's* proof, and only one proved from no
+  assumption (the fix recorded under "What the corpus no longer
+  measures" in `CLAUDE.md`).
+- **Most proofs are made in branches that are thrown away.** A
+  quantifier's complement is covered inside a run that `fail` undoes
+  (`solve.pl:covered/7`), because a complement branch contributes no
+  proof and must leave no store behind. Everything it established goes
+  with it, and the next covering establishes it again. The recursion
+  `holdsAt` → `initiates` → `not holdsAt` → `not initiates` over time
+  then multiplies this at every level.
+
+So the question is not whether to table but **what a proof depended on**.
+
+#### What a proof can depend on outside itself
+
+A literal's proof is a subtree. It holds in every other branch of the
+search if nothing *outside* that subtree was consulted to make it. There
+are exactly four ways the solver consults the outside, and each is a
+place in `solve.pl`:
+
+1. **The coinductive hypothesis** (`check/7`'s `chs` action): an ancestor
+   of the same polarity across an even, non-zero number of negations is
+   taken as proved. Already recorded — a node resting on one is
+   `assumed`, and so is everything above it.
+2. **A loop decided by an ancestor.** A positive goal meeting a variant
+   ancestor with no negation between fails; a negative one succeeds
+   ("Coinduction is four rules, not six"). Either verdict is about the
+   ancestor, which is not in the subtree. The success goes through
+   `check/7`'s `chs` action and is recorded like (1). The **failure** is
+   recorded nowhere — harmless for a proof, which never rests on an
+   alternative that failed, but it is exactly what makes a *failure*
+   context-dependent: `c` failing because it looped back to an ancestor
+   says nothing about `c` elsewhere.
+3. **The CHS consistency check.** `consistent/3` fails a goal whose
+   negation is proved or open, and posts `dif/2` between literals that
+   could be made to contradict. Both read the branch's proof and
+   ancestors — outside the subtree.
+4. **Reuse** of a literal proved earlier in the branch, which is (1)–(3)
+   of *that* literal's proof, inherited.
+
+A proof that did none of these is **context-free**: a derivation from
+the program alone — positive steps from facts, and negative ones by the
+duals, which are sound for the completion and so for every stable model.
+It holds in every branch because it holds in every stable model. That is
+the connection worth having: what may be reused across branches is part
+of the **well-founded model**, the part of the program on which all
+stable models agree. What is left — literals whose value depends on an
+even loop, the choices — is the part s(CASP)'s search is *for*.
+
+So the existing status, which records (1) and the successful half of
+(2), is not enough. An earlier experiment showed it: a table of ground
+literals keyed on nothing but the goal gave four answers where there are
+two. (3) is what a success can still hide, and (2)'s failing half is what
+a tabled failure has to answer for.
+
+#### The rule: dependency height, as SLG computes leaders
+
+Tabled resolution (SLG) answers the same question with the **leader** of
+a strongly connected component: an answer is complete, and may be used
+anywhere, once no goal it depends on is still being evaluated. The
+solver's version is simpler, because it is depth-first and the ancestors
+are an explicit list:
+
+- Every goal gets its **depth**, the length of `Anc` when `check/7`
+  called it.
+- Every proof reports the **smallest depth it consulted**: the depth of
+  an ancestor that decided a chs or a loop (1, 2), or the height
+  inherited from a reused literal (4). A consistency check (3) that read
+  a literal from outside the subtree counts as depth 0 — the branch
+  itself. A proof that consulted nothing reports infinity.
+- A proof whose smallest consulted depth is **no smaller than the goal's
+  own** consulted nothing above the goal. It may be tabled.
+
+That is Tarjan's lowlink, and it is what an SLG engine computes to find a
+leader. It costs one integer per proof node, propagated as the proof is
+built — `proved/4` already walks the direct children to find `assumed`,
+and would take the minimum instead.
+
+**Failure too.** `not happens(requests(the_borrower, 1000), 2)` fails
+8,684 times in the same query. A failed goal has no proof to carry a
+height in, so the height of its whole search has to be kept aside: a
+register the search lowers as it consults the outside, saved and
+restored around the goal non-backtrackably (the `nb_setarg/3` device
+`covered/7` already uses). A failure with nothing consulted is tabled as
+a failure.
+
+#### What is tabled
+
+Three kinds, in the order worth building them:
+
+1. **Ground goals**, as success or failure. Most of the measured
+   repetition, and no question of what an answer *is*.
+2. **Universal answers**: the goal succeeded and left its variables
+   unbound and unconstrained, so it holds for every instance.
+   `not initiates(requests(...), paid_to_on(..., A), 2)` is one. A later
+   call that is an instance of the tabled goal is answered; there is
+   nothing to enumerate.
+3. **Answer sets proper**: every answer of a context-free goal, each a
+   binding plus a constraint store, and completeness — that there are no
+   more. This is the part decision 7 was about, and the part where
+   SWI-Prolog helps: since 9.3.24 its **tries hold attributed variables**
+   and take them into account for variants (section 7.10 of the manual),
+   so a trie keyed on the goal with its store is available as the table.
+   What tries do not give is *subsumption* over stores, which is what
+   answering `X #> 7` from `X #> 5` would need; variant lookup is the
+   version to build.
+
+Of the 821,656 unassumed proofs measured above, 383,595 are of ground
+goals and 652,276 leave their goal unconstrained — kinds 1 and 2 are
+about four fifths of the repetition, if the height rule admits them;
+that is experiment 1 below.
+
+#### Where it goes
+
+- **The table is per query and survives backtracking.** Created by
+  `run.pl:answer/5`, destroyed with it; entries are written with
+  non-backtrackable updates, so an entry made inside a complement branch
+  that `fail` undoes is still there for the next covering. That is the
+  point: those branches are where the repetition is.
+- **Lookup in `check/7`**, before a goal is expanded, beside the
+  existing reuse. **Recording in `proved/4`** for success and in the
+  wrapper's failure continuation for failure.
+- **The consistency check still runs on a hit.** A context-free literal
+  cannot contradict a consistent branch, but the branch may not be
+  consistent yet, and the check is what finds that out.
+
+#### The proof is part of the answer
+
+The model is a function of the proof (open question 5), and a proof
+that says `tabled(L)` where the subtree used to be would change the
+model. So an entry stores the **proof subtree** with it, and a hit
+splices a copy in — for a context-free goal the subtree is itself
+context-free, and for a ground one it is ground and cheap to copy. The
+justification is then the one a fresh proof would have given, and the
+golden tests' model comparison is unaffected. `proved(L)`, which the
+current per-branch reuse writes, is the alternative if the copies turn
+out to cost too much; it says less and changes models.
+
+#### What this is not
+
+- **Not `:- table`.** SWI-Prolog's tabling tables Prolog goals, and a
+  solver goal carries its proof and its ancestors as arguments; its
+  well-founded negation (`tnot/1`, conditional answers, the residual
+  program) is the right *semantics* — the context-free literals above are
+  its unconditional answers — but not a constructive one: it does not
+  negate a non-ground goal into constraints, and s(CASP)'s negation does.
+  An earlier idea, compiling the stratified fragment to `:- table` with
+  `tnot/1` and letting s(CASP) search only the residual program, runs
+  into that on the first event calculus program: its negations are over
+  times with CLP(Q) constraints, not ground.
+- **Not the old `#table`.** The Ciao original's `#table p/n` (dead code
+  here, `doc/bugs.md` #4) solved a declared predicate's rules with plain
+  `solve/4`, bypassing the coinductive checks, and carried the stack and
+  model as attributes (`clp/call_stack.pl`) so that tabled constraint
+  logic programming could store them. It trusts the declaration that the
+  predicate is outside every loop through negation; the height rule
+  decides that per proof, and needs no declaration.
+- **Not a change of semantics.** Every answer is one the search would
+  have found; tabling only stops it re-finding them.
+
+#### What to find out first
+
+In order, each cheap and each able to stop the next:
+
+1. **How much of the repetition is context-free.** Add the height to
+   `proved/4` and count, on `bec_loan`'s focused query, the tabled-kind-1
+   and kind-2 proofs whose height says context-free. The measurement above
+   is the upper bound; if (2) and (3) disqualify most of it, the design
+   has to go further before it pays.
+2. **Whether reuse alone closes the gap.** A table of kinds 1 and 2, no
+   proof splicing (`proved(L)` nodes), on the same query: the time, and
+   `bec_loan`'s first answer.
+3. **Whether the oracle agrees.** The Gelfond–Lifschitz sweep and the
+   corpus, with the table on. The naive memo's four answers for two is
+   the failure the height rule must not repeat; the program that showed
+   it has to be found again and made a test of its own.
+4. Only then splicing, failure tabling, and kind 3.
+
+#### Experiment 1: what the height rule admits
+
+Measured on 2026-09-27 with an instrumented copy of `solve.pl`: a
+register holding the smallest depth the current subtree consulted,
+saved at `check/7`'s expand and closed at `proved/4`, and carried out
+of the three runs that `fail` undoes (`covered/7`, `elsewhere/7` and
+`for_domain/6`'s generator) with `nb_setarg/3`. "Strict" counts a
+consistency check against a *proved* literal as depth 0, since where
+that literal was proved is not recorded; "lenient" ignores those.
+
+On `bec_loan`'s focused query:
+
+| | proofs | distinct |
+|---|---|---|
+| context-free, strict | **654,907** | **64** |
+| context-free only if lenient | 9,102 | 10 |
+| depends on an ancestor | 157,647 | 71 |
+| rests on the coinductive hypothesis | 152,514 | 6 |
+
+Of the strict context-free proofs, 649,000 leave their goal
+unconstrained (382,203 are ground): kinds 1 and 2 of the table. So
+**two thirds of all the proofs are of 64 goals the rule says may be
+tabled**, and the per-branch reuse that exists today hit 21,756 times.
+
+Across programs, the context-free share (strict) is:
+
+| program | context-free / all proofs | |
+|---|---|---|
+| `family` | 29 / 29 | |
+| `bec_light` | 246 / 261 | |
+| `hamiltonian_scasp` | 3,915 / 4,321 | |
+| `bec_tap_01` | 333 / 552 | lenient adds 199 |
+| `queens` | 1,293 / 2,813 | lenient adds 1,220 |
+| `hanoi` | 0 / 766 | every move is chosen by the even loop `move :- not negmove.`, `negmove :- not move.`, so nothing is context-free — correctly |
+
+Two things follow for the design:
+
+- **The rule admits the repetition that matters.** On the program that
+  motivated it the ceiling is two thirds of the proofs; the one where it
+  admits nothing is one whose every step is a choice.
+- **"Strict" is worth refining.** On `queens` and `bec_tap_01` the
+  proofs lost to a consistency check against a proved literal are as
+  many as the ones kept. Recording the depth at which a literal was
+  proved — one more integer in the index entry — would let the check
+  report that depth instead of 0.
+
+#### Experiment 2: a table of ground and universal answers
+
+In `solve.pl` under the flag `sscasp_table` (off by default, so the suite
+is untouched): `check_tabled/8` keeps the height as experiment 1 did, a
+per-answer trie started by `run.pl:answer/5` through `table_begin/0`
+holds context-free goals that were ground or came out unbound and not
+further constrained, and a variant is answered from it with a childless
+`proof` node — no splicing.
+
+| | table off | table on |
+|---|---|---|
+| focused query | 28 s | **4.6 s** |
+| `forall/5` entries | 897,657 | 68,229 |
+| `not initiates/3` calls | 166,186 | 41,788 |
+| `bec_loan`, first answer | none in an hour | none in 9 minutes (run lost, not repeated) |
+
+With the table on, the whole suite passes — both oracle sweeps and every
+corpus answer — except one model comparison: **`haplotype` gives 5
+answers instead of 8**, with the same query bindings. That is inherent
+in reuse: a tabled goal is not proved again, so its alternative proofs,
+and the partial models that differ only in how it was supported, are
+not produced. Every literal in such a proof is context-free, so which
+stable models exist is unchanged; the test that counts answers is what
+notices.
+
+On the corpus the table costs time: `bec_tap_01`–`03` about 1.5×,
+`yale_shooting` 6×. Few goals repeat there, and the height bookkeeping
+(one `copy_term/2` and a trie lookup per goal, the ancestor scans) is
+paid on every one.
+
+**What is left**, counted with the table on: 145,364 expansions of 184
+distinct goals, and the top of the list is the two kinds the table does
+not hold yet —
+
+- **failures**: `happens(ends(A), 4)` and `happens(ends(A), 5)` have no
+  answer and are asked 13,833 times each; the positive
+  `initiates(..., paid_to_on(...), T)` goals fail about 6,900 times each;
+- **goals with several answers**: `happens(A, B)` (three facts) 15,674
+  times, `initiates(requests(the_borrower, 1000), A, 2)` 12,960,
+  `is_due_on_from_to(A, B, C, D)` 12,326.
+
+Keeping the attributes in the key (so a goal *called* with constraints
+can be tabled when its proof adds none) bought 5.1 s → 4.6 s: a
+recursion over time tightens its bound at every level, so the
+constrained calls rarely recur as variants.
+
+So the next steps are failure tabling (a context-free failure of a
+variant, needing the height of the whole failed search) and complete
+answer sets (kind 3), in that order — the first is the larger share
+above and has no question of what an answer is.
 
 ### 8. Output: HTML first, text derived
 
@@ -651,11 +971,88 @@ a CSS class or DOM node moves. Generating HTML and deriving text through
    template is renamed (`#describe` proposed, `#pred` kept as a deprecated
    alias), which frees `pred` for an argument-domain signature. Domains are
    unary predicates, not types.
-3. **How much of the language do annotations change?** Optional, certainly —
-   but a program that *needs* an annotation to be accepted (decision 5) has, in
-   practice, a required one. §6a softens this: since a domain is just a
-   predicate, a program can always write the guard by hand instead, and the
-   declaration only saves repeating it.
+3. ~~**How much of the language do annotations change?**~~ **Settled** —
+   none, by construction. Optional, certainly — but a program that *needs* an
+   annotation to be accepted (decision 5) has, in practice, a required one.
+   §6a softens this: since a domain is just a predicate, a program can always
+   write the guard by hand instead, and the declaration only saves repeating
+   it.
+
+   That last sentence is now the **definition**: `:- pred q(d)` means what
+   writing the guard `d(X)` by hand means — into every clause of `q`, and in
+   front of every `not q(T)` a body or a query writes — and nothing else
+   (`compile.pl:signature_guarded/3`, `use_site_guarded/3`). It was not what
+   the first implementation did, and the difference was a soundness bug.
+
+   *The bug.* The signature guarded the **dual** only — `not q(X) :- d(X),
+   …` — and was also read as a bound on a quantifier wherever `q` occurred in
+   a body. That gives a literal two meanings at once. With `:- domain d =
+   [1, 2]`, `:- pred q(d)`, `r(1..3)` and `q(X) :- r(X)`, `q(3)` held while
+   `not q(3)` failed: neither was the negation of the other. And
+   `outside :- q(W), not d(W)` had both `outside` (at `W = 3`) and
+   `not outside`, because the dual's quantifier over `W` took `d` from
+   `q(W)` and never looked at 3.
+
+   *Three readings that are consistent.*
+
+   - **A — typed.** A signature restricts what may be *asked*: `q(30)` is
+     ill-typed, neither true nor false, and a quantifier over `W` in
+     `q(W)` or `not q(W)` ranges over `d` alone. Consistent, and it is what a
+     type system means — but it is a three-valued reading of a two-valued
+     language. Every negation must learn to leave the domain alone, a query
+     outside it needs an answer that is neither yes nor no, and the
+     Gelfond–Lifschitz oracle cannot referee it, because no stable model of
+     the program says "undefined".
+   - **B — guard in the clauses.** The guard goes into `q`'s clauses only.
+     Everything follows from the program that abbreviates: `q(30)` is false
+     and `not q(30)` holds. The price is the case that decided against it:
+
+         :- domain d = [1, 2].
+         :- pred q(d).
+         q(1).  q(2).
+         gap :- not q(W).
+
+     `gap` holds, because `not q(W)` is true of every `W` outside `d` —
+     `not q(A | {A ∉ [1,2]})` — which nobody writing that program meant.
+     B was implemented first, and replaced by C.
+   - **C — guard at both ends.** B's guard in the clauses, *and* the guard
+     in front of every `not q(T)` the program writes: `gap :- d(W), not
+     q(W)`. `gap` fails, as meant. It is still sugar for a program one
+     could write by hand, so it is two-valued and the oracle referees it by
+     expanding the signature the same way — A's answers without A's third
+     value. `q(30)` is false because `q`'s clauses say so; `not q(30)`
+     *written* is false too, because it asks `d(30)` first. What the dual
+     `not q(30)` holds of is not something a program can ask any more; it
+     is what the clauses leave, and only a guard reaches it.
+
+   **C is taken.** Four details make it work:
+
+   - **The guard comes before the head unification.** `wrap(f(X)) :- item(X)`
+     with `:- pred wrap(shape)` becomes `wrap(T) :- shape(T), T = f(X),
+     item(X)`, not `wrap(f(X)) :- shape(f(X)), item(X)`. Guarding after the
+     unification would guard only the shapes the head admits, and the dual's
+     quantifier would lose `g(a)` and `b` — the `doc/bugs.md` #15
+     incompleteness back by another door.
+   - **Only a positive literal bounds a quantifier**, whether its domain is
+     declared, inferred from facts (decision 5, case 1), or the domain's own
+     literal: a negated literal holds outside the domain rather than failing
+     there. The use-site guard is a positive literal of the domain, and that
+     is what bounds the quantifier the dual of `gap` needs.
+   - **A `forall/2` the author wrote is not guarded inside**: `forall(W,
+     (d(W), not q(W)))` says "every W is in `d`", which is false. The typed
+     reading wants an implication there, and the language has none to write.
+   - **A value outside the domain may be an error.** Under the flag
+     `scasp_domain_error` (`--domain-error`), off by default, every guard is
+     preceded by a check that raises `domain_error(d, 30)` when the argument
+     is ground and not in the domain; unbound, it is left to the guard. The
+     check is semantically `true`, so its negation is `fail` and it adds no
+     dual clause — but it runs at the front of every other branch of the
+     dual, so `not q(30)` raises as `q(30)` does. That is where C comes
+     closest to A: a question outside the domain is not answered at all.
+     It is a flag rather than the default because an error is a change of
+     behaviour the guard-by-hand reading does not have, and a program that
+     tests values against `q` as a filter (`r(X) :- s(X), q(X)` with `s(30)`)
+     is correct under C and raises under the check.
 4. ~~**Which `forall` algorithm, in the decidable region?**~~ **Settled** —
    §5c. There is no algorithm to choose: the flag is one case-dispatch plus two
    cuts, and both cuts lose answers (`doc/bugs.md` #18). Remove the flag, keep
@@ -684,6 +1081,15 @@ a CSS class or DOM node moves. Generating HTML and deriving text through
    What remains open is narrow: the property is checked on ten programs, not
    proved, and the exact model-count/proof-count correspondence is the part
    most likely to have exceptions.
+
+6. **Tabling: when may an answer be reused?** §7a. The measurements say
+   almost all of `bec_loan`'s work is re-proving 144 distinct goals; the
+   proposal is to table what a proof established without consulting
+   anything outside its own subtree, decided by a dependency height the
+   way SLG decides a leader. Experiment 1 in §7a says the rule admits two
+   thirds of `bec_loan`'s proofs; experiment 2 says reusing the ground and
+   universal ones is 6× on the focused query and not enough on its own.
+   Next: tabling failures, then complete answer sets.
 
 ## Sequencing
 

@@ -158,6 +158,13 @@ test(and_a_justification) :-
     assertion(memberchk(bird(tweety)-[], Children)),
     assertion(memberchk(nmr-_, Tree)).
 
+%   `module(?Module)` keeps the compiled program for the profiler.
+
+test(the_program_may_be_kept_in_a_module) :-
+    scasp(flies(tweety), [module(M)]),
+    assertion(atom(M)),
+    assertion(current_module(M)).
+
 %   A global constraint whose call tree overlaps the query is applied;
 %   one that does not is not.  `chosen(red)` is denied, so only blue is
 %   left, and `lonely/1` says nothing about either.

@@ -651,6 +651,34 @@ test(a_comparison_is_not_in_the_justification) :-
 
 :- begin_tests(solve_domains).
 
+%   A signature `:- pred q(d)` is shorthand for guards (`doc/design-next.md`
+%   open question 3): `d(X)` in every clause of `q`, and in front of every
+%   `not q(T)` a body or a query writes.  So `q` is false outside the
+%   domain, and a negation written in the program asks only about the
+%   domain: `not q(_)` is witnessed by the values of `d` that `q` is false
+%   of and by nothing else.
+
+%   The program that showed the signature guarding only the dual: `q(3)`
+%   held and `not q(3)` failed, and `outside` and `not outside` were both
+%   proved.
+
+signature_program([ (:- domain d = [1, 2]),
+                    (:- pred q(d)),
+                    r(1), r(2), r(3),
+                    (q(X) :- r(X)),
+                    (outside :- q(W), not d(W))
+                  ]).
+
+test(a_value_outside_the_domain_is_neither) :-
+    signature_program(P),
+    assertion(\+ answers(P, q(3))),
+    assertion(\+ answers(P, not q(3))).
+
+test(so_a_literal_and_its_negation_never_both_hold) :-
+    signature_program(P),
+    assertion(\+ answers(P, outside)),
+    assertion(answers(P, not outside)).
+
 test(a_domain_enumerates_the_witnesses) :-
     Program = [ (:- domain d = [a, b, c]),
                 (:- pred q(d)),
@@ -658,8 +686,13 @@ test(a_domain_enumerates_the_witnesses) :-
                 q(a)
               ],
     models(Program, p, Models),
-    assertion(Models = [_, _]),
-    assertion(forall(member(M, Models), memberchk(p, M))).
+    assertion(( member(M, Models), memberchk(not(q(b)), M) )),
+    assertion(( member(M, Models), memberchk(not(q(c)), M) )),
+    assertion(\+ ( member(M, Models), memberchk(not(q(a)), M) )),
+    assertion(\+ ( member(M, Models), memberchk(not(d(_)), M) )).
+
+%   The case that decided it: with `q` true of the whole domain there is
+%   nothing for `not q(_)` to be true of.
 
 test(and_says_no_when_the_domain_is_exhausted) :-
     Program = [ (:- domain d = [a, b]),
@@ -667,7 +700,26 @@ test(and_says_no_when_the_domain_is_exhausted) :-
                 (p :- not q(_)),
                 q(a), q(b)
               ],
-    assertion(\+ answers(Program, p)).
+    assertion(\+ answers(Program, p)),
+    assertion(answers(Program, not p)).
+
+%   Under `scasp_domain_error` a ground value outside the domain is an
+%   error, asked either way; an unbound one is still only asked about
+%   the domain.
+
+test(a_value_outside_the_domain_raises,
+     [ forall(member(Query, [q(3), not q(3)])),
+       error(domain_error(d, 3), context(q/1, _))
+     ]) :-
+    signature_program(P),
+    with_scasp_flag(scasp_domain_error, true, answers(P, Query)).
+
+test(an_unbound_one_does_not) :-
+    signature_program(P),
+    with_scasp_flag(scasp_domain_error, true,
+                    ( assertion(answers(P, not outside)),
+                      assertion(\+ answers(P, not q(_)))
+                    )).
 
 %   Without a domain the same program still answers, because the
 %   quantifier is not reached: `not q(X)` in a positive body is
@@ -695,10 +747,19 @@ test(a_gap_in_the_range) :-
     models(P, not q(3), Models),
     assertion(Models == [[hour(3), not q(3)]]).
 
-test(an_unbound_negation_over_a_range) :-
+%   `not q(V)` for an unbound V holds of every hour but 9, and of
+%   nothing that is not an hour.
+
+test(an_unbound_negation_over_a_range, [forall(member(V-Holds, [3-true, 9-false, 99-false, -1-false]))]) :-
     hours(P),
-    scasp(P, not q(V), _),
-    !,
+    (   answers(P, not q(V))
+    ->  assertion(Holds == true)
+    ;   assertion(Holds == false)
+    ).
+
+test(and_its_answer_is_constrained) :-
+    hours(P),
+    once(scasp(P, not q(V), _)),
     copy_term(V, _, Attributes),
     assertion(Attributes =@= [{H >= 0, H =< 23}, '∉'(H, [9])]).
 
@@ -709,13 +770,6 @@ test(a_range_with_no_gap_has_no_negation) :-
     covered(P),
     assertion(\+ answers(P, not q(3))),
     assertion(\+ answers([(p :- not q(_))|P], p)).
-
-%   A signature says what the argument is *about*, so a value outside the
-%   domain is not a question the program answers.
-
-test(a_value_outside_the_domain) :-
-    hours(P),
-    assertion(\+ answers(P, not q(99))).
 
 :- end_tests(solve_domains).
 
@@ -1370,3 +1424,39 @@ answer_set(Program, Query, Set) :-
     sort(Keys, Set).
 
 :- end_tests(solve_dcc).
+
+		 /*******************************
+		 *        A KEPT MODULE		*
+		 *******************************/
+
+%   `module(?Module)` leaves the program loaded, which is what the
+%   profiler needs: it will not keep track of a temporary module.
+
+:- begin_tests(solve_module).
+
+test(an_unbound_module_is_made_and_kept) :-
+    scasp_run([p], p, [module(M), model(Model)]),
+    assertion(atom(M)),
+    assertion(Model == [p]),
+    assertion(current_module(M)),
+    assertion(( current_predicate(M:Name/_), sub_atom(Name, _, _, _, '$p$') )).
+
+%   A module given again holds the new program and nothing of the old:
+%   `q` held in the first and has no clause in the second, where it is
+%   closed to false.
+
+test(a_given_module_is_emptied_first) :-
+    M = test_solve_kept,
+    assertion(scasp_run([q, (p :- q)], p, [module(M)])),
+    assertion(\+ scasp_run([p :- q], p, [module(M)])).
+
+%   Only what a compiled program defines is removed.
+
+test(and_nothing_else_in_it_is_touched,
+     [ setup(assertz(test_solve_kept_too:mine(1))),
+       cleanup(retractall(test_solve_kept_too:mine(_)))
+     ]) :-
+    assertion(scasp_run([p], p, [module(test_solve_kept_too)])),
+    assertion(test_solve_kept_too:mine(1)).
+
+:- end_tests(solve_module).

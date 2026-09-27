@@ -51,45 +51,45 @@ defaults, dynamic consistency checking included.
 
 | program | old answers | old s | new answers | new s | speed | answer | model | disposition |
 |---|---:|---:|---:|---:|---:|:-:|:-:|---|
-| all_programs/bec_light | 2 | 0.072 | 2 | 0.149 | 0.5× | ✓ | ✗ |  |
-| all_programs/bec_loan | 4 | 0.200 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
-| all_programs/bec_tap_01_overflow | 1 | 0.018 | 1 | 0.055 | 0.3× | ✓ | ✗ |  |
-| all_programs/bec_tap_02_no_overflow | 1 | 0.025 | 1 | 0.054 | 0.5× | ✓ | ✗ |  |
-| all_programs/bec_tap_03_two_models | 2 | 0.034 | 2 | 0.108 | 0.3× | ✓ | ✗ |  |
-| all_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.045 | 2 | 0.023 | 2.0× | ✓ | ✗ |  |
+| all_programs/bec_light | 2 | 0.072 | 2 | 0.010 | 7.2× | ✓ | ✗ |  |
+| all_programs/bec_loan | 4 | 0.201 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
+| all_programs/bec_tap_01_overflow | 1 | 0.018 | 1 | 0.067 | 0.3× | ✓ | ✗ |  |
+| all_programs/bec_tap_02_no_overflow | 1 | 0.025 | 1 | 0.067 | 0.4× | ✓ | ✗ |  |
+| all_programs/bec_tap_03_two_models | 2 | 0.035 | 2 | 0.110 | 0.3× | ✓ | ✗ |  |
+| all_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.046 | 2 | 0.023 | 2.0× | ✓ | ✗ |  |
 | all_programs/birds | 1 | 0.002 | 1 | 0.002 | 1.0× | ✓ | ✗ |  |
 | all_programs/classic_negation_inconstistent | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/family | 1 | 0.001 | 1 | 0.002 | 0.5× | ✓ | ✗ |  |
 | all_programs/forall_arity | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
-| all_programs/hanoi | 1 | 0.038 | 1 | 0.006 | 6.3× | ✓ | ✓ |  |
+| all_programs/hanoi | 1 | 0.039 | 1 | 0.006 | 6.5× | ✓ | ✓ |  |
 | all_programs/hanoi_7 | 1 | 0.011 | 1 | 0.003 | 3.7× | ✓ | ✓ |  |
 | all_programs/hanoi_scasp_7 | 1 | 0.014 | 1 | 0.003 | 4.7× | ✓ | ✓ |  |
 | all_programs/haplotype | 8 | < 0.001 | 8 | 0.001 | – | ✓ | ✓ |  |
 | all_programs/min_model | 4 | < 0.001 | 4 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/olon_unreachable | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/pq | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
-| all_programs/queens | 2 | 0.940 | 2 | 0.089 | 10.6× | ✓ | ✗ |  |
+| all_programs/queens | 2 | 0.939 | 2 | 0.089 | 10.6× | ✓ | ✗ |  |
 | all_programs/rat | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/solve_findall | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/vars | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
-| dcc/hamilton_c | 3 | 0.029 | 10 | 0.027 | 1.1× | ✓ | ✗ |  |
-| min_programs/bec_loan | 4 | 0.195 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
+| dcc/hamilton_c | 3 | 0.029 | 3 | 0.014 | 2.1× | ✓ | ✓ |  |
+| min_programs/bec_loan | 4 | 0.198 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
 | min_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.045 | 2 | 0.023 | 2.0× | ✓ | ✗ |  |
 | min_programs/clpq_gt_gte_lt_lte_equal | 2 | 0.001 | 2 | 0.001 | 1.0× | ✓ | ✗ |  |
-| min_programs/clpq_intercept | 9 | 0.053 | 9 | 0.011 | 4.8× | ✓ | ✗ |  |
+| min_programs/clpq_intercept | 9 | 0.052 | 9 | 0.011 | 4.7× | ✓ | ✗ |  |
 | min_programs/ex01-dual | 3 | < 0.001 | 3 | < 0.001 | – | ✓ | ✗ |  |
 | min_programs/ex02-member | 1 | 0.003 | 1 | 0.001 | 3.0× | ✓ | ✗ |  |
-| min_programs/hamiltonian_scasp | 2 | 0.090 | 2 | 0.596 | 0.2× | ✓ | ✓ |  |
+| min_programs/hamiltonian_scasp | 2 | 0.089 | 2 | 0.028 | 3.2× | ✓ | ✓ |  |
 | min_programs/nixon-diamond | 3 | 0.002 | 3 | 0.001 | 2.0× | ✓ | ✗ |  |
 | min_programs/solve_findall_superset | 16 | 0.001 | 16 | 0.001 | 1.0× | ✓ | ✓ |  |
-| min_programs/solve_not_is | 2 | 0.002 | 1 | 0.255 | 0.01× | ✗ | ✗ | `golden` |
+| min_programs/solve_not_is | 2 | 0.002 | 1 | < 0.001 | – | ✗ | ✗ | `golden` |
 | min_programs/solve_not_true | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
 | min_programs/stream_reasoning | 4 | 0.024 | 3 | 0.029 | 0.8× | ✗ | ✗ | `golden` |
-| min_programs/yale_shooting_casp_v2 | 7 | 0.012 | 7 | 0.005 | 2.4× | ✓ | ✓ |  |
+| min_programs/yale_shooting_casp_v2 | 7 | 0.011 | 7 | 0.005 | 2.2× | ✓ | ✓ |  |
 | sasp/abdbirds | 3 | < 0.001 | 3 | 0.001 | – | ✓ | ✗ |  |
 | sasp/gpa | 1 | < 0.001 | 1 | 0.001 | – | ✓ | ✗ |  |
-| sasp/hamcycle | 1 | 0.007 | 1 | 0.005 | 1.4× | ✓ | ✗ |  |
-| sasp/hamcycle_two | 1 | 0.022 | 1 | 0.034 | 0.6× | ✓ | ✗ |  |
+| sasp/hamcycle | 1 | 0.007 | 1 | 0.004 | 1.8× | ✓ | ✗ |  |
+| sasp/hamcycle_two | 1 | 0.022 | 1 | 0.012 | 1.8× | ✓ | ✗ |  |
 | sasp/hanoi_7 | 1 | 0.011 | 1 | 0.003 | 3.7× | ✓ | ✓ |  |
 | sasp/left-rec-succ_BAD | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
 | sasp/lion | 1 | 0.005 | 1 | 0.003 | 1.7× | ✓ | ✗ |  |
@@ -104,11 +104,11 @@ defaults, dynamic consistency checking included.
 | | |
 |---|---|
 | agree on the answer | **45 of 49** |
-| agree on the model as well | 22 of 49 |
-| same number of answers | 44 of 49 |
-| speed, geometric mean over the 28 measurable | **1.17×** |
-| faster / slower (by more than 10%) | 15 / 9 |
-| total, `bec_loan` excluded | old 1.52 s, new 1.50 s |
+| agree on the model as well | 23 of 49 |
+| same number of answers | 45 of 49 |
+| speed, geometric mean over the 27 measurable | **1.83×** |
+| faster / slower (by more than 10%) | 19 / 5 |
+| total, `bec_loan` excluded | old 1.52 s, new 0.53 s |
 
 **The four that do not agree on the answer** are all recorded.  `bec_loan`,
 in both corpora it is in, does not finish within the limit (`gap(slow)`); its
@@ -116,19 +116,18 @@ query alone answers in 0.027 s and the time goes to its NMR check, which opens a
 quantifier over a seven-variable tuple — `CLAUDE.md` has the five hypotheses
 measured and ruled out.  `solve_not_is` and `stream_reasoning` are the two
 where the old implementation is wrong: its dual of `V is X+Y` misses a case,
-and it misses a cancellation.  `solve_not_is`'s 0.26 s is the price of
-checking the case the old one skips.
+and it misses a cancellation.
 
-**Answer counts differ** where the same answer set arrives in a different
-number of answers, which is an implementation's choice: `hamilton_c` gives
-the old one's three answers as ten.
+**Answer counts differ** only where the answer differs: the same answer set
+may arrive in a different number of answers, which is an implementation's
+choice, but on this corpus it no longer does.
 
 **Models differ** where the proofs do — the model is a function of the proof,
 so a solver that reaches the same answer by another route carries a different
 model with it.  That is why agreement on the answer is the definition of
 agreeing and agreement on the model a regression test.  `hanoi_scasp_7` and
 `hamilton_c` say `#show`, and their golden models are the shown part only;
-since `#show` is implemented, the first agrees on the model too.
+since `#show` is implemented both agree on the model too.
 
 ## Where the new implementation is faster, and why
 
@@ -146,13 +145,30 @@ complement branches — the proof reached 131,135 nodes holding 1.3M attributed
 variables where the answer has 53 literals, which is what exhausted a 4 GB
 stack.
 
+**Inferred domains** are the rest: `hamiltonian_scasp` (3.2×, from 0.15×),
+`bec_light` (7.2×, from 0.48×), `hamcycle_two` and `hamilton_c` (2–3×) and
+`solve_not_is` (from 0.26 s to under a millisecond).  A body-only variable
+becomes a quantifier in the dual, and with nothing declared it ranges over
+every term: the quantifier covers that universe piece by piece, and each piece
+re-proves the body — `hamiltonian_scasp` checked 66,212 ground `node(...)`
+literals and opened 2,794 quantifiers where the old implementation opens 232.
+But a variable a positive literal of a predicate defined by ground facts
+alone ranges over those facts' values: for any other the literal is false, so
+the body is.  `dualise.pl:var_domain/4` now reads that off the program, and
+the quantifier enumerates the values (`for_domain/6`) where it used to
+search — the `:- domain` the program did not write.  Declaring it by hand
+took `hamiltonian_scasp` to 0.063 s, which is how this was found.
+
 ## Where it is slower, and why
 
-The event-calculus programs (`bec_light`, `bec_tap_01`–`03`, 0.31–0.48×),
-`hamiltonian_scasp` (0.15×) and the Hamiltonian-cycle programs from `sasp`.
-All of it is the NMR check, not the query: `hamiltonian_scasp`'s query answers
-in 26 ms and `bec_tap_01` answers each of its ten documented queries in
-6–19 ms with the check off.
+The event-calculus programs `bec_tap_01`–`03` (0.3–0.4×), and `family` and
+`stream_reasoning` by a millisecond or less.  For the event-calculus ones it
+is the NMR check, not the query: `bec_tap_01` answers each of its ten
+documented queries in 6–19 ms with the check off.  Their quantifiers range
+over times, rationals no fact bounds, so inferring a domain does not reach
+them: the cost is a CLP(Q) projection (`dump/3`, Fourier–Motzkin) at every
+covering — 390 on `bec_tap_01` against the old implementation's 155 — which
+is small in absolute terms, 0.07 s against 0.02 s.
 
 *The quantifier reads what the CHS check posts.*  It used to read a variable's
 disequalities with `dif:attribute_goals/3`, a hook that **deletes** what it

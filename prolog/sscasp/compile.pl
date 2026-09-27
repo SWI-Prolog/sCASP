@@ -33,19 +33,27 @@
 */
 
 :- module(sscasp_compile,
-          [ compile_program/3           % +Module, +Terms, -Program
+          [ compile_program/3,          % +Module, +Terms, -Program
+            guarded_query/3             % +Program, +Query0, -Query
           ]).
 :- use_module(ops).
 :- use_module(annotations, [program_annotations/2,
                             annotation_clauses/2,
-                            annotation/2]).
+                            annotation/2,
+                            argument_domain/4]).
+:- use_module(domains,     [domain_goal/3]).
 :- use_module(dualise,     [predicate_duals/6, translate_goal/3, builtin/1]).
 :- use_module(mangle,      [demangle/2, mangle/2]).
 :- use_module(graph,       [olon_clauses/3]).
 :- use_module(nmr,         [nmr_check/4]).
 :- use_module(library(lists), [append/3, member/2, select/3]).
-:- use_module(library(apply), [maplist/3, maplist/4, foldl/4]).
+:- use_module(library(apply), [maplist/3, maplist/4, foldl/4, include/3]).
 :- use_module(library(error), [type_error/2]).
+
+%   Compile time, like `scasp_compile_nmr`: it decides what the compiled
+%   program contains.  See signature_guarded/3.
+
+:- create_prolog_flag(scasp_domain_error, false, [keep(true)]).
 
 /** <module> Compiling a program
 
@@ -56,7 +64,8 @@ need, as a value:
              nmr:       nmr{...}, % what in it is the NMR check
              unbounded: [...],    % duals still carrying an unbounded forall
              shown:     [...],    % what `#show` asks the model to show
-             dcc:       [...] }   % the dynamic consistency check's rules
+             dcc:       [...],    % the dynamic consistency check's rules
+             guard:     guard(...) } % what guarded_query/3 needs
 
 `clauses` is everything, the NMR check included.  `nmr` *describes* part of
 it — its goal, which of the clauses are its, and what each sub-check is for —
@@ -113,12 +122,19 @@ once per answer, by calling `Program.nmr.goal`.
 %!  compile_program(+Module, +Terms, -Program) is det.
 
 compile_program(Module, Terms, Program) :-
-    program_annotations(Terms, Annotations),
-    annotation_clauses(Annotations, DomainClauses),
+    program_annotations(Terms, Declared),
+    annotation_clauses(Declared, DomainClauses),
     program_clauses(Terms, UserClauses),
     abducible_clauses(Terms, Abducibles),
-    append([DomainClauses, UserClauses, Abducibles], Clauses),
-    constraints(Terms, Constraints),
+    append([DomainClauses, UserClauses, Abducibles], Clauses0),
+    current_prolog_flag(scasp_domain_error, Error),
+    Guard = guard(Module, Declared, Error),
+    maplist(signature_guarded(Guard), Clauses0, Clauses1),
+    maplist(use_site_guarded(Guard), Clauses1, Clauses),
+    fact_predicates(Clauses, Facts),
+    Annotations = Declared.put(fact_predicates, Facts),
+    constraints(Terms, Constraints0),
+    maplist(guarded_body(Guard), Constraints0, Constraints),
     predicate_groups(Clauses, Groups),
     maplist(compile_predicate(Module, Annotations), Groups, Compiled),
     append(Compiled, Translated0),
@@ -137,7 +153,194 @@ compile_program(Module, Terms, Program) :-
                        nmr:       Nmr,
                        unbounded: Unbounded,
                        shown:     Shown,
-                       dcc:       Dcc }.
+                       dcc:       Dcc,
+                       guard:     Guard }.
+
+%!  signature_guarded(+Guard, +Clause0, -Clause) is det.
+%
+%   A signature is **shorthand for guards**: `:- pred q(d)` says what
+%   writing `d(X)` in every clause of `q` would say, and in front of
+%   every `not q(T)` in a body (use_site_guarded/3).  So the guards go
+%   where the program would have written them, and the dual follows
+%   from the guarded clauses like any other.  Outside the domain `q(3)`
+%   is false; `not q(3)` is false too where it is *written*, the use
+%   site asking only about the domain, while the dual `not q(3)` the
+%   clauses give holds.  That is ordinary stable-model semantics of the
+%   guarded program, which the Gelfond-Lifschitz oracle can check;
+%   `doc/design-next.md` (open question 3) has the decision and the
+%   alternatives it replaced.
+%
+%   Guard is `guard(Module, Annotations, Error)`.  With Error `true`
+%   (the flag `scasp_domain_error`) every guard is preceded by a
+%   `'$domain_check'/3`, which raises a domain error when the argument
+%   is ground and not in the domain: a call outside the domain is then
+%   a type error rather than a failure.  Its negation is `fail` —
+%   semantically it is `true` — so the dual runs it too, and
+%   `not q(30)` raises as `q(30)` does.
+
+signature_guarded(Guard, Clause0, Clause) :-
+    clause_parts_(Clause0, Head0, Body),
+    \+ Head0 = -(_),
+    callable(Head0),
+    functor(Head0, Name, Arity),
+    Head0 =.. [Functor|Args0],
+    signature_guards(Args0, 1, Guard, Name/Arity, Args, Guards, Unify),
+    Guards \== [],
+    !,
+    Head =.. [Functor|Args],
+    append(Guards, Unify, Prefix),
+    (   Body == true
+    ->  list_conjunction(Prefix, NewBody)
+    ;   append(Prefix, [Body], All),
+        list_conjunction(All, NewBody)
+    ),
+    Clause = (Head :- NewBody).
+signature_guarded(_, Clause, Clause).
+
+%   **The guard comes before the head unification**, as someone writing it
+%   would put it: `wrap(f(X)) :- item(X)` under `:- pred wrap(shape)`
+%   becomes `wrap(A) :- shape(A), A = f(X), item(X)`.  The order matters
+%   to the dual.  With the guard first, `not wrap(T)` for an unbound T
+%   tries `not shape(T)`, and otherwise T is a ground value of the domain
+%   and `T \= f(X)` is decidable; with the unification first it has to
+%   say "T is not of the form f(_)", a universally quantified disequality
+%   no store can hold (`doc/bugs.md` #15).  An argument that is already
+%   a variable needs no unification.
+
+signature_guards([], _, _, _, [], [], []).
+signature_guards([Arg0|Args0], N, Guard, PI, [Arg|Args], Guards, Unify) :-
+    Guard = guard(_, Annotations, _),
+    (   argument_domain(Annotations, PI, N, Domain)
+    ->  (   var(Arg0)
+        ->  Arg = Arg0,
+            Unify = Unify1
+        ;   Unify = [Arg = Arg0|Unify1]
+        ),
+        guard_goals(Guard, Domain, Arg, PI, Guards, Guards1)
+    ;   Arg = Arg0,
+        Guards = Guards1,
+        Unify = Unify1
+    ),
+    N1 is N+1,
+    signature_guards(Args0, N1, Guard, PI, Args, Guards1, Unify1).
+
+%!  guard_goals(+Guard, +Domain, ?Arg, +PI, -Goals, ?Tail) is det.
+%
+%   The goals guarding Arg of PI with Domain, as a difference list: the
+%   domain literal, preceded by its check when domain errors are on.
+
+guard_goals(guard(Module, _, Error), Domain, Arg, PI, Goals, Tail) :-
+    domain_goal(Domain, Arg, Literal),
+    (   Error == true
+    ->  translate_goal(Module, Literal, Call),
+        Goals = ['$domain_check'(Call, Domain, PI), Literal|Tail]
+    ;   Goals = [Literal|Tail]
+    ).
+
+%!  use_site_guarded(+Guard, +Clause0, -Clause) is det.
+%!  guarded_body(+Guard, +Body0, -Body) is det.
+%!  guarded_query(+Program, +Query0, -Query) is det.
+%
+%   The other half of a signature: `not q(T)` written in a body asks
+%   about T **in the domain**, so it is preceded by the guard.  Without
+%   it the clause guards alone make `not q(W)` true of every W outside
+%   the domain, and `gap :- not q(W)` holds by a value nobody meant --
+%   the guards in `q`'s clauses say what `q` is true of, these say what
+%   a program may ask of it.  A positive `q(T)` needs nothing here, its
+%   clauses guarding it already.
+%
+%   A query is a body, so it is guarded the same way: `?- not q(30)` is
+%   `d(30), not q(30)`, which fails, and raises with domain errors on.
+%
+%   A `forall/2` the author wrote is left alone: guarding its goal would
+%   say "for every W, d(W) and not q(W)", which is false outside `d`,
+%   where the typed reading wants "for every W in `d`".
+
+use_site_guarded(Guard, Clause0, Clause) :-
+    clause_parts_(Clause0, Head, Body0),
+    guarded_body(Guard, Body0, Body),
+    (   Body == Body0
+    ->  Clause = Clause0
+    ;   Clause = (Head :- Body)
+    ).
+
+guarded_query(Program, Query0, Query) :-
+    guarded_body(Program.guard, Query0, Query).
+
+guarded_body(_, Var, Var) :-
+    var(Var),
+    !.
+guarded_body(Guard, (A0, B0), (A, B)) :-
+    !,
+    guarded_body(Guard, A0, A),
+    guarded_body(Guard, B0, B).
+guarded_body(Guard, findall(T, Goal0, L), findall(T, Goal, L)) :-
+    !,
+    guarded_body(Guard, Goal0, Goal).
+guarded_body(Guard, not(Goal), Guarded) :-
+    callable(Goal),
+    \+ Goal = -(_),
+    \+ Goal = forall(_, _),
+    \+ Goal = findall(_, _, _),
+    functor(Goal, Name, Arity),
+    Goal =.. [_|Args],
+    use_guards(Args, 1, Guard, Name/Arity, Guards, [not(Goal)]),
+    Guards = [_,_|_],
+    !,
+    list_conjunction(Guards, Guarded).
+guarded_body(_, Goal, Goal).
+
+use_guards([], _, _, _, Tail, Tail).
+use_guards([Arg|Args], N, Guard, PI, Guards, Tail) :-
+    Guard = guard(_, Annotations, _),
+    (   argument_domain(Annotations, PI, N, Domain)
+    ->  guard_goals(Guard, Domain, Arg, PI, Guards, Guards1)
+    ;   Guards = Guards1
+    ),
+    N1 is N+1,
+    use_guards(Args, N1, Guard, PI, Guards1, Tail).
+
+clause_parts_((Head :- Body), Head, Body) :- !.
+clause_parts_(Fact, Fact, true).
+
+list_conjunction([Goal], Goal) :- !.
+list_conjunction([Goal|Goals], (Goal, Rest)) :-
+    list_conjunction(Goals, Rest).
+
+%!  fact_predicates(+Clauses, -PIs) is det.
+%
+%   The predicates defined by ground facts and nothing else.  They are
+%   the domains nobody declared: a positive literal of one bounds a
+%   variable to the values its facts give, and `dualise.pl:var_domain/4`
+%   uses that to enumerate a quantifier rather than search the universe.
+%   See there for why it is sound.
+%
+%   A predicate with any rule is not one — an abducible's clauses have a
+%   body, so it never is — and neither is a classically negated head,
+%   whose clauses say nothing about the positive literal.
+
+fact_predicates(Clauses, PIs) :-
+    findall(Name/Arity,
+            ( member(Clause, Clauses),
+              Clause \= (_ :- _),
+              Clause \= -(_),
+              callable(Clause),
+              functor(Clause, Name, Arity),
+              Arity > 0
+            ),
+            Candidates0),
+    sort(Candidates0, Candidates),
+    include(only_ground_facts(Clauses), Candidates, PIs).
+
+only_ground_facts(Clauses, Name/Arity) :-
+    functor(Head, Name, Arity),
+    \+ ( member(Clause, Clauses),
+          clause_head_of(Clause, Head),
+          \+ ( Clause \= (_ :- _), ground(Clause) )
+        ).
+
+clause_head_of((Head0 :- _), Head) :- !, Head0 = Head.
+clause_head_of(Fact, Head) :- Fact \= -(_), Fact = Head.
 
 %!  dcc_rules(+Module, +Checks, -Rules) is det.
 %

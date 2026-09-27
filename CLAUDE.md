@@ -509,6 +509,15 @@ module and answers. The query is the literals asked for **followed by** the
 NMR check, sharing one proof, so a constraint the query's own answer violates
 is caught.
 
+**One entry point takes the options**: `run.pl:scasp_run(+Terms, ?Query,
++Options)`. `scasp/3,4` are it with `model/1` and `tree/1`, and `scasp/2` over a
+Prolog module (`dyncall.pl`) collects the terms and hands its options through.
+`module(?Module)` loads the program into a module that is **kept** — made up if
+unbound, emptied of an earlier program's mangled predicates if given — instead
+of a temporary one. It is for debugging: the profiler will not keep track of
+predicates in a module that may vanish, and a kept program can be listed
+afterwards. The executable has it as `--module=Name`.
+
 `emit.pl` is a pass of its own because it is the only place that knows how the
 solver carries state: three arguments (`Anc` down, `S0`/`S` up) and a wrapper
 per literal, so that the coinductive check happens before a predicate's
@@ -833,6 +842,48 @@ Where the domain really is finite it has to be declared, and `for_domain/6`
 enumerates it — including a range, which compiles to a CLP(Q) region and is
 covered rather than listed. That is case 6 against case 1, and the difference
 is one annotation.
+
+**A signature is a guard, written where the program would write it by
+hand.** `:- pred q(d)` puts `d(X)` into every clause of `q`, *before* the
+head unification (`compile.pl:signature_guarded/3`), and in front of every
+`not q(T)` a body or query writes (`use_site_guarded/3`, `guarded_query/3`);
+the duals are then derived like any other. So outside the domain `q(v)` is
+false and so is a written `not q(v)`, and `gap :- not q(W)` asks only about
+`d` — with the clause guard alone it held by a `W` outside. A quantifier is
+bounded only by a **positive** literal — a signature's, an inferred domain's,
+or the domain's own, which is what the use-site guard is. Guarding the dual
+alone, as the first version did, made `q(3)` hold while `not q(3)` failed and
+proved a program's `outside` and `not outside` together. `doc/design-next.md`
+open question 3 records the choice and the two readings it rejected.
+
+**`scasp_domain_error`** (`--domain-error`, off by default) makes a ground
+value outside the domain an error rather than a failure: each guard gets a
+`'$domain_check'/3` in front (`solve.pl:domain_check/3`), which is `true` or
+raises, so its negation is `fail` and `dual.pl:no_dual/1` gives it no dual
+clause — but it heads every other branch, so `not q(30)` raises too. The
+listing prints it as `must_be(d, X)`.
+
+**Or it is inferred.** A positive body literal of a predicate defined by ground
+facts alone (`compile.pl:fact_predicates/2`) bounds a variable to the values
+those facts give: for any other the literal is false, so the body is, and its
+negation holds. `dualise.pl:var_domain/4` uses that where nothing is declared,
+with the literal itself, other arguments fresh (`edge(_, W)`), as the
+generator. Only a *positive* literal: outside `q`'s facts `not q(W)` holds. It
+took `hamiltonian_scasp` from 0.6 s to 0.03 s, and `bec_light` from 0.15 s to
+0.01 s, and it made `not wrap(T)` for `wrap(f(X)) :- item(X)` answer
+`T ∉ [f(a)]` where it used to answer `dif(T, f(_))`, which admits `f(a)`.
+
+Two things it needed. `for_domain/6` now **commits** to its covering when the
+goal's other variables are ground — every NMR sub-check, arity zero —
+because backtracking into each value's covering for another is exponential
+(`sasp/hamcycle_two` never finished) and, with nothing else to vary, finds
+the same fact again; with free other variables it still backtracks. And
+duplicate values, which `edge(_, W)` gives, are dropped by `==` rather than
+sorted: a restriction carries its constraints, and standard order over those
+hung. It also exposed that **dynamic consistency checking must not run in a
+`for_domain` generator**, whose proof `findall/3` throws away: it pruned
+`d(2)` from a domain because `d(2)` completed a constraint, and the check then
+covered too little.
 
 ### Using it from Prolog
 
@@ -1731,6 +1782,16 @@ Five things ruled out by measurement, each of which looked likely:
 | the **constraining CHS** | making `consistent/3` refuse instead, which is the old implementation's rule and prunes hugely on `bec_tap_01`, leaves `bec_loan` timing out just the same |
 | ground goals being re-proved | there are only 24 distinct ones, and the existing reuse already fires 7,542 times against 299 ground expansions |
 | committing per nested quantifier | see the note under the quantifier: green, and worth 0.395 s → 0.288 s on `bec_light` alone |
+
+**Measured again on 2026-09-27**, on the smaller query it waits on —
+`not holdsAt(paid_to_on(the_borrower, 550, the_lender, _), 4)` with the NMR
+check off, 28 s here against 0.031 s for the old implementation: 821,656
+proofs resting on no assumption, of **138 distinct goals**. The work is
+re-proving the same literals, mostly inside quantifier complements that
+`covered/7` throws away. `doc/design-next.md` §7a is the tabling design
+that follows from it. Separately, domain inference (2026-09-26) made the
+whole program slower still — no first answer in an hour, against 376 s
+before it and 385 s with inference switched off.
 
 What is left is 25,271 expansions of **non-ground** goals in 10 s — the
 quantifiers' inner goals, with their own fresh variables — against 8,395

@@ -35,22 +35,26 @@
 :- module(sscasp_run,
           [ scasp/3,                   % +Terms, ?Query, -Model
             scasp/4,                   % +Terms, ?Query, -Model, -Justification
+            scasp_run/3,               % +Terms, ?Query, +Options
             scasp_loaded/3,            % +Terms, -Loaded, :Goal
+            scasp_loaded/4,            % +Terms, -Loaded, :Goal, +Options
             scasp_ask/4,               % +Loaded, ?Query, -Model, -Justification
             scasp_program/2            % +Terms, -Clauses
           ]).
 :- use_module(ops).
-:- use_module(compile,  [compile_program/3]).
+:- use_module(compile,  [compile_program/3, guarded_query/3]).
 :- use_module(emit,     [runnable_program/3, body/6]).
 :- use_module(dualise,  [translate_goal/3]).
 :- use_module(solve,    [call_goal/4, model/2, justification/2,
-                         children/3, empty_proof/1]).
+                         children/3, empty_proof/1, table_begin/0]).
 :- use_module(herbrand, [normalise/1]).
 :- use_module(mangle,   [demangle/2]).
 :- use_module(library(modules), [in_temporary_module/3]).
 :- use_module(library(lists), [member/2]).
 :- use_module(library(apply), [include/3]).
-:- use_module(library(error), [instantiation_error/1]).
+:- use_module(library(error), [instantiation_error/1, must_be/2]).
+:- use_module(library(option), [option/2]).
+:- use_module(library(gensym), [gensym/2]).
 
 %   Before the first clause, with the imports, because a meta-predicate
 %   mode is part of the module's **signature**: a reader — or a tool —
@@ -59,7 +63,8 @@
 %   pass an argument without saying so where the interface is stated.
 
 :- meta_predicate
-    scasp_loaded(+, -, 0).
+    scasp_loaded(+, -, 0),
+    scasp_loaded(+, -, 0, +).
 
 /** <module> Answering a query
 
@@ -103,8 +108,33 @@ scasp(Terms, Query, Model) :-
 %   that answering the query did not already cost.
 
 scasp(Terms, Query, Model, Justification) :-
+    scasp_run(Terms, Query, [model(Model), tree(Justification)]).
+
+%!  scasp_run(+Terms, ?Query, +Options) is nondet.
+%
+%   scasp/3,4 with options, which is what `scasp/2` over a Prolog
+%   module (`dyncall.pl`) hands its collected terms to.  Options:
+%
+%     - model(-Model)
+%     - tree(-Justification)
+%       The answer, as scasp/4 gives it.
+%     - module(?Module)
+%       Load the compiled program into Module and **leave it there**,
+%       rather than in a temporary module destroyed after the query.
+%       Unbound, a fresh module is made and Module is bound to it;
+%       bound, the predicates a previous run left in it are removed
+%       first.  For debugging: the profiler, and anything else that
+%       remembers predicates, will not keep track of a module that may
+%       vanish, and the compiled program can be looked at with
+%       `listing/1` afterwards.  Only the mangled predicates are ever
+%       removed, so naming a module that holds anything else is safe.
+
+scasp_run(Terms, Query, Options) :-
     scasp_loaded(Terms, Loaded,
-                 scasp_ask(Loaded, Query, Model, Justification)).
+                 scasp_ask(Loaded, Query, Model, Justification),
+                 Options),
+    ignore(option(model(Model), Options)),
+    ignore(option(tree(Justification), Options)).
 
 %!  scasp_loaded(+Terms, -Loaded, :Goal) is nondet.
 %!  scasp_ask(+Loaded, ?Query, -Model, -Justification) is nondet.
@@ -124,12 +154,44 @@ scasp(Terms, Query, Model, Justification) :-
 %   other design, and `doc/bugs.md` #5 is what that costs when the
 %   caller forgets.
 
-scasp_loaded(Terms, loaded(Module, Program), Goal) :-
+scasp_loaded(Terms, Loaded, Goal) :-
+    scasp_loaded(Terms, Loaded, Goal, []).
+
+%!  scasp_loaded(+Terms, -Loaded, :Goal, +Options) is nondet.
+%
+%   As scasp_loaded/3.  Takes the option `module(?Module)` of
+%   scasp_run/3, with which the program outlives Goal.
+
+scasp_loaded(Terms, loaded(Module, Program), Goal, Options) :-
     compile_program(scasp, Terms, Program),
-    in_temporary_module(
-        Module,
+    (   option(module(Module), Options)
+    ->  permanent_module(Module),
         load_program(Module, Program),
-        Goal).
+        call(Goal)
+    ;   in_temporary_module(
+            Module,
+            load_program(Module, Program),
+            Goal)
+    ).
+
+%!  permanent_module(?Module) is det.
+%
+%   Module, made up if unbound, with nothing left in it of a program
+%   loaded there before.  A compiled program defines only mangled
+%   names, so those are what is removed; whatever else the module
+%   holds is not ours to touch.
+
+permanent_module(Module) :-
+    (   var(Module)
+    ->  gensym(sscasp_program_, Module)
+    ;   must_be(atom, Module)
+    ),
+    forall(( current_predicate(Module:Name/Arity),
+             demangle(Name, _),
+             functor(Head, Name, Arity),
+             \+ predicate_property(Module:Head, imported_from(_))
+           ),
+           abolish(Module:Name/Arity)).
 
 scasp_ask(loaded(Module, Program), Query, Model, Justification) :-
     answer(Module, Program, Query, Model, Justification).
@@ -169,7 +231,9 @@ load_program(Module, Program) :-
 %!  answer(+Module, +Program, ?Query, -Model) is nondet.
 
 answer(Module, Program, Query, Model, Justification) :-
-    query_goals(Query, Goals),
+    guarded_query(Program, Query, Guarded),
+    query_goals(Guarded, Goals),
+    table_begin,
     Nmr = Program.nmr.goal,             % bound here: dict notation expands
     empty_proof(Empty),
     catch(solved(Module, Goals, Nmr, Empty, Proof0, Proof),

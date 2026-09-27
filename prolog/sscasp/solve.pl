@@ -41,13 +41,15 @@
             for_domain/6,               % +Var, :Gen, :Goal, +Anc, +S0, -S
             forall/5,                   % +Vars, :Goal, +Anc, +S0, -S
             call_goal/4,                % :Goal, +Anc, +S0, -S
+            domain_check/3,             % :Goal, +Domain, +PI
             findall_/6,                 % +Template, :Goal, -List, +Anc,
                                         %   +S0, -S
             sld_goal/5,                 % +Goal, +Type, +Anc, +S0, -S
             model/2,                    % +Proof, -Model
             justification/2,            % +Proof, -Forest
             children/3,                 % +S2, +S0, -Children
-            empty_proof/1               % -Proof
+            empty_proof/1,              % -Proof
+            table_begin/0
           ]).
 :- use_module(ops).
 :- use_module(mangle, [demangle/2]).
@@ -221,6 +223,11 @@ what it is trying to prove supports nothing — seen from either side.
 %   costs 19.5 s against 217 s.  So the rule is about the proof rather
 %   than about the reuse, and `proved/4` carries the answer.
 
+check(Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
+    nb_current(sscasp_table, Table),
+    Table \== [],
+    !,
+    check_tabled(Table, Goal, Neg, Pol, Anc, S0, Anc1, Action).
 check(Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
     consistent(Neg, Anc, S0),
     (   ancestor(Anc, Goal, Pol, Negations)
@@ -559,6 +566,7 @@ proved([a(Goal, _, _)|_], proof(F0, _), proof(F2, Index2), proof(Forest, Index))
     ->  Status = assumed
     ;   Status = proof
     ),
+    table_proved(Goal, Status),
     Forest = [n(Goal, Status, Children)|F0],
     index(Goal, Status, Index2, Index).
 
@@ -611,8 +619,11 @@ done(Goal, Action, proof(Forest, Index0), proof([n(Goal, Action, [])|Forest], In
 %   ends up in the model if this branch succeeds, so a constraint whose
 %   literals are all there would fail the NMR check anyway.  That is not
 %   true inside a quantifier's complement, whose proof is thrown away,
-%   so the check is off there: `sscasp_no_dcc`, which covered/7 and
-%   elsewhere/7 set for the length of the run.
+%   nor of the generator a `for_domain/6` runs to find a domain's values,
+%   whose proof `findall/3` throws away: pruning `d(2)` there removes a
+%   value from the domain, and the quantifier then covers too little.
+%   So the check is off in both: `sscasp_no_dcc`, which covered/7,
+%   elsewhere/7 and for_domain/6 set for the length of the run.
 %
 %   Tried inside `\+ \+`: finding the others binds and constrains, and
 %   none of it is the answer's.
@@ -668,11 +679,12 @@ forest_children(F2, F0, Children) :-
 		 *        QUANTIFIERS		*
 		 *******************************/
 
-%!  for_domain(+Var, :Generator, :Goal, +Anc, +S0, -S) is nondet.
+%!  for_domain(+Quantified, :Generator, :Goal, +Anc, +S0, -S) is nondet.
 %
-%   Goal holds for every value Generator gives Var.  This is decision 5's
-%   case 1 and the reason a domain is worth declaring: the quantifier has
-%   something to range over.
+%   Goal holds for every value Generator gives Quantified, a variable
+%   or a list of them.  This is decision 5's case 1 and the reason a
+%   domain is worth declaring: the quantifier has something to range
+%   over.
 %
 %   Each of the generator's answers is a *restriction* on Var rather than
 %   necessarily a value — an enumerated domain gives values, a range
@@ -684,13 +696,58 @@ forest_children(F2, F0, Children) :-
 %   the model: the quantifier is part of the answer, not a side condition
 %   checked and forgotten.
 
-for_domain(Var, Generator, Goal, Anc, S0, S) :-
-    findall([Copy]-Attributes,
-            ( call_goal(Generator, Anc, S0, _),
-              copy_term(Var, Copy, Attributes)
+for_domain(Quantified, Generator, Goal, Anc, S0, S) :-
+    quantified_list(Quantified, Vars),
+    findall((Copy-Attributes)-H,
+            ( b_setval(sscasp_no_dcc, true),        % the proof goes, see dcc/4
+              call_goal(Generator, Anc, S0, _),
+              copy_term(Vars, Copy, Attributes),
+              h_capture(H)
             ),
-            Restrictions),
-    cover_each(Restrictions, [Var], Goal, [], Anc, S0, S).
+            Generated),
+    pairs_keys_values(Generated, Restrictions0, Heights),
+    maplist(h_merge, Heights),
+    distinct_restrictions(Restrictions0, Restrictions),
+    outer_variables(Goal, Vars, Others),
+    (   ground(Others)
+    ->  once(cover_each(Restrictions, Vars, Goal, [], Anc, S0, S))
+    ;   cover_each(Restrictions, Vars, Goal, [], Anc, S0, S)
+    ).
+
+%   One variable, or the tuple one fact literal bounds
+%   (`dualise.pl:enumerated/5`), each restriction then being one of the
+%   literal's facts.
+
+quantified_list(Quantified, Vars) :-
+    (   var(Quantified)
+    ->  Vars = [Quantified]
+    ;   Vars = Quantified
+    ).
+
+%   **Committed to when nothing else could vary.**  The values are a
+%   conjunction, and with the goal's other variables ground a second way
+%   of covering them proves the same fact again — as `forall/5` argues —
+%   while backtracking into each value's covering for it is exponential:
+%   `sasp/hamcycle_two` never finished.  Where the other variables are
+%   free a covering may bind them, and another covering binding them
+%   differently is another answer, so there it is not committed to:
+%   committing there leaves `bec_loan` with no answer at all.  Every
+%   sub-check of the NMR check has arity zero, so there it always is.
+%
+%   An inferred domain (`dualise.pl:var_domain/4`) enumerates a value
+%   once per fact holding it, `edge(_, W)` giving each W as often as it is
+%   a target.  Covering a value twice is waste, so a restriction identical
+%   to an earlier one is dropped.  Compared with `==` rather than sorted:
+%   a restriction may carry constraints, and ordering those is neither
+%   meaningful nor cheap.
+
+distinct_restrictions([], []).
+distinct_restrictions([R|Rs], Distinct) :-
+    (   memberchk_eq(R, Rs)
+    ->  Distinct = Rest
+    ;   Distinct = [R|Rest]
+    ),
+    distinct_restrictions(Rs, Rest).
 
 %!  forall(+Var, :Goal, +Anc, +S0, -S) is nondet.
 %
@@ -770,11 +827,13 @@ elsewhere(Vars, Goal, Others, Anc, S0, Names, Pieces) :-
         snapshot(Others, Others, Names0, Constraints),
         alternatives(Constraints, [], Pieces0),
         Pieces0 \== [],
-        nb_setarg(1, State, Names0-Pieces0),
+        h_capture(H),
+        nb_setarg(1, State, Names0-Pieces0-H),
         fail
     ;   arg(1, State, Snapshot),
         Snapshot \== (-),
-        Snapshot = Names-Pieces
+        Snapshot = Names-Pieces-H,
+        h_merge(H)
     ).
 
 %!  snapshot(+Kept, +Wanted, -Names, -Constraints) is det.
@@ -1296,10 +1355,13 @@ covered(Rest, Vars, Goal, Narrowing, Anc, S0, S0) :-
     (   b_setval(sscasp_no_dcc, true),
         once(cover_each(Rest, Vars, Goal, Narrowing, Anc, S0, _)),
         snapshot(Shared, Shared, Names, Constraints),
-        nb_setarg(1, State, Names-Constraints),
+        h_capture(H),
+        nb_setarg(1, State, Names-Constraints-H),
         fail
-    ;   arg(1, State, Kept),
-        Kept \== (-),
+    ;   arg(1, State, Kept0),
+        Kept0 \== (-),
+        Kept0 = Kept-H,
+        h_merge(H),
         restrict(Kept, Shared)
     ).
 
@@ -1327,9 +1389,11 @@ nested(Term, Vars, Tail) :-
     ;   Term = forall(Quantified, Goal)
     ->  append(Quantified, More, Vars),
         nested(Goal, More, Tail)
-    ;   Term = for_domain(Var, Generator, Goal)
-    ->  Vars = [Var|More],
-        nested(Generator, More, Middle),
+    ;   Term = for_domain(Quantified, Generator, Goal)
+    ->  quantified_list(Quantified, Local0),
+        append(Local0, More, Vars),
+        term_variables(Generator, Local),   % a generator's own, `edge(_, W)`
+        append(Local, Middle, More),
         nested(Goal, Middle, Tail)
     ;   compound(Term)
     ->  Term =.. [_|Args],
@@ -1547,6 +1611,29 @@ call_goal(Goal0, Anc, S0, S) :-
     strip_module(Goal0, Module, Goal),
     call_in(Goal, Module, Anc, S0, S).
 
+%!  domain_check(:Goal, +Domain, +PI) is det.
+%
+%   Raise a domain error when Goal, a domain's literal guarding an
+%   argument of PI, is ground and false.  Anything not ground is left to
+%   the guard itself, which generates or constrains.  Only compiled in
+%   under the flag `scasp_domain_error` (`compile.pl:guard_goals/6`).
+%
+%   The domain is asked in a proof of its own: whether a value is in it
+%   is a fact about the domain, not something the answer being built can
+%   change.
+
+domain_check(Goal, Domain, PI) :-
+    strip_module(Goal, _, Literal),
+    arg(1, Literal, Value),
+    (   ground(Value)
+    ->  (   empty_proof(Empty),
+            \+ \+ call_goal(Goal, [], Empty, _)
+        ->  true
+        ;   throw(error(domain_error(Domain, Value), context(PI, _)))
+        )
+    ;   true
+    ).
+
 call_in(forall(Vars, Inner), Module, Anc, S0, S) :-
     !,
     cover(Vars, Module:Inner, [], Anc, S0, S).
@@ -1618,11 +1705,14 @@ sld_node(Literal-Children, n(sld(Literal), proof, Nodes)) :-
 %   collection over ground literals, which is what findall/3 is for here.
 
 findall_(Template, Goal, List, Anc, S0, S) :-
-    findall(Template-Nodes,
+    findall((Template-Nodes)-H,
             (   call_goal(Goal, Anc, S0, S1),
-                children(S1, S0, proof(Nodes, _))
+                children(S1, S0, proof(Nodes, _)),
+                h_capture(H)
             ),
-            Pairs),
+            Generated),
+    pairs_keys_values(Generated, Pairs, Heights),
+    maplist(h_merge, Heights),
     collected(Pairs, List, Forest),
     splice(Forest, S0, S).
 
@@ -1739,3 +1829,169 @@ wrap(dualneg,  Goal, not(-(Goal))).
 
 prolog:message(error(scasp_error(unrepresentable_complement(C)), _)) -->
     [ 's(CASP): no constraint store can say the complement of ~p'-[C] ].
+
+
+		 /*******************************
+		 *      TABLING (EXPERIMENT)	*
+		 *******************************/
+
+%   `doc/design-next.md` §7a, experiment 2.  Under the flag
+%   `sscasp_table` (off by default), a goal whose proof consulted nothing
+%   outside its own subtree — no coinductive hypothesis, and no
+%   consistency check against an ancestor above it or a literal proved
+%   elsewhere — is recorded in a per-answer trie when it is ground or
+%   its answer left it unbound and unconstrained, and a later variant of
+%   it is answered from the trie instead of being proved again.  The
+%   trie survives backtracking, which is the point: most repetition is
+%   in quantifier complements that `fail` undoes.
+%
+%   The **height** of a subtree is the smallest ancestor depth it
+%   consulted, kept in the backtrackable global `sscasp_h`; each goal
+%   being expanded saves the outer value and its own depth on
+%   `sscasp_hstack`, and `proved/4` closes it.  No proof is spliced on a
+%   hit — the node has no children — so a model may lack what the tabled
+%   proof established.
+
+:- create_prolog_flag(sscasp_table, false, [keep(true)]).
+
+%!  table_begin is det.
+%
+%   Start an answer: a fresh table when `sscasp_table` is true, none
+%   otherwise.  Called by `run.pl` before each query.
+
+table_begin :-
+    (   current_prolog_flag(sscasp_table, true)
+    ->  trie_new(Table),
+        b_setval(sscasp_table, Table),
+        b_setval(sscasp_h, inf),
+        b_setval(sscasp_hstack, [])
+    ;   b_setval(sscasp_table, [])
+    ).
+
+check_tabled(Table, Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
+    b_getval(sscasp_h, R0),
+    b_setval(sscasp_h, inf),
+    length(Anc, Depth),
+    consistent_h(Neg, Anc, Depth, S0),
+    (   ancestor_h(Anc, Depth, Goal, Pol, Negations)
+    ->  loop_succeeds(Negations, Pol),
+        Action = chs,
+        Anc1 = Anc,
+        h_restore(R0)
+    ;   ground(Goal),
+        proved_goal(S0, Goal)
+    ->  Action = proved,
+        Anc1 = Anc,
+        h_lower(0),
+        h_restore(R0)
+    ;   copy_term(Goal, Key),
+        (   trie_lookup(Table, Key, _)
+        ->  Action = proved,
+            Anc1 = Anc,
+            h_restore(R0)
+        ;   Action = expand,
+            Anc1 = [a(Goal, Neg, Pol)|Anc],
+            b_getval(sscasp_hstack, Stack),
+            b_setval(sscasp_hstack, [f(R0, Depth, Key)|Stack])
+        )
+    ).
+
+%   Depth is the length of the ancestor list, so the frame at its head
+%   has depth Depth-1, and each step down the list one less.
+
+consistent_h(Neg, Anc, Depth, proof(_, Index)) :-
+    functor(Neg, Name, Arity),
+    D is Depth-1,
+    consistent_ancestors_h(Anc, D, Name, Arity, Neg),
+    relatives(Name/Arity, Index, Relatives),
+    consistent_relatives_h(Relatives, Neg).
+
+consistent_ancestors_h([], _, _, _, _).
+consistent_ancestors_h([a(Goal, _, _)|T], D, Name, Arity, Neg) :-
+    (   functor(Goal, Name, Arity)
+    ->  (   unifiable(Goal, Neg, _)
+        ->  h_lower(D)
+        ;   true
+        ),
+        apart(Goal, Neg)
+    ;   true
+    ),
+    D1 is D-1,
+    consistent_ancestors_h(T, D1, Name, Arity, Neg).
+
+consistent_relatives_h([], _).
+consistent_relatives_h([_-Goal|T], Neg) :-
+    (   unifiable(Goal, Neg, _)
+    ->  h_lower(0)
+    ;   true
+    ),
+    apart(Goal, Neg),
+    consistent_relatives_h(T, Neg).
+
+%   ancestor/4, reporting the matched ancestor's depth as consulted.
+
+ancestor_h(Anc, Depth, Goal, Pol, Negations) :-
+    D is Depth-1,
+    ancestor_h(Anc, D, Goal, Pol, 0, Negations).
+
+ancestor_h([a(A, _, AP)|T], D, Goal, Pol, N0, N) :-
+    transition(AP, Pol, N0, N1),
+    (   loop(A, Goal, N1, Pol)
+    ->  A = Goal,
+        N = N1,
+        h_lower(D)
+    ;   D1 is D-1,
+        ancestor_h(T, D1, Goal, AP, N1, N)
+    ).
+
+table_proved(Goal, Status) :-
+    (   nb_current(sscasp_table, Table),
+        Table \== []
+    ->  b_getval(sscasp_hstack, [f(R0, Depth, Key)|Stack]),
+        b_setval(sscasp_hstack, Stack),
+        b_getval(sscasp_h, H),
+        (   Status == proof,
+            ( H == inf -> true ; H >= Depth ),
+            Goal =@= Key
+        ->  ignore(trie_insert(Table, Key, true))
+        ;   true
+        ),
+        h_restore(R0)
+    ;   true
+    ).
+
+h_min(A, B, M) :-
+    (   A == inf
+    ->  M = B
+    ;   B == inf
+    ->  M = A
+    ;   M is min(A, B)
+    ).
+
+h_lower(Depth) :-
+    b_getval(sscasp_h, H),
+    h_min(H, Depth, M),
+    b_setval(sscasp_h, M).
+
+h_restore(R0) :-
+    b_getval(sscasp_h, H),
+    h_min(R0, H, M),
+    b_setval(sscasp_h, M).
+
+%!  h_capture(-H) is det.
+%!  h_merge(+H) is det.
+%
+%   Carry the height out of a run that `fail` or `findall/3` undoes,
+%   so what the discarded branch consulted still counts.
+
+h_capture(H) :-
+    (   nb_current(sscasp_table, Table), Table \== []
+    ->  b_getval(sscasp_h, H)
+    ;   H = inf
+    ).
+
+h_merge(H) :-
+    (   H == inf
+    ->  true
+    ;   h_lower(H)
+    ).

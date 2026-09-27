@@ -105,7 +105,8 @@ test(help_exits_zero) :-
 test(help_lists_the_flags, [forall(member(Flag, ["--tree", "--human",
                                                 "--json", "--code",
                                                 "--query", "--no-nmr",
-                                                "--dcc", "--version"]))]) :-
+                                                "--dcc", "--domain",
+                                                "--version"]))]) :-
     run_sscasp(['--help'], _, Out),
     assertion(contains(Out, Flag)).
 
@@ -158,6 +159,18 @@ test(a_query_may_be_given_instead) :-
     run_program(['--query', 'bird(X)'], 'birds.pl', Status, Out),
     assertion(Status == exit(0)),
     assertion(contains(Out, "?- bird(X)")).
+
+%   It is read with the language's operators, or `not`, `-` and the
+%   constraints are syntax errors there that they are not in a file.
+
+test(a_given_query_may_use_the_operators,
+     [ forall(member(Query-Shown, [ 'not penguin(tweety)'-"?- not penguin(tweety)",
+                                    '-flies(sam)'-"?- -flies(sam)"
+                                  ]))
+     ]) :-
+    run_program(['--query', Query], 'birds.pl', Status, Out),
+    assertion(Status == exit(0)),
+    assertion(contains(Out, Shown)).
 
 test(said_in_words) :-
     run_program(['--human', '--tree'], 'birds.pl', Status, Out),
@@ -613,5 +626,23 @@ test(a_program_with_no_query_exits_two) :-
     run_sscasp([File], Status, Out),
     assertion(Status == exit(2)),
     assertion(contains(Out, "no `?- Query.`")).
+
+%   `--domain-error` makes a value outside a signature's domain an error
+%   rather than a failure, so the same query goes from "no" to "could not".
+
+test(a_value_outside_the_domain_fails_or_raises,
+     [ forall(member(Args-Expected, [[]-exit(1), ['--domain-error']-exit(2)])),
+       setup(tmp_file_stream(text, File, Stream)),
+       cleanup(delete_file(File))
+     ]) :-
+    format(Stream, ":- domain d = [1, 2].~n:- pred q(d).~nq(1).~n?- not q(3).~n", []),
+    close(Stream),
+    append(Args, [File], All),
+    run_sscasp(All, Status, Out),
+    assertion(Status == Expected),
+    (   Expected == exit(2)
+    ->  assertion(contains(Out, "Domain error"))
+    ;   true
+    ).
 
 :- end_tests(main_errors).

@@ -37,8 +37,8 @@
           ]).
 :- use_module(ops).
 :- use_module(source,      [read_program/2]).
-:- use_module(run,         [scasp/4, scasp_program/2,
-                            scasp_loaded/3, scasp_ask/4]).
+:- use_module(run,         [scasp_run/3, scasp_program/2,
+                            scasp_loaded/4, scasp_ask/4]).
 :- use_module(render,      [scasp_readable/3, portray_model/2,
                             portray_justification/2, portray_query/2]).
 :- use_module(listing,     [portray_listing/3, titled/2, commented/2]).
@@ -107,7 +107,7 @@ solver either.  `--plaindual`, `--variant` and `--real` likewise.
 opt_type(answers,  answers,       nonneg).
 opt_type(s,        answers,       nonneg).
 opt_type(n,        answers,       nonneg).
-opt_type(query,    query,         term([variable_names(_)])).
+opt_type(query,    query,         term([variable_names(_), module(sscasp_ops)])).
 
 opt_type(code,     code,          boolean).
 opt_type(duals,    duals,         boolean).
@@ -127,6 +127,8 @@ opt_type(color,    colour,        boolean).
 opt_type(nmr,      nmr,           boolean).
 opt_type(olon,     olon,          boolean).
 opt_type(dcc,      dcc,           boolean).
+opt_type(module,   module,        atom).
+opt_type(domain_error, domain_error, boolean).
 
 opt_type(version,  version,       boolean).
 
@@ -151,12 +153,17 @@ opt_help(olon,     "Compile rules on odd loops (--no-olon to skip them)").
 opt_help(dcc,      "Check the global constraints as literals are proved \c
                     (dynamic consistency checking; --no-dcc to leave \c
                     them to the end)").
+opt_help(module,   "Load the program into MODULE and keep it, for \c
+                    debugging and profiling").
+opt_help(domain_error, "Raise a domain error for a value outside a \c
+                    signature's domain, rather than failing").
 opt_help(version,  "Print the version and exit").
 opt_help(interactive, "Read queries from the terminal until end of input").
 opt_help(help(usage), " [option ...] file ...").
 
 opt_meta(answers,  'COUNT').
 opt_meta(query,    'GOAL').
+opt_meta(module,   'MODULE').
 opt_meta(json,     'FILE').
 opt_meta(html,     'FILE').
 opt_meta(width,    'COLUMNS').
@@ -294,6 +301,10 @@ compile_flags(Options) :-
     (   option(dcc(Dcc), Options)
     ->  set_prolog_flag(sscasp_dcc, Dcc)
     ;   true
+    ),
+    (   option(domain_error(Error), Options)
+    ->  set_prolog_flag(scasp_domain_error, Error)
+    ;   true
     ).
 
 %!  version(-Version) is det.
@@ -384,7 +395,11 @@ counted(State, N) :-
 
 wanted_answer(Terms, Query, Model, Justification, Time, N, Options) :-
     option(answers(Max), Options, 1),
-    call_nth(call_time(scasp(Terms, Query, Model, Justification), Time), N),
+    module_option(Options, Load),
+    call_nth(call_time(scasp_run(Terms, Query,
+                                 [model(Model), tree(Justification)|Load]),
+                       Time),
+             N),
     (   Max =:= 0
     ->  true
     ;   N =< Max,
@@ -419,8 +434,21 @@ anyway.
 */
 
 interactive(Terms, Options) :-
-    scasp_loaded(Terms, Loaded, main_loop(Loaded, Terms, Options)),
+    module_option(Options, Load),
+    scasp_loaded(Terms, Loaded, main_loop(Loaded, Terms, Options), Load),
     halt(0).
+
+%!  module_option(+Options, -LoadOptions) is det.
+%
+%   `--module=Name` loads the program into Name and leaves it there,
+%   which is for running `main.pl` from source under the profiler: it
+%   will not keep track of a temporary module.
+
+module_option(Options, Load) :-
+    (   option(module(Module), Options)
+    ->  Load = [module(Module)]
+    ;   Load = []
+    ).
 
 %   **Explicitly 0.**  SWI's `on_error(print)` makes `halt/0` exit 1 once
 %   any error has been printed, which is right for a script — an error

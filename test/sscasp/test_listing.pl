@@ -1,7 +1,7 @@
 :- module(test_listing,
           [ test_listing/0
           ]).
-:- use_module('../scasp_plunit', []).        % sets the library search path
+:- use_module('../scasp_plunit', [with_scasp_flag/3]). % and the search path
 :- use_module(library(sscasp/ops)).
 :- use_module(library(sscasp/listing)).
 :- use_module(library(sscasp/compile), [compile_program/3]).
@@ -146,9 +146,18 @@ test(a_body_dualises_to_a_disjunction) :-
 %   inside it.
 
 test(a_body_variable_becomes_a_quantifier) :-
-    section([p(1), q(a), (r(X) :- p(X), q(Y), not s(X, Y))], duals, Text),
+    section([p(1), t(a), (q(Z) :- t(Z)), (r(X) :- p(X), q(Y), not s(X, Y))],
+            duals, Text),
     assertion(contains(Text, "forall(")),
     assertion(contains(Text, ";")).
+
+%   ... unless a fact predicate bounds it, when it is enumerated.
+
+test(a_variable_a_fact_bounds_is_enumerated) :-
+    section([p(1), q(a), (r(X) :- p(X), q(Y), not s(X, Y))], duals, Text),
+    assertion(contains(Text, "for_domain(")),
+    assertion(contains(Text, "q(")),
+    assertion(\+ contains(Text, "scasp$")).
 
 %   One body per clause of the predicate, joined by `,`: `not p` holds
 %   when *every* clause fails.
@@ -157,6 +166,20 @@ test(several_clauses_are_a_conjunction) :-
     section([(p(X) :- q(X)), (p(X) :- r(X)), q(1), r(2)], duals, Text),
     assertion(contains(Text, "not q(A)")),
     assertion(contains(Text, "not r(A)")).
+
+%   Under `scasp_domain_error` a signature's guard is preceded by a
+%   check, which is shown as the `must_be/2` it amounts to and has no
+%   dual branch of its own: its negation is `fail`.
+
+test(a_domain_check_reads_as_must_be) :-
+    with_scasp_flag(scasp_domain_error, true,
+                    section([ (:- domain d = [1, 2]),
+                              (:- pred q(d)),
+                              q(1)
+                            ], duals, Text)),
+    assertion(contains(Text, "must_be(d, A)")),
+    assertion(\+ contains(Text, "domain_check")),
+    assertion(\+ contains(Text, "scasp$")).
 
 test(a_predicate_with_no_clauses_is_false_of_nothing) :-
     section([(p(X) :- unheard_of_predicate_4711(X))], duals, Text),

@@ -256,7 +256,7 @@ test(fail_stays_fail) :-
 test(for_domain_goes_to_the_runtime) :-
     Terms = [ (:- domain d = [a, b]),
               (:- pred t(_, d)),
-              (p(X) :- q(X), not t(X, _)),
+              (p(X) :- q(X), t(X, Y), not r(Y)),
               q(1), t(1, a)
             ],
     emitted(Terms, Clauses),

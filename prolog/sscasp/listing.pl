@@ -345,8 +345,9 @@ expand_body(forall(Vars, Inner), Helpers, Seen, forall(Vars, Expanded)) :-
     !,
     expand_body(Inner, Helpers, Seen, Expanded).
 expand_body(for_domain(V, D, Inner), Helpers, Seen,
-            for_domain(V, D, Expanded)) :-
+            for_domain(V, ED, Expanded)) :-
     !,
+    expand_body(D, Helpers, Seen, ED),      % the generator is a literal too
     expand_body(Inner, Helpers, Seen, Expanded).
 expand_body(findall(T, Inner, L), Helpers, Seen, findall(T, Expanded, L)) :-
     !,
@@ -360,6 +361,14 @@ expand_body(findall(T, Inner, L), Helpers, Seen, findall(T, Expanded, L)) :-
 expand_body(not(Inner), Helpers, Seen, not(Expanded)) :-
     !,
     expand_body(Inner, Helpers, Seen, Expanded).
+
+%   A domain check (`scasp_domain_error`) is `must_be/2`, which is what
+%   it does: raise unless the value is in the domain.  Only when ground,
+%   which `must_be/2` does not say, but a listing is not a program.
+
+expand_body('$domain_check'(Call, Domain, _PI), _, _, must_be(Domain, Value)) :-
+    !,
+    arg(1, Call, Value).
 expand_body(Goal, Helpers, Seen, Expanded) :-
     nonvar(Goal),
     functor(Goal, Name, _),

@@ -278,6 +278,9 @@ body(not(findall(Template, Goal, List)), _, _, S0, S, Runnable) :-
                  throw(error(scasp_error(
                           negated_findall(findall(Template, Goal, List))), _))
                ).
+body('$domain_check'(Goal, Domain, PI), M, _, S0, S, Runnable) :-
+    !,
+    Runnable = (domain_check(M:Goal, Domain, PI), S = S0).
 body(sld(Goal, Type), _, Anc, S0, S, Runnable) :-
     !,
     Runnable = sld_goal(Goal, Type, Anc, S0, S).
@@ -337,6 +340,13 @@ builtin('∈'(X, Values), '∈'(X, Values)).
 
 builtin(not(true), fail).
 builtin(not(fail), true).
+
+%   A domain check is `true` or an error (`compile.pl:guard_goals/6`), so
+%   its negation is `fail`.  Where a rule of the dynamic consistency
+%   check meets one it is `true`: looking ahead is no place to raise.
+
+builtin(not('$domain_check'(_, _, _)), fail).
+builtin('$domain_check'(_, _, _), true).
 
 %   Prolog arithmetic evaluates and tests, so it passes straight through.
 %   `not (A is B)` is the one with something to say: evaluating the right

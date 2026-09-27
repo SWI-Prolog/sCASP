@@ -248,11 +248,11 @@ test(both_stores_at_once) :-
                 (:- pred q(hour)),
                 q(9)
               ],
-    once(answer(Program, not q(_), Dict)),
-    All = Dict.constraints,
-    get_dict('A', All, Constraints),
-    length(Constraints, N),
-    assertion(N >= 2).
+    once(( answer(Program, not q(_), Dict),
+           get_dict('A', Dict.constraints, Constraints),
+           length(Constraints, N),
+           N >= 2
+         )).
 
 test(an_unconstrained_answer_has_none) :-
     once(answer([p(1)], p(_), Dict)),

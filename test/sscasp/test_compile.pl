@@ -138,18 +138,40 @@ test(a_domain_predicate_has_a_dual) :-
     Clause = ('m$dual.1$thing$1'(A) :- Body),
     assertion(Body == (A \= a)).
 
-%   The point of the annotation: the dual of an annotated argument is
-%   guarded by its domain.
+%   The point of the annotation: a signature is shorthand for a guard in
+%   every clause of the predicate (decision B, `doc/design-next.md' open
+%   question 3).  Outside the domain `t' is false, so its negation holds.
 
 test(an_annotated_argument_is_guarded) :-
+    compiled([ (:- domain thing = [a, b]),
+               (:- pred t(_, thing)),
+               (t(X, Y) :- u(X, Y))
+             ], P),
+    once(clause_for(P, 'm$plain$t$2', Clause)),
+    assertion(Clause =@= ('m$plain$t$2'(A, B) :-
+                              'm$plain$thing$1'(B), 'm$plain$u$2'(A, B))).
+
+%   The guard comes *before* the head unification, so a guarded argument
+%   that is not a variable is unified after the guard has generated or tested
+%   it.  Unifying first would guard only the shapes the head admits, and
+%   `not t(X)' would lose every value of the domain with another shape.
+
+test(the_guard_precedes_the_head_unification) :-
+    compiled([ (:- domain thing = [a, b]),
+               (:- pred t(_, thing)),
+               t(1, a)
+             ], P),
+    once(clause_for(P, 'm$plain$t$2', Clause)),
+    assertion(Clause =@= ('m$plain$t$2'(1, B) :-
+                              'm$plain$thing$1'(B), B = a)).
+
+test(and_the_dual_has_no_guard_of_its_own) :-
     compiled([ (:- domain thing = [a, b]),
                (:- pred t(_, thing)),
                t(1, a)
              ], P),
     once(clause_for(P, 'm$dual$t$2', Clause)),
-    Clause = ('m$dual$t$2'(A, B) :- Guard, Call),
-    assertion(Guard == 'm$plain$thing$1'(B)),
-    assertion(Call == 'm$dual.1$t$2'(A, B)).
+    assertion(Clause =@= ('m$dual$t$2'(A, B) :- 'm$dual.1$t$2'(A, B))).
 
 :- end_tests(compile_domains).
 
@@ -191,7 +213,7 @@ test(a_call_inside_a_quantifier_is_found) :-
 test(a_generator_inside_for_domain_is_found) :-
     compiled([ (:- domain thing = [a, b]),
                (:- pred t(_, thing)),
-               (p(X) :- q(X), not t(X, _)),
+               (p(X) :- q(X), t(X, Y), not r(Y)),
                t(1, a)
              ], P),
     once(clause_for(P, 'm$dual.1$p$1', ('m$dual.1$p$1'(_) :- for_domain(_, Gen, _)))),
@@ -205,7 +227,7 @@ test(a_generator_inside_for_domain_is_found) :-
 test(every_call_has_a_definition) :-
     compiled([ (:- domain thing = [a, b]),
                (:- pred t(_, thing)),
-               (p(X) :- q(X), not t(X, _)),
+               (p(X) :- q(X), t(X, Y), not s(Y)),
                (-(r) :- p(_)),
                q(1),
                t(1, a)
@@ -432,10 +454,36 @@ test(an_undomained_body_variable_is_reported) :-
 test(a_domain_bounds_it) :-
     compiled([ (:- domain thing = [a, b]),
                (:- pred t(_, thing)),
+               (p(X) :- q(X), t(X, Y), not r(Y)),
+               t(1, a)
+             ], P),
+    assertion(P.unbounded == []).
+
+%   A negated literal bounds nothing by itself — `not t(X, Y)' holds of
+%   every Y outside `thing' — but the signature puts the guard `thing(Y)'
+%   before it, and that does.
+
+test(a_negated_literal_is_bounded_by_its_guard) :-
+    compiled([ (:- domain thing = [a, b]),
+               (:- pred t(_, thing)),
                (p(X) :- q(X), not t(X, _)),
                t(1, a)
              ], P),
     assertion(P.unbounded == []).
+
+%   The guard goes before every `not t(...)' a body writes, and before
+%   none of the positive ones: those `t''s own clauses guard.
+
+test(the_use_site_is_guarded) :-
+    compiled([ (:- domain thing = [a, b]),
+               (:- pred t(_, thing)),
+               (p(X) :- q(X), t(X, _), not t(X, _)),
+               t(1, a)
+             ], P),
+    once(clause_for(P, 'm$plain$p$1', Clause)),
+    assertion(Clause =@= ('m$plain$p$1'(X) :-
+                              'm$plain$q$1'(X), 'm$plain$t$2'(X, _),
+                              'm$plain$thing$1'(Y), 'm$dual$t$2'(X, Y))).
 
 test(a_program_with_no_body_variables_reports_nothing) :-
     compiled([p(1), (q(X) :- p(X))], P),
@@ -453,7 +501,20 @@ test(the_report_names_the_source_predicate) :-
 %   be told apart only by a number nothing else mentions.
 
 test(a_sub_check_is_reported_by_what_it_checks) :-
+    compiled([s(1), (q(Y) :- s(Y)), (:- q(X), r(X))], P),
+    assertion(P.unbounded == [check(1, constraint)]).
+
+%   A positive literal of a predicate defined by ground facts bounds a
+%   variable to their values, so nothing is left unbounded ...
+
+test(a_fact_literal_bounds_its_variable) :-
     compiled([q(1), (:- q(X), r(X))], P),
+    assertion(P.unbounded == []).
+
+%   ... and a negated one does not: outside q's facts `not q(X)` holds.
+
+test(a_negated_fact_literal_does_not) :-
+    compiled([q(1), s(1), (:- s(Y), not q(X), r(X, Y))], P),
     assertion(P.unbounded == [check(1, constraint)]).
 
 test(several_are_sorted_and_unique) :-
