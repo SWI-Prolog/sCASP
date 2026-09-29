@@ -33,18 +33,17 @@
 */
 
 :- module(sscasp_source,
-          [ read_program/2,             % +File, -Source
+          [ read_program/2,             % +FileOrFiles, -Source
 
             op(1200, fx,  #),
             op(950,  xfx, ::),
-            op(350,  fx,  [include, compute, abducible]),
+            op(1150, fx,  [include, compute, abducible]),
             op(1150, fx,  [table, show])
           ]).
 :- use_module(ops).
 :- use_module(describe, [deprecated_description/1]).
-:- use_module(library(lists), [append/3, member/2]).
 :- use_module(library(apply), [maplist/3]).
-:- use_module(library(error), [existence_error/2]).
+:- use_module(library(error), [existence_error/2, instantiation_error/1]).
 
 /** <module> Reading an s(CASP) source file
 
@@ -86,12 +85,12 @@ turns text into terms.
 `p/1` is left alone, since `p` is not an integer, so `#show p/1` and the
 predicate indicators in a signature are unaffected.
 
-Keeping them apart is what lets `pred` mean two things without ambiguity.
-`#pred p(X) :: 'text'` is a natural-language template and arrives wrapped in
-`#/1`; `:- pred p(day)` is an argument-domain signature and arrives wrapped in
-`:-/1`.
-
 ## A template is a description
+
+`pred` means two things, and what tells them apart is the `::`, not the
+prefix: `#pred p(X) :: 'text'` is a natural-language template, while
+`:- pred p(day)` and `#pred p(day)` are an argument-domain signature.  That
+is how a Prolog file reads them too (`sscasp.pl:template/3`).
 
 Decision 6a proposed renaming the first to `#describe`, and `:- describe` is
 that: one directive for the thing, spelled the way the rest of the language
@@ -107,83 +106,118 @@ term does not carry.  So the two directives that want one are read with
 
 :- op(1200, fx,  #).
 :- op(950,  xfx, ::).
-:- op(350,  fx,  [include, compute, abducible]).
+:- op(1150, fx,  [include, compute, abducible]).
 :- op(1150, fx,  [table, show]).
 
-%!  read_program(+File, -Source) is det.
+%!  read_program(+FileOrFiles, -Source) is det.
 %
-%   Read File and everything it includes.
+%   Read File and everything it includes, or each of a list of files in
+%   turn as one program — which is what the old implementation's
+%   `scasp a.pl b.pl` means: the terms in order, and the **last** query.
+%   A file included by two of them is read once, as it is when two
+%   includes of one file name it.
+%
+%   @arg Source is the `source{...}` dict described in the module header.
 
-read_program(File, Source) :-
-    read_terms(File, [], Read0, Files, []),
+:- det(read_program/2).
+read_program(Spec, Source) :-
+    (   is_list(Spec)
+    ->  Files0 = Spec
+    ;   Files0 = [Spec]
+    ),
+    phrase(read_files(Files0, [], Files, []), Read0),
     maplist(rationals, Read0, Read),
     partition_terms(Read, Source0),
     Source = Source0.put(files, Files).
 
-%!  rationals(+Term, -Rationalised) is det.
+read_files([], _, Files, Files) -->
+    [].
+read_files([File|More], Seen0, Files, FilesTail) -->
+    read_terms(File, Seen0, Seen, Files, Files1),
+    read_files(More, Seen, Files1, FilesTail).
+
+%!  rationals(@Term, -Rationalised) is det.
 %
 %   Every `Integer/Integer` in Term becomes the rational it denotes.
 
-rationals(Var, Var) :-
-    var(Var),
-    !.
-rationals(A/B, Rational) :-
-    integer(A),
-    integer(B),
-    B =\= 0,
-    !,
+rationals(Var, Rationalised), var(Var) =>
+    Rationalised = Var.
+rationals(A/B, Rational), integer(A), integer(B), B =\= 0 =>
     Rational is A rdiv B.
-rationals(Term, Rationalised) :-
-    compound(Term),
-    !,
+rationals(Term, Rationalised), compound(Term) =>
     Term =.. [Name|Args],
     maplist(rationals, Args, Rationalised0),
     Rationalised =.. [Name|Rationalised0].
-rationals(Term, Term).
+rationals(Term, Rationalised) =>
+    Rationalised = Term.
 
-%!  read_terms(+File, +Seen, -Terms, -Files, ?FilesTail) is det.
+%!  read_terms(+File, +Seen0, -Seen, -Files, ?FilesTail)// is det.
 %
 %   The terms of File with those of its includes spliced in where the
 %   `#include` was, which is where the author put them.  A file already
 %   read is not read again: `bec_theory.incl` is included by several
 %   programs and reading it twice would duplicate every clause.
+%
+%   That means *any* file read so far, not only the ones still being
+%   read: two files that both include a third would otherwise each
+%   splice in its clauses.  A file is recorded before it is read, so an
+%   include cycle stops too.
+%
+%   @arg Seen0 is the list of absolute paths of the files read so far,
+%       those still being read included; Seen adds the ones read here.
+%   @arg Files is the absolute paths of the files read, each once, as a
+%       difference list with FilesTail.
 
-read_terms(File, Seen, Terms, Files, FilesTail) :-
+%   Written out rather than as a rule: the stream has to be closed
+%   whatever happens to the phrase that reads it.
+
+:- det(read_terms//5).
+read_terms(File, Seen0, Seen, Files, FilesTail, Terms, Tail) :-
     absolute_file_name(File, Path, [access(read), file_type(prolog)]),
-    (   memberchk(Path, Seen)
-    ->  Terms = [], Files = FilesTail
+    (   memberchk(Path, Seen0)
+    ->  Terms = Tail, Files = FilesTail, Seen = Seen0
     ;   Files = [Path|MoreFiles],
         setup_call_cleanup(
             open(Path, read, Stream),
-            read_stream(Stream, Path, [Path|Seen], Terms, MoreFiles, FilesTail),
+            phrase(read_stream(Stream, Path, [Path|Seen0], Seen,
+                               MoreFiles, FilesTail),
+                   Terms, Tail),
             close(Stream))
     ).
 
-read_stream(Stream, Path, Seen, Terms, Files, FilesTail) :-
-    read_term(Stream, Term0, [ module(sscasp_source),
-                               variable_names(Bindings)
-                             ]),
-    named_term(Term0, Bindings, Term),
-    (   Term == end_of_file
-    ->  Terms = [], Files = FilesTail
-    ;   include_directive(Term, Included)
-    ->  file_directory_name(Path, Dir),
-        atomic_list_concat([Dir, /, Included], Include),
-        read_terms(Include, Seen, From, Files, MoreFiles),
-        append(From, Rest, Terms),
-        read_stream(Stream, Path, Seen, Rest, MoreFiles, FilesTail)
-    ;   Terms = [Term|Rest],
-        read_stream(Stream, Path, Seen, Rest, Files, FilesTail)
+read_stream(Stream, Path, Seen0, Seen, Files, FilesTail) -->
+    { read_term(Stream, Term0, [ module(sscasp_source),
+                                 variable_names(Bindings)
+                               ]),
+      named_term(Term0, Bindings, Term)
+    },
+    (   { Term == end_of_file }
+    ->  { Files = FilesTail, Seen = Seen0 }
+    ;   { include_directive(Term, Included) }
+    ->  { file_directory_name(Path, Dir),
+          atomic_list_concat([Dir, /, Included], Include)
+        },
+        read_terms(Include, Seen0, Seen1, Files, MoreFiles),
+        read_stream(Stream, Path, Seen1, Seen, MoreFiles, FilesTail)
+    ;   [Term],
+        read_stream(Stream, Path, Seen0, Seen, Files, FilesTail)
     ).
 
-%!  named_term(+Read, +Bindings, -Term) is det.
+%!  named_term(@Read, +Bindings, -Term) is det.
 %
 %   A description says which variable a placeholder means *by name* —
 %   `:- describe flies(X) :: "@(X) can fly"` — and a name is the one
 %   thing a read term does not carry.  So the two directives that want
 %   one are handed the reader's bindings and everything else is left
 %   alone.
+%
+%   @arg Bindings is the reader's `Name = Var` list (variable_names/1).
+%   @arg Term is Read, or with Bindings added as a last argument for
+%       `:- describe(Spec, Bindings)`, `:- pred(Spec, Bindings)` (a
+%       description only), `#(pred(Spec, Bindings))` and
+%       `?-(Goal, Bindings)`.
 
+:- det(named_term/3).
 named_term(Term, _, Named), var(Term) =>
     Named = Term.
 named_term((:- describe Spec), Bindings, Named) =>
@@ -205,12 +239,18 @@ named_term(Term, _, Named) =>
 
 include_directive(#(include(File)), File).
 
-%!  partition_terms(+Read, -Source) is det.
+%!  partition_terms(@Read, -Source) is det.
 %
 %   Sort what was read into the program and the things that are about
 %   the program.  The **last** query wins, which is what the `scasp`
 %   executable answers.
+%
+%   @arg Read is the list of terms of all files, as named_term/3 left
+%       them.
+%   @arg Source is the `source{...}` dict of the module header, without
+%       the `files` key.
 
+:- det(partition_terms/2).
 partition_terms(Read, Source) :-
     partition_terms(Read, Terms, Templates, Shown, Abducible,
                     none-[], Query-Bindings),
@@ -223,7 +263,9 @@ partition_terms(Read, Source) :-
 
 partition_terms([], [], [], [], [], Query, Query).
 partition_terms([Term|Read], Terms, Templates, Shown, Abducible, Q0, Query) :-
-    (   Term = ?-(Goal, Named)
+    (   var(Term)                       % `X.` would unify with the query
+    ->  instantiation_error(Term)
+    ;   Term = ?-(Goal, Named)
     ->  Terms = Terms1, Templates = Templates1, Shown = Shown1,
         Abducible = Abducible1, Q1 = Goal-Named
     ;   Term = (?-(Goal))
@@ -233,10 +275,14 @@ partition_terms([Term|Read], Terms, Templates, Shown, Abducible, Q0, Query) :-
     ->  Templates = [Template|Templates1],
         Terms = [(:- describe(Template, Bindings))|Terms1], Shown = Shown1,
         Abducible = Abducible1, Q1 = Q0
-    ;   Term = #(pred(Template))
+    ;   Term = #(pred(Template)),
+        Template = (_ :: _)
     ->  Templates = [Template|Templates1],
         Terms = [(:- describe(Template, []))|Terms1], Shown = Shown1,
         Abducible = Abducible1, Q1 = Q0
+    ;   Term = #(pred(Signature))       % a signature, as :- pred is
+    ->  Terms = [(:- pred(Signature))|Terms1], Templates = Templates1,
+        Shown = Shown1, Abducible = Abducible1, Q1 = Q0
     ;   Term = #(show(What))
     ->  Shown = [What|Shown1], Terms = [(:- show(What))|Terms1],
         Templates = Templates1, Abducible = Abducible1, Q1 = Q0

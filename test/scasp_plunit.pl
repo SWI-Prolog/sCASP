@@ -74,7 +74,7 @@ answers_admit(Query, Var, Candidates, Admitted) :-
 
 admitted_by(Answers, Value) :-
     member(Answer, Answers),
-    \+ \+ Answer = Value,
+    \+ Answer \= Value,
     !.
 
 %!  expect_semantics is semidet.
@@ -218,13 +218,13 @@ model_has(Models, Literal) :-
 
 constrained_to(Term, Admits, Excludes) :-
     forall(member(A, Admits),
-           (   \+ \+ Term = A
+           (   \+ Term \= A
            ->  true
            ;   print_message(error, scasp_test(should_admit(Term, A))),
                fail
            )),
     forall(member(E, Excludes),
-           (   \+ Term = E
+           (   Term \= E
            ->  true
            ;   print_message(error, scasp_test(should_exclude(Term, E))),
                fail

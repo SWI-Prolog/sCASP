@@ -3,7 +3,9 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(process), [process_create/3, process_wait/2]).
-:- use_module(library(readutil), []).
+:- use_module(library(readutil), [read_file_to_string/3]).
+:- use_module(library(filesex), [directory_file_path/3,
+                                 delete_directory_and_contents/1]).
 :- use_module(library(lists), [append/3, member/2]).
 :- use_module(library(debug), [assertion/1]).
 
@@ -81,6 +83,11 @@ sscasp_dir(Dir) :-
 
 contains(Text, Needle) :-
     sub_string(Text, _, _, _, Needle).
+
+write_file(File, Text) :-
+    setup_call_cleanup(open(File, write, Out),
+                       write(Out, Text),
+                       close(Out)).
 
 		 /*******************************
 		 *           HELP		*
@@ -172,6 +179,25 @@ test(a_given_query_may_use_the_operators,
     assertion(Status == exit(0)),
     assertion(contains(Out, Shown)).
 
+%   Several files are one program, and a file two of them include is
+%   read once, as it is when two includes of one file name it.
+
+test(a_file_included_by_two_is_read_once,
+     [ setup(tmp_file(sscasp_include, Dir)),
+       cleanup(delete_directory_and_contents(Dir))
+     ]) :-
+    make_directory(Dir),
+    directory_file_path(Dir, 'shared.incl', Shared),
+    directory_file_path(Dir, 'a.pl', A),
+    directory_file_path(Dir, 'b.pl', B),
+    write_file(Shared, "r(1).\n"),
+    write_file(A, "#include 'shared.incl'.\n"),
+    write_file(B, "#include 'shared.incl'.\n?- r(X).\n"),
+    run_sscasp(['-n0', A, B], Status, Out),
+    assertion(Status == exit(0)),
+    assertion(contains(Out, "Answer 1")),
+    assertion(\+ contains(Out, "Answer 2")).
+
 test(said_in_words) :-
     run_program(['--human', '--tree'], 'birds.pl', Status, Out),
     assertion(Status == exit(0)),
@@ -209,6 +235,15 @@ test(the_constraints_are_titled_by_what_they_came_from) :-
 test(and_the_emitted_clauses_are_there_if_asked) :-
     run_program(['--code', '--compiled'], 'birds.pl', _, Out),
     assertion(contains(Out, "$dual$flies$1")).
+
+%   `--query` is the listing's query too, under the reader's names.  It
+%   used to switch the query section off: the option and the section
+%   share a name, and the goal is not `true`.
+
+test(code_lists_a_given_query) :-
+    run_program(['--code', '--query', 'penguin(X)'], 'birds.pl', Status, Out),
+    assertion(Status == exit(0)),
+    assertion(contains(Out, "?- penguin(X).")).
 
 %   The terms as *read*, which is the only section that shows a
 %   directive: the compiler turns those into clauses and they stop being
@@ -626,6 +661,20 @@ test(a_program_with_no_query_exits_two) :-
     run_sscasp([File], Status, Out),
     assertion(Status == exit(2)),
     assertion(contains(Out, "no `?- Query.`")).
+
+%   A document is written when the answers are in, so a run that ends
+%   in an error leaves the file that was there alone.
+
+test(an_error_leaves_the_document_alone,
+     [ setup(tmp_file(sscasp_json, File)),
+       cleanup(delete_file(File))
+     ]) :-
+    write_file(File, "before"),
+    atom_concat('--json=', File, Flag),
+    run_program([Flag, '--query', nosuchgoal], 'birds.pl', Status, _),
+    assertion(Status == exit(2)),
+    read_file_to_string(File, Text, []),
+    assertion(Text == "before").
 
 %   `--domain-error` makes a value outside a signature's domain an error
 %   rather than a failure, so the same query goes from "no" to "could not".

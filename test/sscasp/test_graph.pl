@@ -160,6 +160,19 @@ test(a_path_with_a_negation_but_no_loop) :-
     odd([(p :- not q), (q :- not r)], Cs),
     assertion(Cs == []).
 
+%   A `forall/2` the program writes is a control construct like `,`:
+%   the literals under it are the clause's dependencies.
+
+test(a_loop_through_a_written_forall) :-
+    odd([(p :- forall(X, not r(X))), (r(_) :- p)], Cs),
+    assertion(Cs == [[key(plain, p/0), key(plain, r/1)]]).
+
+%   And `not forall(...)` negates what is under it: a negative arc.
+
+test(a_loop_through_a_negated_forall) :-
+    odd([(p :- not forall(X, r(X))), (r(_) :- p)], Cs),
+    assertion(Cs == [[key(plain, p/0), key(plain, r/1)]]).
+
 test(a_single_node_with_no_arcs) :-
     odd([p], Cs),
     assertion(Cs == []).

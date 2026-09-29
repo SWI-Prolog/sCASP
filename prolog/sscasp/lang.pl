@@ -33,14 +33,15 @@
 */
 
 :- module(sscasp_lang,
-          [ connector/2                 % +Meaning, -Text
+          [ connector/2                 % @Meaning, -Text
           ]).
 :- use_module(ops).
 
 /** <module> The words a justification is made of
 
-Everything `html.pl` says that is not the program's own vocabulary is in this
-table: `not` is "there is no evidence that", `implies` is "because", `#>` is
+Almost everything `html.pl` says that is not the program's own vocabulary is
+in this table — the literals and connectors, though not yet the few fixed
+phrases around a query and a typed placeholder that `html.pl` writes itself: `not` is "there is no evidence that", `implies` is "because", `#>` is
 "is greater than".  One place, so that the renderer names a *meaning* and
 never a word, and a second language is a second table rather than a reading
 of every clause in `html.pl`.
@@ -53,12 +54,15 @@ a diagnostic is for whoever runs the program and this is part of the
 language means adding a table and the two lines that choose between them.
 */
 
-%!  connector(+Meaning, -Text) is semidet.
+%!  connector(@Meaning, -Text) is semidet.
 %
 %   Text is how this language says Meaning.  Fails for a meaning it has
 %   no words for, which is how `html.pl` asks "is this a comparison I
 %   should read out?" — so a new operator falls back on being printed
 %   rather than on being mis-said.
+%
+%   @arg Meaning is an atom naming a connective, or a comparison such as
+%       `_ #> _`, whose arguments are ignored.
 
 connector(and,       'and').
 connector(or,        'or').
@@ -67,20 +71,14 @@ connector(may,       'it may be the case that').
 connector(-,         'it is not the case that').
 connector(implies,   'because').
 connector(?,         '?').
-connector('.',       '.').
 connector(proved,    'justified above').
 connector(chs,       'it is assumed that').
-connector(assume,    'we assume that').
-connector(abducible, 'it is assumed that').
 connector(holds,     ' holds').
 connector(holds_for, ' holds for ').
 connector(not_in,    'is not').
 connector(neq,       'is not').
-connector(according_to, 'in').
 connector(global_constraints_hold,
                      'The global constraints hold').
-connector(there_is_no, 'there is no').
-connector(for_which,   'for which').
 
 connector(_ >  _,  'is greater than').
 connector(_ >= _,  'is greater than or equal to').

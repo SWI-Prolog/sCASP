@@ -124,9 +124,12 @@
             [ html_model//2, html_justification//2,
               html_query//2, html_atom//2
             ]).
+:- use_module(sscasp/dyncall, [constraint_clauses/2]).
 :- use_module(sscasp/annotations, [program_annotations/2]).
 :- use_module(library(ansi_term), [ansi_format/3]).
-:- use_module(library(option), [option/2, option/3, merge_options/3]).
+:- use_module(library(option), [option/2, merge_options/3]).
+:- use_module(library(apply), [exclude/3]).
+:- use_module(library(lists), [member/2]).
 :- reexport(sscasp/render,
             [ scasp_readable/2, scasp_readable/3,
               portray_model/1, portray_model/2,
@@ -258,9 +261,9 @@ claimed(#(show(Spec)),           M, (:- sscasp_dyncall:scasp_directive(M:show(Sp
 claimed((:- show Spec),          M, (:- sscasp_dyncall:scasp_directive(M:show(Spec)))) :-
     nonvar(Spec).
 claimed((false :- Body),         _, Clauses) :-
-    sscasp_dyncall:constraint_clauses(Body, Clauses).
+    constraint_clauses(Body, Clauses).
 
-%!  template(+Spec, ?Module, -Goal) is det.
+%!  template(@Spec, ?Module, -Goal) is det.
 %
 %   `#pred p(X) :: 'text'` is a description and `#pred p(dom)` a
 %   signature.  The description goes to `describe/1` rather than
@@ -269,10 +272,12 @@ claimed((false :- Body),         _, Clauses) :-
 %   warning is for `:- pred X :: "..."` written where `:- describe` was
 %   available and `#pred` is what the generator emits.
 
-template(Spec, M, describe(M:Spec)) :-
-    Spec = (_ :: _),
-    !.
-template(Spec, M, pred(M:Spec)).
+:- det(template/3).
+
+template(Spec, M, Goal), Spec = (_ :: _) =>
+    Goal = describe(M:Spec).
+template(Spec, M, Goal) =>
+    Goal = pred(M:Spec).
 
 %!  ours(+Module) is semidet.
 %
@@ -338,36 +343,34 @@ user:term_expansion(Term, Expanded) :-
 
 :- residual_goals(scasp_residuals).
 
-scasp_residuals -->
-    { nb_current(scasp_answer,
-                 scasp_answer(Model, Justification, Terms, Options))
-    },
-    !,
+scasp_residuals,
+    nb_current(scasp_answer,
+               scasp_answer(Model, Justification, Terms, Options)) ==>
     shown(show_model(Model), Terms, Options),
     shown(show_justification(Justification), Terms, Options).
-scasp_residuals -->
+scasp_residuals ==>
     [].
 
-shown(What, Terms, Options) -->
-    { compound_name_arguments(What, Name, [Value]),
-      Spec =.. [Name, How],
-      option(Spec, Options),
-      How \== false,
-      !,
-      how(How, Terms, ShowOptions),
+shown(What, Terms, Options),
+    compound_name_arguments(What, Name, [Value]),
+    Spec =.. [Name, How],
+    option(Spec, Options),
+    How \== false ==>
+    { how(How, Terms, ShowOptions),
       Goal =.. [Name, Value, ShowOptions]
     },
     [ Goal ].
-shown(_, _, _) -->
+shown(_, _, _) ==>
     [].
 
 %   `human` is the one that needs the program: a description is the
 %   program's own and the table is built from the terms that were run.
 
-how(human, Terms, [readable(true), human(true), annotations(Annotations)]) :-
-    !,
+how(human, Terms, ShowOptions) =>
+    ShowOptions = [readable(true), human(true), annotations(Annotations)],
     program_annotations(Terms, Annotations).
-how(_, _, [readable(true), layout(columns)]).
+how(_, _, ShowOptions) =>
+    ShowOptions = [readable(true), layout(columns)].
 
 user:portray(show_model(Model, Options)) :-
     ansi_format(comment, '% s(CASP) model~n', []),
@@ -395,15 +398,26 @@ scasp_human(Query, Options) :-
     merge_options(Options, [show_model(true), show_justification(true)], All),
     solve_and_show(Query, [human(true)|All]).
 
-%!  solve_and_show(:Query, +Model, +Justification) is nondet.
+%!  solve_and_show(:Query, +Options) is nondet.
 %
 %   The model and the justification are made readable **together**, and
 %   with the query: a variable shared between them has to get one name,
 %   or the three printed terms say different things by the same letter.
+%
+%   @arg Options are scasp_human/2's, plus `human(Boolean)` to say the
+%       answer in words.
 
 solve_and_show(Query, Options) :-
-    scasp(Query, [model(Model), tree(Justification), program(Terms)|Options]),
+    exclude(shown_here, Options, SolveOptions),
+    scasp(Query, [model(Model), tree(Justification), program(Terms)
+                 |SolveOptions]),
     \+ \+ show(Query, Model, Justification, Terms, Options).
+
+%   What this prints is not handed on to scasp/2, which would leave it
+%   for scasp_residuals//0 and the toplevel would print it again.
+
+shown_here(show_model(_)).
+shown_here(show_justification(_)).
 
 show(Query, Model, Justification, Terms, Options) :-
     scasp_readable(answer(Query, Model, Justification),
@@ -438,10 +452,19 @@ said_how(Terms, Options, How) :-
 		 *            SANDBOX		*
 		 *******************************/
 
-%   What SWISH may run.  The query shortcuts and `scasp/1,2` are safe for
-%   the reason the old library gives: a collected program is pure Prolog
-%   clauses and limited arithmetic, and s(CASP) has no way to call a
-%   qualified goal, so `lists:member(...)` cannot be reached from one.
+%   What SWISH may run.  The query shortcuts and `scasp/1,2` are safe
+%   because the solver runs nothing of the program's but its logic: the
+%   collected clauses are compiled, not called, and what the compiled
+%   program calls is `runtime.pl` and limited arithmetic.  A qualified
+%   goal `lists:append(...)` does reach another module — the collector
+%   follows it and compiles *that* module's clauses — which reads code
+%   rather than running it.  The one way out to Prolog is `:- sld`, and
+%   the directive that declares one is not on this list.
+%
+%   The option `module(M)` is refused: it asserts the compiled program
+%   into M and adds `sscasp_runtime` to M's imports for good, which in
+%   `module(lists)` is exactly what a sandbox is there to stop.  So an
+%   option list is accepted only as a proper list without it.
 %
 %   Three flags rather than the old library's seven, because the rest do
 %   not exist here: `scasp_forall` selects among four algorithms and this
@@ -453,7 +476,8 @@ said_how(Terms, Options, How) :-
 
 :- multifile
     sandbox:safe_meta/2,
-    sandbox:safe_prolog_flag/2.
+    sandbox:safe_prolog_flag/2,
+    sandbox:safe_directive/1.
 
 sandbox:safe_meta(sscasp:(?    _), []).
 sandbox:safe_meta(sscasp:(??   _), []).
@@ -465,18 +489,62 @@ sandbox:safe_meta(sscasp:(??+- _), []).
 sandbox:safe_meta(sscasp:(??-+ _), []).
 sandbox:safe_meta(sscasp:(??++ _), []).
 sandbox:safe_meta(sscasp:scasp_human(_), []).
-sandbox:safe_meta(sscasp:scasp_human(_, _), []).
+sandbox:safe_meta(sscasp:scasp_human(_, Options), []) :-
+    safe_options(Options).
 
 sandbox:safe_meta(sscasp_dyncall:scasp(_), []).
-sandbox:safe_meta(sscasp_dyncall:scasp(_, _), []).
+sandbox:safe_meta(sscasp_dyncall:scasp(_, Options), []) :-
+    safe_options(Options).
 sandbox:safe_meta(sscasp_dyncall:scasp_show(_, _), []).
 sandbox:safe_meta(sscasp_dyncall:scasp_json(_, _), []).
-sandbox:safe_meta(sscasp_dyncall:scasp_json(_, _, _), []).
+sandbox:safe_meta(sscasp_dyncall:scasp_json(_, _, Options), []) :-
+    safe_options(Options).
 sandbox:safe_meta(sscasp_dyncall:scasp_query_clauses(_, _), []).
-sandbox:safe_meta(sscasp_dyncall:scasp_query_clauses(_, _, _), []).
+sandbox:safe_meta(sscasp_dyncall:scasp_query_clauses(_, _, Options), []) :-
+    safe_options(Options).
+
+sandbox:safe_directive(sscasp_dyncall:Goal) :-
+    safe_declaration(Goal).
+sandbox:safe_directive(M:Goal) :-
+    prolog_load_context(module, M),
+    callable(Goal),
+    predicate_property(M:Goal, imported_from(sscasp_dyncall)),
+    safe_declaration_in(Goal, M).
+
+safe_declaration(Goal) :-
+    callable(Goal),
+    Goal =.. [Name, Module:Arg],
+    prolog_load_context(module, Module),
+    Goal0 =.. [Name, Arg],
+    safe_declaration_in(Goal0, Module).
+
+safe_declaration_in(scasp_directive(Directive), _) :-
+    nonvar(Directive),
+    \+ Directive = sld(_).
+safe_declaration_in(describe(_), _).
+safe_declaration_in(pred(_), _).
+safe_declaration_in(domain(_), _).
+safe_declaration_in(scasp_dynamic(_), _).
+
+safe_options(Options) :-
+    is_list(Options),
+    \+ ( member(Option, Options),
+          ( var(Option) ; Option = module(_) )
+        ).
 
 %   Not the program-changing half: `scasp_assert/1` writes clauses into
 %   the calling module, which is exactly what a sandbox is there to stop.
+%
+%   The **directives** are another matter: each writes only into the
+%   module being loaded — a `'scasp$directive'/1` clause, or `dynamic`
+%   for `:- scasp_dynamic` — which is what a sandboxed program is allowed
+%   to do to itself.  They reach the sandbox in two shapes: expanded by
+%   claimed/3 to `sscasp_dyncall:Goal`, which it takes for a cross-module
+%   directive, and called as they stand, `M:describe(Spec)`, where the
+%   work happens in code it would then walk and refuse.  Either is
+%   allowed when it names the module being loaded — except `:- sld`,
+%   whose whole point is to run Prolog the sandbox has not checked.
+
 
 sandbox:safe_prolog_flag(scasp_compile_nmr, _).
 sandbox:safe_prolog_flag(scasp_compile_olon, _).

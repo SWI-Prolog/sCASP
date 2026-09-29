@@ -33,22 +33,25 @@
 */
 
 :- module(sscasp_render,
-          [ scasp_readable/2,             % +Term, -Readable
-            scasp_readable/3,             % +Term, -Readable, +Options
-            portray_model/1,               % +Model
-            portray_model/2,               % +Model, +Options
-            portray_justification/1,       % +Justification
-            portray_justification/2,       % +Justification, +Options
-            portray_literal/2,             % +Literal, +Options
-            portray_rule/1,                % +Clause
-            portray_rule/2,                % +Clause, +Options
-            portray_query/2                % +Query, +Options
+          [ scasp_readable/2,             % @Term, -Readable
+            scasp_readable/3,             % @Term, -Readable, +Options
+            portray_model/1,               % @Model
+            portray_model/2,               % @Model, +Options
+            portray_justification/1,       % @Justification
+            portray_justification/2,       % @Justification, +Options
+            portray_literal/2,             % @Literal, +Options
+            portray_rule/2,                % @Clause, +Options
+            portray_query/2                % @Query, +Options
           ]).
 :- use_module(ops).
+:- use_module(mangle, [literal_kind/3, kind_truth/2]).
 :- use_module(html,      [html_model//2, html_justification//2]).
 :- use_module(html_text, [emit_text/1]).
-:- use_module(library(lists), [member/2, append/3, nth0/3, last/2]).
-:- use_module(library(apply), [maplist/2, maplist/3, foldl/4, exclude/3]).
+:- use_module(library(lists), [member/2, nth0/3]).
+:- use_module(library(apply), [maplist/3, maplist/4, foldl/4, foldl/5,
+                                exclude/3]).
+:- use_module(library(listing), [portray_clause/3]).
+:- use_module(library(pairs), [pairs_keys_values/3]).
 :- use_module(library(option), [option/2, option/3]).
 :- use_module(library(ansi_term), [ansi_format/3]).
 
@@ -64,7 +67,7 @@ about a variable lives in the constraint stores rather than in the term:
 with `V` carrying `{V =< 3}`.  So rendering means three things — read the
 stores, give the variables names, and put the two back together:
 
-    not p(A | {A =< 3})
+    not p(A | {A=<3})
 
 ## Reading a store without destroying it
 
@@ -87,8 +90,8 @@ about is noise.  A variable that appears once but *is* constrained keeps a
 name, because the constraint has to be attached to something.
 */
 
-%!  scasp_readable(+Term, -Readable) is det.
-%!  scasp_readable(+Term, -Readable, +Options) is det.
+%!  scasp_readable(@Term, -Readable) is det.
+%!  scasp_readable(@Term, -Readable, +Options) is det.
 %
 %   Readable is Term with its variables replaced by `'$VAR'(Name)`, or by
 %   `Name | {Constraints}` where the stores have something to say.  Ready
@@ -100,6 +103,9 @@ name, because the constraint has to be attached to something.
 %       Inline the constraint stores.  Default `true`; `false` names the
 %       variables and says no more.
 
+:- det(scasp_readable/2).
+:- det(scasp_readable/3).
+
 scasp_readable(Term, Readable) :-
     scasp_readable(Term, Readable, []).
 
@@ -107,29 +113,57 @@ scasp_readable(Term, Readable, Options) :-
     copy_term(Term, Readable, Goals0),
     (   option(constraints(false), Options)
     ->  Goals = []
-    ;   Goals = Goals0
+    ;   phrase(separate(Goals0), Goals)
     ),
     term_variables(Readable-Goals, All),
     owners(Goals, All, Owned),
     singletons(Readable, Goals, Singletons),
     name_variables(All, Singletons, Owned).
 
-%!  owners(+Goals, +Variables, -Owned) is det.
+%   CLP(Q) reports its whole store as **one** goal, `{B > 0, A-B > 0}`,
+%   so it would all be printed on whichever variable comes first.  Taken
+%   apart, each constraint goes to a variable it is about.
+
+separate([]) ==>
+    [].
+separate([Goal|Goals]) ==>
+    separate_goal(Goal),
+    separate(Goals).
+
+separate_goal(_:{Store}) ==>
+    separate_store(Store).
+separate_goal({Store}) ==>
+    separate_store(Store).
+separate_goal(Goal) ==>
+    [Goal].
+
+separate_store((A, B)) ==>
+    separate_store(A),
+    separate_store(B).
+separate_store(Constraint) ==>
+    [{Constraint}].
+
+%!  owners(@Goals, @Variables, -Owned) is det.
 %
 %   Each variable paired with the residual goals that are *its* — the
 %   ones whose first variable, in the term's own order, is that one.  A
 %   `dif(A, B)` belongs to A and is printed there; printing it again on B
 %   would say the same thing twice.
+%
+%   @arg Goals are the residual goals `copy_term/3` reported.
+%   @arg Owned is a list of `Variable-Goals`, one pair for each of
+%       Variables and in the same order, `Goals` possibly `[]`.
 
 owners(Goals, Variables, Owned) :-
     foldl(owner(Variables), Goals, Pairs, []),
     maplist(collect(Pairs), Variables, Owned).
 
-owner(Variables, Goal, [Owner-Goal|Tail], Tail) :-
+owner(Variables, Goal, Pairs, Tail),
     term_variables(Goal, Mentioned),
-    first_of(Variables, Mentioned, Owner),
-    !.
-owner(_, _, Tail, Tail).                % mentions nothing we are naming
+    first_of(Variables, Mentioned, Owner) =>
+    Pairs = [Owner-Goal|Tail].
+owner(_, _, Pairs, Tail) =>             % mentions nothing we are naming
+    Pairs = Tail.
 
 first_of([Variable|Variables], Mentioned, Owner) :-
     (   memberchk_eq(Variable, Mentioned)
@@ -145,15 +179,16 @@ collect(Pairs, Variable, Variable-Mine) :-
     mine(Pairs, Variable, Mine0),
     distinct(Mine0, Mine).
 
-mine([], _, []).
-mine([Owner-Goal|Pairs], Variable, Mine) :-
+mine([], _, Mine) =>
+    Mine = [].
+mine([Owner-Goal|Pairs], Variable, Mine) =>
     (   Owner == Variable
     ->  Mine = [Goal|Rest]
     ;   Mine = Rest
     ),
     mine(Pairs, Variable, Rest).
 
-%!  distinct(+Goals, -Distinct) is det.
+%!  distinct(@Goals, -Distinct) is det.
 %
 %   One copy of each constraint, in the order they were reported.  The
 %   same disequality arrives several times where several proved literals
@@ -162,8 +197,9 @@ mine([Owner-Goal|Pairs], Variable, Mine) :-
 %   with `==`, so two constraints about different variables that happen
 %   to print alike are still both kept.
 
-distinct([], []).
-distinct([Goal|Goals], Distinct) :-
+distinct([], Distinct) =>
+    Distinct = [].
+distinct([Goal|Goals], Distinct) =>
     (   memberchk_eq_goal(Goal, Goals)
     ->  Distinct = Rest
     ;   Distinct = [Goal|Rest]
@@ -176,7 +212,7 @@ memberchk_eq_goal(Goal, [Head|Tail]) :-
     ;   memberchk_eq_goal(Goal, Tail)
     ).
 
-%!  singletons(+Term, +Goals, -Singletons) is det.
+%!  singletons(@Term, @Goals, -Singletons) is det.
 %
 %   The variables worth hiding: they occur once in the term and in no
 %   constraint at all.  "In no constraint" is not "carrying none" — a
@@ -191,46 +227,71 @@ singletons(Term, Goals, Singletons) :-
 mentioned(Mentioned, Variable) :-
     memberchk_eq(Variable, Mentioned).
 
-%!  name_variables(+Variables, +Singletons, +Owned) is det.
+%!  name_variables(?Variables, ?Singletons, ?Owned) is det.
 %
-%   Bind each variable to what should be printed for it.  The goals were
-%   copied with the term, so binding a variable here rewrites them too —
-%   which is what puts the name inside the constraint.
+%   Bind each variable to what should be printed for it: its name, and
+%   its constraints if it owns any.
+%
+%   Three passes, because a constraint may mention a variable other than
+%   its owner, and that one may own constraints of its own.  Every
+%   variable is given a name first; then each owner's constraints are
+%   written with **all** variables replaced by their names; and only
+%   then is anything bound.  Binding as they are named would put B's
+%   store inside A's wherever A's mentions B, and bind a variable to a
+%   term mentioning itself, which is cyclic and prints as the `_G123`
+%   the naming was there to remove.
+%
+%   @arg Owned is the `Variable-Goals` list of owners/3.
 
 name_variables(Variables, Singletons, Owned) :-
-    foldl(name_variable(Singletons, Owned), Variables, 0, _).
+    foldl(name_of(Singletons, Owned), Variables, Names, 0, _),
+    pairs_keys_values(Named, Variables, Names),
+    maplist(printed(Named, Owned), Variables, Names, Printed),
+    maplist(=, Variables, Printed).
 
-name_variable(Singletons, Owned, Variable, N0, N) :-
+name_of(Singletons, Owned, Variable, Name, N0, N) :-
     constraints_of(Owned, Variable, Goals),
     (   Goals == [],
         memberchk_eq(Variable, Singletons)
-    ->  Variable = '$VAR'('_'),
+    ->  Name = '$VAR'('_'),
         N = N0
-    ;   variable_name(N0, Name),
-        N is N0+1,
-        (   Goals == []
-        ->  Variable = '$VAR'(Name)
-        ;   maplist(readable_constraint, Goals, Readable0),
-            substitute(Variable, '$VAR'(Name), Readable0, Readable),
-            comma_list(Conjunction, Readable),
-            Variable = '| '('$VAR'(Name), {Conjunction})
-        )
+    ;   variable_name(N0, Letter),
+        Name = '$VAR'(Letter),
+        N is N0+1
     ).
 
-%!  substitute(+Variable, +Name, +In, -Out) is det.
-%
-%   Put Name where Variable stands.  Done *before* the variable is bound,
-%   because binding it to a term that mentions it makes a cyclic one —
-%   which prints as the `_G123` the naming was there to remove.
+printed(Named, Owned, Variable, Name, Printed) :-
+    constraints_of(Owned, Variable, Goals),
+    (   Goals == []
+    ->  Printed = Name
+    ;   maplist(readable_constraint, Goals, Readable0),
+        substitute(Named, Readable0, Readable),
+        comma_list(Conjunction, Readable),
+        Printed = '| '(Name, {Conjunction})
+    ).
 
-substitute(Variable, Name, In, Out) :-
-    (   In == Variable
+%!  substitute(+Named, @In, -Out) is det.
+%
+%   Out is In with every variable of Named replaced by its name.
+%
+%   @arg Named is a list of `Variable-'$VAR'(Name)`.
+
+substitute(Named, In, Out), var(In) =>
+    (   named(Named, In, Name)
     ->  Out = Name
-    ;   compound(In)
-    ->  compound_name_arguments(In, Functor, Arguments0),
-        maplist(substitute(Variable, Name), Arguments0, Arguments),
-        compound_name_arguments(Out, Functor, Arguments)
     ;   Out = In
+    ).
+substitute(Named, In, Out), compound(In) =>
+    compound_name_arguments(In, Functor, Arguments0),
+    maplist(substitute(Named), Arguments0, Arguments),
+    compound_name_arguments(Out, Functor, Arguments).
+substitute(_, In, Out) =>
+    Out = In.
+
+named([V-N|T], Variable, Name) :-
+    (   V == Variable
+    ->  Name = N
+    ;   named(T, Variable, Name)
     ).
 
 constraints_of(Owned, Variable, Goals) :-
@@ -248,7 +309,7 @@ variable_name(N, Name) :-
     ;   format(atom(Name), '~c~d', [Letter, Index])
     ).
 
-%!  readable_constraint(+Goal, -Constraint) is det.
+%!  readable_constraint(@Goal, -Constraint) is det.
 %
 %   A residual goal as the program would have written it.  `dif/2` is one
 %   of the two backings of the Herbrand store and `{}/1` wraps what
@@ -262,17 +323,15 @@ variable_name(N, Name) :-
 
 readable_constraint(dif(A, B), Constraint) => Constraint = (A \= B).
 readable_constraint('∉'(A, [B]), Constraint) => Constraint = (A \= B).
-readable_constraint('∉'(A, Bs), Constraint) => Constraint = '∉'(A, Bs).
 readable_constraint({Inner}, Constraint)   => Constraint = Inner.
 readable_constraint(_:{Inner}, Constraint) => Constraint = Inner.
 readable_constraint(Goal, Constraint)      => Constraint = Goal.
 
-comma_list(Conjunction, [Goal|Goals]) :-
-    (   Goals == []
-    ->  Conjunction = Goal
-    ;   Conjunction = (Goal, Rest),
-        comma_list(Rest, Goals)
-    ).
+comma_list(Conjunction, [Goal]) =>
+    Conjunction = Goal.
+comma_list(Conjunction, [Goal|Goals]) =>
+    Conjunction = (Goal, Rest),
+    comma_list(Rest, Goals).
 
 memberchk_eq(Variable, [Head|Tail]) :-
     (   Variable == Head
@@ -280,7 +339,7 @@ memberchk_eq(Variable, [Head|Tail]) :-
     ;   memberchk_eq(Variable, Tail)
     ).
 
-%!  already_readable(+Term, -Readable, +Options) is det.
+%!  already_readable(@Term, -Readable, +Options) is det.
 %
 %   `readable(true)` says the caller has been through `scasp_readable/3`
 %   already.  It matters when a model and its justification are printed
@@ -297,8 +356,8 @@ already_readable(Term, Readable, Options) :-
 		 *           THE MODEL		*
 		 *******************************/
 
-%!  portray_model(+Model) is det.
-%!  portray_model(+Model, +Options) is det.
+%!  portray_model(@Model) is det.
+%!  portray_model(@Model, +Options) is det.
 %
 %   Write the model.  Options are `scasp_readable/3`'s, plus:
 %
@@ -313,24 +372,27 @@ already_readable(Term, Readable, Options) :-
 %       `tty_size/2`, or 80.
 %     - human(Boolean)
 %       Say each literal in words instead — `html.pl` through
-%       `html_text.pl`, which is where `annotations(Table)` and
-%       `show(Format)` are documented.  The other options above do not
+%       `html_text.pl`; `html.pl` documents `annotations(Table)` and
+%       `show(Format)`.  The other options above do not
 %       apply to it.
+%
+%   @arg Model is a list of literals as scasp/3 returns it: `p(..)`,
+%       `not p(..)`, `-p(..)` or `not -p(..)`.  With `readable(true)` it
+%       has been through scasp_readable/3 already.
+
+:- det(portray_model/1).
+:- det(portray_model/2).
 
 portray_model(Model) :-
     portray_model(Model, []).
 
-portray_model(Model, Options) :-
-    option(human(true), Options),
-    !,
+portray_model(Model, Options), option(human(true), Options) =>
     already_readable(Model, Readable, Options),
     emit_text(\html_model(Readable, Options)).
-portray_model(Model, Options) :-
-    option(layout(columns), Options),
-    !,
+portray_model(Model, Options), option(layout(columns), Options) =>
     already_readable(Model, Readable, Options),
     model_columns(Readable, Options).
-portray_model(Model, Options) :-
+portray_model(Model, Options) =>
     option(indent(Indent), Options, 4),
     already_readable(Model, Readable, Options),
     foldl(model_line(Options, Indent), Readable, first, _).
@@ -365,11 +427,10 @@ model_line(Options, Indent, Literal, State, next) :-
 %   Down rather than across because the model is sorted, so a column is
 %   then a run of related literals and the eye can find a predicate.
 %   This is the old implementation's `model.pl:print_model/2`.
+%
+%   @arg Model is the model already through scasp_readable/3.
 
-model_columns(Model, Options) :-
-    length(Model, Count),
-    Count > 0,
-    !,
+model_columns(Model, Options), length(Model, Count), Count > 0 =>
     width(Options, Width),
     widest(Model, Options, Widest),
     Columns0 is max(1, Width // (Widest + 3)),
@@ -380,7 +441,7 @@ model_columns(Model, Options) :-
     format("{ ", []),
     print_rows(Grid, ColumnWidth, Options),
     format("~n}", []).
-model_columns(_, _) :-
+model_columns(_, _) =>
     format("{}", []).
 
 %!  grid(+Row, +Rows, +Columns, +Model, -Grid) is det.
@@ -389,21 +450,21 @@ model_columns(_, _) :-
 %   `R + C*Rows`-th literal, so a *column* is a run of the sorted model
 %   and the eye can find a predicate.  A short last column simply has
 %   fewer cells.
+%
+%   @arg Row is the 0-based index of the first row still to lay out.
+%   @arg Grid is a list of rows, each a list of literals.
 
-grid(Row, Rows, _, _, Grid) :-
-    Row >= Rows,
-    !,
+grid(Row, Rows, _, _, Grid), Row >= Rows =>
     Grid = [].
-grid(Row, Rows, Columns, Model, [Cells|Grid]) :-
+grid(Row, Rows, Columns, Model, Grid) =>
+    Grid = [Cells|Grid1],
     row_cells(0, Columns, Row, Rows, Model, Cells),
     Row1 is Row+1,
-    grid(Row1, Rows, Columns, Model, Grid).
+    grid(Row1, Rows, Columns, Model, Grid1).
 
-row_cells(Column, Columns, _, _, _, Cells) :-
-    Column >= Columns,
-    !,
+row_cells(Column, Columns, _, _, _, Cells), Column >= Columns =>
     Cells = [].
-row_cells(Column, Columns, Row, Rows, Model, Cells) :-
+row_cells(Column, Columns, Row, Rows, Model, Cells) =>
     Index is Row + Column*Rows,
     (   nth0(Index, Model, Literal)
     ->  Cells = [Literal|More]
@@ -457,7 +518,7 @@ wider(Options, Literal, Sofar, Widest) :-
 		 *          A LITERAL		*
 		 *******************************/
 
-%!  portray_literal(+Literal, +Options) is det.
+%!  portray_literal(@Literal, +Options) is det.
 %
 %   One literal, with the negations spelled out and coloured.  Options:
 %
@@ -472,6 +533,12 @@ wider(Options, Literal, Sofar, Widest) :-
 %   an infix there.  And the four shapes are four different claims, so
 %   they are worth four colours: what holds is bold, what is known not to
 %   hold is bold red, and what there is no evidence for is red.
+%
+%   @arg Literal is a readable literal of the model, or a node of a
+%       justification, which may also be wrapped in `chs/1` or
+%       `proved/1`.
+
+:- det(portray_literal/2).
 
 portray_literal(Literal, Options) :-
     literal_parts(Literal, Connectors, Term, Style),
@@ -480,7 +547,7 @@ portray_literal(Literal, Options) :-
     term_text(Term, Text),
     styled(Style, Options, '~w', [Text]).
 
-%!  term_text(+Term, -Text) is det.
+%!  term_text(@Term, -Text) is det.
 %
 %   The term as this language writes it.  Written to a string first
 %   because the colour is put on by `ansi_format/3`, which takes a format
@@ -503,29 +570,33 @@ term_text(Term, Text) :-
 %   have been said as.  They appear in a justification and never in a
 %   model.
 
-literal_parts(chs(Inner), [chs|Connectors], Term, Style) :-
-    !,
-    literal_parts(Inner, Connectors, Term, Style).
-literal_parts(proved(Inner), [proved|Connectors], Term, Style) :-
-    !,
-    literal_parts(Inner, Connectors, Term, Style).
-literal_parts(not(-(Term)), [not, negation], Term, likely) :- !.
-literal_parts(-(Term),      [negation],      Term, false)  :- !.
-literal_parts(not(Term),    [not],           Term, unlikely) :- !.
-literal_parts(Term,         [],              Term, true).
+literal_parts(chs(Inner), Connectors, Term, Style) =>
+    Connectors = [chs|Connectors1],
+    literal_parts(Inner, Connectors1, Term, Style).
+literal_parts(proved(Inner), Connectors, Term, Style) =>
+    Connectors = [proved|Connectors1],
+    literal_parts(Inner, Connectors1, Term, Style).
+literal_parts(Literal, Connectors, Term, Style) =>
+    literal_kind(Literal, Kind, Term),
+    kind_connectors(Kind, Connectors),
+    kind_truth(Kind, Style).
+
+kind_connectors(plain,   []).
+kind_connectors(neg,     [negation]).
+kind_connectors(dual,    [not]).
+kind_connectors(dualneg, [not, negation]).
 
 connector(Connector, Options) :-
     connector_text(Connector, Options, Text),
     styled(connector, Options, '~w', [Text]).
 
-connector_text(not, _, 'not ').
-connector_text(chs, _, 'chs ').
-connector_text(proved, _, 'proved ').
-connector_text(negation, Options, Text) :-
-    (   option(format(ascii), Options)
-    ->  Text = '-'
-    ;   Text = '\u00ac '
-    ).
+connector_text(not, _, Text) => Text = 'not '.
+connector_text(chs, _, Text) => Text = 'chs '.
+connector_text(proved, _, Text) => Text = 'proved '.
+connector_text(negation, Options, Text), option(format(ascii), Options) =>
+    Text = '-'.
+connector_text(negation, _, Text) =>
+    Text = '\u00ac '.
 
 styled(Style, Options, Format, Args) :-
     (   option(colour(false), Options)
@@ -544,8 +615,7 @@ style(connector, [fg(cyan)]).
 		 *           A RULE		*
 		 *******************************/
 
-%!  portray_rule(+Clause) is det.
-%!  portray_rule(+Clause, +Options) is det.
+%!  portray_rule(@Clause, +Options) is det.
 %
 %   Write a clause of the program.  `portray_clause/3` does all of it:
 %   the `;` shape, the line width, the variable names, and — given
@@ -559,22 +629,27 @@ style(connector, [fg(cyan)]).
 %   back correctly — the reader always prefers the prefix operator — and
 %   *looks* like an infix `-`.
 %
-%   Options are `portray_clause/3`'s; `indent(Columns)` is the useful
-%   one.  A listing is written in the **source** spelling, `-p(X)` and
+%   `indent(Columns)` is the useful option.  A listing is written in the **source** spelling, `-p(X)` and
 %   not `¬ p(X)`, because that is what a reader compares with their
 %   program; the model and the justification go through
 %   `portray_literal/2` and read the other way.
+%
+%   @arg Options is read for `variable_names/1` and `indent/1` only;
+%       the other `portray_clause/3` options are fixed here.
 
-portray_rule(Clause) :-
-    portray_rule(Clause, []).
+:- det(portray_rule/2).
 
 portray_rule(Clause, Options) :-
     write_options(Options, WriteOptions),
     portray_clause(current_output, Clause, WriteOptions).
 
-%!  portray_query(+Query, +Options) is det.
+%!  portray_query(@Query, +Options) is det.
 %
 %   `?- p(A), not q(A).`
+%
+%   @arg Query is the query as a conjunction of literals, without `?-`.
+%   @arg Options are portray_rule/2's; `variable_names(Bindings)` keeps
+%       the names the reader gave the query's variables.
 
 portray_query(Query, Options) :-
     portray_rule((?- Query), Options).
@@ -607,8 +682,8 @@ passed_on(Name, Options, List, Tail) :-
 		 *       THE JUSTIFICATION	*
 		 *******************************/
 
-%!  portray_justification(+Justification) is det.
-%!  portray_justification(+Justification, +Options) is det.
+%!  portray_justification(@Justification) is det.
+%!  portray_justification(@Justification, +Options) is det.
 %
 %   Write the justification as an indented tree.  Options are
 %   `scasp_readable/3`'s, plus:
@@ -629,16 +704,22 @@ passed_on(Name, Options, List, Tail) :-
 %   shared between a literal and its justification gets one name.  Doing
 %   it per node would name the same variable `A` in two places and mean
 %   two different things.
+%
+%   @arg Justification is a list of `Literal-Children` trees, as scasp/4
+%       returns it: Children is a list of the same, a Literal may be
+%       wrapped in `chs/1` or `proved/1`, and the NMR check is the root
+%       `'$nmr'-Children`.
+
+:- det(portray_justification/1).
+:- det(portray_justification/2).
 
 portray_justification(Justification) :-
     portray_justification(Justification, []).
 
-portray_justification(Justification, Options) :-
-    option(human(true), Options),
-    !,
+portray_justification(Justification, Options), option(human(true), Options) =>
     already_readable(Justification, Readable, Options),
     emit_text(\html_justification(Readable, Options)).
-portray_justification(Justification, Options) :-
+portray_justification(Justification, Options) =>
     option(indent(Indent), Options, 4),
     option(step(Step), Options, 4),
     option(max_depth(Max), Options, infinite),
@@ -651,7 +732,7 @@ portray_node(Column, Step, Max, Options, Literal-Children, State, next) :-
     ;   nl
     ),
     format("~t~*|", [Column]),
-    portray_literal(Literal, Options),
+    portray_root(Literal, Options),
     (   Children == []
     ->  true
     ;   Max == 0
@@ -662,14 +743,22 @@ portray_node(Column, Step, Max, Options, Literal-Children, State, next) :-
         foldl(portray_node(Deeper, Step, Left, Options), Children, next, _)
     ).
 
-next_depth(infinite, infinite) :- !.
-next_depth(N, Left) :- Left is N-1.
+%   The NMR check's node is not a literal, and is said in the style of
+%   the connectors rather than printed as the atom that marks it.
+
+portray_root('$nmr', Options) =>
+    styled(connector, Options, 'global constraints', []).
+portray_root(Literal, Options) =>
+    portray_literal(Literal, Options).
+
+next_depth(infinite, Left) => Left = infinite.
+next_depth(N, Left) => Left is N-1.
 
 		 /*******************************
 		 *          PORTRAYING		*
 		 *******************************/
 
-%!  user:portray(+Term) is semidet.
+%!  user:portray(@Term) is semidet.
 %
 %   `'| '` is an operator so that a reader can parse what is printed, but
 %   its name has a space in it and `writeq/1` therefore quotes it —

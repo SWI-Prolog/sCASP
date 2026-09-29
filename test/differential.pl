@@ -11,7 +11,7 @@
 :- use_module(scasp_plunit, []).
 :- use_module(under_test, [scasp/2, scasp_assert/1]).
 :- use_module(library(lists), [member/2, numlist/3]).
-:- use_module(library(apply), [maplist/3, include/3]).
+:- use_module(library(apply), [maplist/3, include/3, convlist/3]).
 :- use_module(library(random), [random_between/3, random_member/2]).
 :- use_module(library(option), [option/3]).
 
@@ -84,7 +84,7 @@ assert_program(Module, Program) :-
            scasp_assert(Module:Clause)).
 
 whole_program(Program, Goal) :-
-    findall(G, (member(Clause, Program), head_goal(Clause, G)), Goals0),
+    convlist(head_goal, Program, Goals0),
     sort(Goals0, Goals),
     (   Goals == []
     ->  Goal = true
@@ -188,7 +188,7 @@ random_program(NAtoms, NConstraints, Options, Program) :-
     option(classical(Classical), Options, false),
     option(clp(Clp), Options, false),
     head_literals(NAtoms, Classical, Preds),
-    findall(dom(C), member(C, Constants), Facts),
+    maplist(dom_fact, Constants, Facts),
     findall(Rule,
             ( member(Pred, Preds),
               random_between(1, 2, NRules),
@@ -218,6 +218,8 @@ random_program(NAtoms, NConstraints, Options, Program) :-
             ),
             Constraints),
     append(Rules, Constraints, Program).
+
+dom_fact(C, dom(C)).
 
 %!  fo_rule(+Pred, +Preds, -Rule) is det.
 %

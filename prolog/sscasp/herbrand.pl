@@ -34,23 +34,28 @@
 
 :- module(sscasp_herbrand,
           [ apart/2,                    % ?A, ?B
-            not_in/2,                   % ?X, +GroundValue
-            not_in_list/2,              % ?X, +GroundValues
+            not_in/2,                   % ?X, ?Value
+            not_in_list/2,              % ?X, ?Values
             ('∉')/2,                    % ?X, +GroundValues
             ('∈')/2,                    % ?X, +Values
             constrained/1,              % @Var
-            node_count/2,               % +Term, -Count
-            excluded_values/2,          % +Var, -GroundValues
-            projection/4,               % +A, +B, +Var, -Excluded
-            read_store/2,               % +Vars, -Goals
-            normalise/1,                % +Term
+            node_count/2,               % @Term, -Count
+            excluded_values/2,          % @Var, -GroundValues
+            projection/4,               % @A, @B, @Var, -Excluded
+            read_store/2,               % @Vars, -Goals
+            normalise/1,                % ?Term
             op(700, xfx, '∉'),
             op(700, xfx, '∈')
           ]).
+
+%   `not_in_list/2` and `∈/2` are called by the compiled program only,
+%   through `runtime.pl`.  `∉/2` is the residual goal attribute_goals//1
+%   reports, which no source file calls either.
+
 :- use_module(ops).
-:- use_module(library(dif), []).        % for its attribute_goals//1
+:- use_module(library(dif), [dif/2]).   % and its attribute_goals//1
 :- use_module(library(lists), [append/3, member/2]).
-:- use_module(library(apply), [foldl/4, maplist/3]).
+:- use_module(library(apply), [foldl/4]).
 :- use_module(library(error), [type_error/2]).
 :- use_module(library(ordsets), [ord_union/3, ord_add_element/3,
                                  ord_memberchk/2]).
@@ -131,11 +136,9 @@ apart(A, B) :-
     ;   true                            % they cannot become the same
     ).
 
-exclusion([], _, _) :-
-    !,
+exclusion([], _, _) =>
     fail.                               % they already are the same
-exclusion([X=V], A, B) :-
-    !,
+exclusion([X=V], A, B) =>
     (   var(X),
         ground(V)
     ->  exclude_value(X, V)
@@ -144,11 +147,11 @@ exclusion([X=V], A, B) :-
     ->  exclude_value(V, X)
     ;   dif(A, B)
     ).
-exclusion(_, A, B) :-
+exclusion(_, A, B) =>
     dif(A, B).
 
-%!  not_in(?X, +Value) is semidet.
-%!  not_in_list(?X, +Values) is semidet.
+%!  not_in(?X, ?Value) is semidet.
+%!  not_in_list(?X, ?Values) is semidet.
 %
 %   `X ∉ [a, b]`, the form a program writes.  A non-ground value is
 %   `dif/2`'s, as above.
@@ -207,13 +210,12 @@ exclude_value(X, Value) :-
 %   True when the store says anything about Var.
 
 constrained(Var) :-
-    var(Var),
     (   get_attr(Var, sscasp_herbrand, _)
     ->  true
     ;   get_attr(Var, dif, _)
     ).
 
-%!  node_count(+Term, -Count) is det.
+%!  node_count(@Term, -Count) is det.
 %
 %   A size for what the store says about Term's variables — used to ask
 %   whether unifying one term into another *adds* anything, which is
@@ -223,6 +225,8 @@ constrained(Var) :-
 %   on unification: `dif/2` keeps its or-nodes in a `vardif/2` attribute
 %   shared between the variables they relate, and a `∉` set is merged by
 %   union.  So the count is unchanged exactly when nothing was added.
+
+:- det(node_count/2).
 
 node_count(Term, Count) :-
     term_attvars(Term, Vars),
@@ -241,7 +245,7 @@ nodes_of(Var, Count0, Count) :-
     ),
     Count is Count0 + Excluded + Nodes.
 
-%!  excluded_values(+Var, -Values) is det.
+%!  excluded_values(@Var, -Values) is det.
 %
 %   The **ground** values Var may not take.  Those are the ones worth
 %   having: an excluded value that is not ground excludes one unknown
@@ -252,6 +256,8 @@ nodes_of(Var, Count0, Count) :-
 %   negation and what is kept is carried out by `nb_setarg/3`, which is
 %   sound here because a list of ground values has nothing to copy that
 %   matters.
+
+:- det(excluded_values/2).
 
 excluded_values(Var, Values) :-
     (   get_attr(Var, sscasp_herbrand, Excluded)
@@ -280,7 +286,7 @@ values_of([Goal|Goals], Var, Values) :-
     ),
     values_of(Goals, Var, Rest).
 
-%!  projection(+A, +B, +Plain, -Excluded) is semidet.
+%!  projection(@A, @B, @Plain, -Excluded) is semidet.
 %
 %   Excluded is what B has where A has Plain, descending through matching
 %   functors.  The first such position is enough: a variable occurring
@@ -294,25 +300,27 @@ values_of([Goal|Goals], Var, Values) :-
 %   domain than is left, and that is the safe direction: the quantifier
 %   then proves the goal somewhere it was already proved, where missing a
 %   part would claim a `forall` that does not hold.
+%
+%   @arg Plain is the variable asked about, found in A or B by `==`.
 
-projection(A, B, Plain, B) :-
-    A == Plain,
-    !.
-projection(A, B, Plain, A) :-
-    B == Plain,
-    !.
-projection(A, B, Plain, Excluded) :-
+projection(A, B, Plain, Excluded), A == Plain =>
+    Excluded = B.
+projection(A, B, Plain, Excluded), B == Plain =>
+    Excluded = A.
+projection(A, B, Plain, Excluded),
     compound(A),
     compound(B),
     functor(A, Name, Arity),
-    functor(B, Name, Arity),
+    functor(B, Name, Arity) =>
     between(1, Arity, I),
     arg(I, A, Ai),
     arg(I, B, Bi),
     projection(Ai, Bi, Plain, Excluded),
     !.
+projection(_, _, _, _) =>
+    fail.
 
-%!  read_store(+Vars, -Goals) is det.
+%!  read_store(@Vars, -Goals) is det.
 %
 %   Everything the store says about Vars, in **one** vocabulary:
 %   `apart(A, B)` terms, with a prohibited value reported as the
@@ -329,29 +337,44 @@ projection(A, B, Plain, Excluded) :-
 %   variable at a time, each in its own double negation, would report a
 %   shared node once per variable.
 
-read_store([], []).
-read_store([Var|Vars], Goals) :-
-    (   var(Var),
-        get_attr(Var, sscasp_herbrand, Values)
-    ->  excluded_goals(Values, Var, Mine, FromDifs)
-    ;   Mine = FromDifs
-    ),
-    (   var(Var),
-        get_attr(Var, dif, _)
-    ->  dif:attribute_goals(Var, Reported, []),
-        maplist(as_apart, Reported, FromDifs)
-    ;   FromDifs = []
-    ),
-    read_store(Vars, Rest),
-    append(Mine, Rest, Goals).
+:- det(read_store/2).
 
-as_apart(dif(A, B), apart(A, B)).
+read_store(Vars, Goals) :-
+    phrase(store_goals(Vars), Goals).
 
-excluded_goals([], _, Tail, Tail).
-excluded_goals([Value|Values], Var, [apart(Var, Value)|Goals], Tail) :-
-    excluded_goals(Values, Var, Goals, Tail).
+store_goals([]) ==>
+    [].
+store_goals([Var|Vars]) ==>
+    excluded(Var),
+    reported_difs(Var),
+    store_goals(Vars).
 
-%!  normalise(+Term) is det.
+excluded(Var) -->
+    (   { get_attr(Var, sscasp_herbrand, Values) }
+    ->  excluded_goals(Values, Var)
+    ;   []
+    ).
+
+excluded_goals([], _) ==>
+    [].
+excluded_goals([Value|Values], Var) ==>
+    [apart(Var, Value)],
+    excluded_goals(Values, Var).
+
+reported_difs(Var) -->
+    (   { get_attr(Var, dif, _) }
+    ->  { dif:attribute_goals(Var, Reported, []) },
+        aparts(Reported)
+    ;   []
+    ).
+
+aparts([]) ==>
+    [].
+aparts([dif(A, B)|Difs]) ==>
+    [apart(A, B)],
+    aparts(Difs).
+
+%!  normalise(?Term) is det.
 %
 %   Move into `∉` whatever the `dif/2` half has come to be able to say.
 %
@@ -369,6 +392,8 @@ excluded_goals([Value|Values], Var, [apart(Var, Value)|Goals], Tail) :-
 %   disequality that has become a prohibited value lands in the set and
 %   the rest goes back where it was.  A node shared by two variables is
 %   reported once and posted once, which is the deduplication wanted.
+
+:- det(normalise/1).
 
 normalise(Term) :-
     term_attvars(Term, Vars),
@@ -392,13 +417,16 @@ repost([dif(A, B)|Goals]) :-
 		 *         THE ATTRIBUTE		*
 		 *******************************/
 
-%!  attr_unify_hook(+Values, +Other) is semidet.
+%!  attr_unify_hook(+Values, ?Other) is semidet.
 %
 %   Three cases, and the third is the one worth knowing about: a variable
 %   bound to a term that is **not ground** cannot keep a set of
 %   prohibited values, because whether it takes one of them depends on
 %   what the term's own variables become.  So the set becomes that many
 %   `dif/2`s and this backing steps aside.
+%
+%   @arg Values is the variable's attribute: the ordered set of ground
+%       values it may not take.
 
 attr_unify_hook(Values, Other) :-
     (   var(Other)
@@ -417,15 +445,13 @@ hand_over([Value|Values], Other) :-
     dif(Other, Value),
     hand_over(Values, Other).
 
-%!  attribute_goals(+X)// is det.
+%!  attribute_goals(@X)// is det.
 %
 %   `X ∉ [a, b]`, and **without deleting it** — see the module comment.
 
-attribute_goals(X) -->
-    { get_attr(X, sscasp_herbrand, Values) },
-    !,
+attribute_goals(X), get_attr(X, sscasp_herbrand, Values) ==>
     [ '∉'(X, Values) ].
-attribute_goals(_) -->
+attribute_goals(_) ==>
     [].
 
 attr_portray_hook(Values, X) :-

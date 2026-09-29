@@ -15,6 +15,7 @@
 :- use_module(library(sscasp/run), [scasp/3]).
 :- use_module(library(sscasp/source), [read_program/2]).
 :- use_module(library(lists), [member/2, memberchk/2, append/3]).
+:- use_module(library(apply), [maplist/3]).
 
 /** <module> The new implementation against the golden corpus
 
@@ -274,7 +275,7 @@ model_answers(Models, Query, Answers) :-
     findall(Key,
             ( member(Model, Models),
               member(Literal, Model),
-              \+ \+ Literal = Query,
+              \+ Literal \= Query,
               copy_term(Literal, Copy),
               model_key([Copy], Key)
             ),
@@ -290,7 +291,7 @@ agrees(File) :-
     model_keys(Ours, Keys).
 
 model_keys(Models, Keys) :-
-    findall(Key, (member(M, Models), model_key(M, Key)), Keys0),
+    maplist(model_key, Models, Keys0),
     msort(Keys0, Keys).
 
 %!  model_key(+Model, -Key) is det.
@@ -298,7 +299,7 @@ model_keys(Models, Keys) :-
 %   A model as a sorted list of literal skeletons.
 
 model_key(Model, Key) :-
-    copy_term(Model, Copy, _),
+    copy_term_nat(Model, Copy),
     skeleton(Copy, Plain, [], _),
     numbervars(Plain, 0, _),
     msort(Plain, Key).

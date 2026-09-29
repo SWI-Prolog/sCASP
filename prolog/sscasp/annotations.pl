@@ -33,13 +33,13 @@
 */
 
 :- module(sscasp_annotations,
-          [ program_annotations/2,      % +Terms, -Annotations
-            annotation/2,               % +Directive, -Annotation
+          [ program_annotations/2,      % @Terms, -Annotations
+            annotation/2,               % @Directive, -Annotation
             argument_domain/4,          % +Annotations, +PI, +ArgNo, -Domain
             domain_kind/3,              % +Annotations, +Name, -Kind
-            description/3,              % +Annotations, +Literal, -Description
-            described/3,                % +Annotations, +Literal, -Text
-            described_actions/3,        % +Annotations, +Literal, -Actions
+            description/3,              % +Annotations, @Literal, -Description
+            described/3,                % +Annotations, @Literal, -Text
+            described_actions/3,        % +Annotations, @Literal, -Actions
             annotation_clauses/2        % +Annotations, -Clauses
           ]).
 :- use_module(ops).
@@ -48,9 +48,10 @@
 :- use_module(describe, [annotation/2 as description_annotation,
                          description_actions/3,
                          description_text/3]).
+:- use_module(mangle, [literal_kind/3]).
 :- use_module(library(error), [existence_error/2, permission_error/3]).
 :- use_module(library(lists), [member/2, nth1/3, append/3]).
-:- use_module(library(apply), [foldl/4, maplist/3]).
+:- use_module(library(apply), [maplist/2, foldl/4, convlist/3]).
 :- use_module(library(pairs), [pairs_keys/2]).
 
 /** <module> The annotation table
@@ -67,8 +68,9 @@ destroys the outer one's state — a live hazard, since a query compiles per
 call.  A value has no such failure mode and can be tested without setting up
 five dynamic predicates first.
 
-    annotations{ domains:    #{day: enum([mon,tue]), hour: range(0,23)},
-                 signatures: #{meeting: [2-[day,hour]]} }
+    annotations{ domains:      #{day: enum([mon,tue]), hour: range(0,23)},
+                 signatures:   #{meeting: [2-[day,hour]]},
+                 descriptions: [...] }
 
 `signatures` is keyed by name with a list of `Arity-Domains`, so `p/1` and
 `p/2` can each have one.
@@ -87,12 +89,19 @@ program defines it, or `:- domain` declares it.  Exactly one, never both —
     rather than a warning, because the whole program is in hand.
 */
 
-%!  program_annotations(+Terms, -Annotations) is det.
+%!  program_annotations(@Terms, -Annotations) is det.
 %
 %   Annotations is the table for the program given as a list of terms —
 %   clauses and directives as read.  Directives that are not annotations
 %   are ignored here; `:- Body` is a global constraint and somebody
 %   else's business.
+%
+%   @arg Annotations is `annotations{domains, signatures, descriptions}`:
+%       the first two as above, and `descriptions` a list of
+%       `description(Kind, PI, Literal, Actions)` terms (see
+%       `describe.pl:annotation/2`), the latest declared first.
+
+:- det(program_annotations/2).
 
 program_annotations(Terms, Annotations) :-
     foldl(collect, Terms,
@@ -102,39 +111,41 @@ program_annotations(Terms, Annotations) :-
     check_annotations(Collected, Defined),
     Annotations = Collected.
 
-collect(Term, In, Out) :-
-    (   Term = (:- Directive),
-        annotation(Directive, Annotation)
-    ->  add_annotation(Annotation, In, Out)
-    ;   Out = In
-    ).
+collect((:- Directive), In, Out), annotation(Directive, Annotation) =>
+    add_annotation(Annotation, In, Out).
+collect(_, In, Out) =>
+    Out = In.
 
-add_annotation(domain(Name, Kind), In, Out) :-
+add_annotation(domain(Name, Kind), In, Out) =>
     (   get_dict(Name, In.domains, _)
     ->  permission_error(redefine, domain, Name)
     ;   put_dict(Name, In.domains, Kind, Domains),
         Out = In.put(domains, Domains)
     ).
-add_annotation(description(Kind, PI, Literal, Format), In, Out) :-
-    Description = description(Kind, PI, Literal, Format),
+add_annotation(Description, In, Out),
+        Description = description(_Kind, _PI, _Literal, _Format) =>
     Out = In.put(descriptions, [Description|In.descriptions]).
-add_annotation(signature(Name/Arity, Domains), In, Out) :-
+add_annotation(signature(PI, Domains), In, Out), PI = Name/Arity =>
     (   get_dict(Name, In.signatures, Arities)
     ->  true
     ;   Arities = []
     ),
     (   memberchk(Arity-_, Arities)
-    ->  permission_error(redefine, signature, Name/Arity)
+    ->  permission_error(redefine, signature, PI)
     ;   put_dict(Name, In.signatures, [Arity-Domains|Arities], Signatures),
         Out = In.put(signatures, Signatures)
     ).
 
-%!  annotation(+Directive, -Annotation) is semidet.
+%!  annotation(@Directive, -Annotation) is semidet.
 %
 %   True when Directive is an annotation of any kind — a domain, a
 %   signature or a description.  One entry point, because a caller
 %   deciding "is this an annotation or a global constraint?" should not
 %   have to know how many kinds there are.
+%
+%   @arg Directive is the body of a `:- Directive` term.
+%   @arg Annotation is `domain(Name, Kind)` or `signature(Name/Arity,
+%       Domains)` (see `domains.pl`), or a `description/4` term.
 
 annotation(Directive, Annotation) :-
     (   domain_annotation(Directive, Annotation)
@@ -142,20 +153,30 @@ annotation(Directive, Annotation) :-
     ;   description_annotation(Directive, Annotation)
     ).
 
-%!  description(+Annotations, +Literal, -Description) is nondet.
+%!  description(+Annotations, @Literal, -Description) is nondet.
 %
 %   A description that applies to Literal, most specific first — a
 %   program may describe `flies(tweety)` as well as `flies(X)`, and the
 %   one naming the individual says more.  "Most specific" is *later
 %   declaration first*, which is the order a reader would expect: a
 %   description written after another is the more particular case.
+%
+%   Only descriptions of the same kind and predicate are tried, which is
+%   what the first two fields are for: a renderer asks once per literal
+%   it prints, and most of the table is about something else.
+%
+%   @arg Description is a `description(Kind, PI, Literal, Actions)` term
+%       whose Literal unifies with the given one.
 
 description(Annotations, Literal, Description) :-
+    literal_kind(Literal, Kind, Head),
+    callable(Head),
+    functor(Head, Name, Arity),
+    Description = description(Kind, Name/Arity, Described, _),
     member(Description, Annotations.descriptions),
-    Description = description(_, _, Described, _),
-    \+ \+ Described = Literal.
+    \+ Described \= Literal.
 
-%!  described(+Annotations, +Literal, -Text) is semidet.
+%!  described(+Annotations, @Literal, -Text) is semidet.
 %
 %   Literal said in words, by the first description that fits.  Fails
 %   when nothing describes it, which is the ordinary case — a program
@@ -166,7 +187,7 @@ described(Annotations, Literal, Text) :-
     description_text(Description, Literal, Text),
     !.
 
-%!  described_actions(+Annotations, +Literal, -Actions) is semidet.
+%!  described_actions(+Annotations, @Literal, -Actions) is semidet.
 %
 %   The same, taken apart: a list of `text/1` and `@(Value:Type)`, or
 %   `html(Spec)`.  This is what a renderer wants — `html.pl` emits a
@@ -178,18 +199,18 @@ described_actions(Annotations, Literal, Actions) :-
     description_actions(Description, Literal, Actions),
     !.
 
-%!  program_predicates(+Terms, -Defined) is det.
+%!  program_predicates(@Terms, -Defined) is det.
 %
 %   The predicate indicators the program defines.  A global constraint
 %   defines nothing, and neither does an annotation.
 
 program_predicates(Terms, Defined) :-
-    findall(PI, (member(T, Terms), defines(T, PI)), PIs),
+    convlist(defines, Terms, PIs),
     sort(PIs, Defined).
 
-defines((:- _), _) :- !, fail.
-defines((Head :- _), PI) :- !, head_pi(Head, PI).
-defines(Fact, PI) :- head_pi(Fact, PI).
+defines((:- _), _) => fail.
+defines((Head :- _), PI) => head_pi(Head, PI).
+defines(Fact, PI) => head_pi(Fact, PI).
 
 head_pi(Head, Name/Arity) :-
     callable(Head),
@@ -225,8 +246,9 @@ check_signature_arity(Declared, Defined, Name, Arity-Domains) :-
     ),
     maplist(check_domain_exists(Declared, Defined), Domains).
 
-check_domain_exists(_, _, any) :- !.
-check_domain_exists(Declared, Defined, Name) :-
+check_domain_exists(_, _, any) =>
+    true.
+check_domain_exists(Declared, Defined, Name) =>
     (   memberchk(Name, Declared)
     ->  true
     ;   memberchk(Name/1, Defined)
@@ -244,6 +266,9 @@ check_domain_exists(Declared, Defined, Name) :-
 %   predicate has no signature, or when the position was left `_`, so a
 %   caller can read "no domain here" as failure rather than testing for
 %   `any`.
+%
+%   @arg Domain is the domain's name, which is the name of the unary
+%       predicate that holds of its elements.
 
 argument_domain(Annotations, Name/Arity, ArgNo, Domain) :-
     get_dict(Name, Annotations.signatures, Arities),
@@ -267,6 +292,8 @@ domain_kind(Annotations, Name, Kind) :-
 %   The clauses the declarations bring into being: the facts of each
 %   enumeration and the guard of each range.  A signature contributes
 %   none — it names domains rather than creating them.
+
+:- det(annotation_clauses/2).
 
 annotation_clauses(Annotations, Clauses) :-
     dict_pairs(Annotations.domains, _, Pairs),

@@ -33,9 +33,9 @@
 */
 
 :- module(sscasp_dual,
-          [ negate_literal/2,           % ?Literal, ?Negated
-            clause_duals/2,             % +Body, -Duals
-            body_variables/3            % +Head, +Body, -BodyOnly
+          [ negate_literal/2,           % @Literal, -Negated
+            clause_duals/2,             % @Body, -Duals
+            body_variables/3            % @Head, @Body, -BodyOnly
           ]).
 :- use_module(ops).
 :- use_module(library(lists), [append/3]).
@@ -101,23 +101,24 @@ it expands `#<>` when it applies the constraint.  Keeping the dual to one
 literal per literal is what makes the clause count predictable.
 */
 
-%!  negate_literal(?Literal, ?Negated) is det.
+%!  negate_literal(@Literal, -Negated) is det.
 %
 %   Works in both directions, since every pair is symmetric — which is
 %   worth having, because the negation of a dual is the original and
 %   something will want to read one back.
 
-negate_literal(Var, _) :-
-    var(Var),
-    !,
-    instantiation_error(Var).
-negate_literal(not(Goal), Goal) :- !.
-negate_literal(Goal, Negated) :-
-    dual_operator(Goal, Negated),
-    !.
-negate_literal(Goal, not(Goal)).
+:- det(negate_literal/2).
 
-%!  dual_operator(?Goal, ?Dual) is semidet.
+negate_literal(Var, _), var(Var) =>
+    instantiation_error(Var).
+negate_literal(not(Goal), Negated) =>
+    Negated = Goal.
+negate_literal(Goal, Negated), dual_operator(Goal, Dual) =>
+    Negated = Dual.
+negate_literal(Goal, Negated) =>
+    Negated = not(Goal).
+
+%!  dual_operator(@Goal, -Dual) is semidet.
 %
 %   The built-ins whose negation is another built-in rather than `not`.
 %   Each pair appears once and is used both ways.
@@ -162,7 +163,7 @@ dual_pair('∈', '∉').
 		 *          A CLAUSE		*
 		 *******************************/
 
-%!  clause_duals(+Body, -Duals) is det.
+%!  clause_duals(@Body, -Duals) is det.
 %
 %   Duals is one body per literal of Body, each a list of goals: the
 %   literals before it, then its negation.  Body is a list of goals, as
@@ -173,16 +174,18 @@ dual_pair('∈', '∉').
 %   can make it fail and its negation has no way to succeed.  `edge(X,Y).`
 %   makes `not edge(X,Y)` fail for every X and Y.
 
+:- det(clause_duals/2).
+
 clause_duals(Body, Duals) :-
     clause_duals(Body, [], Duals).
 
-clause_duals([], _, []).
-clause_duals([Literal|Literals], Prefix, Duals) :-
-    no_dual(Literal),
-    !,
+clause_duals([], _, Duals) =>
+    Duals = [].
+clause_duals([Literal|Literals], Prefix, Duals), no_dual(Literal) =>
     append(Prefix, [Literal], NextPrefix),
     clause_duals(Literals, NextPrefix, Duals).
-clause_duals([Literal|Literals], Prefix, [Dual|Duals]) :-
+clause_duals([Literal|Literals], Prefix, Duals0) =>
+    Duals0 = [Dual|Duals],
     negate_literal(Literal, Negated),
     append(Prefix, [Negated], Dual),
     append(Prefix, [Literal], NextPrefix),
@@ -202,7 +205,7 @@ no_dual(Literal) :-
 		 *         BODY VARIABLES	*
 		 *******************************/
 
-%!  body_variables(+Head, +Body, -BodyOnly) is det.
+%!  body_variables(@Head, @Body, -BodyOnly) is det.
 %
 %   BodyOnly is the variables of Body that do not occur in Head, in the
 %   order they first appear.  Negating "there is a Y such that ..." gives
@@ -211,6 +214,10 @@ no_dual(Literal) :-
 %
 %   Head is the *abstracted* head, whose arguments are distinct
 %   variables, so this is exactly the set the dual must quantify.
+%
+%   @arg Body is a list of goals, as clause_duals/2 takes it.
+
+:- det(body_variables/3).
 
 body_variables(Head, Body, BodyOnly) :-
     term_variables(Head, HeadVars),
@@ -218,37 +225,40 @@ body_variables(Head, Body, BodyOnly) :-
     quantified(Body, Bound, HeadVars),
     exclude_vars(BodyVars, Bound, BodyOnly).
 
-%!  quantified(+Body, -Bound, +Tail) is det.
+%!  quantified(@Body, -Bound, @Tail) is det.
 %
 %   The variables a `forall/2` the *author wrote* already binds.  They
 %   are not body-only variables to quantify: the clause says what it
 %   means about them, and the dual of `forall(X, g(X))` is
 %   "for **some** X, not g(X)" — which is a variable left free, not
 %   another quantifier.
+%
+%   @arg Bound is a difference list ending in Tail; body_variables/3
+%       passes the head's variables as Tail, so Bound is everything
+%       not to quantify.
 
-quantified(Term, Vars, Tail) :-
-    (   var(Term)
-    ->  Vars = Tail
-    ;   Term = forall(Var, Goal)
-    ->  Vars = [Var|More],
-        quantified(Goal, More, Tail)
-    ;   Term = [Goal|Goals]
-    ->  quantified(Goal, Vars, Middle),
-        quantified(Goals, Middle, Tail)
-    ;   Term = (A, B)
-    ->  quantified(A, Vars, Middle),
-        quantified(B, Middle, Tail)
-    ;   Term = not(Goal)
-    ->  quantified(Goal, Vars, Tail)
-    ;   Vars = Tail
-    ).
+quantified(Term, Vars, Tail), var(Term) =>
+    Vars = Tail.
+quantified(forall(Var, Goal), Vars, Tail) =>
+    Vars = [Var|More],
+    quantified(Goal, More, Tail).
+quantified([Goal|Goals], Vars, Tail) =>
+    quantified(Goal, Vars, Middle),
+    quantified(Goals, Middle, Tail).
+quantified((A, B), Vars, Tail) =>
+    quantified(A, Vars, Middle),
+    quantified(B, Middle, Tail).
+quantified(not(Goal), Vars, Tail) =>
+    quantified(Goal, Vars, Tail).
+quantified(_, Vars, Tail) =>
+    Vars = Tail.
 
-exclude_vars([], _, []).
-exclude_vars([Var|Vars], Exclude, Rest) :-
-    member_eq(Var, Exclude),
-    !,
+exclude_vars([], _, Rest) =>
+    Rest = [].
+exclude_vars([Var|Vars], Exclude, Rest), member_eq(Var, Exclude) =>
     exclude_vars(Vars, Exclude, Rest).
-exclude_vars([Var|Vars], Exclude, [Var|Rest]) :-
+exclude_vars([Var|Vars], Exclude, Rest0) =>
+    Rest0 = [Var|Rest],
     exclude_vars(Vars, Exclude, Rest).
 
 member_eq(X, [Y|T]) :-

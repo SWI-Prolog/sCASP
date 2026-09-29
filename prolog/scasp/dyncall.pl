@@ -291,11 +291,69 @@ scasp_clause(Callees, source(ClauseRef, M:(Head:- Body))) :-
 %
 %   Multifile clauses use the I_CONTEXT instruction, causing the body to
 %   be decompiled as Module:RawBody. s(CASP) does not deal with that.
+%
+%   Under `-O`, the compiler inlines forall/2, once/1 and ignore/1, and
+%   clause/2 returns what it made of them: forall(Cond, Action) becomes
+%   `\+ (Cond, \+ Action)` with the conjunctions flattened, once(G)
+%   becomes `(G->true)` and ignore(G) `(G->true;true)`, where a variable
+%   G is wrapped in call/1.  We put them back, so a program reads the
+%   same with or without `-O`.  The same shapes written by hand are read
+%   back too, which does not change what they mean to Prolog.
 
 unqualify_body(M, M:Body0, Body) =>
-    Body = Body0.
+    decompiled(Body0, Body).
 unqualify_body(_, Body0, Body) =>
-    Body = Body0.
+    decompiled(Body0, Body).
+
+decompiled(Var, Goal), var(Var) =>
+    Goal = Var.
+decompiled(\+ Conj, Goal), last_negated(Conj, Cond0, Action0) =>
+    decompiled(Cond0, Cond),
+    decompiled(Action0, Action),
+    Goal = forall(Cond, Action).
+decompiled((G0->true;true), Goal) =>
+    inlined_goal(G0, G1),
+    decompiled(G1, G),
+    Goal = ignore(G).
+decompiled((G0->true), Goal) =>
+    inlined_goal(G0, G1),
+    decompiled(G1, G),
+    Goal = once(G).
+decompiled((A0,B0), Goal) =>
+    decompiled(A0, A),
+    decompiled(B0, B),
+    Goal = (A,B).
+decompiled(not(A0), Goal) =>
+    decompiled(A0, A),
+    Goal = not(A).
+decompiled(findall(T,G0,L), Goal) =>
+    decompiled(G0, G),
+    Goal = findall(T,G,L).
+decompiled(forall(C0,A0), Goal) =>
+    decompiled(C0, C),
+    decompiled(A0, A),
+    Goal = forall(C,A).
+decompiled(M:G0, Goal) =>
+    decompiled(G0, G),
+    Goal = M:G.
+decompiled(Goal0, Goal) =>
+    Goal = Goal0.
+
+inlined_goal(call(G0), G), var(G0) =>
+    G = G0.
+inlined_goal(G0, G) =>
+    G = G0.
+
+%   `(C1, C2, \+ A)` is `Cond = (C1, C2)`, `Action = A`.
+
+last_negated((C, Rest), Cond, Action) :-
+    nonvar(Rest),
+    (   Rest = (\+ Action0)
+    ->  Cond = C,
+        Action = Action0
+    ;   last_negated(Rest, Cond1, Action),
+        Cond = (C, Cond1)
+    ).
 
 qualify(source(Ref, Clause), Q) =>
     Q = source(Ref, QClause),
@@ -372,7 +430,8 @@ global_constraint(source(Ref, M:(:- Body))) :-
     ),
     current_predicate(M:(-)/0),
     \+ predicate_property(M:(-), imported_from(_)),
-    @(clause(-, Body, Ref), M).
+    @(clause(-, Body0, Ref), M),
+    unqualify_body(M, Body0, Body).
 
 %!  predicate_callees(:Head, -Callees) is det.
 %
@@ -403,7 +462,8 @@ predicate_callees_nc(Head, Callees) :-
 
 predicate_calls(Head0, PI) :-
     generalise(Head0, M:Head),
-    @(clause(Head, Body), M),
+    @(clause(Head, Body0), M),
+    unqualify_body(M, Body0, Body),
     body_calls(Body, M, Callee),
     pi_head(PI, Callee).
 

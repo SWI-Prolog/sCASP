@@ -111,12 +111,12 @@ test(shown_predicates) :-
 
 test(abducibles) :-
     read_temp("#abducible q(1).\np(1).\n", S),
-    assertion(S.abducible == [q(1)]),
+    get_dict(abducible, S, Abducible),  % S.abducible: a prefix operator here
+    assertion(Abducible == [q(1)]),
     assertion(S.terms == [(:- abducible(q(1))), p(1)]).
 
-%   That is what lets `pred` mean two things without ambiguity: the
-%   natural-language template arrives wrapped in `#/1`, the
-%   argument-domain signature in `:-/1`.
+%   `pred` means two things and the `::` tells them apart: a template
+%   has one, a signature does not, whichever prefix it is written with.
 
 test(the_two_spellings_of_pred_do_not_collide) :-
     read_temp("#pred p(X) :: 'text'.\n:- pred p(day).\n:- domain day = [mon].\np(mon).\n", S),
@@ -124,12 +124,24 @@ test(the_two_spellings_of_pred_do_not_collide) :-
     assertion(memberchk((:- pred p(day)), S.terms)),
     assertion(memberchk((:- domain day = [mon]), S.terms)).
 
+test(a_hash_pred_without_text_is_a_signature) :-
+    read_temp("#pred p(day).\n:- domain day = [mon].\np(mon).\n", S),
+    assertion(S.templates == []),
+    assertion(memberchk((:- pred p(day)), S.terms)).
+
 %   One that parses but is not implemented.  `#compute` is s(CASP)'s,
 %   and saying so beats treating it as a clause.
 
 test(an_unhandled_directive_is_refused,
      [ throws(error(existence_error(scasp_directive, _), _)) ]) :-
     read_temp("#compute foo.\n", _).
+
+%   A variable read as a term is not a query, however well it unifies
+%   with one.
+
+test(a_variable_term_is_refused,
+     [ throws(error(instantiation_error, _)) ]) :-
+    read_temp("p(1).\nX.\n", _).
 
 :- end_tests(source_directives).
 
@@ -167,5 +179,31 @@ test(the_query_survives_the_include) :-
     included(File),
     read_program(File, S),
     assertion(S.query \== none).
+
+%   Two files that include the same third: its clauses once, not once per
+%   file that includes it.
+
+test(a_file_included_twice_is_read_once) :-
+    tmp_file(includes, Dir),
+    make_directory(Dir),
+    call_cleanup(
+        ( write_file(Dir, 'c.incl', "c(1).\n"),
+          write_file(Dir, 'a.incl', "#include('c.incl').\n"),
+          write_file(Dir, 'b.incl', "#include('c.incl').\n"),
+          write_file(Dir, 'main.pl',
+                     "#include('a.incl').\n#include('b.incl').\n?- c(X).\n"),
+          directory_file_path(Dir, 'main.pl', Main),
+          read_program(Main, S)
+        ),
+        delete_directory_and_contents(Dir)),
+    assertion(S.terms == [c(1)]),
+    length(S.files, Files),
+    assertion(Files == 4).
+
+write_file(Dir, Name, Text) :-
+    directory_file_path(Dir, Name, File),
+    setup_call_cleanup(open(File, write, Out),
+                       write(Out, Text),
+                       close(Out)).
 
 :- end_tests(source_includes).

@@ -5,6 +5,7 @@
 :- use_module(library(sscasp/ops)).
 :- use_module(library(sscasp/emit)).
 :- use_module(library(sscasp/compile), [compile_program/3]).
+:- use_module(library(sscasp/dualise), [builtin_indicator/1, translate_goal/3]).
 :- use_module(library(plunit)).
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [member/2, memberchk/2, append/3]).
@@ -222,7 +223,7 @@ test(a_builtin_does_not_advance_the_proof) :-
     assertion(In == S0),
     assertion(Out == S).
 
-%   `\=` becomes `dif/2` — the same relation, stated so that it
+%   `\=` becomes `apart/2` — the same relation, stated so that it
 %   *constrains* an unbound argument rather than merely succeeding on it.
 %   That is what makes the dual of `p(0)` answer `not p(X)` with the
 %   values X may take rather than with "yes".
@@ -241,6 +242,24 @@ test(fail_stays_fail) :-
     once(clause_for(Clauses, 'm$dual.1$edge$2', Clause)),
     Clause = (_ :- Body),
     assertion(Body = (_ = _, fail)).
+
+%   Three tables say what a built-in is: `dualise.pl` passes it through,
+%   `dual.pl` pairs it with its negation, and `emit.pl` gives it a form
+%   to run.  They drifted once — `not X = a` in a body was passed through
+%   and had nothing to run — so every built-in the compiler passes
+%   through, and its negation, must reach something `body/6` accepts.
+%   The quantifiers carry goals and are covered by their own tests.
+
+test(every_builtin_and_its_negation_can_run,
+     [ forall(( builtin_indicator(Name/Arity),
+                \+ memberchk(Name/Arity, [forall/2, for_domain/3])
+              ))
+     ]) :-
+    functor(Goal, Name, Arity),
+    forall(member(G, [Goal, not(Goal)]),
+           ( translate_goal(m, G, Translated),
+             assertion(catch(body(Translated, m, _, _, _, _), _, fail))
+           )).
 
 :- end_tests(emit_builtins).
 

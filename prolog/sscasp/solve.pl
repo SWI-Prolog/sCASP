@@ -33,28 +33,34 @@
 */
 
 :- module(sscasp_solve,
-          [ check/7,                    % +Goal, +Neg, +Pol, +Anc, +S0,
+          [ check/7,                    % ?Goal, ?Neg, +Pol, ?Anc, ?S0,
                                         %   -Anc1, -Action
-            proved/4,                   % +Anc1, +S0, +S2, -S
-            done/4,                     % +Goal, +Action, +S0, -S
-            dcc/4,                      % +Goal, +Anc, +S, +Rules
-            for_domain/6,               % +Var, :Gen, :Goal, +Anc, +S0, -S
-            forall/5,                   % +Vars, :Goal, +Anc, +S0, -S
-            call_goal/4,                % :Goal, +Anc, +S0, -S
+            proved/4,                   % @Anc1, @S0, @S2, -S
+            done/4,                     % @Goal, +Action, @S0, -S
+            dcc/4,                      % @Goal, @Anc, @S, @Rules
+            for_domain/6,               % @Var, :Gen, :Goal, ?Anc, ?S0, -S
+            forall/5,                   % @Vars, :Goal, ?Anc, ?S0, -S
+            call_goal/4,                % :Goal, ?Anc, ?S0, -S
             domain_check/3,             % :Goal, +Domain, +PI
-            findall_/6,                 % +Template, :Goal, -List, +Anc,
-                                        %   +S0, -S
-            sld_goal/5,                 % +Goal, +Type, +Anc, +S0, -S
-            model/2,                    % +Proof, -Model
-            justification/2,            % +Proof, -Forest
-            children/3,                 % +S2, +S0, -Children
+            findall_/6,                 % @Template, :Goal, ?List, @Anc,
+                                        %   @S0, -S
+            sld_goal/5,                 % ?Goal, +Type, ?Anc, ?S0, -S
+            model/2,                    % @Proof, -Model
+            justification/2,            % @Proof, -Forest
+            children/3,                 % @S2, @S0, -Children
             empty_proof/1,              % -Proof
             table_begin/0
           ]).
+
+%   `dcc/4`, `for_domain/6`, `forall/5`, `domain_check/3`, `findall_/6`
+%   and `sld_goal/5` are called by the compiled program only, through
+%   `runtime.pl`.
+
 :- use_module(ops).
-:- use_module(mangle, [demangle/2]).
+:- use_module(mangle, [demangle/2, kind_literal/3]).
 :- use_module(sld, [sld_proof/3]).
-:- use_module(library(lists), [member/2, append/3, same_length/2, nth1/3]).
+:- use_module(library(lists), [member/2, append/2, append/3, same_length/2, nth1/3]).
+:- use_module(library(occurs), [occurrences_of_var/3]).
 :- use_module(library(pairs), [pairs_keys_values/3]).
 :- use_module(library(clpq), [dump/3, entailed/1, inf/2, sup/2, {}/1]).
 
@@ -66,8 +72,8 @@
 %   same, in `scasp/clp/clpq.pl`.
 
 :- use_module(library(clpr), []).
-                                        % also: the emitted program calls {}/1,
-                                        % via run.pl importing clpq into its module
+                                        % the emitted program's {}/1 is clpq's,
+                                        % re-exported by runtime.pl
 %   The Herbrand store is `herbrand.pl`'s: `dif/2` and `∉` behind one
 %   interface, so that nothing here has to know which of the two holds a
 %   given disequality.  `apart/2` is both the constraint's name in a
@@ -77,6 +83,7 @@
                           read_store/2, projection/4
                         ]).
 :- use_module(library(apply), [maplist/2, maplist/3, include/3, foldl/4]).
+:- use_module(library(apply_macros)).
 :- use_module(library(assoc), [empty_assoc/1, get_assoc/3, put_assoc/4]).
 
 %   With the imports and before the first clause, because a
@@ -90,7 +97,9 @@
 %   it: it applies when a clause is compiled and those are `assertz/1`-ed.
 
 :- meta_predicate
-    call_goal(0, +, +, -).
+    call_goal(0, +, +, -),
+    discarded(0, ?, -),
+    collected(?, 0, -).
 
 
 /** <module> The solver's runtime
@@ -138,9 +147,10 @@ sorted — so it is not carried separately either.  That is the property
 `doc/design-next.md` open question 5 settles: the model is a function of the
 proof, so representing the proof represents the model.
 
-`Status` says how the literal was established: `proof` from its clauses, `chs`
-by the coinductive hypothesis, `proved` by an earlier branch.  The last two
-have no children, and showing them is the point — a justification that dropped
+`Status` says how the literal was established: `proof` from its clauses,
+`assumed` from its clauses by a proof that rests on the coinductive
+hypothesis, `chs` by the coinductive hypothesis itself, `proved` by an earlier
+branch.  The last two have no children, and showing them is the point — a justification that dropped
 them would claim a literal was proved from nothing.
 
 ## Counting negations
@@ -152,14 +162,14 @@ undercount: dualising `q :- not p` turns `not q`'s body into a positive call to
 `p`, so one of the two negations in `p :- not q. q :- not p.` is consumed by
 the compilation and never appears as a frame.
 
-## Three cases, not six
+## Four rules, not six
 
 | | |
 |---|---|
 | the goal's negation unifies with an ancestor or a proved literal | fail |
 | an ancestor unifies with the goal across **0** transitions | by polarity — below |
 | an ancestor unifies with the goal across an **even, non-zero** number | succeed coinductively |
-| the goal is ground and already proved | succeed |
+| the goal is ground and already proved, **from no assumption** | succeed |
 
 **There is no odd case.**  Two frames of the same polarity have an even number
 of transitions between them by construction, so an ancestor that unifies with
@@ -189,7 +199,7 @@ what it is trying to prove supports nothing — seen from either side.
 		 *         THE CHECK		*
 		 *******************************/
 
-%!  check(+Goal, +Neg, +Pol, +Anc, +S0, -Anc1, -Action) is semidet.
+%!  check(?Goal, ?Neg, +Pol, ?Anc, ?S0, -Anc1, -Action) is semidet.
 %
 %   Decide what to do with Goal before expanding it.  Action is `expand`
 %   when its clauses should be tried, in which case Anc1 is the chain its
@@ -222,13 +232,23 @@ what it is trying to prove supports nothing — seen from either side.
 %   it costs 4% of the differential sweep, where dropping it altogether
 %   costs 19.5 s against 217 s.  So the rule is about the proof rather
 %   than about the reuse, and `proved/4` carries the answer.
+%
+%   @arg Neg is Goal's negation, mangled as Goal is: the literal whose
+%       presence among the ancestors or in the proof contradicts Goal.
+%   @arg Pol is Goal's polarity: `+` for a literal, classically negated
+%       or not, and `-` for a dual, `not p`.
+%   @arg Anc is the ancestor chain, innermost first: a list of
+%       `a(Goal, Neg, Pol)` frames.
+%   @arg S0 is the proof so far, `proof(Forest, Index)`: Forest is a
+%       list of `n(Goal, Status, Children)` nodes, newest first, and
+%       Index an assoc from `Name/Arity` to a list of `Status-Goal`
+%       pairs for every node in the forest, at any depth.
 
-check(Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
+check(Goal, Neg, Pol, Anc, S0, Anc1, Action),
     nb_current(sscasp_table, Table),
-    Table \== [],
-    !,
+    Table \== [] =>
     check_tabled(Table, Goal, Neg, Pol, Anc, S0, Anc1, Action).
-check(Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
+check(Goal, Neg, Pol, Anc, S0, Anc1, Action) =>
     consistent(Neg, Anc, S0),
     (   ancestor(Anc, Goal, Pol, Negations)
     ->  loop_succeeds(Negations, Pol),
@@ -242,7 +262,7 @@ check(Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
         Anc1 = [a(Goal, Neg, Pol)|Anc]
     ).
 
-%!  consistent(+Neg, +Anc, +S0) is semidet.
+%!  consistent(?Neg, ?Anc, ?S0) is semidet.
 %
 %   Keep the goal from contradicting something already assumed, whether
 %   an open ancestor or something proved.  Both count: a model holding
@@ -265,32 +285,46 @@ check(Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
 %   is compared first.  That keeps the common case a scan and posts no
 %   constraint at all.
 
-consistent(Neg, Anc, proof(_, Index)) :-
+consistent(Neg, Anc, S0) :-
+    consistent(Neg, Anc, none, S0).
+
+%   The walk is shared with the tabling experiment, which needs to know
+%   the deepest ancestor a check consulted.  `Tracker` is `none`, or
+%   `depth(D)` for the depth of the frame at the head of the list; see
+%   consulted/1 and below/2 under TABLING.
+
+consistent(Neg, Anc, Tracker, proof(_, Index)) :-
     functor(Neg, Name, Arity),
-    consistent_ancestors(Anc, Name, Arity, Neg),
+    foldl(ancestor_apart(Name, Arity, Neg), Anc, Tracker, _),
     relatives(Name/Arity, Index, Relatives),
-    consistent_relatives(Relatives, Neg).
+    maplist(relative_apart(Tracker, Neg), Relatives).
 
 %   The ancestors are a list because they are one: the chain is as deep
 %   as the proof and indexing it would cost more than walking it.
 
-consistent_ancestors([], _, _, _).
-consistent_ancestors([a(Goal, _, _)|T], Name, Arity, Neg) :-
+ancestor_apart(Name, Arity, Neg, a(Goal, _, _), Tracker, Tracker1) :-
     (   functor(Goal, Name, Arity)
-    ->  apart(Goal, Neg)
+    ->  consulted_if_unifiable(Tracker, Goal, Neg),
+        apart(Goal, Neg)
     ;   true
     ),
-    consistent_ancestors(T, Name, Arity, Neg).
+    below(Tracker, Tracker1).
 
-consistent_relatives([], _).
-consistent_relatives([_-Goal|T], Neg) :-
-    apart(Goal, Neg),
-    consistent_relatives(T, Neg).
+relative_apart(Tracker, Neg, _-Goal) :-
+    (   Tracker == none
+    ->  true
+    ;   consulted_if_unifiable(depth(0), Goal, Neg)
+    ),
+    apart(Goal, Neg).
 
 %!  relatives(+PI, +Index, -Goals) is det.
 %
 %   The goals proved under this functor.  Nothing else can contradict a
 %   literal, so nothing else is looked at.
+%
+%   @arg PI is `Name/Arity`.
+%   @arg Index is the proof's index, as in check/7.
+%   @arg Goals is a list of `Status-Goal` pairs, not bare goals.
 
 relatives(PI, Index, Goals) :-
     (   get_assoc(PI, Index, Goals)
@@ -298,12 +332,14 @@ relatives(PI, Index, Goals) :-
     ;   Goals = []
     ).
 
-%!  proved_goal(+Proof, +Goal) is semidet.
+%!  proved_goal(@Proof, @Goal) is semidet.
 %
 %   Goal is already proved, anywhere in the forest.  A literal proved
 %   inside a sub-proof is proved: it makes no difference to a model which
 %   branch established it, which is why the index holds every node and
 %   not only the ones still at the top level.
+%
+%   @arg Proof is `proof(Forest, Index)`, as in check/7.
 
 proved_goal(proof(_, Index), Goal) :-
     functor(Goal, Name, Arity),
@@ -323,7 +359,7 @@ memberchk_eq(Goal, [G|T]) :-
     ;   memberchk_eq(Goal, T)
     ).
 
-%!  ancestor(+Anc, +Goal, +Pol, -Negations) is semidet.
+%!  ancestor(?Anc, ?Goal, +Pol, -Negations) is semidet.
 %
 %   The nearest ancestor the goal makes a **loop** with, and the number
 %   of polarity transitions on the path from it down to the goal.
@@ -337,43 +373,51 @@ memberchk_eq(Goal, [G|T]) :-
 %   `holdsAt(spilling, T)` came to have no proof in any of the event
 %   calculus programs.
 %
-%   So a loop is one of two things, which is what
-%   `solve.pl:check_parents/4` tests as well:
+%   So a loop is one of two things, which is what upstream's
+%   `prolog/scasp/solve.pl:check_parents/3` tests as well:
 %
 %     - the goal is a **variant** of the ancestor — the same question
 %       with the variables renamed, which is a loop whichever polarity
-%       it is on and whatever the negation count;
+%       it is on and whatever the negation count (same_question/2);
 %     - the ancestor **subsumes** the goal, and the path crosses no
 %       negation, in which case the goal is an instance of something
-%       already being proved from itself and so unfounded.  Upstream
-%       reads it the same way, in `type_loop_fail_pos/2`.
+%       already being proved from itself and so unfounded
+%       (instance_of/2).  Upstream reads it the same way, in
+%       `type_loop_fail_pos/2`.
+%
+%   Both compare the constraint stores as well as the terms.
 %
 %   Anything else is an ordinary call and the walk goes on past it.
+%
+%   @arg Pol is Goal's polarity, `+` or `-`, as in check/7.
 
 ancestor(Anc, Goal, Pol, Negations) :-
-    ancestor_(Anc, Goal, Pol, 0, Negations).
+    ancestor_(Anc, none, Goal, Pol, 0, Negations).
 
-ancestor_([a(A, _, AP)|T], Goal, Pol, N0, N) :-
+ancestor_([a(A, _, AP)|T], Tracker, Goal, Pol, N0, N) :-
     transition(AP, Pol, N0, N1),
     (   loop(A, Goal, N1, Pol)
     ->  A = Goal,
-        N = N1
-    ;   ancestor_(T, Goal, AP, N1, N)
+        N = N1,
+        consulted(Tracker)
+    ;   below(Tracker, Tracker1),
+        ancestor_(T, Tracker1, Goal, AP, N1, N)
     ).
 
-loop(A, Goal, _, _) :-
-    same_question(A, Goal),
-    !.
-loop(A, Goal, 0, +) :-
-    subsumes_term(A, Goal).
+loop(A, Goal, _, _), same_question(A, Goal) =>
+    true.
+loop(A, Goal, 0, +) =>
+    instance_of(A, Goal).
+loop(_, _, _, _) =>
+    fail.
 
-%!  same_question(+A, +Goal) is semidet.
+%!  same_question(@A, @Goal) is semidet.
 %
 %   True when Goal is the ancestor's question again: the same literal
-%   with its variables renamed, asking no more of the dense store than
-%   the ancestor already did.
+%   with its variables renamed, asking no more of the constraint stores
+%   than the ancestor already did.
 %
-%   Both halves are needed and `=@=` alone is neither.  **It sees
+%   `=@=` alone does not say that, in either direction.  **It sees
 %   attributes**: `f(X) =@= f(_)` is false once X carries a constraint,
 %   and two variables carrying *different* ones are never variants — so
 %   a recursion whose steps constrain their own variable never looks like
@@ -384,96 +428,123 @@ loop(A, Goal, 0, +) :-
 %   the same pair one step earlier in time, for ever: the ancestor chain
 %   reaches **6,677** frames of it.
 %
-%   Ignoring the store instead is wrong the other way, and `ancestor/4`
-%   shows where: it unifies the goal with the ancestor it matched, and a
-%   goal that is *less* constrained would be narrowed by one that is
-%   more.  That unification then simply fails, so the loop is not
-%   reported either.
+%   Ignoring the stores instead is wrong the other way, and `ancestor/4`
+%   shows where: it unifies the goal with the ancestor it matched, so a
+%   goal that is *less* constrained would be narrowed to the ancestor's
+%   region and then failed as a loop — losing every answer outside it.
+%   So the terms must be variants with the stores set aside, and the
+%   ancestor's stores must be entailed by the goal's (store_instance/2).
+%   That is upstream's rule (`prolog/scasp/clp/clpq.pl:entail_terms/2`).
 %
-%   So the ancestor's store must be **entailed** by the goal's, which is
-%   exactly what makes that unification add nothing.  It is upstream's
-%   rule (`prolog/scasp/clp/clpq.pl:entail_terms/2`), and the order
-%   matters for cost: the term comparison is what produces a candidate at
-%   all, and only a candidate is worth a projection.  The comparison is
-%   itself asked once per *ancestor* per goal, so the functors are
-%   compared first and an ordinary `=@=` is tried before the one that has
-%   to take the store apart — the chain is long and almost none of it
-%   looks like the goal.
+%   The order matters for cost.  This is asked once per *ancestor* per
+%   goal and almost none of the chain looks like the goal, so the
+%   functors are compared first, an ordinary `=@=` is tried before the
+%   comparison that has to take the stores apart, and `within/2` rejects
+%   most of what is left on bounds alone.
 
 same_question(A, Goal) :-
-    functor(A, Name, Arity),
-    functor(Goal, Name, Arity),
     (   A =@= Goal
-    ->  true                    % identical stores: nothing left to ask
-    ;   \+ \+ ( term_attvars(A-Goal, Vars),
-                 maplist(del_attrs, Vars),
-                 A =@= Goal ),
+    ->  true				% identical stores: nothing left to ask
+    ;   functor(A, Name, Arity),	% quick prefilter
+        functor(Goal, Name, Arity),
+        \+ \+ ( term_attvars(A-Goal, Vars),
+                maplist(del_attrs, Vars),
+                A =@= Goal ),
+        term_variables(Goal, GoalVars),
+        term_variables(A, AncestorVars),
+        within(GoalVars, AncestorVars),
+        store_instance(A, Goal)
+    ).
+
+%!  instance_of(@A, @Goal) is semidet.
+%
+%   True when Goal is an instance of the ancestor A: A subsumes it as a
+%   term *and* adds nothing to its stores.  `subsumes_term/2` on its own
+%   ignores the stores — a free variable against the ancestor's
+%   `{X > 3}` is bound, not subsumed, and so is one against `X ∉ [b]` —
+%   and taking such a goal for an instance fails it as unfounded where
+%   it is a more general question with answers of its own.
+
+instance_of(A, Goal) :-
+    term_attvars(A, AncestorVars),
+    (   AncestorVars == []
+    ->  subsumes_term(A, Goal)		% nothing for A to add
+    ;   \+ \+ ( term_attvars(Goal, GoalVars),
+                maplist(del_attrs, AncestorVars),
+                maplist(del_attrs, GoalVars),
+                subsumes_term(A, Goal) ),
         herbrand_instance(A, Goal),
         dense_instance(A, Goal)
     ).
 
-%!  herbrand_instance(+A, +Goal) is semidet.
+%!  store_instance(@A, @Goal) is semidet.
 %
-%   True when unifying the ancestor into the goal adds no `dif/2`: every
-%   or-node A carries, Goal carries already.
+%   True when unifying A into Goal adds nothing to either store: the
+%   Herbrand half (herbrand_instance/2) and the dense half
+%   (dense_instance/2).  The terms are known to unify with the stores
+%   set aside.
+
+store_instance(A, Goal) :-
+    term_attvars(A, Vars),
+    (   Vars == []
+    ->  true				% the ancestor constrains nothing
+    ;   herbrand_instance(A, Goal),
+        dense_instance(A, Goal)
+    ).
+
+%!  herbrand_instance(@A, @Goal) is semidet.
 %
-%   This is the Herbrand half of the same rule `dense_instance/2` states
-%   for the dense store, and on `bec_loan` it is the half that matters —
-%   of the 1,378 ancestors that are the goal's own question with the
-%   stores set aside, only **2** are still variants once the dense store
-%   is put back, so what makes them differ is the disequalities
-%   `consistent/3` posts, not the arithmetic.
+%   True when unifying the ancestor into the goal adds no disequality:
+%   every one A carries, Goal carries already.
 %
-%   Counted rather than compared, because `dif/2` keeps its or-nodes in
-%   a `vardif/2` attribute shared between the variables they relate:
-%   unifying cannot lose one, so the count is unchanged exactly when
+%   On `bec_loan` this is the half that matters — of the 1,378 ancestors
+%   that are the goal's own question with the stores set aside, only
+%   **2** are still variants once the dense store is put back, so what
+%   makes them differ is the disequalities `consistent/3` posts, not the
+%   arithmetic.
+%
+%   Counted rather than compared (node_count/2): neither backing loses
+%   anything on unification, so the count is unchanged exactly when
 %   nothing was added.  Reading it this way also avoids
 %   `dif:attribute_goals//1`, which deletes what it reports.
 %
-%   It is the half that decides whether a loop is seen at all, and it is
-%   strict: it holds when the ancestor's disequalities are among the
-%   goal's, which is what happens when they accumulate down one branch,
-%   and not when the two goals were each constrained against literals the
-%   other never met.  A recursion of the second kind is still not
+%   It is strict: it holds when the ancestor's disequalities are among
+%   the goal's, which is what happens when they accumulate down one
+%   branch, and not when the two goals were each constrained against
+%   literals the other never met.  A recursion of the second kind is not
 %   detected, and that is the safe direction — the loop's verdict on a
 %   positive, zero-transition cycle is to **fail** the goal, so accepting
 %   one that does not hold would lose answers.
 
 herbrand_instance(A, Goal) :-
     node_count(Goal, Before),
-    (   Before == 0
-    ->  \+ \+ A = Goal          % nothing to lose, but they must agree
-    ;   \+ \+ ( A = Goal,
-                 node_count(Goal, After),
-                 After == Before )
-    ).
+    \+ \+ ( A = Goal,
+             node_count(Goal, After),
+             After == Before ).
 
-%!  dense_instance(+A, +Goal) is semidet.
+%!  dense_instance(@A, @Goal) is semidet.
 %
-%   True when everything A's dense store says is already said by Goal's.
+%   True when unifying A into Goal adds nothing to the dense store:
+%   Goal's variables are projected before and after, onto **one** set of
+%   fresh names, and what they are constrained to afterwards must be
+%   entailed by what they were constrained to before.
 %
-%   The two are projected onto **one** set of fresh names, which is what
-%   pairs their variables up: the terms are variants by the time this is
-%   asked, so `term_variables/2` walks them in the same order.  Goal's
-%   constraints are then posted and A's asked of them — one A carries
-%   that Goal does not is one the goal would be narrowed by, and there is
-%   no loop.
-%
-%   `within/2` first, because a projection is the expensive thing here
-%   and most candidates fail on their bounds alone.
+%   Unifying rather than pairing the variables up is what makes it work
+%   for an instance as well as for a variant: whatever A's variables are
+%   bound to, their constraints end up on Goal's.
 
 dense_instance(A, Goal) :-
-    term_variables(Goal, GoalVars),
-    (   include(dense, GoalVars, [_|_])
-    ->  term_variables(A, AncestorVars),
-        within(GoalVars, AncestorVars),
-        \+ \+ ( dump(GoalVars, Names, GoalStore0),
-                 dump(AncestorVars, Names, AncestorStore0),
-                 include(about(Names), GoalStore0, GoalStore),
-                 include(about(Names), AncestorStore0, AncestorStore),
-                 maplist(posted, GoalStore),
-                 maplist(entailed, AncestorStore) )
-    ;   true                    % nothing dense to say anything about
+    term_variables(A, AncestorVars),
+    (   include(dense, AncestorVars, [_|_])
+    ->  term_variables(Goal, GoalVars),
+        \+ \+ ( dump(GoalVars, Names, Before0),
+                 A = Goal,
+                 dump(GoalVars, Names, After0),
+                 include(about(Names), Before0, Before),
+                 include(about(Names), After0, After),
+                 maplist(posted, Before),
+                 maplist(entailed, After) )
+    ;   true                    % the ancestor says nothing dense
     ).
 
 posted(Constraint) :-
@@ -488,9 +559,14 @@ posted(Constraint) :-
 
 about(Names, Constraint) :-
     term_variables(Constraint, Variables),
-    forall(member(Variable, Variables), memberchk_eq(Variable, Names)).
+    known(Variables, Names).
 
-%!  within(+GoalVars, +AncestorVars) is semidet.
+known([], _).
+known([V|Vs], Names) :-
+    memberchk_eq(V, Names),
+    known(Vs, Names).
+
+%!  within(@GoalVars, @AncestorVars) is semidet.
 %
 %   A cheap **necessary** condition for the projection test: each of the
 %   goal's variables lies inside the bounds of the ancestor's
@@ -523,23 +599,20 @@ bounds(Var, Low, High) :-
     (   dense(Var)
     ->  (   inf(Var, Low) -> true ; Low = none ),
         (   sup(Var, High) -> true ; High = none )
-    ;   number(Var)
-    ->  Low = Var,
-        High = Var
     ;   Low = none,
         High = none
     ).
 
-at_least(_, none) :- !.
-at_least(none, _) :- !, fail.
-at_least(Goal, Low) :- Goal >= Low.
+at_least(_, none) => true.
+at_least(none, _) => fail.
+at_least(Goal, Low) => Goal >= Low.
 
-at_most(_, none) :- !.
-at_most(none, _) :- !, fail.
-at_most(Goal, High) :- Goal =< High.
+at_most(_, none) => true.
+at_most(none, _) => fail.
+at_most(Goal, High) => Goal =< High.
 
-transition(P, P, N, N) :- !.
-transition(_, _, N0, N) :- N is N0+1.
+transition(P0, P, N0, N), P0 == P => N = N0.
+transition(_, _, N0, N) => N is N0+1.
 
 %!  loop_succeeds(+Negations, +Polarity) is semidet.
 %
@@ -548,17 +621,25 @@ transition(_, _, N0, N) :- N is N0+1.
 %   it is proving: no support for a literal, and for a negated one, the
 %   proof that there is none.
 
-loop_succeeds(Negations, _) :-
-    Negations > 0,
-    !.
-loop_succeeds(0, -).
+loop_succeeds(Negations, _), Negations > 0 =>
+    true.
+loop_succeeds(0, -) =>
+    true.
+loop_succeeds(_, _) =>
+    fail.
 
-%!  proved(+Anc1, +S0, +S2, -S) is det.
+%!  proved(@Anc1, @S0, @S2, -S) is det.
 %
 %   Record the goal just proved from its clauses.  Anc1 is the chain
 %   `check/7` built, so its head names the goal; S0 is what the proof
 %   held before the body ran and S2 what it holds after, so the
 %   difference is the children.
+%
+%   @arg S is S0's forest with one node for the goal prepended, of status
+%       `proof`, or `assumed` when the children rest on the coinductive
+%       hypothesis, and S2's index with the goal added.
+
+:- det(proved/4).
 
 proved([a(Goal, _, _)|_], proof(F0, _), proof(F2, Index2), proof(Forest, Index)) :-
     forest_children(F2, F0, Children),
@@ -570,11 +651,13 @@ proved([a(Goal, _, _)|_], proof(F0, _), proof(F2, Index2), proof(Forest, Index))
     Forest = [n(Goal, Status, Children)|F0],
     index(Goal, Status, Index2, Index).
 
-%!  assumed(+Children) is semidet.
+%!  assumed(@Children) is semidet.
 %
 %   True when the body leaned on the coinductive hypothesis anywhere
 %   beneath it.  Only the direct children are looked at: each of them
 %   already carries the answer for its own subtree.
+%
+%   @arg Children is a list of `n(Goal, Status, Children)` nodes.
 
 assumed([n(_, Status, _)|T]) :-
     (   resting(Status)
@@ -594,10 +677,15 @@ index(Goal, Status, Index0, Index) :-
     relatives(Name/Arity, Index0, Goals),
     put_assoc(Name/Arity, Index0, [Status-Goal|Goals], Index).
 
-%!  done(+Goal, +Action, +S0, -S) is det.
+%!  done(@Goal, +Action, @S0, -S) is det.
 %
 %   Record a literal established without expanding it.  It is a node with
 %   no children, which is what it is: nothing was proved *from* it.
+%
+%   @arg Action is check/7's `chs` or `proved`, and becomes the node's
+%       status.
+
+:- det(done/4).
 
 done(Goal, Action, proof(Forest, Index0), proof([n(Goal, Action, [])|Forest], Index)) :-
     (   Action == chs
@@ -606,7 +694,7 @@ done(Goal, Action, proof(Forest, Index0), proof([n(Goal, Action, [])|Forest], In
     ),
     index(Goal, Status, Index0, Index).
 
-%!  dcc(+Goal, +Anc, +S, +Rules) is semidet.
+%!  dcc(@Goal, @Anc, @S, @Rules) is semidet.
 %
 %   The dynamic consistency check (`--dcc`, `compile.pl:dcc_rules/3`):
 %   fail when Goal, just established and ground, completes a global
@@ -627,6 +715,8 @@ done(Goal, Action, proof(Forest, Index0), proof([n(Goal, Action, [])|Forest], In
 %
 %   Tried inside `\+ \+`: finding the others binds and constrains, and
 %   none of it is the answer's.
+%
+%   @arg S is the proof with Goal already recorded, as in check/7.
 
 dcc(Goal, Anc, S, Rules) :-
     (   ground(Goal),
@@ -654,15 +744,25 @@ dcc_other(run(Goal), _, _) :-
     call(Goal).
 
 %!  empty_proof(-Proof) is det.
+%
+%   @arg Proof is `proof([], Index)` with Index an empty assoc, the
+%       structure check/7 describes.
+
+:- det(empty_proof/1).
 
 empty_proof(proof([], Index)) :-
     empty_assoc(Index).
 
-%!  children(+S2, +S0, -Children) is det.
+%!  children(@S2, @S0, -Children) is det.
 %
 %   The nodes S2 holds and S0 does not.  A proof is only ever prepended
 %   to, so S0 is a suffix of S2 and this is a walk to the shared tail —
 %   which is why building the tree costs nothing beyond the nodes.
+%
+%   @arg Children is a proof, not a list: `proof(Nodes, Index)` with the
+%       new nodes and S2's index.
+
+:- det(children/3).
 
 children(proof(F2, Index), proof(F0, _), proof(Children, Index)) :-
     forest_children(F2, F0, Children).
@@ -679,7 +779,7 @@ forest_children(F2, F0, Children) :-
 		 *        QUANTIFIERS		*
 		 *******************************/
 
-%!  for_domain(+Quantified, :Generator, :Goal, +Anc, +S0, -S) is nondet.
+%!  for_domain(@Quantified, :Generator, :Goal, ?Anc, ?S0, -S) is nondet.
 %
 %   Goal holds for every value Generator gives Quantified, a variable
 %   or a list of them.  This is decision 5's case 1 and the reason a
@@ -692,26 +792,24 @@ forest_children(F2, F0, Children) :-
 %   which is the same machinery `forall/5` uses.  A value is the case
 %   where it has nothing left to do.
 %
-%   The proofs accumulate, so every literal the quantifier needed is in
-%   the model: the quantifier is part of the answer, not a side condition
-%   checked and forgotten.
+%   A covering **checks** and adds nothing to the proof, as a branch of
+%   forall/5 does (see cover/6): the literals the generator and the
+%   coverings needed are not in the model.
 
 for_domain(Quantified, Generator, Goal, Anc, S0, S) :-
     quantified_list(Quantified, Vars),
-    findall((Copy-Attributes)-H,
-            ( b_setval(sscasp_no_dcc, true),        % the proof goes, see dcc/4
-              call_goal(Generator, Anc, S0, _),
-              copy_term(Vars, Copy, Attributes),
-              h_capture(H)
-            ),
-            Generated),
-    pairs_keys_values(Generated, Restrictions0, Heights),
-    maplist(h_merge, Heights),
+    collected(Copy-Attributes,
+              ( b_setval(sscasp_no_dcc, true),      % the proof goes, see dcc/4
+                call_goal(Generator, Anc, S0, _),
+                copy_term(Vars, Copy, Attributes)
+              ),
+              Restrictions0),
     distinct_restrictions(Restrictions0, Restrictions),
     outer_variables(Goal, Vars, Others),
+    S = S0,
     (   ground(Others)
-    ->  once(cover_each(Restrictions, Vars, Goal, [], Anc, S0, S))
-    ;   cover_each(Restrictions, Vars, Goal, [], Anc, S0, S)
+    ->  once(cover_each(Restrictions, Vars, Goal, [], Anc, S0))
+    ;   cover_each(Restrictions, Vars, Goal, [], Anc, S0)
     ).
 
 %   One variable, or the tuple one fact literal bounds
@@ -749,10 +847,10 @@ distinct_restrictions([R|Rs], Distinct) :-
     ),
     distinct_restrictions(Rs, Rest).
 
-%!  forall(+Var, :Goal, +Anc, +S0, -S) is nondet.
+%!  forall(@Vars, :Goal, ?Anc, ?S0, -S) is nondet.
 %
-%   Goal holds for *every* value of Var, with no domain to enumerate.
-%   The domain is whatever Var is already constrained to, which for a
+%   Goal holds for *every* value of Vars, with no domain to enumerate.
+%   The domain is whatever Vars are already constrained to, which for a
 %   quantifier the compiler introduced is everything.
 %
 %   ## One covering, and then somewhere else
@@ -784,9 +882,12 @@ distinct_restrictions([R|Rs], Distinct) :-
 %   500 answers carrying one model is what a quantifier looks like when
 %   its coverings are alternatives: a branch's proof is discarded, so a
 %   different way of discharging one cannot change the answer it is part
-%   of.  The whole corpus is faster for it — `queens.pl` 0.113 s to
-%   0.063 s — and the other four event-calculus programs still do not
-%   finish, so the search they are lost in is something else again.
+%   of.  The whole corpus was faster for it — `queens.pl` 0.113 s to
+%   0.063 s — while the other event-calculus programs still did not
+%   finish: what they were lost in was the complement's constraint store,
+%   which covered/7 now discards.
+%
+%   @arg Vars is a list of variables, covered as one tuple (cover/6).
 
 forall(Vars, Goal, Anc, S0, S) :-
     outer_variables(Goal, Vars, Others),
@@ -801,7 +902,7 @@ forall_(Vars, Goal, Others, Anc, S0, S) :-
         forall_(Vars, Goal, Others, Anc, S0, S)
     ).
 
-%!  elsewhere(+Vars, :Goal, +Others, +Anc, +S0, -Names, -Pieces) is semidet.
+%!  elsewhere(@Vars, :Goal, @Others, @Anc, @S0, -Names, -Pieces) is semidet.
 %
 %   Where else to look, once the first covering has been committed to.
 %
@@ -815,28 +916,58 @@ forall_(Vars, Goal, Others, Anc, S0, S) :-
 %   way `solve_other_forall/11` does, and it is only paid when a second
 %   answer is asked for: the first costs one covering, which is what the
 %   commitment was for.
+%
+%   @arg Others is the list of the goal's variables outside the
+%       quantifier, from outer_variables/3.
+%   @arg Names is a list of fresh variables, one per element of Others,
+%       which the caller unifies with Others to apply a piece.
+%   @arg Pieces is the complement as alternatives/3 gives it: a list of
+%       pieces, each a list of goals over Names.
 
-elsewhere(_Vars, _Goal, Others, _Anc, _S0, _Names, _Pieces) :-
-    ground(Others),
-    !,
+elsewhere(_Vars, _Goal, Others, _Anc, _S0, _Names, _Pieces),
+    ground(Others) =>
     fail.
-elsewhere(Vars, Goal, Others, Anc, S0, Names, Pieces) :-
+elsewhere(Vars, Goal, Others, Anc, S0, Names, Pieces) =>
+    discarded(( b_setval(sscasp_no_dcc, true),
+                cover(Vars, Goal, [], Anc, S0, _),
+                snapshot(Others, Others, Names0, Constraints),
+                alternatives(Constraints, [], Pieces0),
+                Pieces0 \== []
+              ),
+              Names0-Pieces0, Names-Pieces).
+
+%!  discarded(:Goal, @Template, -Result) is semidet.
+%
+%   Run Goal once, in a run that `fail` then undoes, and keep only
+%   Template as the first solution left it — carried out by
+%   `nb_setarg/3`, so it must be plain terms, which is the point:
+%   nothing attributed crosses and no constraint store is copied.
+%   Fails if Goal has none.  What the run consulted for the tabling
+%   experiment is merged into the caller's.
+
+%!  collected(@Template, :Goal, -List) is det.
+%
+%   findall/3, with what each solution consulted for the tabling
+%   experiment merged into the caller's, as discarded/3 does for one.
+
+collected(Template, Goal, List) :-
+    findall(Template-H, (call(Goal), h_capture(H)), Pairs),
+    pairs_keys_values(Pairs, List, Heights),
+    maplist(h_merge, Heights).
+
+discarded(Goal, Template, Result) :-
     State = state(-),
-    (   b_setval(sscasp_no_dcc, true),
-        once(cover(Vars, Goal, [], Anc, S0, _)),
-        snapshot(Others, Others, Names0, Constraints),
-        alternatives(Constraints, [], Pieces0),
-        Pieces0 \== [],
+    (   once(Goal),
         h_capture(H),
-        nb_setarg(1, State, Names0-Pieces0-H),
+        nb_setarg(1, State, Template-H),
         fail
-    ;   arg(1, State, Snapshot),
-        Snapshot \== (-),
-        Snapshot = Names-Pieces-H,
+    ;   arg(1, State, Kept),
+        Kept \== (-),
+        Kept = Result-H,
         h_merge(H)
     ).
 
-%!  snapshot(+Kept, +Wanted, -Names, -Constraints) is det.
+%!  snapshot(@Kept, @Wanted, -Names, -Constraints) is det.
 %
 %   Wanted is the part of Kept the caller will keep constraints *about*;
 %   the rest is there so that a constraint relating the two survives the
@@ -851,6 +982,14 @@ elsewhere(Vars, Goal, Others, Anc, S0, Names, Pieces) :-
 %   part is the projection of the store onto them.  A `{}/1` holding a
 %   conjunction is one goal but several constraints, so it is taken
 %   apart — the complement is taken per constraint.
+%
+%   @arg Kept is a list of variables, some possibly bound by now.
+%   @arg Names is a list of fresh variables, one per element of Kept, in
+%       the same order.
+%   @arg Constraints is a list over Names of `Name = Value`,
+%       `apart(A, B)` and `{Comparison}` goals.
+
+:- det(snapshot/4).
 
 snapshot(Kept, Wanted, Names, Constraints) :-
     same_length(Kept, Names),
@@ -874,7 +1013,7 @@ bound([Kept|Rest], [Name|Names], Equations) :-
     ),
     bound(Rest, Names, More).
 
-%!  disequalities(+Kept, +Wanted, +Names, -Difs) is det.
+%!  disequalities(@Kept, @Wanted, @Names, -Difs) is det.
 %
 %   What `dif/2` keeps these variables away from, **jointly**.
 %
@@ -893,23 +1032,27 @@ bound([Kept|Rest], [Name|Names], Equations) :-
 %   the per-variable over-approximation is kept, because it errs towards
 %   covering more than is left rather than less.
 %
-%   Gathered inside one `\+ \+`: `dif:attribute_goals//1` deletes each
-%   or-node as it reports it, so asking every variable in turn reports a
-%   shared one once, which is the deduplication wanted.  What crosses out
-%   is **positions and ground values**, never a term holding one of
-%   these variables, so `nb_setarg/3` has nothing to copy that matters.
+%   Gathered inside one discarded run (discarded/3):
+%   `dif:attribute_goals//1` deletes each or-node as it reports it, so
+%   asking every variable in turn reports a shared one once, which is
+%   the deduplication wanted, and the run's undoing puts them back.
+%   What crosses out is **positions and ground values**, never a term
+%   holding one of these variables, so there is nothing to copy that
+%   matters.
+%
+%   @arg Difs is a sorted list of `apart/2` goals over Names, as joint/3
+%       builds them.
+
+:- det(disequalities/4).
 
 disequalities(Kept, Wanted, Names, Difs) :-
-    (   include(constrained, Kept, [_|_])
-    ->  State = state([]),
-        (   \+ \+ ( read_store(Kept, Goals),
-                     descriptions(Goals, Kept, Wanted, Sets),
-                     nb_setarg(1, State, Sets) )
-        ->  arg(1, State, Sets0),
-            maplist(joint(Names), Sets0, Difs0),
-            sort(Difs0, Difs)
-        ;   Difs = []
-        )
+    (   include(constrained, Kept, [_|_]),
+        discarded(( read_store(Kept, Goals),
+                    descriptions(Goals, Kept, Wanted, Sets)
+                  ),
+                  Sets, Sets0)
+    ->  maplist(joint(Names), Sets0, Difs0),
+        sort(Difs0, Difs)
     ;   Difs = []
     ).
 
@@ -933,14 +1076,14 @@ descriptions([Goal|Goals], Kept, Wanted, Sets) :-
     ),
     descriptions(Goals, Kept, Wanted, Rest).
 
-%!  between_kept(+A, +B, +Kept, +Wanted, -I, -J) is semidet.
+%!  between_kept(@A, @B, @Kept, @Wanted, -I, -J) is semidet.
 %
 %   The disequality keeps one quantified variable away from **another
 %   variable the snapshot has a name for**, and from nothing else.  That
 %   is describable after all: both ends get a name, the complement is the
 %   equation between them, and `restrict/2` posts it.
 %
-%   `apart/6` will not have it because it wants a ground value, and there
+%   `differ/6` will not have it because it wants a ground value, and there
 %   is none — but a ground value is what it needs to build a *tuple*, and
 %   this is one pair.  Dualising `p(f(X)) :- X #> 3, X #< 10` gives
 %   `not p(A) :- forall(X, A \= f(X))`, and asked for `not p(f(V))` that
@@ -954,6 +1097,9 @@ descriptions([Goal|Goals], Kept, Wanted, Sets) :-
 %   specific one.  That is `doc/bugs.md` §15 arriving as **unsoundness**
 %   rather than as the incompleteness the old implementation has, and it
 %   is the reason `test_crossings.pl` exists.
+%
+%   @arg I is the 1-based position in Kept of one end.
+%   @arg J is the 1-based position in Kept of the other end.
 
 between_kept(A, B, Kept, Wanted, I, J) :-
     apart_variables(A, B, Kept, Pairs, []),
@@ -993,7 +1139,7 @@ wanted_at(I, Kept, Wanted) :-
     nth1(I, Kept, Variable),
     memberchk_eq(Variable, Wanted).
 
-%!  escapable(+A, +B, +Kept) is semidet.
+%!  escapable(@A, @B, @Kept) is semidet.
 %
 %   True when the disequality can be satisfied without saying anything
 %   about Kept: it differs at a position holding a variable the answer
@@ -1035,10 +1181,13 @@ loose(Var, Kept) :-
     \+ dense(Var),
     \+ memberchk_eq(Var, Kept).
 
-%!  differ(+A, +B, +Kept, +Wanted, -Pairs, ?Tail) is semidet.
+%!  differ(@A, @B, @Kept, @Wanted, -Pairs, ?Tail) is semidet.
 %
 %   Pairs are the positions where A and B differ, as `Index-Value` over
 %   Kept.  Fails where a difference has no such reading.
+%
+%   @arg Pairs is a difference list ending in Tail, of `I-Value` with I
+%       the 1-based position in Kept and Value ground.
 
 differ(A, B, Kept, Wanted, Pairs, Tail) :-
     (   A == B
@@ -1105,25 +1254,31 @@ position_([K|Ks], I, Var, Index) :-
         position_(Ks, J, Var, Index)
     ).
 
-%!  joint(+Names, +Pairs, -Dif) is det.
+%!  joint(@Names, +Pairs, -Dif) is det.
 %
 %   One disequality over as many of the names as the set mentions.  A
 %   single position keeps the plain shape, so that its complement is the
 %   equation `Name = Value` rather than a tuple unification.
+%
+%   @arg Pairs is either a list of `I-Value` pairs from differ/6, or
+%       `kept(I, J)` from between_kept/6.
+%   @arg Dif is `apart(Name, Value)`, `apart(Left, Right)` or
+%       `apart(t(Name, ...), t(Value, ...))`.
 
-joint(Names, kept(I, J), apart(Left, Right)) :-
-    !,
+joint(Names, kept(I, J), Dif) =>
     nth1(I, Names, Left),
-    nth1(J, Names, Right).
-joint(Names, [I-Value], apart(Name, Value)) :-
-    !,
-    nth1(I, Names, Name).
-joint(Names, Pairs, apart(Tuple, Values)) :-
+    nth1(J, Names, Right),
+    Dif = apart(Left, Right).
+joint(Names, [I-Value], Dif) =>
+    nth1(I, Names, Name),
+    Dif = apart(Name, Value).
+joint(Names, Pairs, Dif) =>
     named(Pairs, Names, Vars, Vs),
     Tuple =.. [t|Vars],
-    Values =.. [t|Vs].
+    Values =.. [t|Vs],
+    Dif = apart(Tuple, Values).
 
-%!  named(+Pairs, +Names, -Vars, -Values) is det.
+%!  named(+Pairs, @Names, -Vars, -Values) is det.
 %
 %   Resolve Index-Value pairs against Names.  Not findall/3: the names
 %   must be the very variables snapshot/4 handed out, or residue/3 no
@@ -1139,7 +1294,6 @@ named([I-V|Pairs], Names, [Name|Vars], [V|Vs]) :-
 %   run on a variable that is not in one.
 
 dense(Var) :-
-    var(Var),
     get_attr(Var, clpqr_itf, _).
 
 dense_pairs([], [], [], []).
@@ -1150,25 +1304,27 @@ dense_pairs([Other|Others], [Name|Names], Dense, DenseNames) :-
     ),
     dense_pairs(Others, Names, Rest, More).
 
-%   `dump/3` and not `copy_term/3`, for the reason `region/3` gives: the
+%   What `dump/3` could not eliminate is dropped here, by about/2, rather
+%   than put into a piece.  A disequality it cannot project —
+%   `A - B =\= 0` for a B the covering invented — says nothing about A,
+%   so neither its negation nor the constraint itself belongs in a
+%   partition of A's domain: posting it would invent the variable again
+%   on every round.
+%
+%   `dump/3` and not `copy_term/3`: the
 %   projection is what makes a constraint relating one of these variables
 %   to something the covering invented come back as what it says about
 %   them alone, which is usually nothing.  Asking `copy_term/3` instead
 %   reports the store as it stands, and a complement taken over an
 %   invented variable narrows nothing.
 
-region_constraints([], _, []) :- !.
-region_constraints(Dense, DenseNames, Region) :-
+region_constraints([], _, Region) =>
+    Region = [].
+region_constraints(Dense, DenseNames, Region) =>
     dump(Dense, Fresh, Region0),
     Fresh = DenseNames,
     foldl(conjuncts, Region0, Region1, []),
-    include(outward(DenseNames), Region1, Region).
-
-%   What `dump/3` could not eliminate goes here rather than into a piece.
-%   A disequality it cannot project — `A - B =\= 0` for a B the covering
-%   invented — says nothing about A, so neither its negation nor the
-%   constraint itself belongs in a partition of A's domain: posting it
-%   would invent the variable again on every round.
+    include(about(DenseNames), Region1, Region).
 
 conjuncts(Constraint, Constraints, Tail) :-
     (   Constraint = (A, B)
@@ -1177,17 +1333,23 @@ conjuncts(Constraint, Constraints, Tail) :-
     ;   Constraints = [{Constraint}|Tail]
     ).
 
-%!  alternatives(+Constraints, +Prefix, -Pieces) is det.
+%!  alternatives(@Constraints, @Prefix, -Pieces) is det.
 %
 %   The complement of what the covering fixed, decomposed the same
-%   disjoint way `region/3` decomposes a region — each piece is a slice
+%   disjoint way, `(¬C₁) ∨ (C₁ ∧ ¬C₂) ∨ …` — each piece is a slice
 %   the answer has already ruled out, so the pieces partition what is
 %   left rather than re-covering it.
 %
 %   Everything here is already about the goal's own variables:
-%   `snapshot/3` drops what the covering invented, and drops it from the
+%   `snapshot/4` drops what the covering invented, and drops it from the
 %   prefix too.  A piece carrying such a constraint would not narrow —
 %   it would invent the variable again.
+%
+%   @arg Constraints is a list of goals as snapshot/4 gives them.
+%   @arg Prefix is the constraints before the current one, kept as they
+%       are in every piece that follows.
+%   @arg Pieces is a list of pieces, each a list of goals: Prefix and
+%       then one flipped constraint.
 
 alternatives([], _, []).
 alternatives([Constraint|Constraints], Prefix, Pieces) :-
@@ -1199,21 +1361,12 @@ alternatives([Constraint|Constraints], Prefix, Pieces) :-
     append(Prefix, [Constraint], Prefix1),
     alternatives(Constraints, Prefix1, Rest).
 
-outward(Others, Constraint) :-
-    term_variables(Constraint, Variables),
-    known(Variables, Others).
-
-known([], _).
-known([V|Vs], Others) :-
-    memberchk_eq(V, Others),
-    known(Vs, Others).
-
 flipped((Name = Value), apart(Name, Value)).
 flipped(apart(A, B), (A = B)).
 flipped({Comparison}, {Flipped}) :-
     negated(Comparison, Flipped).
 
-%!  cover(+Vars, :Goal, +Narrowing, +Anc, +S0, -S) is nondet.
+%!  cover(@Vars, :Goal, ?Narrowing, ?Anc, ?S0, -S) is nondet.
 %
 %   Goal holds everywhere in the domain of the **tuple** Vars.
 %
@@ -1234,8 +1387,8 @@ flipped({Comparison}, {Flipped}) :-
 %   covering the tuple reads one answer's constraints on all of them at
 %   once and the pieces add up instead.  `bec_tap_02` made 83,593
 %   coverings of a three-variable nest, and none of the five event
-%   calculus programs finished; with the tuple they answer in
-%   milliseconds, faster than the old implementation.
+%   calculus programs finished; with the tuple, and covered/7, four of
+%   them answer (`doc/performance.md` has the current times).
 %   `solve.pl:solve_c_forall/8` collects its nest into one
 %   `c_forall(Vars, Goal)` for the same reason.
 %
@@ -1248,8 +1401,7 @@ flipped({Comparison}, {Flipped}) :-
 %   refusing it costs `queens.pl` and `family.pl` every answer they have.
 %   So a ground binding is accepted and its complement is the
 %   disequality, which is what `find_duals/4` does upstream.  It is not
-%   free: `queens.pl` goes from 0.063 s to 0.42 s, still 2.3 times faster
-%   than the old implementation.
+%   free: it took `queens.pl` from 0.063 s to 0.42 s when it was made.
 %
 %   A branch **checks**; it does not contribute to the proof.  Threading
 %   each branch's proof into the next made the proof double per level of
@@ -1266,12 +1418,14 @@ flipped({Comparison}, {Flipped}) :-
 %   own, because each value is a search rather than a region to
 %   complement.  That is decision 5 case 6 against case 1, and the
 %   difference is one annotation.
+%
+%   @arg Vars is the tuple, a list of variables.
+%   @arg Narrowing is the part of the domain this call covers: a list of
+%       restrictions (restrict/2), all applied to a fresh copy of Vars.
 
-cover(Vars, Goal, _, Anc, S0, S) :-
-    ground(Vars),
-    !,
+cover(Vars, Goal, _, Anc, S0, S), ground(Vars) =>
     call_goal(Goal, Anc, S0, S).
-cover(Vars, Goal, Narrowing, Anc, S0, S) :-
+cover(Vars, Goal, Narrowing, Anc, S0, S) =>
     same_length(Vars, Instances),
     (   restrict_all(Narrowing, Instances)
     ->  renamed(Vars, Goal, Instances, Attempt),
@@ -1292,14 +1446,16 @@ cover(Vars, Goal, Narrowing, Anc, S0, S) :-
 %   contradicts what an outer level already narrowed the tuple to, and
 %   there is no reason to copy a goal in order to find that out.
 
-%!  coverable(+Instances) is semidet.
+%!  coverable(@Instances) is semidet.
 %
-%   True when what the answer did to the tuple is something `snapshot/3`
+%   True when what the answer did to the tuple is something `snapshot/4`
 %   can say: each variable is still free, or bound to a ground value
 %   whose complement is a disequality.  A variable bound to a term that
 %   is *not* ground has no complement worth taking — `dif(X, f(Y))` for a
 %   free Y excludes one unknown point — so the answer is rejected and
 %   the goal asked for another.
+%
+%   @arg Instances is the fresh copy of the tuple, after the goal ran.
 
 coverable([]).
 coverable([Instance|Instances]) :-
@@ -1309,7 +1465,7 @@ coverable([Instance|Instances]) :-
     ),
     coverable(Instances).
 
-%!  covered(+Rest, +Vars, +Goal, +Narrowing, +Anc, +S0, -S) is semidet.
+%!  covered(@Rest, @Vars, ?Goal, @Narrowing, ?Anc, ?S0, -S) is semidet.
 %
 %   Cover the whole complement, and keep of it **only what it says about
 %   the variables the goal shares with its caller**.
@@ -1347,36 +1503,39 @@ coverable([Instance|Instances]) :-
 %   `not holdsAt(level(10), T)`, which answers in 4 ms, does not finish.
 %   `forall_/6` already commits to the covering it found, for the reason
 %   its own comment gives; this is the same commitment one level in.
+%
+%   @arg Rest is the complement to cover, a list of restrictions from
+%       residue/3, each covered under Narrowing as in cover/6.
 
-covered([], _, _, _, _, S, S) :- !.
-covered(Rest, Vars, Goal, Narrowing, Anc, S0, S0) :-
+covered([], _, _, _, _, S0, S) =>
+    S = S0.
+covered(Rest, Vars, Goal, Narrowing, Anc, S0, S) =>
+    S = S0,
     outer_variables(Goal, Vars, Shared),
-    State = state(-),
-    (   b_setval(sscasp_no_dcc, true),
-        once(cover_each(Rest, Vars, Goal, Narrowing, Anc, S0, _)),
-        snapshot(Shared, Shared, Names, Constraints),
-        h_capture(H),
-        nb_setarg(1, State, Names-Constraints-H),
-        fail
-    ;   arg(1, State, Kept0),
-        Kept0 \== (-),
-        Kept0 = Kept-H,
-        h_merge(H),
-        restrict(Kept, Shared)
-    ).
+    discarded(( b_setval(sscasp_no_dcc, true),
+                cover_each(Rest, Vars, Goal, Narrowing, Anc, S0),
+                snapshot(Shared, Shared, Names, Constraints)
+              ),
+              Names-Constraints, Kept),
+    restrict(Kept, Shared).
 
-cover_each([], _, _, _, _, S, S).
-cover_each([Restriction|Rest], Vars, Goal, Narrowing, Anc, S0, S) :-
+%   Each restriction is covered in turn, and none contributes a proof:
+%   a covering checks, so the caller's proof is S0 whatever happened.
+
+cover_each([], _, _, _, _, _).
+cover_each([Restriction|Rest], Vars, Goal, Narrowing, Anc, S0) :-
     cover(Vars, Goal, [Restriction|Narrowing], Anc, S0, _),
-    cover_each(Rest, Vars, Goal, Narrowing, Anc, S0, S).
+    cover_each(Rest, Vars, Goal, Narrowing, Anc, S0).
 
-%!  outer_variables(+Goal, +Vars, -Others) is det.
+%!  outer_variables(@Goal, @Vars, -Others) is det.
 %
 %   The variables the commitment is *about*: the ones the goal shares
 %   with its caller.  Not the quantified variable, and not the ones a
 %   quantifier nested inside the goal covers — `dualise.pl` nests one per
 %   body-only variable, and those are covered under the same commitment
 %   rather than being something to partition.
+
+:- det(outer_variables/3).
 
 outer_variables(Goal, Vars, Others) :-
     term_variables(Goal, Variables),
@@ -1409,13 +1568,16 @@ exclude_vars([V|Vs], Excluded, Others) :-
     ),
     exclude_vars(Vs, Excluded, Rest).
 
-%!  others(+Attempt, +Instances, -Others) is det.
+%!  others(@Attempt, @Instances, -Others) is det.
 %
 %   The goal's *other* variables — everything this quantifier is not
 %   covering.  Taken before solving, because that is when the goal still
 %   has them: afterwards some are bound and the ones an answer invented
 %   would be mixed in with them, and those are exactly the ones a
 %   projection has to eliminate.
+%
+%   @arg Attempt is the goal with the tuple renamed (renamed/4).
+%   @arg Instances is the renamed tuple, a list of fresh variables.
 
 others(Attempt, Instances, Others) :-
     term_variables(Attempt, Variables),
@@ -1426,10 +1588,12 @@ restrict_all([Restriction|Rest], Vars) :-
     restrict(Restriction, Vars),
     restrict_all(Rest, Vars).
 
-%!  renamed(+Vars, +Goal, -Fresh, -Renamed) is det.
+%!  renamed(@Vars, @Goal, -Fresh, -Renamed) is det.
 %
 %   Renamed is Goal with Var replaced by a fresh Fresh and **everything
 %   else shared**.
+%
+%   @arg Fresh is a list of fresh variables, one per element of Vars.
 %
 %   Copying the whole goal instead is wrong, and quietly so.  A
 %   quantifier's goal mentions two other kinds of variable: the ones its
@@ -1439,8 +1603,9 @@ restrict_all([Restriction|Rest], Vars) :-
 %   and the enclosing quantifier's because that is how it learns which
 %   part of its own domain this answer covered.
 %
-%   `dualise.pl` nests one quantifier per body-only variable, so the
-%   second kind is the ordinary case rather than a corner of it.  With a
+%   Quantifiers nest — the goal one covers is a dual that may open
+%   another — so the second kind is the ordinary case rather than a
+%   corner of it.  With a
 %   copy, `not attack(3, 4, [q(4,4)])` **succeeded**: the inner
 %   quantifier constrained a copy of the outer variable, the outer saw an
 %   unconstrained variable, concluded there was nothing left to cover and
@@ -1472,21 +1637,19 @@ restrict_all([Restriction|Rest], Vars) :-
 %          copy_term(A1, _, Store).
 %       Store = [{A1 > 2}].                         % the >= 5 is gone
 %
-%   `copy_term/2` keeps it.  That matters here because a branch narrows
-%   the quantified variable and then solves: with an inert copy the
-%   solving constrains nothing, the complement comes out empty, and the
-%   quantifier reports that it holds everywhere.  It is how
-%   `not stoppedIn(2, light_on, 5)` came to succeed alongside
-%   `stoppedIn(2, light_on, 5)`.
-%
-%   Both were real: the inert copy made `not stoppedIn(2, light_on, 5)`
-%   succeed alongside `stoppedIn(2, light_on, 5)`, and the store growth
-%   made every event-calculus program in the corpus unanswerable.
+%   A `copy_term/2` copy is not inert, and costs the store growth above.
+%   Inertness matters because a branch narrows the quantified variable
+%   and then solves: with an inert copy the solving constrains nothing,
+%   the complement comes out empty, and the quantifier reports that it
+%   holds everywhere.  Both were real: the inert copy made
+%   `not stoppedIn(2, light_on, 5)` succeed alongside
+%   `stoppedIn(2, light_on, 5)`, and the store growth made every
+%   event-calculus program in the corpus unanswerable.
 
 renamed(Vars, Goal, Fresh, Renamed) :-
     copy_term(Vars, Goal, Fresh, Renamed).
 
-%!  restrict(+Restriction, ?Var) is semidet.
+%!  restrict(?Restriction, ?Var) is semidet.
 %
 %   Narrow Var by Restriction, failing when the two cannot hold
 %   together — which means that part of the domain is empty, and an
@@ -1499,6 +1662,12 @@ renamed(Vars, Goal, Fresh, Renamed) :-
 %   a restriction on Slot for whichever T the goal has — and copying
 %   those would both break the sharing that makes it mean anything and
 %   duplicate their constraint stores.
+%
+%   @arg Restriction is `Template-Goals`: a list of terms, one per
+%       variable of the tuple and usually fresh variables or values, and
+%       a list of goals over them — the attribute goals of copy_term/3,
+%       or a piece from alternatives/3.
+%   @arg Var is a list of variables, as long as Template.
 
 restrict(Terms-Attributes, Vars) :-
     copy_term(Terms, Attributes, Vars, Goals),
@@ -1508,21 +1677,21 @@ restrict(Terms-Attributes, Vars) :-
 		 *        THE COMPLEMENT		*
 		 *******************************/
 
-%!  residue(+Instances, +Others, -Rest) is det.
+%!  residue(@Instances, @Others, -Rest) is det.
 %
 %   Rest is the part of the domain the answer did *not* cover, as a list
 %   of restrictions to try in turn.  They need not be disjoint; they need
 %   to cover.
 %
 %   The tuple is described exactly as `forall_/6` describes the goal's
-%   other variables: `snapshot/3` says what the answer fixed it to and
+%   other variables: `snapshot/4` says what the answer fixed it to and
 %   `alternatives/3` takes the complement, one slice at a time so that
 %   the pieces partition what is left instead of re-covering it.  One
 %   piece of machinery for both, because it is the same question asked of
 %   different variables — what did this answer decide, and where else is
 %   there to look.
 %
-%   Decision 5's cases fall out of `snapshot/3` rather than being clauses
+%   Decision 5's cases fall out of `snapshot/4` rather than being clauses
 %   here: a `dif/2` gives the prohibited values (case 3), a CLP(Q) store
 %   gives a region (case 4), and an answer that left the tuple alone
 %   gives nothing at all, which is case 2.
@@ -1533,6 +1702,12 @@ restrict(Terms-Attributes, Vars) :-
 %   live variables, leaving the tuple's names fresh for `restrict/2` to
 %   copy.  A constraint mentioning *neither* is about the others alone
 %   and says nothing about where this quantifier has still to look.
+%
+%   @arg Instances is the tuple as the answer left it.
+%   @arg Others is the goal's other variables, from others/3.
+%   @arg Rest is a list of restrictions as restrict/2 takes them.
+
+:- det(residue/3).
 
 residue(Instances, Others, Rest) :-
     append(Instances, Others, Kept),
@@ -1553,14 +1728,10 @@ quantified(Fresh, Constraint) :-
 restriction(Fresh, Piece, Fresh-Piece).
 
 		 /*******************************
-		 *       THE HERBRAND HALF	*
-		 *******************************/
-
-		 /*******************************
 		 *       THE DENSE HALF	*
 		 *******************************/
 
-%!  negated(+Constraint, -Flipped) is det.
+%!  negated(@Constraint, -Flipped) is det.
 %
 %   The complement of one CLP(Q) comparison.
 
@@ -1584,7 +1755,7 @@ opposite_comparison(=,   =\=).
 		 *       CALLING A GOAL	*
 		 *******************************/
 
-%!  call_goal(:Goal, +Anc, +S0, -S) is nondet.
+%!  call_goal(:Goal, ?Anc, ?S0, -S) is nondet.
 %
 %   Call a goal held as a term, threading the solver's state through it.
 %   Used by the quantifiers, which hold their goal that way so that they
@@ -1606,9 +1777,11 @@ opposite_comparison(=,   =\=).
 %   nest into one `c_forall(Vars, Goal)` beforehand.  Committing at each
 %   level separately is a great deal stronger, and loses answers:
 %   `family.pl`'s NMR check has none under it.
+%
+%   The meta-argument always arrives as `Module:Goal`, so the head takes
+%   it apart.
 
-call_goal(Goal0, Anc, S0, S) :-
-    strip_module(Goal0, Module, Goal),
+call_goal(Module:Goal, Anc, S0, S) =>
     call_in(Goal, Module, Anc, S0, S).
 
 %!  domain_check(:Goal, +Domain, +PI) is det.
@@ -1621,9 +1794,15 @@ call_goal(Goal0, Anc, S0, S) :-
 %   The domain is asked in a proof of its own: whether a value is in it
 %   is a fact about the domain, not something the answer being built can
 %   change.
+%
+%   @arg Domain is the domain's name as the signature gives it, reported
+%       in the error.
+%   @arg PI is `Name/Arity` of the guarded predicate, the error's
+%       context.
 
-domain_check(Goal, Domain, PI) :-
-    strip_module(Goal, _, Literal),
+:- det(domain_check/3).
+
+domain_check(Goal, Domain, PI), Goal = _:Literal =>
     arg(1, Literal, Value),
     (   ground(Value)
     ->  (   empty_proof(Empty),
@@ -1634,17 +1813,15 @@ domain_check(Goal, Domain, PI) :-
     ;   true
     ).
 
-call_in(forall(Vars, Inner), Module, Anc, S0, S) :-
-    !,
+call_in(forall(Vars, Inner), Module, Anc, S0, S) =>
     cover(Vars, Module:Inner, [], Anc, S0, S).
-call_in(for_domain(Var, Generator, Inner), Module, Anc, S0, S) :-
-    !,
+call_in(for_domain(Var, Generator, Inner), Module, Anc, S0, S) =>
     for_domain(Var, Module:Generator, Module:Inner, Anc, S0, S).
-call_in(Goal, Module, Anc, S0, S) :-
+call_in(Goal, Module, Anc, S0, S) =>
     call(Module:Goal, Anc, S0, S).
 
 
-%!  sld_goal(+Goal, +Type, +Anc, +S0, -S) is nondet.
+%!  sld_goal(?Goal, +Type, ?Anc, ?S0, -S) is nondet.
 %
 %   Prove a goal by SLD resolution.  `compile.pl:sld_bridges/3` puts this
 %   under the two predicates a `:- sld p/2.` declaration stands for, so
@@ -1658,28 +1835,66 @@ call_in(Goal, Module, Anc, S0, S) :-
 %   and says nothing about the others.  So all the solutions are
 %   collected and the variable is kept away from each of them, which is
 %   what the answer actually says.  The old implementation does the same
-%   (`solve.pl`, `bindings_inequality_constraints/2`).
+%   (`clp/disequality.pl:bindings_inequality_constraints/2`), and leaves
+%   open what a non-ground solution means; excluded/3 below answers it.
 %
 %   No node for the goal itself: the predicate that got here is one, and
 %   `literal/2` demangles it into exactly the literal wanted, so it is
 %   already in the model and already in the justification.  What goes in
 %   is what the interpreter found *under* it, which for `opaque` is
 %   nothing.
+%
+%   @arg Goal is `Module:p(...)` or `Module:not(p(...))`, unmangled.
+%   @arg Type is `justified` or `opaque`, as in sld_proof/3.
 
-sld_goal(Module:not(Goal), Type, _Anc, S0, S) :-
-    !,
+sld_goal(Module:not(Goal), Type, _Anc, S0, S) =>
     term_variables(Goal, Variables),
     (   Variables == []
     ->  \+ sld_proof(Module:Goal, Type, _)
     ;   Witness =.. [v|Variables],
-        findall(Witness, Module:Goal, Solutions),
-        maplist(apart(Witness), Solutions)
+        findall(Witness, sld_proof(Module:Goal, Type, _), Solutions),
+        maplist(excluded(Witness, Module:Goal), Solutions)
     ),
     S = S0.
-sld_goal(Module:Goal, Type, _Anc, S0, S) :-
-    sld_proof(Module:Goal, Type, Children),
+sld_goal(Goal, Type, _Anc, S0, S) =>
+    sld_proof(Goal, Type, Children),
     maplist(sld_node, Children, Nodes),
     splice(Nodes, S0, S).
+
+%   excluded(+Witness, +Goal, +Solution) keeps the goal's variables
+%   away from one solution.  A ground one is a disequality.  A solution
+%   that leaves a variable free holds for **every** value there, so
+%   that position says nothing to exclude and only the ground positions
+%   are kept apart — none at all means the goal holds whatever the
+%   variables are, and its negation fails.  What is left, a solution
+%   binding a variable to a term with a variable in it or relating two
+%   positions, excludes every *instance* of something, and a disequality
+%   cannot say that: `dif(V, f(_))` holds by choosing the `_`.  That is
+%   refused rather than answered wrongly.
+
+excluded(Witness, Goal, Solution) :-
+    Witness =.. [_|Variables],
+    Solution =.. [_|Values],
+    (   ground_positions(Variables, Values, Vs, Gs)
+    ->  Vs \== [],
+        apart(Vs, Gs)
+    ;   Goal = _:G,
+        functor(G, Name, Arity),
+        throw(error(representation_error(scasp_universal_disequality),
+                    context(not(Name/Arity),
+                            'a solution is not ground')))
+    ).
+
+ground_positions([], [], [], []).
+ground_positions([V|Vs], [T|Ts], Vs1, Gs1) :-
+    (   ground(T)
+    ->  Vs1 = [V|Vs2], Gs1 = [T|Gs2]
+    ;   var(T),
+        \+ attvar(T),
+        occurrences_of_var(T, Ts, 0),
+        Vs1 = Vs2, Gs1 = Gs2
+    ),
+    ground_positions(Vs, Ts, Vs2, Gs2).
 
 %   The interpreter reports `Literal-Children`, which is the shape a
 %   justification comes *out* in rather than the one the proof is kept
@@ -1688,15 +1903,16 @@ sld_goal(Module:Goal, Type, _Anc, S0, S) :-
 sld_node(Literal-Children, n(sld(Literal), proof, Nodes)) :-
     maplist(sld_node, Children, Nodes).
 
-%!  findall_(+Template, :Goal, -List, +Anc, +S0, -S) is det.
+%!  findall_(@Template, :Goal, ?List, @Anc, @S0, -S) is semidet.
 %
-%   `findall/3` over a solver goal.  The list is the ordinary one; what
-%   is not ordinary is that each solution *proved* something, and the
-%   literals it proved belong in the model — `.pass` data for
-%   `solve_findall.pl` lists every `member/2` the collection walked
-%   through, not just the answers.  So each solution's proof delta is
-%   collected alongside its template and the whole lot is spliced into
-%   the caller's proof.
+%   `findall/3` over a solver goal, which fails like `findall/3` where
+%   List is given and is not the list of solutions.  The list is the
+%   ordinary one; what is not ordinary is that each solution *proved*
+%   something, and the literals it proved belong in the model — `.pass`
+%   data for `solve_findall.pl` lists every `member/2` the collection
+%   walked through, not just the answers.  So each solution's proof
+%   delta is collected alongside its template and the whole lot is
+%   spliced into the caller's proof.
 %
 %   findall/3 copies, so a collected node shares no variable with the
 %   goal that produced it and carries none of its attributes.  That is
@@ -1705,30 +1921,24 @@ sld_node(Literal-Children, n(sld(Literal), proof, Nodes)) :-
 %   collection over ground literals, which is what findall/3 is for here.
 
 findall_(Template, Goal, List, Anc, S0, S) :-
-    findall((Template-Nodes)-H,
-            (   call_goal(Goal, Anc, S0, S1),
-                children(S1, S0, proof(Nodes, _)),
-                h_capture(H)
-            ),
-            Generated),
-    pairs_keys_values(Generated, Pairs, Heights),
-    maplist(h_merge, Heights),
-    collected(Pairs, List, Forest),
+    collected(Template-Nodes,
+              (   call_goal(Goal, Anc, S0, S1),
+                  children(S1, S0, proof(Nodes, _))
+              ),
+              Pairs),
+    pairs_keys_values(Pairs, List, NodeLists),
+    append(NodeLists, Forest),
     splice(Forest, S0, S).
-
-collected([], [], []).
-collected([Template-Nodes|T], [Template|Templates], Forest) :-
-    append(Nodes, Rest, Forest),
-    collected(T, Templates, Rest).
 
 %   A spliced node's descendants were never in this proof's index, so
 %   unlike proved/4 — whose children indexed themselves on the way up —
 %   the whole subtree is indexed here.
 
-splice([], S, S).
-splice([Node|Nodes], proof(Forest, Index0), S) :-
-    index_node(Node, Index0, Index),
-    splice(Nodes, proof([Node|Forest], Index), S).
+splice(Nodes, S0, S) :-
+    foldl(splice_node, Nodes, S0, S).
+
+splice_node(Node, proof(Forest, Index0), proof([Node|Forest], Index)) :-
+    index_node(Node, Index0, Index).
 
 index_node(n(Goal, Status, Children), Index0, Index) :-
     (   Status == proved
@@ -1736,18 +1946,13 @@ index_node(n(Goal, Status, Children), Index0, Index) :-
     ;   Kind = Status
     ),
     index(Goal, Kind, Index0, Index1),
-    index_nodes(Children, Index1, Index).
-
-index_nodes([], Index, Index).
-index_nodes([Node|Nodes], Index0, Index) :-
-    index_node(Node, Index0, Index1),
-    index_nodes(Nodes, Index1, Index).
+    foldl(index_node, Children, Index1, Index).
 
 		 /*******************************
 		 *         THE MODEL		*
 		 *******************************/
 
-%!  model(+S, -Model) is det.
+%!  model(@S, -Model) is det.
 %
 %   The literals proved, in the language the program was written in.
 %   This is where the mangling comes off — nothing demangles while
@@ -1758,21 +1963,26 @@ index_nodes([Node|Nodes], Index0, Index) :-
 %   carries none of the constraints that say what the answer *is*.  For
 %   `p(X) :- not q(X)` over `q(1)`, the answer is X with `dif(X, 1)` on
 %   it, and a copy is just an unbound variable.
+%
+%   @arg S is the proof, `proof(Forest, Index)` as in check/7.
+
+:- det(model/2).
 
 model(proof(Forest, _), Model) :-
     literals(Forest, Literals, []),
     sort(Literals, Model).
 
-literals([], Tail, Tail).
-literals([n(Goal, _, Children)|T], Literals, Tail) :-
+literals(Nodes, Literals, Tail) :-
+    foldl(node_literals, Nodes, Literals, Tail).
+
+node_literals(n(Goal, _, Children), Literals, Tail) :-
     (   literal(Goal, Literal)
     ->  Literals = [Literal|Rest]
     ;   Literals = Rest
     ),
-    literals(Children, Rest, Rest1),
-    literals(T, Rest1, Tail).
+    literals(Children, Rest, Tail).
 
-%!  justification(+Proof, -Forest) is det.
+%!  justification(@Proof, -Forest) is det.
 %
 %   The proof in the language the program was written in, in the order
 %   the literals were called: `Literal-Children`, with `chs/1` and
@@ -1786,39 +1996,45 @@ literals([n(Goal, _, Children)|T], Literals, Tail) :-
 %   abducible's even loop.  Its children take its place, which is where
 %   they belong: nothing was proved *about* `abducible$p`, it was assumed,
 %   and the assumption is already said by `p` being in the model.
+%
+%   @arg Proof is `proof(Forest, Index)`, as in check/7.
+
+:- det(justification/2).
 
 justification(proof(Nodes, _), Forest) :-
     forest(Nodes, [], Forest).
 
-forest([], Forest, Forest).
-forest([n(Goal, Status, Children)|T], Forest0, Forest) :-
-    forest(Children, [], Sub),
+forest(Nodes, Forest0, Forest) :-
+    foldl(forest_node, Nodes, Forest0, Forest).
+
+forest_node(n(Goal, Status, Children), Forest0, Forest) :-
     (   literal(Goal, Literal)
-    ->  status(Status, Literal, Node),
-        Forest1 = [Node-Sub|Forest0]
-    ;   append(Sub, Forest0, Forest1)
-    ),
-    forest(T, Forest1, Forest).
+    ->  forest(Children, [], Sub),
+        status(Status, Literal, Node),
+        Forest = [Node-Sub|Forest0]
+    ;   forest(Children, Forest0, Forest)
+    ).
 
 status(proof,   Literal, Literal).
 status(assumed, Literal, Literal).
 status(chs,    Literal, chs(Literal)).
 status(proved, Literal, proved(Literal)).
 
-%!  literal(+Goal, -Literal) is semidet.
+%!  literal(@Goal, -Literal) is semidet.
+%
+%   @arg Goal is a proof node's goal: a mangled literal, or `sld(Goal)`
+%       for a step of an SLD proof.
+%   @arg Literal is the goal in program syntax, wrapped in `-/1`,
+%       `not/1` or both by its kind.  Fails for a mangled name with no
+%       literal to its name.
 
-literal(sld(Goal), Goal) :-
-    !.
-literal(Goal, Literal) :-
+literal(sld(Goal), Literal) =>
+    Literal = Goal.
+literal(Goal, Literal) =>
     Goal =.. [Mangled|Args],
     demangle(Mangled, pred(_, Kind, Name, _)),
     Plain =.. [Name|Args],
-    wrap(Kind, Plain, Literal).
-
-wrap(plain,    Goal, Goal).
-wrap(neg,      Goal, -(Goal)).
-wrap(dual,     Goal, not(Goal)).
-wrap(dualneg,  Goal, not(-(Goal))).
+    kind_literal(Kind, Plain, Literal).
 
 
 		 /*******************************
@@ -1859,6 +2075,8 @@ prolog:message(error(scasp_error(unrepresentable_complement(C)), _)) -->
 %   Start an answer: a fresh table when `sscasp_table` is true, none
 %   otherwise.  Called by `run.pl` before each query.
 
+:- det(table_begin/0).
+
 table_begin :-
     (   current_prolog_flag(sscasp_table, true)
     ->  trie_new(Table),
@@ -1897,51 +2115,32 @@ check_tabled(Table, Goal, Neg, Pol, Anc, S0, Anc1, Action) :-
     ).
 
 %   Depth is the length of the ancestor list, so the frame at its head
-%   has depth Depth-1, and each step down the list one less.
+%   has depth Depth-1, and each step down the list one less.  The walks
+%   are consistent/4 and ancestor_/6, with a tracker that records the
+%   deepest frame consulted.
 
-consistent_h(Neg, Anc, Depth, proof(_, Index)) :-
-    functor(Neg, Name, Arity),
+consistent_h(Neg, Anc, Depth, S0) :-
     D is Depth-1,
-    consistent_ancestors_h(Anc, D, Name, Arity, Neg),
-    relatives(Name/Arity, Index, Relatives),
-    consistent_relatives_h(Relatives, Neg).
-
-consistent_ancestors_h([], _, _, _, _).
-consistent_ancestors_h([a(Goal, _, _)|T], D, Name, Arity, Neg) :-
-    (   functor(Goal, Name, Arity)
-    ->  (   unifiable(Goal, Neg, _)
-        ->  h_lower(D)
-        ;   true
-        ),
-        apart(Goal, Neg)
-    ;   true
-    ),
-    D1 is D-1,
-    consistent_ancestors_h(T, D1, Name, Arity, Neg).
-
-consistent_relatives_h([], _).
-consistent_relatives_h([_-Goal|T], Neg) :-
-    (   unifiable(Goal, Neg, _)
-    ->  h_lower(0)
-    ;   true
-    ),
-    apart(Goal, Neg),
-    consistent_relatives_h(T, Neg).
-
-%   ancestor/4, reporting the matched ancestor's depth as consulted.
+    consistent(Neg, Anc, depth(D), S0).
 
 ancestor_h(Anc, Depth, Goal, Pol, Negations) :-
     D is Depth-1,
-    ancestor_h(Anc, D, Goal, Pol, 0, Negations).
+    ancestor_(Anc, depth(D), Goal, Pol, 0, Negations).
 
-ancestor_h([a(A, _, AP)|T], D, Goal, Pol, N0, N) :-
-    transition(AP, Pol, N0, N1),
-    (   loop(A, Goal, N1, Pol)
-    ->  A = Goal,
-        N = N1,
-        h_lower(D)
-    ;   D1 is D-1,
-        ancestor_h(T, D1, Goal, AP, N1, N)
+consulted(none) => true.
+consulted(depth(D)) => h_lower(D).
+
+below(none, Tracker) => Tracker = none.
+below(depth(D), Tracker) => D1 is D-1, Tracker = depth(D1).
+
+%   Posting a disequality consults the literal only where the two could
+%   have been the same.
+
+consulted_if_unifiable(none, _, _) => true.
+consulted_if_unifiable(depth(D), Goal, Neg) =>
+    (   unifiable(Goal, Neg, _)
+    ->  h_lower(D)
+    ;   true
     ).
 
 table_proved(Goal, Status) :-
@@ -1983,6 +2182,8 @@ h_restore(R0) :-
 %
 %   Carry the height out of a run that `fail` or `findall/3` undoes,
 %   so what the discarded branch consulted still counts.
+%
+%   @arg H is a height: the smallest ancestor depth consulted, or `inf`.
 
 h_capture(H) :-
     (   nb_current(sscasp_table, Table), Table \== []

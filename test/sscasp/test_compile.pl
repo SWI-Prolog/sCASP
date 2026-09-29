@@ -29,6 +29,7 @@ test_compile :-
                 compile_closure,
                 compile_nmr,
                 compile_abducibles,
+                compile_sld,
                 compile_unbounded
               ]).
 
@@ -435,6 +436,32 @@ test(a_predicate_may_be_both_abducible_and_derived) :-
     assertion(defines(P, 'm$dual.2$p$1'/1)).
 
 :- end_tests(compile_abducibles).
+
+		 /*******************************
+		 *           :- SLD		*
+		 *******************************/
+
+/** One `:- sld` may declare several predicates, as `:- dynamic` does.
+    `as` binds tighter than `,`, so it covers the whole list only in
+    parentheses.
+*/
+
+:- begin_tests(compile_sld).
+
+test(several_share_a_type_in_parentheses) :-
+    sld_declarations(((p/1, q/2) as opaque), List),
+    assertion(List == [p/1 as opaque, q/2 as opaque]).
+
+test(without_them_as_is_the_last_one_s) :-
+    sld_declarations((p/1, q/2 as opaque), List),
+    assertion(List == [p/1, q/2 as opaque]).
+
+test(each_gets_its_bridges) :-
+    compiled([(:- sld((p/1, q/2) as opaque))], P),
+    assertion(defines(P, 'm$plain$p$1'/_)),
+    assertion(defines(P, 'm$dual$q$2'/_)).
+
+:- end_tests(compile_sld).
 
 		 /*******************************
 		 *        THE REPORT		*

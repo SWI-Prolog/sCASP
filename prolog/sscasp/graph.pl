@@ -33,16 +33,17 @@
 */
 
 :- module(sscasp_graph,
-          [ call_graph/2,               % +Clauses, -Graph
+          [ call_graph/2,               % @Clauses, -Graph
             odd_components/2,           % +Graph, -Components
-            olon_clauses/3              % +Clauses, -Olon, -Ordinary
+            olon_clauses/3              % @Clauses, -Olon, -Ordinary
           ]).
 :- use_module(ops).
 :- use_module(dualise, [builtin/1]).
+:- use_module(clauses, [clause_body/2, body_literal/2, literal_key/2]).
 :- use_module(library(ugraphs), [vertices_edges_to_ugraph/3, reachable/3,
-                                 transpose_ugraph/2, neighbours/3]).
-:- use_module(library(lists), [member/2, memberchk/2, append/3, subtract/3]).
-:- use_module(library(apply), [maplist/3, partition/4]).
+                                 transpose_ugraph/2]).
+:- use_module(library(lists), [member/2, append/2, append/3]).
+:- use_module(library(apply), [maplist/3, partition/4, include/3]).
 :- use_module(library(ordsets), [ord_intersection/3, ord_memberchk/2]).
 
 /** <module> The call graph, and the loops over negation in it
@@ -66,7 +67,9 @@ graph for bipartiteness.  Give one node parity 0 and propagate: a positive arc
 keeps the parity, a negative one flips it.  A conflict means an odd cycle, and
 no conflict means every cycle is even.
 
-That is linear, and — unlike enumerating paths — it cannot miss one.  It is
+That is linear as an algorithm (this code looks nodes up in lists, which
+costs more but is nowhere near a bottleneck), and — unlike enumerating
+paths — it cannot miss one.  It is
 also correct to do the propagation *undirectedly* within a strongly connected
 component, which is what makes it a colouring rather than a search.  Within an
 SCC there is a path back from every node, so two directed paths to the same
@@ -100,7 +103,7 @@ like any other.
 		 *         THE GRAPH		*
 		 *******************************/
 
-%!  call_graph(+Clauses, -Graph) is det.
+%!  call_graph(@Clauses, -Graph) is det.
 %
 %   Graph is
 %
@@ -113,6 +116,11 @@ like any other.
 %
 %   Built-ins are not nodes.  They call nothing, so an arc to one could
 %   not be part of a cycle.
+%
+%   @arg Clauses are source clauses, untranslated: heads may be `-p(X)`
+%       or `abducible(...)`, and bodies hold `not/1`.
+
+:- det(call_graph/2).
 
 call_graph(Clauses, graph{nodes: Nodes, arcs: Arcs}) :-
     findall(Arc, clause_arc(Clauses, Arc), Arcs0),
@@ -136,67 +144,48 @@ clause_arc(Clauses, arc(From, To, Sign)) :-
     body_literal(Body, Literal),
     literal_node(Literal, To, Sign).
 
-%!  head_node(+Clause, -Node) is det.
-
-head_node((Head :- _), Node) :- !, node(Head, Node).
-head_node(Fact, Node) :- node(Fact, Node).
-
-clause_body((_ :- Body), Body) :- !.
-clause_body(_, true).
-
-%!  body_literal(+Body, -Literal) is nondet.
+%!  head_node(@Clause, -Node) is det.
 %
-%   Every literal of Body, looking through the control constructs.  At
-%   source level there is little to look through, but a body rewritten by
-%   a program's own expansion may hold more.
+%   @arg Node is the head's node, as in node/2.
 
-body_literal(Var, _) :-
-    var(Var),
-    !,
-    fail.
-body_literal((A, B), L) :- !, (body_literal(A, L) ; body_literal(B, L)).
-body_literal((A ; B), L) :- !, (body_literal(A, L) ; body_literal(B, L)).
-body_literal((A -> B), L) :- !, (body_literal(A, L) ; body_literal(B, L)).
-body_literal(findall(_, A, _), L) :- !, body_literal(A, L).
-body_literal(L, L).
+head_node((Head :- _), Node) =>
+    node(Head, Node).
+head_node(Fact, Node) =>
+    node(Fact, Node).
 
-%!  literal_node(+Literal, -Node, -Sign) is semidet.
+%   The literals come from `clauses.pl:body_literal/2`, with the
+%   polarity they have in the body — a `forall/2` the program writes is
+%   looked through like any other construct, and `not forall(X, r(X))`
+%   is a negative arc to `r`.  Missing either misses an odd loop.
+
+%!  literal_node(@Literal, -Node, -Sign) is semidet.
 %
 %   Fails for a built-in, which is not a node.
+%
+%   @arg Sign is `+`, flipped to `-` and back by each `not/1` around
+%       the goal.
 
-literal_node(not(Goal), Node, Sign) :-
-    !,
+literal_node(not(Goal), Node, Sign) =>
     literal_node(Goal, Node, Sign0),
     flip(Sign0, Sign).
-literal_node(Goal, _, _) :-
-    builtin(Goal),
-    !,
+literal_node(Goal, _, _), builtin(Goal) =>
     fail.
-literal_node(Goal, Node, +) :-
+literal_node(Goal, Node, Sign) =>
+    Sign = (+),
     node(Goal, Node).
 
 flip(+, -).
 flip(-, +).
 
-%!  node(+Literal, -Node) is det.
+%!  node(@Literal, -Node) is det.
+%
+%   @arg Literal is a literal without `not/1`.
+%   @arg Node is `key(Polarity, Name/Arity)`, Polarity `plain`, `neg`
+%       for `-p`, `abducible` or `abducibleneg` — the key
+%       `compile.pl:clause_key/2` gives the same predicate.
 
-node(abducible(-(Goal)), key(abducibleneg, PI)) :-
-    !,
-    pi(Goal, PI).
-node(abducible(Goal), key(abducible, PI)) :-
-    !,
-    pi(Goal, PI).
-node(-(Goal), key(neg, PI)) :-
-    !,
-    pi(Goal, PI).
-node(Goal, key(plain, PI)) :-
-    pi(Goal, PI).
-
-pi(Goal, Name/Arity) :-
-    (   atom(Goal)
-    ->  Name = Goal, Arity = 0
-    ;   functor(Goal, Name, Arity)
-    ).
+node(Goal, Node) :-
+    literal_key(Goal, Node).
 
 		 /*******************************
 		 *        ODD LOOPS		*
@@ -208,12 +197,15 @@ pi(Goal, Name/Arity) :-
 %   an odd loop over negation, each a sorted list of nodes.  A component
 %   of one node is there only if the node calls itself.
 
+:- det(odd_components/2).
+
 odd_components(Graph, Components) :-
     components(Graph, All),
     include_unbalanced(All, Graph.arcs, Components).
 
-include_unbalanced([], _, []).
-include_unbalanced([C|Cs], Arcs, Components) :-
+include_unbalanced([], _, Components) =>
+    Components = [].
+include_unbalanced([C|Cs], Arcs, Components) =>
     (   cyclic(C, Arcs),
         \+ balanced(C, Arcs)
     ->  Components = [C|Rest]
@@ -224,10 +216,10 @@ include_unbalanced([C|Cs], Arcs, Components) :-
 %   A component of one node is a cycle only if the node calls itself;
 %   reachability puts every node in a component, cyclic or not.
 
-cyclic([Node], Arcs) :-
-    !,
+cyclic([Node], Arcs) =>
     memberchk(arc(Node, Node, _), Arcs).
-cyclic(_, _).
+cyclic(_, _) =>
+    true.
 
 %!  balanced(+Component, +Arcs) is semidet.
 %
@@ -235,6 +227,9 @@ cyclic(_, _).
 %   with every arc inside it — that is, when every cycle in it is even.
 %   Propagation is undirected, which is what the module comment argues is
 %   sound within a component.
+%
+%   @arg Arcs is every `arc(From, To, Sign)` of the graph; those not
+%       inside Component are ignored.
 
 balanced([Node|Nodes], Arcs) :-
     internal_arcs([Node|Nodes], Arcs, Internal),
@@ -246,26 +241,30 @@ balanced([Node|Nodes], Arcs) :-
 
 internal_arcs(Component, Arcs, Internal) :-
     sort(Component, Set),
-    findall(arc(F, T, S),
-            ( member(arc(F, T, S), Arcs),
-              ord_memberchk(F, Set),
-              ord_memberchk(T, Set)
-            ),
-            Internal).
+    include(internal_arc(Set), Arcs, Internal).
+
+internal_arc(Set, arc(F, T, _)) :-
+    ord_memberchk(F, Set),
+    ord_memberchk(T, Set).
 
 %!  colour(+Agenda, +Arcs, +Done, -Colours) is det.
 %
 %   Colours is every (node, parity) pair the propagation reaches.  A node
 %   reached twice with different parities appears twice, which is how
 %   balanced/2 sees the conflict.
+%
+%   @arg Agenda is a list of `Node-Parity` pairs still to visit,
+%       Parity `0` or `1`.
+%   @arg Done is the `Node-Parity` pairs visited so far.
 
-colour([], _, Done, Done).
-colour([Node-C|Agenda], Arcs, Done, Colours) :-
-    (   memberchk(Node-C, Done)
+colour([], _, Done, Colours) =>
+    Colours = Done.
+colour([Visit|Agenda], Arcs, Done, Colours), Visit = Node-C =>
+    (   memberchk(Visit, Done)
     ->  colour(Agenda, Arcs, Done, Colours)
     ;   findall(N2-C2, neighbour(Node, C, Arcs, N2, C2), More),
         append(Agenda, More, Agenda1),
-        colour(Agenda1, Arcs, [Node-C|Done], Colours)
+        colour(Agenda1, Arcs, [Visit|Done], Colours)
     ).
 
 %   Undirected: an arc constrains its two ends whichever way it points.
@@ -294,8 +293,9 @@ components(Graph, Components) :-
 
 arc_edge(arc(From, To, _), From-To).
 
-scc_of_each([], _, _, _, []).
-scc_of_each([Node|Nodes], UGraph, Reverse, Seen, Components) :-
+scc_of_each([], _, _, _, Components) =>
+    Components = [].
+scc_of_each([Node|Nodes], UGraph, Reverse, Seen, Components) =>
     (   ord_memberchk(Node, Seen)
     ->  scc_of_each(Nodes, UGraph, Reverse, Seen, Components)
     ;   reachable(Node, UGraph, Forward),
@@ -311,7 +311,7 @@ scc_of_each([Node|Nodes], UGraph, Reverse, Seen, Components) :-
 		 *        OLON CLAUSES		*
 		 *******************************/
 
-%!  olon_clauses(+Clauses, -Olon, -Ordinary) is det.
+%!  olon_clauses(@Clauses, -Olon, -Ordinary) is det.
 %
 %   Olon is the clauses that contribute an arc inside a component holding
 %   an odd loop over negation; Ordinary is the rest, in order.  These are
@@ -320,6 +320,8 @@ scc_of_each([Node|Nodes], UGraph, Reverse, Seen, Components) :-
 %   A clause whose head is on a loop but whose body does not lead back
 %   into it is *not* on the loop — `p :- b` with `b` outside the
 %   component contributes no arc inside it — and is reported as ordinary.
+
+:- det(olon_clauses/3).
 
 olon_clauses(Clauses, Olon, Ordinary) :-
     call_graph(Clauses, Graph),

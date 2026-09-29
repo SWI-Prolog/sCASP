@@ -36,8 +36,8 @@
           [ sld_proof/3                 % :Goal, +Type, -Children
           ]).
 :- use_module(ops).
-:- use_module(library(lists), [append/3]).
 :- use_module(library(error), [existence_error/2]).
+:- use_module(library(lists), [append/3]).
 
 /** <module> Proving a goal by SLD resolution
 
@@ -73,7 +73,9 @@ apart — and for one where the detail would bury the answer.
 ## What the interpreter handles
 
 Conjunction, disjunction, if-then-else, negation as failure, cut, and both
-kinds of rule (`:-` and `=>`).  A cut cuts to the choice point of the clause
+kinds of rule (`:-` and `=>`; see ssu_guard/3 for how a guard is found).
+A callee with no definition raises the existence error calling it would,
+rather than failing as clause/2 does.  A cut cuts to the choice point of the clause
 it appears in, which is what `prolog_current_choice/1` and `prolog_cut_to/1`
 are for; getting that wrong makes a cut in a called predicate cut the s(CASP)
 search, which is a bug that only shows up on backtracking.
@@ -91,14 +93,16 @@ That is `opaque/1` below, and it is why `justified` is a safe default.
 %   Call Goal.  Children is the justification below it, as the forest of
 %   `Literal-Children` the rest of the solver uses — empty for `opaque`,
 %   and the shape of the Prolog proof for `justified`.
+%
+%   @arg Type is `justified` or `opaque`, the two ways to run it that
+%       the module comment describes.
 
-sld_proof(Module:Goal, opaque, Children) :-
-    !,
-    call(Module:Goal),
+sld_proof(Goal, opaque, Children) =>
+    call(Goal),
     Children = [].
-sld_proof(Module:Goal, _, Children) :-
+sld_proof(Module:Goal, _, Children) =>
     prolog_current_choice(Choice),
-    interpret(Goal, Module, Tree, Choice),
+    phrase(interpret(Goal, Module, Choice), Tree),
     below(Goal, Tree, Children).
 
 %   The caller already has a node for the goal — it called a predicate to
@@ -106,74 +110,109 @@ sld_proof(Module:Goal, _, Children) :-
 %   again.  Anything else is passed through: a goal that turned out to be
 %   a conjunction or a built-in has no root to strip.
 
-below(Goal, [Root-Children], Stripped) :-
-    Root == Goal,
-    !,
+below(Goal, [Root-Children], Stripped), Root == Goal =>
     Stripped = Children.
-below(_, Tree, Tree).
+below(_, Tree, Stripped) =>
+    Stripped = Tree.
 
-interpret(Goal, _, _, _), var(Goal) =>
-    throw(error(instantiation_error, _)).
-interpret(true, _, Tree, _) =>
-    Tree = [].
-interpret(fail, _, _, _) =>
+%   The interpreter is a DCG over the proof: a conjunction's two halves,
+%   and an if-then-else's condition and branch, put their nodes side by
+%   side, and a node's own children are a phrase of their own.
+
+interpret(Goal, _, _), var(Goal) ==>
+    { throw(error(instantiation_error, _)) }.
+interpret(true, _, _) ==>
+    [].
+interpret(fail, _, _) ==>
+    { fail }.
+interpret(false, _, _) ==>
+    { fail }.
+interpret(Module:Goal, _, Choice) ==>
+    interpret(Goal, Module, Choice).
+interpret((A, B), Module, Choice) ==>
+    interpret(A, Module, Choice),
+    interpret(B, Module, Choice).
+interpret((If -> Then ; Else), Module, Choice) ==>
+    (   { prolog_current_choice(Inner) },
+        interpret(If, Module, Inner)
+    ->  interpret(Then, Module, Choice)
+    ;   [(not If)-[]],
+        interpret(Else, Module, Choice)
+    ).
+interpret((If *-> Then ; Else), Module, Choice) ==>
+    (   { prolog_current_choice(Inner) },
+        interpret(If, Module, Inner)
+    *-> interpret(Then, Module, Choice)
+    ;   [not(If)-[]],
+        interpret(Else, Module, Choice)
+    ).
+interpret((A ; B), Module, Choice) ==>
+    (   interpret(A, Module, Choice)
+    ;   interpret(B, Module, Choice)
+    ).
+interpret(\+ Goal, Module, _) ==>
+    { prolog_current_choice(Inner),
+      \+ phrase(interpret(Goal, Module, Inner), _)
+    },
+    [not(Goal)-[]].
+interpret(!, _, Choice) ==>
+    { prolog_cut_to(Choice) }.
+interpret(Goal, Module, _), opaque(Module:Goal) ==>
+    [Goal-[]],
+    { call(Module:Goal) }.
+interpret(Goal, Module, Choice),
+    predicate_property(Module:Goal, imported_from(From)) ==>
+    interpret(Goal, From, Choice).
+interpret(Goal, Module, _), \+ predicate_property(Module:Goal, defined) ==>
+    { functor(Goal, Name, Arity),
+      existence_error(procedure, Module:Name/Arity)
+    }.
+interpret(Goal, Module, _), predicate_property(Module:Goal, ssu) ==>
+    { most_general_goal(Goal, General),
+      prolog_current_choice(Inner),
+      (   clause(Module:General, Body0),
+          subsumes_term(General, Goal),
+          General = Goal,
+          ssu_guard(Body0, Guard, Body),
+          phrase(interpret(Guard, Module, Inner), GuardNodes)
+      ->  phrase(interpret(Body, Module, Inner), BodyNodes),
+          append(GuardNodes, BodyNodes, Children)
+      ;   existence_error(matching_rule, Module:Goal)
+      )
+    },
+    [Goal-Children].
+interpret(Goal, Module, _) ==>
+    { prolog_current_choice(Inner),
+      clause(Module:Goal, Body),
+      phrase(interpret(Body, Module, Inner), Children)
+    },
+    [Goal-Children].
+
+%   clause/2 gives an SSU rule's body without its `=>`: `Head, Guard =>
+%   Body` comes back as `(Guard, !, Body)` with the guard's conjunction
+%   flattened in front of the cut, and an unguarded rule as its plain
+%   body.  So the guard is whatever precedes the first `!` at the top of
+%   the conjunction.  An unguarded body that itself starts with goals
+%   before a `!` reads the same, and is taken for a guard: the only
+%   difference is that a failure before the cut then tries the next rule
+%   instead of failing the call.
+
+ssu_guard(Body0, Guard, Body) :-
+    (   guard_split(Body0, Guard0, Body1)
+    ->  Guard = Guard0,
+        Body = Body1
+    ;   Guard = true,
+        Body = Body0
+    ).
+
+guard_split((!, Body0), Guard, Body) =>
+    Guard = true,
+    Body = Body0.
+guard_split((G, Rest), Guard, Body) =>
+    guard_split(Rest, Guard0, Body),
+    Guard = (G, Guard0).
+guard_split(_, _, _) =>
     fail.
-interpret(false, _, _, _) =>
-    fail.
-interpret(Module:Goal, _, Tree, Choice) =>
-    interpret(Goal, Module, Tree, Choice).
-interpret((A, B), Module, Tree, Choice) =>
-    interpret(A, Module, TreeA, Choice),
-    interpret(B, Module, TreeB, Choice),
-    append(TreeA, TreeB, Tree).
-interpret((If -> Then ; Else), Module, Tree, Choice) =>
-    (   prolog_current_choice(Inner),
-        interpret(If, Module, TreeIf, Inner)
-    ->  interpret(Then, Module, TreeThen, Choice),
-        append(TreeIf, TreeThen, Tree)
-    ;   interpret(Else, Module, TreeElse, Choice),
-        Tree = [(not If)-[]|TreeElse]
-    ).
-interpret((If *-> Then ; Else), Module, Tree, Choice) =>
-    (   prolog_current_choice(Inner),
-        interpret(If, Module, TreeIf, Inner)
-    *-> interpret(Then, Module, TreeThen, Choice),
-        append(TreeIf, TreeThen, Tree)
-    ;   interpret(Else, Module, TreeElse, Choice),
-        Tree = [not(If)-[]|TreeElse]
-    ).
-interpret((A ; B), Module, Tree, Choice) =>
-    (   interpret(A, Module, Tree, Choice)
-    ;   interpret(B, Module, Tree, Choice)
-    ).
-interpret(\+ Goal, Module, Tree, _) =>
-    prolog_current_choice(Inner),
-    \+ interpret(Goal, Module, _, Inner),
-    Tree = [not(Goal)-[]].
-interpret(!, _, Tree, Choice) =>
-    Tree = [],
-    prolog_cut_to(Choice).
-interpret(Goal, Module, Tree, _), opaque(Module:Goal) =>
-    Tree = [Goal-[]],
-    call(Module:Goal).
-interpret(Goal, Module, Tree, Choice),
-    predicate_property(Module:Goal, imported_from(From)) =>
-    interpret(Goal, From, Tree, Choice).
-interpret(Goal, Module, Tree, _), predicate_property(Module:Goal, ssu) =>
-    most_general_goal(Goal, General),
-    prolog_current_choice(Inner),
-    (   clause(Module:General, Guard => Body),
-        subsumes_term(General, Goal)
-    *-> General = Goal,
-        interpret((Guard, !, Body), Module, Children, Inner),
-        Tree = [Goal-Children]
-    ;   existence_error(matching_rule, Module:Goal)
-    ).
-interpret(Goal, Module, Tree, _) =>
-    prolog_current_choice(Inner),
-    clause(Module:Goal, Body),
-    interpret(Body, Module, Children, Inner),
-    Tree = [Goal-Children].
 
 %!  opaque(:Goal) is semidet.
 %
@@ -182,13 +221,11 @@ interpret(Goal, Module, Tree, _) =>
 %   modules the interpreter has no way to track — the old implementation
 %   says the same and for the same reason.
 
-opaque(Goal) :-
-    predicate_property(Goal, foreign),
-    !.
-opaque(Goal) :-
-    predicate_property(Goal, meta_predicate(_)),
-    !.
-opaque(Goal) :-
+opaque(Goal), predicate_property(Goal, foreign) =>
+    true.
+opaque(Goal), predicate_property(Goal, meta_predicate(_)) =>
+    true.
+opaque(Goal) =>
     \+ predicate_property(Goal, number_of_clauses(_)),
     predicate_property(Goal, defined).
 

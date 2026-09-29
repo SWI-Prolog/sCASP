@@ -40,7 +40,8 @@ test_solve :-
                 solve_abducibles,
                 solve_counting,
                 solve_differential,
-                solve_without_nmr
+                solve_without_nmr,
+                solve_tabling
               ]).
 
 %!  models(+Program, ?Query, -Models) is det.
@@ -127,7 +128,7 @@ test(deriving_both_polarities_has_no_model) :-
 why(Program, Query, Forest) :-
     scasp(Program, Query, _, Justification),
     !,
-    once(append(Forest, [nmr-_], Justification)).
+    once(append(Forest, ['$nmr'-_], Justification)).
 
 test(a_fact_is_a_leaf) :-
     why([q(1)], q(1), Forest),
@@ -187,12 +188,12 @@ test(a_builtin_is_not_a_step) :-
 test(the_check_has_a_node_of_its_own) :-
     scasp([p, (:- q)], p, _, Justification),
     !,
-    assertion(Justification == [p-[], nmr-[(not q)-[]]]).
+    assertion(Justification == [p-[], '$nmr'-[(not q)-[]]]).
 
 test(and_is_empty_when_there_is_nothing_to_check) :-
     scasp([p], p, _, Justification),
     !,
-    assertion(Justification == [p-[], nmr-[]]).
+    assertion(Justification == [p-[], '$nmr'-[]]).
 
 %   The model is the literals of the forest and nothing else, so it is
 %   not carried separately — which is `doc/design-next.md` open question
@@ -216,11 +217,11 @@ test(the_model_is_the_literals_of_the_proof,
     sort(Literals, Expected),
     assertion(Model == Expected).
 
-%   `nmr` is the one node that is not a literal: it groups what the
+%   `'$nmr'` is the one node that is not a literal: it groups what the
 %   check needed rather than naming something proved.
 
 literals_of([], []).
-literals_of([nmr-Children|T], Literals) :-
+literals_of(['$nmr'-Children|T], Literals) :-
     !,
     literals_of(Children, Sub),
     literals_of(T, Rest),
@@ -296,6 +297,19 @@ test(a_three_cycle_is_odd) :-
     Program = [(p :- not q), (q :- not r), (r :- not p)],
     assertion(\+ answers(Program, p)).
 
+%   The same loop through a quantifier the program writes: `p` holds iff
+%   no `r(X)` does, and `r(X)` holds iff `p` does.  No answer set, and
+%   the check that says so is only generated if the call graph looks
+%   inside the `forall/2`.
+
+test(an_odd_loop_through_a_written_forall) :-
+    Program = [q, (p :- forall(X, not r(X))), (r(_) :- p)],
+    assertion(\+ answers(Program, q)).
+
+test(and_through_a_negated_one) :-
+    Program = [q, (p :- not forall(X, r(X))), (r(_) :- p)],
+    assertion(\+ answers(Program, q)).
+
 %   A positive loop hidden behind a negation.  `p` needs `r` and `r`
 %   needs `p`, which is a loop over no negation and so unfounded; the
 %   only answer set is {q}.  The solver used to answer `p` anyway, with
@@ -348,6 +362,28 @@ test(the_program_the_oracle_found_it_on) :-
     assertion(\+ answers(Program, a)),
     assertion(\+ answers(Program, b)),
     assertion(\+ answers(Program, c)).
+
+%   A goal that is *less constrained* than an ancestor is a more general
+%   question, not a loop.  Below `p(A)` with `A #> 3`, `q(A)` asks
+%   `p(_)` with nothing on it, and `p(1)` answers that; so every A > 3 is
+%   an answer.  Read as an instance of the ancestor, `p(_)` was narrowed
+%   to `A > 3` and failed as unfounded, and the second answer was lost.
+%   The old implementation gives it.
+
+constrained_answer(Program, Query, Var, Constraints) :-
+    scasp(Program, Query, _),
+    copy_term(Var, Copy, Constraints0),
+    Constraints0 \== [],
+    Var = Copy,
+    Constraints = Constraints0.
+
+test(a_less_constrained_goal_is_not_a_loop_dense) :-
+    Program = [p(1), (p(X) :- X #> 3, q(X)), (q(_) :- p(_))],
+    assertion(constrained_answer(Program, p(A), A, [{A > 3}])).
+
+test(a_less_constrained_goal_is_not_a_loop_herbrand) :-
+    Program = [p(a), (p(X) :- X \= b, q(X)), (q(_) :- p(_))],
+    assertion(constrained_answer(Program, p(A), A, [A ∉ [b]])).
 
 :- end_tests(solve_loops).
 
@@ -524,6 +560,17 @@ test(the_negation_of_true_is_fail) :-
     assertion(\+ answers([(p :- not true)], p)),
     assertion(answers([(p :- not fail)], p)).
 
+%   A built-in with a partner, written negated, is its partner:
+%   `not X = a` is `X \= a`, `not X #< 3` is `X #>= 3`.  It used to be
+%   passed through as `not(X = a)`, which nothing could run.
+
+test(a_negated_builtin_is_its_partner) :-
+    Program = [r(a), r(b), (p(X) :- r(X), not X = a)],
+    models(Program, p(_), Models),
+    assertion(Models == [[p(b), r(b)]]),
+    assertion(answers([(q(X) :- not X #< 3)], q(5))),
+    assertion(\+ answers([(q(X) :- not X #< 3)], q(1))).
+
 %   A **query** is a clause body and may hold a constraint like one.
 %   `?- T #< 40, holds(T, ...)` is an ordinary s(CASP) query; calling
 %   each query literal as a predicate looks for a `#</5`.
@@ -638,7 +685,7 @@ test(and_one_outside_it_is_not) :-
 test(a_comparison_is_not_in_the_justification) :-
     scasp([(p(X) :- X #> 3), (q :- p(5))], q, _, Justification),
     !,
-    assertion(Justification == [q-[p(5)-[]], nmr-[]]).
+    assertion(Justification == [q-[p(5)-[]], '$nmr'-[]]).
 
 :- end_tests(solve_clpq).
 
@@ -1117,7 +1164,7 @@ test(what_the_collection_proved_is_in_the_model) :-
 test(and_in_the_justification) :-
     collecting(Program),
     once(scasp(Program, validate([1, 2, 3]), _, Justification)),
-    assertion(Justification = [validate([1, 2, 3])-_, nmr-_]),
+    assertion(Justification = [validate([1, 2, 3])-_, '$nmr'-_]),
     Justification = [_-Children|_],
     assertion(memberchk(member(1, [1, 2, 3])-_, Children)).
 
@@ -1387,6 +1434,30 @@ test(dropping_the_loops_leaves_a_constraint_checked) :-
 
 :- end_tests(solve_without_nmr).
 
+/** `sscasp_table` is an experiment (`doc/design-next.md` §7a) and off by
+    default.  It answers a repeated goal from a table instead of proving
+    it again, so it may change what a model holds but never which
+    answers there are.  This keeps it honest while it shares the loop
+    check's walks.
+*/
+
+:- begin_tests(solve_tabling).
+
+tabled([(p :- not q), (q :- not p)], p).
+tabled([(p :- not q, r), (q :- not r), (r :- p)], q).
+tabled([p(1), (p(X) :- X #> 3, q(X)), (q(_) :- p(_))], p(_)).
+tabled([q(1), q(2), (r(X) :- not q(X))], r(_)).
+tabled([edge(a, b), edge(b, c), (path(X, Y) :- edge(X, Y)),
+        (path(X, Y) :- edge(X, Z), path(Z, Y))], path(a, _)).
+
+test(tabling_gives_the_same_answers, [forall(tabled(Program, Query))]) :-
+    findall(Query, scasp(Program, Query, _), Off),
+    with_scasp_flag(sscasp_table, true,
+                    findall(Query, scasp(Program, Query, _), On)),
+    assertion(On =@= Off).
+
+:- end_tests(solve_tabling).
+
 /** `--dcc` checks a global constraint as soon as a literal completes it,
     rather than only at the end.  It is meant to prune and never to
     change an answer: the NMR check still runs, and a branch that
@@ -1417,7 +1488,7 @@ test(the_answers_do_not_change) :-
 answer_set(Program, Query, Set) :-
     findall(Key,
             ( scasp(Program, Query, Model),
-              copy_term(Query-Model, Key, _),
+              copy_term_nat(Query-Model, Key),
               numbervars(Key, 0, _)
             ),
             Keys),

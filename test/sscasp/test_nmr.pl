@@ -232,9 +232,12 @@ test(a_loop_is_described_by_its_predicate) :-
     check([(p(_) :- not p(_))], [], Nmr),
     assertion(Nmr.checks = [check(1, p/1, _)]).
 
-test(a_classically_negated_head_names_the_predicate) :-
+%   The loop is over `-p`, and reporting it under `p` names a predicate
+%   that is not on it.
+
+test(a_classically_negated_head_keeps_its_sign) :-
     check([(-(p) :- q, not(-(p)))], [], Nmr),
-    assertion(Nmr.checks = [check(1, p/0, _)]).
+    assertion(Nmr.checks = [check(1, -(p/0), _)]).
 
 test(the_description_carries_the_denial) :-
     check([(p :- q)], [], Nmr),
@@ -254,10 +257,14 @@ test(and_is_denied_like_any_other_constraint) :-
 
 test(the_indices_run_from_one) :-
     check([], [a, b, c], Nmr),
-    findall(I, member(check(I, _, _), Nmr.checks), Is),
+    maplist(check_index, Nmr.checks, Is),
     assertion(Is == [1, 2, 3]).
 
 :- end_tests(nmr_checks).
+
+%   Outside the units: both nmr_checks and nmr_flags use it.
+
+check_index(check(I, _, _), I).
 
 :- begin_tests(nmr_flags).
 
@@ -285,7 +292,9 @@ flagged(Flag, Value, Checks) :-
     sources(Sources),
     with_scasp_flag(Flag, Value,
                     nmr_check(m, Annotations, Sources, Nmr)),
-    findall(What, member(check(_, What, _), Nmr.checks), Checks).
+    maplist(check_kind, Nmr.checks, Checks).
+
+check_kind(check(_, What, _), What).
 
 test(all_three_kinds_are_checked_by_default) :-
     flagged(scasp_compile_nmr, true, Checks),
@@ -315,7 +324,7 @@ test(and_the_indices_still_run_from_one) :-
     sources(Sources),
     with_scasp_flag(scasp_compile_olon, false,
                     nmr_check(m, Annotations, Sources, Nmr)),
-    findall(I, member(check(I, _, _), Nmr.checks), Is),
+    maplist(check_index, Nmr.checks, Is),
     assertion(Is == [1, 2]).
 
 :- end_tests(nmr_flags).

@@ -11,7 +11,8 @@
             least_model/2               % +DefiniteProgram, -Model
           ]).
 :- use_module(library(lists), [member/2, append/3]).
-:- use_module(library(apply), [maplist/2, maplist/3, partition/4, exclude/3]).
+:- use_module(library(apply), [maplist/2, maplist/3, partition/4, exclude/3,
+                                convlist/3]).
 :- use_module(library(ordsets), [ord_union/3, ord_memberchk/2]).
 :- use_module(library(error), [instantiation_error/1, type_error/2,
                                domain_error/2]).
@@ -49,15 +50,44 @@ A program is a list of terms, the same ones you would write in a file:
       (:- r, p)                     % a constraint
     ]
 
-`not/1` marks default negation.  The operator is declared and exported here
-rather than taken from `scasp/ops.pl`, so that nothing in this file depends
-on the system it judges - an operator priority cannot introduce a semantic
-bug, but the independence is worth keeping total.  Classical negation is *not* supported: it
-needs a second atom per literal plus a consistency check, and the fragment
-is more useful without it.  Neither are variables - this is propositional
-only, which is where the compiler's constructs interfere (duals, odd loops,
-the NMR check) and where the semantics is unambiguous enough for a
-definitional oracle to be authoritative.
+`not/1` marks default negation.  The operators are declared and exported
+here rather than taken from `scasp/ops.pl`, so that nothing in this file
+depends on the system it judges - an operator priority cannot introduce a
+semantic bug, but the independence is worth keeping total.
+
+### Classical negation
+
+`-p` is a literal of its own, distinct from `p` and again from `not p`: the
+Herbrand base holds both `p` and `-p`, and `not -p` asks whether `-p` is
+underivable.  What classical negation adds to the definition is one
+requirement, that no answer set contains both `p` and `-p`
+(consistent/1), so a program deriving both has no answer set at all.
+
+### Variables
+
+A program with variables is grounded first, naively, over its own
+constants: every atomic argument occurring anywhere in it, numbers included.
+There are no function symbols, so that is the whole Herbrand universe.
+Grounding is exponential in the number of variables per rule on top of the
+exponential enumeration, so keep the universe to a handful of constants.
+
+### CLP comparisons
+
+`#=`, `#<>`, `#<`, `#>`, `#=<` and `#>=` in a body are evaluated while
+grounding: an instance where one is false is dropped, and one where all hold
+keeps its other literals.  They are guards, not literals, and never appear
+in an answer set.
+
+### Safety
+
+Every variable of a rule must occur in a positive, non-comparison body
+literal; ground_program/2 refuses anything else.  That is not a restriction
+of the oracle but a difference of meaning: s(CASP) reads an unsafe rule over
+an *extended* Herbrand universe, so `:- not married(X).` there says that
+everyone is married, where a grounding over the program's constants would
+say something else by design rather than by defect.  A comparison binds
+nothing, so it makes no variable safe: `p(X) :- X #> 2.` is unsafe however
+ground the comparison looks.
 
 ## Constraints
 
@@ -113,11 +143,10 @@ is_stable(Rules, M) :-
 %   disjoint from the interpretation, and drop their negative literals.
 
 reduct(Rules, M, Reduct) :-
-    findall(definite(H, Pos),
-            ( member(rule(H, Pos, Neg), Rules),
-              \+ ( member(A, Neg), ord_memberchk(A, M) )
-            ),
-            Reduct).
+    convlist(reduct_rule(M), Rules, Reduct).
+
+reduct_rule(M, rule(H, Pos, Neg), definite(H, Pos)) :-
+    \+ ( member(A, Neg), ord_memberchk(A, M) ).
 
 %!  least_model(+DefiniteProgram, -Model) is det.
 %

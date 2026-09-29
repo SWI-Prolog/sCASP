@@ -34,9 +34,10 @@
 
 :- module(sscasp_dualise,
           [ predicate_duals/6,          % +Module, +Annotations, +Polarity,
-                                        %   +PI, +Clauses, -Duals
-            translate_goal/3,           % +Module, +Goal, -Call
-            builtin/1                   % @Goal
+                                        %   +PI, @Clauses, -Duals
+            translate_goal/3,           % +Module, @Goal, -Call
+            builtin/1,                  % @Goal
+            builtin_indicator/1         % ?Name/Arity
           ]).
 :- use_module(ops).
 :- use_module(abstract,    [abstract_head/3]).
@@ -45,8 +46,10 @@
 :- use_module(mangle,      [mangle/2]).
 :- use_module(annotations, [argument_domain/4, domain_kind/3]).
 :- use_module(domains,     [domain_goal/3]).
-:- use_module(library(lists), [append/3, numlist/3, member/2, nth1/3]).
-:- use_module(library(apply), [maplist/3, maplist/4, foldl/4]).
+:- use_module(library(lists), [append/2, append/3, numlist/3, member/2,
+                                nth1/3]).
+:- use_module(library(apply), [maplist/3, maplist/4]).
+:- use_module(clauses, [clause_goals/2, list_body/2, literal_parts/3]).
 
 /** <module> Dualising a predicate
 
@@ -58,8 +61,8 @@ predicates that prove its negation:
 
     m$dual$p$1(A)          :- m$dual.1$p$1(A), m$dual.2$p$1(A).
     m$dual.1$p$1(A)        :- A \= 0.
-    m$dual.2$p$1(A)        :- forall(B, m$dual.2.inner$p$1(A, B)).
-    m$dual.2.inner$p$1(A, B) :- not q(A).
+    m$dual.2$p$1(A)        :- forall([B], m$dual.2.inner$p$1(A, B)).
+    m$dual.2.inner$p$1(A, B) :- m$dual$q$1(A).
     m$dual.2.inner$p$1(A, B) :- m$plain$q$1(A), m$plain$t$2(A, B).
 
 Three levels, as `doc/design.md` describes them: the predicate dual is the
@@ -110,7 +113,7 @@ Take one clause, whose `Y` occurs in the body and not in the head:
 nothing to bound it with:
 
     m$dual$p$1(A)            :- m$dual.1$p$1(A).
-    m$dual.1$p$1(A)          :- forall(B, m$dual.1.inner$p$1(A, B)).
+    m$dual.1$p$1(A)          :- forall([B], m$dual.1.inner$p$1(A, B)).
     m$dual.1.inner$p$1(A, B) :- m$dual$q$1(A).
     m$dual.1.inner$p$1(A, B) :- m$plain$q$1(A), m$plain$t$2(A, B).
 
@@ -159,7 +162,7 @@ free.  Bounding the quantifier by one usage leaves nothing unchecked that
 could have failed.
 */
 
-%!  predicate_duals(+Module, +Annotations, +Polarity, +PI, +Clauses, -Duals) is det.
+%!  predicate_duals(+Module, +Annotations, +Polarity, +PI, @Clauses, -Duals) is det.
 %
 %   Duals is every clause of the predicates proving the negation of PI.
 %   Clauses are the predicate's clauses, in order; the N-th gets the
@@ -169,46 +172,65 @@ could have failed.
 %   and `neg` for `-p`, which are different predicates with different
 %   duals, and `chk(I)` for the NMR check's I-th sub-check.
 %
-%   Name may be `''`, for a predicate deriving from no user predicate —
-%   the sub-checks are exactly that case, and `mangle.pl` reserves the
-%   empty name field for it.
+%   PI's name may be `''`, for a predicate deriving from no user
+%   predicate — the sub-checks are exactly that case, and `mangle.pl`
+%   reserves the empty name field for it.
 %
 %   A predicate with **no** clauses gets a dual with an empty body: it is
 %   false of everything, so its negation is true of everything.
+%
+%   @arg Annotations is the annotation table of
+%       `annotations.pl:program_annotations/2`, with the key
+%       `fact_predicates` added by `compile.pl:compile_program/3`: a
+%       list of `Name/Arity` whose facts bound a variable.
+%   @arg Polarity may also be `abducible` or `abducibleneg`, the two
+%       halves of an abducible's even loop.
+%   @arg Clauses are source clauses with the polarity wrapper taken
+%       off the head (`compile.pl:strip_polarity/2`): a clause of `-p`
+%       arrives as one of `p`.
 
-predicate_duals(Module, Annotations, Polarity, Name/Arity, Clauses, Duals) :-
+:- det(predicate_duals/6).
+
+predicate_duals(Module, Annotations, Polarity, PI, Clauses, Duals) :-
     dual_kind(Polarity, Base),
     length(Clauses, Count),
     numlist_or_empty(Count, Indices),
-    maplist(clause_dual(Module, Annotations, Base, Name/Arity), Indices,
+    maplist(clause_dual(Module, Annotations, Base, PI), Indices,
             Clauses, ClauseDuals),
     append(ClauseDuals, Flat),
-    predicate_dual(Module, Annotations, Base, Name/Arity, Indices, Top),
+    predicate_dual(Module, Base, PI, Indices, Top),
     Duals = [Top|Flat].
 
 %!  dual_kind(+Polarity, -Base) is det.
 
-dual_kind(plain, dual).
-dual_kind(neg, dualneg).
-dual_kind(chk(I), dualchk(I)).
-dual_kind(abducible, dualabducible).
-dual_kind(abducibleneg, dualabducibleneg).
+dual_kind(plain, Base) => Base = dual.
+dual_kind(neg, Base) => Base = dualneg.
+dual_kind(chk(I), Base) => Base = dualchk(I).
+dual_kind(abducible, Base) => Base = dualabducible.
+dual_kind(abducibleneg, Base) => Base = dualabducibleneg.
 
-numlist_or_empty(0, []) :- !.
-numlist_or_empty(Count, Indices) :- numlist(1, Count, Indices).
+numlist_or_empty(0, Indices) =>
+    Indices = [].
+numlist_or_empty(Count, Indices) =>
+    numlist(1, Count, Indices).
 
-%!  predicate_dual(+Module, +Annotations, +PI, +Indices, -Clause) is det.
+%!  predicate_dual(+Module, +Base, +PI, +Indices, -Clause) is det.
 %
 %   The conjunction of the clause duals.  A signature's domain is not a
 %   guard here: `compile.pl:signature_guarded/3` has already put it into
 %   the clauses, so their duals say what it means for the negation.
+%
+%   @arg Base is the predicate dual's kind, from dual_kind/2: `dual`,
+%       `dualneg`, `dualchk(I)`, ...
+%   @arg Indices is `1..N` for the N clauses, `[]` for none.
 
-predicate_dual(Module, _Annotations, Base, Name/Arity, Indices, Clause) :-
+predicate_dual(Module, Base, PI, Indices, Clause) :-
+    PI = Name/Arity,
     functor(Head0, Name, Arity),
     Head0 =.. [_|Args],
     mangle_kind(Module, Base, Name, Arity, DualName),
     Head =.. [DualName|Args],
-    maplist(clause_dual_call(Module, Base, Name/Arity, Args), Indices, Calls),
+    maplist(clause_dual_call(Module, Base, PI, Args), Indices, Calls),
     clause_of(Head, Calls, Clause).
 
 clause_dual_call(Module, Base, Name/Arity, Args, Index, Call) :-
@@ -220,11 +242,18 @@ clause_dual_call(Module, Base, Name/Arity, Args, Index, Call) :-
 		 *         ONE CLAUSE		*
 		 *******************************/
 
-%!  clause_dual(+Module, +Annotations, +PI, +Index, +Clause, -Duals) is det.
+%!  clause_dual(+Module, +Annotations, +Base, +PI, +Index, @Clause, -Duals) is det.
+%
+%   @arg Base is as in predicate_dual/6; Index says which clause.
+%   @arg Clause is one clause as predicate_duals/6 receives it, its
+%       head not yet abstracted.
+%   @arg Duals are the translated clauses of the Index-th clause dual:
+%       one per dual body, or, with body-only variables, a bridge
+%       holding the quantifier followed by the `inner` clauses.
 
 clause_dual(Module, Annotations, Base, Name/Arity, Index, Clause, Duals) :-
     abstract_head(Clause, Head, HeadGuards),
-    clause_body_list(Clause, Body0),
+    clause_goals(Clause, Body0),
     append(HeadGuards, Body0, Body),
     Head =.. [_|Args],
     body_variables(Head, Body, BodyVars),
@@ -274,26 +303,28 @@ mangle_kind(Module, Kind, Name, Arity, Mangled) :-
     ;   mangle(pred(Module, Kind, Name, Arity), Mangled)
     ).
 
-%!  defined(+Name, +Args, +Bodies, -Clauses) is det.
+%!  defined(+Name, @Args, @Bodies, -Clauses) is det.
 %
 %   One clause per body — but never *none*.  A clause with no body is
 %   unconditionally true, so it contributes no dual bodies, and leaving
 %   the predicate undefined would make the program depend on what an
 %   undefined predicate does.  An explicit `fail` says the same thing and
 %   says it in the program.
+%
+%   @arg Name is the mangled name of the predicate being defined.
+%   @arg Bodies is a list of bodies, each a list of translated goals.
 
-defined(Name, Args, [], [Clause]) :-
-    !,
+defined(Name, Args, [], Clauses) =>
     Head =.. [Name|Args],
-    Clause = (Head :- fail).
-defined(Name, Args, Bodies, Clauses) :-
+    Clauses = [(Head :- fail)].
+defined(Name, Args, Bodies, Clauses) =>
     maplist(dual_clause(Name, Args), Bodies, Clauses).
 
 dual_clause(Name, Args, Body, Clause) :-
     Head =.. [Name|Args],
     clause_of(Head, Body, Clause).
 
-%!  quantify(+Module, +Variables, +VarDomains, +Goal, -Quantified) is det.
+%!  quantify(+Module, @Variables, @VarDomains, @Goal, -Quantified) is det.
 %
 %   **One** quantifier over all the body-only variables nothing bounds,
 %   as a list — `forall([B, C], Inner)` and not `forall(B, forall(C,
@@ -302,8 +333,8 @@ dual_clause(Name, Args, Body, Clause) :-
 %   is the *product* of the coverings, where covering the pair reads one
 %   answer's constraints on both variables at once and the pieces add up
 %   instead.  `bec_tap_02` made 83,593 coverings of a three-variable nest
-%   where the tuple needs a few dozen.  `solve.pl:solve_c_forall/8`
-%   collects its nest into one `c_forall(Vars, Goal)` for the same
+%   where the tuple needs a few dozen.  Upstream's
+%   `prolog/scasp/solve.pl:solve_c_forall/8` collects its nest into one `c_forall(Vars, Goal)` for the same
 %   reason.
 %
 %   A variable with a *domain* keeps a quantifier of its own, outside:
@@ -319,6 +350,10 @@ dual_clause(Name, Args, Body, Clause) :-
 %   So `forall/2` in a compiled program means exactly one thing: the
 %   quantifiers nothing bounds.  That is decision 5's undecidable case,
 %   and now it is greppable.
+%
+%   @arg VarDomains is the `Var-Domain` list of var_domains/4.
+%   @arg Goal is the call to the inner dual, which the quantifiers
+%       wrap.
 
 quantify(Module, Variables, VarDomains, Goal, Quantified) :-
     split_domains(Variables, VarDomains, Bounded, Free),
@@ -328,16 +363,19 @@ quantify(Module, Variables, VarDomains, Goal, Quantified) :-
     ),
     enumerated(Module, Bounded, VarDomains, Inner, Quantified).
 
-split_domains([], _, [], []).
-split_domains([Var|Vars], VarDomains, Bounded, Free) :-
+split_domains([], _, Bounded, Free) =>
+    Bounded = [],
+    Free = [].
+split_domains([Var|Vars], VarDomains, Bounded, Free) =>
     (   memberchk_eq(Var, VarDomains, _)
     ->  Bounded = [Var|Rest], Free = More
     ;   Bounded = Rest, Free = [Var|More]
     ),
     split_domains(Vars, VarDomains, Rest, More).
 
-enumerated(_, [], _, Goal, Goal).
-enumerated(Module, [Var|Vars], VarDomains, Goal, Quantified) :-
+enumerated(_, [], _, Goal, Quantified) =>
+    Quantified = Goal.
+enumerated(Module, [Var|Vars], VarDomains, Goal, Quantified) =>
     memberchk_eq(Var, VarDomains, Domain),
     (   Domain = inferred(Literal)
     ->  same_literal(Vars, VarDomains, Literal, Same, Rest),
@@ -365,8 +403,10 @@ enumerated(Module, [Var|Vars], VarDomains, Goal, Quantified) :-
 %   their variables one at a time took it from 376 s to no answer in an
 %   hour.
 
-same_literal([], _, _, [], []).
-same_literal([Var|Vars], VarDomains, Literal, Same, Rest) :-
+same_literal([], _, _, Same, Rest) =>
+    Same = [],
+    Rest = [].
+same_literal([Var|Vars], VarDomains, Literal, Same, Rest) =>
     memberchk_eq(Var, VarDomains, Domain),
     (   Domain = inferred(Other),
         Other == Literal
@@ -409,7 +449,7 @@ memberchk_eq(Var, [V-Value|T], Found) :-
 		 *      A VARIABLE'S DOMAIN	*
 		 *******************************/
 
-%!  var_domains(+Annotations, +Body, +Vars, -VarDomains) is det.
+%!  var_domains(+Annotations, @Body, @Vars, -VarDomains) is det.
 %
 %   VarDomains pairs each body-only variable that has a domain with that
 %   domain's name.  A variable with none is absent, and stays quantified.
@@ -424,12 +464,18 @@ memberchk_eq(Var, [V-Value|T], Found) :-
 %   positive literal that literal fails, the conjunction fails, and its negation
 %   holds — the instance is true for free.  Bounding the quantifier by one
 %   usage therefore leaves nothing unchecked that could have failed.
+%
+%   @arg Annotations is as in predicate_duals/6.
+%   @arg Body is the abstracted clause body, a list of source goals.
+%   @arg VarDomains is a list of `Var-Domain`, Domain a domain name or
+%       `inferred(Literal)` for a positive literal of a fact predicate.
 
 var_domains(Annotations, Body, Vars, VarDomains) :-
     var_domains_(Vars, Annotations, Body, VarDomains).
 
-var_domains_([], _, _, []).
-var_domains_([Var|Vars], Annotations, Body, VarDomains) :-
+var_domains_([], _, _, VarDomains) =>
+    VarDomains = [].
+var_domains_([Var|Vars], Annotations, Body, VarDomains) =>
     (   var_domain(Annotations, Body, Var, Domain)
     ->  VarDomains = [Var-Domain|Rest]
     ;   VarDomains = Rest
@@ -507,15 +553,15 @@ fact_literal(Literal, Facts) :-
 
 positive_literal(Literal) :-
     callable(Literal),
-    \+ Literal = not(_),
-    \+ Literal = -(_).
+    Literal \= not(_),
+    Literal \= -(_).
 
 
 		 /*******************************
 		 *           GOALS		*
 		 *******************************/
 
-%!  translate_goal(+Module, +Goal, -Call) is det.
+%!  translate_goal(+Module, @Goal, -Call) is det.
 %
 %   A user goal becomes a call to its mangled predicate; its negation
 %   becomes a call to the dual.  `findall/3` is neither: it is a
@@ -537,21 +583,19 @@ positive_literal(Literal) :-
 %   the translation goes in — and the solver's `forall/2` takes a list,
 %   so a nest of them collapses into one.
 
-translate_goal(Module, Quantified, forall(Vars, Inner)) :-
-    nonvar(Quantified),
-    Quantified = forall(_, _),
-    !,
+:- det(translate_goal/3).
+
+translate_goal(Module, Quantified, Translated), Quantified = forall(_, _) =>
     quantifier(Quantified, Vars, Body),
-    translate_conjunction(Module, Body, Inner).
+    translate_conjunction(Module, Body, Inner),
+    Translated = forall(Vars, Inner).
 
 %   Its negation is an **existential**: "not for every X" is "for some X,
 %   not", and a dual clause body is where a free variable already means
 %   some.  So the quantifier drops and what is left is the negated body.
 
-translate_goal(Module, not(Quantified), Translated) :-
-    nonvar(Quantified),
-    Quantified = forall(_, _),
-    !,
+translate_goal(Module, not(Quantified), Translated),
+        Quantified = forall(_, _) =>
     quantifier(Quantified, _, Body),
     (   Body = (_, _)
     ->  throw(error(scasp_error(negated_conjunction(Quantified)), _))
@@ -559,42 +603,52 @@ translate_goal(Module, not(Quantified), Translated) :-
         translate_goal(Module, Negated, Translated)
     ).
 
-translate_goal(Module, not(findall(Template, Goal, List)), Translated) :-
-    !,
+translate_goal(Module, not(findall(Template, Goal, List)), Translated) =>
     translate_conjunction(Module, Goal, Inner),
     Translated = not(findall(Template, Inner, List)).
-translate_goal(Module, findall(Template, Goal, List), Translated) :-
-    !,
+translate_goal(Module, findall(Template, Goal, List), Translated) =>
     translate_conjunction(Module, Goal, Inner),
     Translated = findall(Template, Inner, List).
-translate_goal(_, Goal, Goal) :-
-    builtin(Goal),
-    !.
-translate_goal(_, not(Goal), not(Goal)) :-
-    builtin(Goal),
-    !.
-translate_goal(Module, not(Goal), Call) :-
-    !,
+translate_goal(_, Goal, Translated), builtin(Goal) =>
+    Translated = Goal.
+translate_goal(Module, not(Goal), Translated), builtin(Goal) =>
+    negate_literal(Goal, Negated),
+    (   Negated = not(_)
+    ->  Translated = Negated	% no partner: emit.pl:builtin/2 says it
+    ;   translate_goal(Module, Negated, Translated)
+    ).
+translate_goal(Module, not(Goal), Call) =>
     goal_kind(Goal, dual, Kind, Name, Arity, Args),
     mangle(pred(Module, Kind, Name, Arity), Mangled),
     Call =.. [Mangled|Args].
-translate_goal(Module, Goal, Call) :-
+translate_goal(Module, Goal, Call) =>
     goal_kind(Goal, plain, Kind, Name, Arity, Args),
     mangle(pred(Module, Kind, Name, Arity), Mangled),
     Call =.. [Mangled|Args].
 
-%!  goal_kind(+Goal, +Positive, -Kind, -Name, -Arity, -Args) is det.
+%!  goal_kind(@Goal, +Positive, -Kind, -Name, -Arity, -Args) is det.
 %
 %   Positive is the kind wanted for an ordinary goal; a classically
 %   negated one takes the matching negative kind.
+%
+%   @arg Positive is `plain` for a goal, `dual` for its negation.
+%   @arg Kind is the mangle kind: Positive itself, or `neg`/`dualneg`,
+%       `abducible`/`dualabducible`, `abducibleneg`/`dualabducibleneg`
+%       for the wrapped goals.
 
-goal_kind(abducible(-(Goal)), dual, dualabducibleneg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
-goal_kind(abducible(-(Goal)), plain, abducibleneg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
-goal_kind(abducible(Goal), dual, dualabducible, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
-goal_kind(abducible(Goal), plain, abducible, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
-goal_kind(-(Goal), dual, dualneg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
-goal_kind(-(Goal), plain, neg, Name, Arity, Args) :- !, goal_parts(Goal, Name, Arity, Args).
-goal_kind(Goal, Kind, Kind, Name, Arity, Args) :- goal_parts(Goal, Name, Arity, Args).
+goal_kind(Literal, Positive, Kind, Name, Arity, Args) :-
+    literal_parts(Literal, Polarity, Goal),
+    polarity_kind(Polarity, Positive, Kind),
+    goal_parts(Goal, Name, Arity, Args).
+
+polarity_kind(plain,        plain, plain).
+polarity_kind(plain,        dual,  dual).
+polarity_kind(neg,          plain, neg).
+polarity_kind(neg,          dual,  dualneg).
+polarity_kind(abducible,    plain, abducible).
+polarity_kind(abducible,    dual,  dualabducible).
+polarity_kind(abducibleneg, plain, abducibleneg).
+polarity_kind(abducibleneg, dual,  dualabducibleneg).
 
 goal_parts(Goal, Name, Arity, Args) :-
     (   atom(Goal)
@@ -606,28 +660,29 @@ goal_parts(Goal, Name, Arity, Args) :-
 translate_body(Module, Body, Translated) :-
     maplist(translate_goal(Module), Body, Translated).
 
-%!  translate_conjunction(+Module, +Body, -Translated) is det.
+%!  translate_conjunction(+Module, @Body, -Translated) is det.
 %
 %   A body written as a conjunction rather than a list, which is what
 %   `findall/3` carries.
 
-%!  quantifier(+Goal, -Vars, -Body) is det.
+%!  quantifier(@Goal, -Vars, -Body) is det.
 %
 %   A nest of author-written `forall/2` as the variables it binds and
 %   the goal beneath them.
 
-quantifier(forall(Var, Goal), [Var|Vars], Body) :-
-    !,
+quantifier(forall(Var, Goal), Vars0, Body) =>
+    Vars0 = [Var|Vars],
     quantifier(Goal, Vars, Body).
-quantifier(Body, [], Body).
+quantifier(Goal, Vars, Body) =>
+    Vars = [],
+    Body = Goal.
 
-translate_conjunction(Module, Body, Translated) :-
-    (   Body = (A, B)
-    ->  translate_conjunction(Module, A, TA),
-        translate_conjunction(Module, B, TB),
-        Translated = (TA, TB)
-    ;   translate_goal(Module, Body, Translated)
-    ).
+translate_conjunction(Module, (A, B), Translated) =>
+    translate_conjunction(Module, A, TA),
+    translate_conjunction(Module, B, TB),
+    Translated = (TA, TB).
+translate_conjunction(Module, Body, Translated) =>
+    translate_goal(Module, Body, Translated).
 
 %!  builtin(@Goal) is semidet.
 %
@@ -639,6 +694,15 @@ translate_conjunction(Module, Body, Translated) :-
 builtin(Goal) :-
     nonvar(Goal),
     functor(Goal, Name, Arity),
+    builtin_pi(Name, Arity).
+
+%!  builtin_indicator(?PI) is nondet.
+%
+%   Enumerate the built-ins builtin/1 accepts, as `Name/Arity`.  Each
+%   has to have a runnable form in `emit.pl`, and so does its negation;
+%   `test_emit.pl` walks this to check that the two tables agree.
+
+builtin_indicator(Name/Arity) :-
     builtin_pi(Name, Arity).
 
 builtin_pi(true, 0).
@@ -681,23 +745,9 @@ builtin_pi(=\=, 2).
 		 *           CLAUSES		*
 		 *******************************/
 
-clause_of(Head, [], Head) :- !.
-clause_of(Head, Goals, (Head :- Body)) :-
-    body_term(Goals, Body).
+clause_of(Head, [], Clause) =>
+    Clause = Head.
+clause_of(Head, Goals, Clause) =>
+    Clause = (Head :- Body),
+    list_body(Goals, Body).
 
-body_term([Goal], Goal) :- !.
-body_term([Goal|Goals], (Goal, Body)) :-
-    body_term(Goals, Body).
-
-clause_body_list((_ :- Body), Goals) :-
-    !,
-    body_list(Body, Goals).
-clause_body_list(_, []).
-
-body_list((A, B), Goals) :-
-    !,
-    body_list(A, GA),
-    body_list(B, GB),
-    append(GA, GB, Goals).
-body_list(true, []) :- !.
-body_list(Goal, [Goal]).

@@ -37,19 +37,21 @@
           ]).
 :- use_module(ops).
 :- use_module(source,      [read_program/2]).
-:- use_module(run,         [scasp_run/3, scasp_program/2,
-                            scasp_loaded/4, scasp_ask/4]).
+:- use_module(run,         [scasp_run/3, scasp_loaded/4, scasp_ask/4]).
 :- use_module(render,      [scasp_readable/3, portray_model/2,
                             portray_justification/2, portray_query/2]).
-:- use_module(listing,     [portray_listing/3, titled/2, commented/2]).
+:- use_module(listing,     [portray_program/3, titled/2]).
 :- use_module(json,        [answer_json/3, answers_json/2]).
 :- use_module(html,        [html_model//2, html_justification//2,
                             html_query//2]).
 :- use_module(html_text,   [emit_text/1]).
 :- use_module(annotations, [program_annotations/2]).
 :- use_module(library(main), [argv_options/3]).
-:- use_module(library(lists), [member/2, append/3, last/2]).
-:- use_module(library(apply), [maplist/3, foldl/4]).
+:- use_module(library(lists), [member/2, reverse/2]).
+:- use_module(library(solution_sequences), [call_nth/2]).
+:- use_module(library(readutil), [read_file_to_string/3]).
+:- use_module(library(statistics), [call_time/2]).
+:- use_module(library(apply), [exclude/3]).
 :- use_module(library(option), [option/2, option/3, merge_options/3]).
 :- use_module(library(ansi_term), [ansi_format/3]).
 :- use_module(library(json), [json_write_dict/3]).
@@ -93,9 +95,9 @@ Two things this file owes the caller:
 
 ## What it does not have
 
-`--html` writes a page, but the interactive toplevel (`-i`), `--dcc` and
-the four `forall` algorithms are not here because they are not in the
-solver either.  `--plaindual`, `--variant` and `--real` likewise.
+The four `forall` algorithms are not here because the solver has one.
+`--plaindual`, `--variant` and `--real` are not here either: the solver
+has none of them.
 */
 
 :- initialization(main, main).
@@ -180,24 +182,24 @@ main(Argv) :-
     argv_options(Argv, Files, Options),
     catch_with_backtrace(run(Files, Options), Error, failed(Error)).
 
-run(_, Options) :-
-    option(version(true), Options),
-    !,
+run(_, Options), option(version(true), Options) =>
     version(Version),
     format("sscasp ~w~n", [Version]).
-run([], _) :-
-    !,
+run([], _) =>
     print_message(error, scasp(no_input_files)),
     halt(2).
-run(Files, Options) :-
+run(Files, Options) =>
     compile_flags(Options),
-    read_files(Files, Source),
+    read_program(Files, Source),
     Terms = Source.terms,
     (   option(code(true), Options)
-    ->  listing_options(Options, ListingOptions),
-        show_source(Terms, ListingOptions),
-        portray_listing(Terms, Source.query, ListingOptions),
-        show_compiled(Terms, ListingOptions)
+    ->  (   query(Source, Query, Bindings, Options)
+        ->  true
+        ;   Query = none,
+            Bindings = []
+        ),
+        listing_options([variable_names(Bindings)|Options], ListingOptions),
+        portray_program(Terms, Query, ListingOptions)
     ;   option(interactive(true), Options)
     ->  interactive(Terms, Options)
     ;   query(Source, Query, Bindings, Options)
@@ -210,11 +212,17 @@ run(Files, Options) :-
 %   other section asks for that one and not for the defaults, which is
 %   what `scasp --code --long` means without a second flag to say so.
 
-listing_options(Options, ListingOptions) :-
+listing_options(Options0, ListingOptions) :-
+    exclude(given_query, Options0, Options),
     (   named_section(Options)
     ->  ListingOptions = [query(false), user(false)|Options]
     ;   ListingOptions = Options
     ).
+
+%   `--query=Goal` and the listing's `query` section share a name, and
+%   the goal is not `true`, so left in it would turn the section off.
+
+given_query(query(_-_)).
 
 named_section(Options) :-
     member(Section, [duals, constraints, source, compiled]),
@@ -222,60 +230,19 @@ named_section(Options) :-
     option(Asked, Options),
     !.
 
-%   Two sections `listing.pl` knows nothing about, because they are not
-%   the compiled program: the terms as the reader gave them, and the
-%   clauses `emit.pl` makes for the solver to run.
-
-show_source(Terms, Options) :-
-    (   option(source(true), Options)
-    ->  titled('Program as read', Options),
-        forall(member(Term, Terms), show_term(Term))
-    ;   true
-    ).
-
-show_compiled(Terms, Options) :-
-    (   option(compiled(true), Options)
-    ->  titled('Emitted clauses', Options),
-        commented('run in a module importing sscasp_solve, \c
-                   sscasp_herbrand and clpq', Options),
-        scasp_program(Terms, Clauses),
-        forall(member(Clause, Clauses), show_term(Clause))
-    ;   true
-    ).
-
-show_term(Term) :-
-    portray_clause(current_output, Term, [module(sscasp_ops)]).
-
-%!  read_files(+Files, -Source) is det.
-%
-%   One program from several files, which is what the old
-%   implementation's `scasp a.pl b.pl` means: the terms in order, and
-%   the **last** query.
-
-read_files(Files, Source) :-
-    maplist(read_program, Files, Sources),
-    foldl(join, Sources, source{terms: [], query: none, bindings: []}, Source).
-
-join(Source, Joined0, Joined) :-
-    append(Joined0.terms, Source.terms, Terms),
-    (   Source.query == none
-    ->  Query = Joined0.query,
-        Bindings = Joined0.bindings
-    ;   Query = Source.query,
-        Bindings = Source.bindings
-    ),
-    Joined = Joined0.put(_{terms: Terms, query: Query, bindings: Bindings}).
-
 %!  query(+Source, -Query, -Bindings, +Options) is semidet.
 %
 %   `--query` beats the program's own, which is what lets one file be
 %   asked several things.
+%
+%   @arg Source is the dict of `source.pl:read_program/2`.
+%   @arg Bindings is the `Name=Var` list naming Query's variables as the
+%       reader saw them.
 
-query(_, Query, Bindings, Options) :-
-    option(query(Term-Bindings), Options),
-    !,
-    Query = Term.
-query(Source, Query, Bindings, _) :-
+query(_, Query, Bindings, Options), option(query(Term-Named), Options) =>
+    Query = Term,
+    Bindings = Named.
+query(Source, Query, Bindings, _) =>
     Query = Source.query,
     Query \== none,
     Bindings = Source.bindings.
@@ -286,8 +253,10 @@ query(Source, Query, Bindings, _) :-
 %   spelled and scoped exactly as `prolog/scasp/nmr_check.pl` does so
 %   that a caller setting one gets the same thing from either tree.
 %   `--dcc` is on by default here and sets `sscasp_dcc`, not the old
-%   `scasp_dcc` (see `nmr.pl`); unlike the old one it forces no `forall`
+%   `scasp_dcc` (see `compile.pl`); unlike the old one it forces no `forall`
 %   algorithm, there being one.
+
+:- det(compile_flags/1).
 
 compile_flags(Options) :-
     (   option(nmr(Nmr), Options)
@@ -359,10 +328,12 @@ stylesheet_from_file.
 		 *          ANSWERING		*
 		 *******************************/
 
-%!  answer(+Terms, +Query, +Bindings, +Options) is det.
+%!  answer(@Terms, @Query, +Bindings, +Options) is det.
 %
 %   Exits 1 where the query has no answer, which is not an error and is
 %   the one thing a script has to be able to tell.
+%
+%   @arg Bindings is the `Name=Var` list of query/4.
 
 answer(Terms, Query, Bindings, Options) :-
     reporter(Terms, Options, Report, Finish),
@@ -388,10 +359,14 @@ answer(Terms, Query, Bindings, Options) :-
 counted(State, N) :-
     nb_setarg(1, State, N).
 
-%!  wanted_answer(+Terms, +Query, -Model, -Justification, -Time, -N, +Options)
+%!  wanted_answer(@Terms, ?Query, -Model, -Justification, -Time, -N,
+%!                +Options) is nondet.
 %
 %   The answers asked for, numbered and timed.  `--answers 0` means all,
 %   which is the old implementation's spelling.
+%
+%   @arg Time is the dict call_time/2 gives, `Time.cpu` in seconds.
+%   @arg N is the answer's number, counting from 1.
 
 wanted_answer(Terms, Query, Model, Justification, Time, N, Options) :-
     option(answers(Max), Options, 1),
@@ -413,11 +388,11 @@ wanted_answer(Terms, Query, Model, Justification, Time, N, Options) :-
 		 *        INTERACTIVELY		*
 		 *******************************/
 
-/** `sscasp -i program.pl` reads queries until end of input.
+/* `sscasp -i program.pl` reads queries until end of input.
 
 **The program is compiled once.**  `scasp/4` compiles, loads into a
 temporary module and destroys it again per call, which for a toplevel
-over one program is the whole of the cost.  `scasp_loaded/3` holds the
+over one program is the whole of the cost.  `scasp_loaded/4` holds the
 module open for the length of the loop and `scasp_ask/4` asks in it.
 
 **A bad query does not end the session.**  The old implementation's
@@ -436,6 +411,10 @@ anyway.
 interactive(Terms, Options) :-
     module_option(Options, Load),
     scasp_loaded(Terms, Loaded, main_loop(Loaded, Terms, Options), Load),
+    % Explicitly 0: SWI's on_error(print) makes halt/0 exit 1 once any
+    % error has been printed.  Right for a script, wrong for a toplevel,
+    % where a reported typo is part of an ordinary session.  It only
+    % bites in a saved state; test_main.pl:main_built notices it.
     halt(0).
 
 %!  module_option(+Options, -LoadOptions) is det.
@@ -443,23 +422,17 @@ interactive(Terms, Options) :-
 %   `--module=Name` loads the program into Name and leaves it there,
 %   which is for running `main.pl` from source under the profiler: it
 %   will not keep track of a temporary module.
+%
+%   @arg LoadOptions is `[module(Name)]` or `[]`, for scasp_run/3 and
+%       scasp_loaded/4.
+
+:- det(module_option/2).
 
 module_option(Options, Load) :-
     (   option(module(Module), Options)
     ->  Load = [module(Module)]
     ;   Load = []
     ).
-
-%   **Explicitly 0.**  SWI's `on_error(print)` makes `halt/0` exit 1 once
-%   any error has been printed, which is right for a script — an error
-%   means the job did not get done — and wrong for a toplevel, where a
-%   reported and recovered typo is an ordinary part of a session that
-%   otherwise did exactly what was asked.  A run that could not start at
-%   all still exits 2, from `run/2` above.
-%
-%   The flag only bites in a **saved state**, so this is invisible to a
-%   `swipl prolog/sscasp/main.pl` run and `main_built` below is what
-%   notices it.
 
 main_loop(Loaded, Terms, Options) :-
     read_query(Read, Bindings),
@@ -485,12 +458,15 @@ main_loop(Loaded, Terms, Options) :-
 %
 %   This was found by running the **built executable**, which
 %   `test_main.pl` does not: the same input through
-%   `swipl prolog/sscasp/main.pl` reads fine.  `main_built` below runs
-%   the executable when there is one, so the next thing of this shape is
+%   `swipl prolog/sscasp/main.pl` reads fine.  `test_main.pl:main_built`
+%   runs the executable when there is one, so the next thing of this shape is
 %   caught.
 
+:- det(read_query/2).
+
 read_query(Read, Bindings) :-
-    catch(read_input(Term, Bindings), Error, unreadable(Error, Term)),
+    character_count(user_input, Before),
+    catch(read_input(Term, Bindings), Error, unreadable(Error, Before, Term)),
     (   Term == skip
     ->  Read = skip
     ;   atom(Term),
@@ -514,9 +490,12 @@ read_input(Term, Bindings) :-
 %   consumes nothing would otherwise spin forever printing it, which is
 %   how the editline bug above showed itself.
 
-unreadable(Error, Term) :-
+unreadable(Error, Before, Term) :-
     print_message(error, Error),
     (   at_end_of_stream(user_input)
+    ->  Term = end_of_file
+    ;   character_count(user_input, After),
+        After == Before
     ->  Term = end_of_file
     ;   Term = skip
     ).
@@ -526,11 +505,17 @@ end_of_input(exit).
 end_of_input(quit).
 end_of_input(halt).
 
-%!  ask(+Loaded, +Query, +Bindings, +Terms, +Options) is det.
+%!  ask(+Loaded, ?Query, +Bindings, @Terms, +Options) is det.
 %
 %   One query, and whatever goes wrong with it reported rather than
 %   thrown: an existence error for a predicate the program does not have
 %   is the ordinary way to mistype a goal.
+%
+%   @arg Loaded is the handle scasp_loaded/4 gives to scasp_ask/4.
+%   @arg Terms are the program's terms, read for its descriptions under
+%       `--human`.
+
+:- det(ask/5).
 
 ask(Loaded, Query, Bindings, Terms, Options) :-
     catch_with_backtrace(answers(Loaded, Query, Bindings, Terms, Options),
@@ -543,11 +528,9 @@ ask(Loaded, Query, Bindings, Terms, Options) :-
 %   else is a bug in here rather than in the query, and keeps its
 %   backtrace.
 
-reported(error(Formal, _)) :-
-    mistyped(Formal),
-    !,
+reported(error(Formal, _)), mistyped(Formal) =>
     print_message(error, error(Formal, _)).
-reported(Error) :-
+reported(Error) =>
     print_message(error, Error).
 
 mistyped(existence_error(scasp_predicate, _)).
@@ -576,15 +559,13 @@ answers(Loaded, Query, Bindings, Terms, Options) :-
 %   is the reader's call; anywhere else it is `--answers`, since there
 %   is no one to ask and `get_single_char/1` would eat the next query.
 
-another(N, Options) :-
-    \+ interactive_input,
-    !,
+another(N, Options), \+ interactive_input =>
     option(answers(Max), Options, 1),
     (   Max =:= 0
     ->  true
     ;   N < Max
     ).
-another(_, Options) :-
+another(_, Options) =>
     coloured(Options, comment, '~N% more? (; for another) ', []),
     flush_output,
     get_single_char(Code),
@@ -603,6 +584,10 @@ interactive_input :-
 %   How to say an answer, and what to do once they are all said.  JSON
 %   and HTML are documents and have to be finished; the terminal is not
 %   and does not.
+%
+%   @arg Report is a closure called as `call(Report, answer(Query,
+%       Model, Justification), Bindings, Time, N)` for each answer.
+%   @arg Finish is a goal, called once after the last answer.
 
 document(Options) :-
     (   option(json(_), Options)
@@ -610,29 +595,34 @@ document(Options) :-
     ),
     !.
 
-reporter(_, Options, json_answer(Out, State, Options),
-         finish_json(Out, State, Options)) :-
-    option(json(File), Options),
-    !,
-    State = state([]),
-    open_sink(File, Out).
-reporter(Terms, Options, html_answer(Out, State, Terms, Options),
-         finish_html(Out, State, Options)) :-
-    option(html(File), Options),
-    !,
-    State = state([]),
-    open_sink(File, Out).
-reporter(Terms, Options, text_answer(Terms, Options), true).
+:- det(reporter/4).
 
-open_sink('-', current_output) :-
-    !.
-open_sink(File, Out) :-
-    open(File, write, Out, [encoding(utf8)]).
+reporter(_, Options, Report, Finish), option(json(File), Options) =>
+    State = state([]),
+    Report = json_answer(State, Options),
+    Finish = to_sink(File, finish_json(State, Options)).
+reporter(Terms, Options, Report, Finish), option(html(File), Options) =>
+    State = state([]),
+    Report = html_answer(State, Terms, Options),
+    Finish = to_sink(File, finish_html(State, Options)).
+reporter(Terms, Options, Report, Finish) =>
+    Report = text_answer(Terms, Options),
+    Finish = true.
 
-close_sink(current_output) :-
-    !.
-close_sink(Out) :-
-    close(Out).
+%   The file is opened when there is something to write, not before the
+%   solving starts: a run that ends in an error leaves the file that was
+%   there alone rather than empty.
+
+:- meta_predicate
+    to_sink(+, 1).
+
+to_sink('-', Write) =>
+    call(Write, current_output).
+to_sink(File, Write) =>
+    setup_call_cleanup(
+        open(File, write, Out, [encoding(utf8)]),
+        call(Write, Out),
+        close(Out)).
 
 %   Collected rather than written as they come, because a document is a
 %   whole thing: a run stopped half way should leave no half a document.
@@ -691,9 +681,9 @@ answer_heading(N, Time, Options) :-
 %   which is what `--query` and a program's own `?-` both carry, and the
 %   answer's term is what they came out as.
 
-show_bindings([], _) :-
-    !.
-show_bindings(Bindings, Options) :-
+show_bindings([], _) =>
+    true.
+show_bindings(Bindings, Options) =>
     titled('Bindings', Options),
     forall(member(Name=Value, Bindings),
            ( format("~w = ", [Name]),
@@ -727,7 +717,8 @@ show_query(Query, Bindings, Terms, Options) :-
     (   option(human(true), Options)
     ->  how(Terms, Options, How),
         titled('Query', Options),
-        emit_text(\html_query(Query, How))
+        emit_text(\html_query(Query, How)),
+        nl
     ;   titled('Query', Options),
         portray_query(Query, [variable_names(Bindings)|Options])
     ).
@@ -736,18 +727,17 @@ show_query(Query, Bindings, Terms, Options) :-
 		 *          AS JSON		*
 		 *******************************/
 
-json_answer(_Out, State, Options, Answer, Bindings, _Time, _N) :-
+json_answer(State, Options, Answer, Bindings, _Time, _N) :-
     merge_options([variable_names(Bindings)], Options, JSONOptions),
     answer_json(Answer, Dict, JSONOptions),
     collect(State, Dict).
 
-finish_json(Out, State, Options) :-
+finish_json(State, Options, Out) :-
     collected(State, Dicts),
     answers_json(Dicts, Document),
     json_options(Options, JSONOptions),
     json_write_dict(Out, Document, JSONOptions),
-    format(Out, '~N', []),
-    close_sink(Out).
+    format(Out, '~N', []).
 
 json_options(Options, [width(Width)]) :-
     width(Options, Width).
@@ -756,7 +746,7 @@ json_options(Options, [width(Width)]) :-
 		 *          AS HTML		*
 		 *******************************/
 
-html_answer(_Out, State, Terms, Options, Answer, _Bindings, _Time, N) :-
+html_answer(State, Terms, Options, Answer, _Bindings, _Time, N) :-
     Answer = answer(Query, Model, Justification),
     scasp_readable(answer(Query, Model, Justification),
                     answer(_, RModel, RJustification),
@@ -764,13 +754,12 @@ html_answer(_Out, State, Terms, Options, Answer, _Bindings, _Time, N) :-
     how(Terms, Options, How),
     collect(State, answer(N, RModel, RJustification, How)).
 
-finish_html(Out, State, Options) :-
+finish_html(State, Options, Out) :-
     collected(State, Answers),
     phrase(answers_page(Answers, Options), Tokens),
-    print_html(Out, Tokens),
-    close_sink(Out).
+    print_html(Out, Tokens).
 
-answers_page(Answers, Options) -->
+answers_page(Answers, Options) ==>
     { stylesheet(Options, CSS) },
     html(html([ head([ meta(charset('UTF-8')),
                        title('s(CASP) answers'),
@@ -780,9 +769,9 @@ answers_page(Answers, Options) -->
                          \answers(Answers)))
               ])).
 
-answers([]) -->
+answers([]) ==>
     [].
-answers([answer(N, Model, Justification, How)|Answers]) -->
+answers([answer(N, Model, Justification, How)|Answers]) ==>
     html(div(class('scasp-answer'),
              [ h2('Answer ~D'-[N]),
                h3('Model'),
@@ -822,15 +811,12 @@ stylesheet(_Options, CSS) :-
 %   An expected error is a message and `halt(2)`; anything else keeps its
 %   backtrace, because it is a bug here rather than a mistake out there.
 
-failed(Unwind) :-
-    subsumes_term(unwind(_), Unwind),
-    !,
+failed(Unwind), subsumes_term(unwind(_), Unwind) =>
     throw(Unwind).                      % halt/0,1 are not errors
-failed(error(existence_error(source_sink, File), _)) :-
-    !,
+failed(error(existence_error(source_sink, File), _)) =>
     print_message(error, scasp(no_such_file(File))),
     halt(2).
-failed(Error) :-
+failed(Error) =>
     print_message(error, Error),
     halt(2).
 

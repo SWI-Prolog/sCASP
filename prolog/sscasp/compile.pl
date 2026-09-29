@@ -33,8 +33,9 @@
 */
 
 :- module(sscasp_compile,
-          [ compile_program/3,          % +Module, +Terms, -Program
-            guarded_query/3             % +Program, +Query0, -Query
+          [ compile_program/3,          % +Module, @Terms, -Program
+            guarded_query/3,            % +Program, @Query0, -Query
+            sld_declarations/2          % @Declarations, -List
           ]).
 :- use_module(ops).
 :- use_module(annotations, [program_annotations/2,
@@ -46,14 +47,27 @@
 :- use_module(mangle,      [demangle/2, mangle/2]).
 :- use_module(graph,       [olon_clauses/3]).
 :- use_module(nmr,         [nmr_check/4]).
-:- use_module(library(lists), [append/3, member/2, select/3]).
-:- use_module(library(apply), [maplist/3, maplist/4, foldl/4, include/3]).
+:- use_module(clauses,     [clause_parts/3, clause_head/2, clause_body/2,
+                            body_goal/2, list_body/2, literal_parts/3,
+                            literal_key/2]).
+:- use_module(library(lists), [append/2, append/3, member/2, select/3]).
+:- use_module(library(apply), [maplist/3, foldl/4, include/3, exclude/3,
+                                convlist/3]).
 :- use_module(library(error), [type_error/2]).
+:- use_module(library(prolog_code), [comma_list/2]).
 
 %   Compile time, like `scasp_compile_nmr`: it decides what the compiled
 %   program contains.  See signature_guarded/3.
 
 :- create_prolog_flag(scasp_domain_error, false, [keep(true)]).
+
+%   Dynamic consistency checking (dcc_rules/3).  Not upstream's
+%   `scasp_dcc`: that is off by default and, set, also changes the old
+%   implementation, which with it has only been tested under
+%   `--forall=prev`.  One flag with two defaults would make the default
+%   depend on which library loaded first.
+
+:- create_prolog_flag(sscasp_dcc, true, [keep(true)]).
 
 /** <module> Compiling a program
 
@@ -62,7 +76,7 @@ need, as a value:
 
     program{ clauses:   [...],   % the whole compiled program
              nmr:       nmr{...}, % what in it is the NMR check
-             unbounded: [...],    % duals still carrying an unbounded forall
+             unbounded: [...],    % where a forall nothing bounds is left
              shown:     [...],    % what `#show` asks the model to show
              dcc:       [...],    % the dynamic consistency check's rules
              guard:     guard(...) } % what guarded_query/3 needs
@@ -79,18 +93,20 @@ constructive like any other negation.
 
 ## The report
 
-`unbounded` lists the predicates whose duals quantify a variable that no
-declared domain bounds.  It costs nothing now that `for_domain/3` exists: a
-quantifier with a domain *is* a `for_domain/3`, so a surviving `forall/2` is
-one with none, and the report is a scan.
+`unbounded` lists the predicates with a clause that quantifies a variable no
+declared domain bounds — almost always a dual, and also a clause whose body
+the program wrote with a `forall/2` of its own.  It costs nothing now that
+`for_domain/3` exists: a quantifier with a domain *is* a `for_domain/3`, so a
+surviving `forall/2` is one with none, and the report is a scan.
 
     p(X) :- q(X), not t(X, Y).          unbounded: [p/1]
 
     :- pred t(_, thing).                unbounded: []
 
 A sub-check is reported as `check(Index, Source)`, since it has no name of
-its own to give — `Source` is the predicate whose rule is on a loop, or the
-atom `constraint`.
+its own to give — `Source` is the predicate whose rule is on a loop, the atom
+`constraint`, or `consistency(Name/Arity)` for the consistency of a
+classically negated predicate: the `What` of `nmr.pl`'s `check/3`.
 
 **This is not decision 5's undecidability analysis, and does not claim to
 be.** An unbounded quantifier is often decided at run time anyway: the
@@ -119,7 +135,15 @@ become a denial and the NMR check is the conjunction of their negations;
 once per answer, by calling `Program.nmr.goal`.
 */
 
-%!  compile_program(+Module, +Terms, -Program) is det.
+%!  compile_program(+Module, @Terms, -Program) is det.
+%
+%   @arg Module is the module the names are mangled for.
+%   @arg Terms is the program as read: clauses (`-p(X)` heads
+%       included) and directives `(:- D)`, where D is an annotation,
+%       `abducible(Head)`, `sld(Spec)`, `show(Specs)` or else the body
+%       of a global constraint.
+
+:- det(compile_program/3).
 
 compile_program(Module, Terms, Program) :-
     program_annotations(Terms, Declared),
@@ -156,7 +180,7 @@ compile_program(Module, Terms, Program) :-
                        dcc:       Dcc,
                        guard:     Guard }.
 
-%!  signature_guarded(+Guard, +Clause0, -Clause) is det.
+%!  signature_guarded(+Guard, @Clause0, -Clause) is det.
 %
 %   A signature is **shorthand for guards**: `:- pred q(d)` says what
 %   writing `d(X)` in every clause of `q` would say, and in front of
@@ -177,10 +201,16 @@ compile_program(Module, Terms, Program) :-
 %   a type error rather than a failure.  Its negation is `fail` —
 %   semantically it is `true` — so the dual runs it too, and
 %   `not q(30)` raises as `q(30)` does.
+%
+%   @arg Guard is `guard(Module, Annotations, Error)`: the module the
+%       guard's domain literal is mangled for, the annotation table of
+%       `annotations.pl:program_annotations/2` (whose `signatures` give
+%       the domains), and `true` or `false` for `scasp_domain_error`.
+%   @arg Clause0 is a source clause or fact, not yet translated.
 
 signature_guarded(Guard, Clause0, Clause) :-
-    clause_parts_(Clause0, Head0, Body),
-    \+ Head0 = -(_),
+    clause_parts(Clause0, Head0, Body),
+    Head0 \= -(_),
     callable(Head0),
     functor(Head0, Name, Arity),
     Head0 =.. [Functor|Args0],
@@ -190,9 +220,9 @@ signature_guarded(Guard, Clause0, Clause) :-
     Head =.. [Functor|Args],
     append(Guards, Unify, Prefix),
     (   Body == true
-    ->  list_conjunction(Prefix, NewBody)
+    ->  list_body(Prefix, NewBody)
     ;   append(Prefix, [Body], All),
-        list_conjunction(All, NewBody)
+        list_body(All, NewBody)
     ),
     Clause = (Head :- NewBody).
 signature_guarded(_, Clause, Clause).
@@ -207,8 +237,12 @@ signature_guarded(_, Clause, Clause).
 %   no store can hold (`doc/bugs.md` #15).  An argument that is already
 %   a variable needs no unification.
 
-signature_guards([], _, _, _, [], [], []).
-signature_guards([Arg0|Args0], N, Guard, PI, [Arg|Args], Guards, Unify) :-
+signature_guards([], _, _, _, Args, Guards, Unify) =>
+    Args = [],
+    Guards = [],
+    Unify = [].
+signature_guards([Arg0|Args0], N, Guard, PI, Args1, Guards, Unify) =>
+    Args1 = [Arg|Args],
     Guard = guard(_, Annotations, _),
     (   argument_domain(Annotations, PI, N, Domain)
     ->  (   var(Arg0)
@@ -224,12 +258,19 @@ signature_guards([Arg0|Args0], N, Guard, PI, [Arg|Args], Guards, Unify) :-
     N1 is N+1,
     signature_guards(Args0, N1, Guard, PI, Args, Guards1, Unify1).
 
-%!  guard_goals(+Guard, +Domain, ?Arg, +PI, -Goals, ?Tail) is det.
+%!  guard_goals(+Guard, +Domain, @Arg, +PI, -Goals, ?Tail) is det.
 %
 %   The goals guarding Arg of PI with Domain, as a difference list: the
 %   domain literal, preceded by its check when domain errors are on.
+%
+%   @arg Guard is `guard(Module, Annotations, Error)`, as in
+%       signature_guarded/3.
+%   @arg Domain is the domain's name, an atom; the literal is
+%       `Domain(Arg)`, untranslated.
+%   @arg PI is `Name/Arity` of the predicate whose argument is guarded,
+%       for the error the check raises.
 
-guard_goals(guard(Module, _, Error), Domain, Arg, PI, Goals, Tail) :-
+guard_goals(guard(Module, _, Error), Domain, Arg, PI, Goals, Tail) =>
     domain_goal(Domain, Arg, Literal),
     (   Error == true
     ->  translate_goal(Module, Literal, Call),
@@ -237,9 +278,9 @@ guard_goals(guard(Module, _, Error), Domain, Arg, PI, Goals, Tail) :-
     ;   Goals = [Literal|Tail]
     ).
 
-%!  use_site_guarded(+Guard, +Clause0, -Clause) is det.
-%!  guarded_body(+Guard, +Body0, -Body) is det.
-%!  guarded_query(+Program, +Query0, -Query) is det.
+%!  use_site_guarded(+Guard, @Clause0, -Clause) is det.
+%!  guarded_body(+Guard, @Body0, -Body) is det.
+%!  guarded_query(+Program, @Query0, -Query) is det.
 %
 %   The other half of a signature: `not q(T)` written in a body asks
 %   about T **in the domain**, so it is preceded by the guard.  Without
@@ -255,43 +296,49 @@ guard_goals(guard(Module, _, Error), Domain, Arg, PI, Goals, Tail) :-
 %   A `forall/2` the author wrote is left alone: guarding its goal would
 %   say "for every W, d(W) and not q(W)", which is false outside `d`,
 %   where the typed reading wants "for every W in `d`".
+%
+%   @arg Program is the `program{...}` dict of compile_program/3; only
+%       its `guard` is used, as in signature_guarded/3.
+%   @arg Body0 is a source body, a conjunction of untranslated goals.
 
 use_site_guarded(Guard, Clause0, Clause) :-
-    clause_parts_(Clause0, Head, Body0),
+    clause_parts(Clause0, Head, Body0),
     guarded_body(Guard, Body0, Body),
     (   Body == Body0
     ->  Clause = Clause0
     ;   Clause = (Head :- Body)
     ).
 
+:- det(guarded_query/3).
+
 guarded_query(Program, Query0, Query) :-
     guarded_body(Program.guard, Query0, Query).
 
-guarded_body(_, Var, Var) :-
-    var(Var),
-    !.
-guarded_body(Guard, (A0, B0), (A, B)) :-
-    !,
+guarded_body(_, Var, Body), var(Var) =>
+    Body = Var.
+guarded_body(Guard, (A0, B0), Body) =>
+    Body = (A, B),
     guarded_body(Guard, A0, A),
     guarded_body(Guard, B0, B).
-guarded_body(Guard, findall(T, Goal0, L), findall(T, Goal, L)) :-
-    !,
+guarded_body(Guard, findall(T, Goal0, L), Body) =>
+    Body = findall(T, Goal, L),
     guarded_body(Guard, Goal0, Goal).
-guarded_body(Guard, not(Goal), Guarded) :-
-    callable(Goal),
-    \+ Goal = -(_),
-    \+ Goal = forall(_, _),
-    \+ Goal = findall(_, _, _),
-    functor(Goal, Name, Arity),
-    Goal =.. [_|Args],
-    use_guards(Args, 1, Guard, Name/Arity, Guards, [not(Goal)]),
-    Guards = [_,_|_],
-    !,
-    list_conjunction(Guards, Guarded).
-guarded_body(_, Goal, Goal).
+guarded_body(Guard, not(Goal), Guarded),
+        callable(Goal),
+        Goal \= -(_),
+        Goal \= forall(_, _),
+        Goal \= findall(_, _, _),
+        functor(Goal, Name, Arity),
+        Goal =.. [_|Args],
+        use_guards(Args, 1, Guard, Name/Arity, Guards, [not(Goal)]),
+        Guards = [_,_|_] =>
+    list_body(Guards, Guarded).
+guarded_body(_, Goal, Body) =>
+    Body = Goal.
 
-use_guards([], _, _, _, Tail, Tail).
-use_guards([Arg|Args], N, Guard, PI, Guards, Tail) :-
+use_guards([], _, _, _, Guards, Tail) =>
+    Guards = Tail.
+use_guards([Arg|Args], N, Guard, PI, Guards, Tail) =>
     Guard = guard(_, Annotations, _),
     (   argument_domain(Annotations, PI, N, Domain)
     ->  guard_goals(Guard, Domain, Arg, PI, Guards, Guards1)
@@ -300,14 +347,7 @@ use_guards([Arg|Args], N, Guard, PI, Guards, Tail) :-
     N1 is N+1,
     use_guards(Args, N1, Guard, PI, Guards1, Tail).
 
-clause_parts_((Head :- Body), Head, Body) :- !.
-clause_parts_(Fact, Fact, true).
-
-list_conjunction([Goal], Goal) :- !.
-list_conjunction([Goal|Goals], (Goal, Rest)) :-
-    list_conjunction(Goals, Rest).
-
-%!  fact_predicates(+Clauses, -PIs) is det.
+%!  fact_predicates(@Clauses, -PIs) is det.
 %
 %   The predicates defined by ground facts and nothing else.  They are
 %   the domains nobody declared: a positive literal of one bounds a
@@ -318,19 +358,22 @@ list_conjunction([Goal|Goals], (Goal, Rest)) :-
 %   A predicate with any rule is not one — an abducible's clauses have a
 %   body, so it never is — and neither is a classically negated head,
 %   whose clauses say nothing about the positive literal.
+%
+%   @arg Clauses are source clauses, untranslated, domain and abducible
+%       clauses included.
+%   @arg PIs is a sorted list of `Name/Arity`, arity above zero.
 
 fact_predicates(Clauses, PIs) :-
-    findall(Name/Arity,
-            ( member(Clause, Clauses),
-              Clause \= (_ :- _),
-              Clause \= -(_),
-              callable(Clause),
-              functor(Clause, Name, Arity),
-              Arity > 0
-            ),
-            Candidates0),
+    convlist(fact_pi, Clauses, Candidates0),
     sort(Candidates0, Candidates),
     include(only_ground_facts(Clauses), Candidates, PIs).
+
+fact_pi(Clause, Name/Arity) :-
+    Clause \= (_ :- _),
+    Clause \= -(_),
+    callable(Clause),
+    functor(Clause, Name, Arity),
+    Arity > 0.
 
 only_ground_facts(Clauses, Name/Arity) :-
     functor(Head, Name, Arity),
@@ -342,7 +385,7 @@ only_ground_facts(Clauses, Name/Arity) :-
 clause_head_of((Head0 :- _), Head) :- !, Head0 = Head.
 clause_head_of(Fact, Head) :- Fact \= -(_), Fact = Head.
 
-%!  dcc_rules(+Module, +Checks, -Rules) is det.
+%!  dcc_rules(+Module, @Checks, -Rules) is det.
 %
 %   The rules of the **dynamic consistency check**, when the flag
 %   `sscasp_dcc` is `true`, which is the default (`--no-dcc` to turn it
@@ -362,6 +405,13 @@ clause_head_of(Fact, Head) :- Fact \= -(_), Fact = Head.
 %   consistency of a classically negated predicate — as upstream.  The
 %   literals are in the form the proof records them, mangled; a built-in
 %   among the others stays in program syntax for `emit.pl`.
+%
+%   @arg Checks is `Nmr.checks` from `nmr.pl:nmr_check/4`, a list of
+%       `check(Index, What, Denial)`: What is `constraint`,
+%       `consistency(Name/Arity)` or the `Name/Arity` of a rule on an
+%       odd loop, and Denial the source body that must not hold.
+%   @arg Rules is a list of `dcc(Trigger, Others)`, Trigger a
+%       translated literal and Others a list of translated goals.
 
 dcc_rules(Module, Checks, Rules) :-
     (   current_prolog_flag(sscasp_dcc, true)
@@ -382,26 +432,28 @@ dcc_rule(Module, Checks, dcc(Trigger, Others)) :-
 headless(constraint).
 headless(consistency(_)).
 
-conjunction_list((A, B), List) =>
-    conjunction_list(A, LA),
-    conjunction_list(B, LB),
-    append(LA, LB, List).
-conjunction_list(Goal, List) =>
-    List = [Goal].
+conjunction_list(Conj, List) :-
+    phrase(conjuncts(Conj), List).
+
+conjuncts((A, B)) ==>
+    conjuncts(A),
+    conjuncts(B).
+conjuncts(Goal) ==>
+    [Goal].
 
 %   A literal that can be proved and so trigger the check: not a built-in,
 %   and not a construct with a goal inside it.
 
 dcc_literal(Literal) :-
     \+ builtin_literal(Literal),
-    \+ Literal = forall(_, _),
-    \+ Literal = findall(_, _, _),
-    \+ Literal = not(findall(_, _, _)).
+    Literal \= forall(_, _),
+    Literal \= findall(_, _, _),
+    Literal \= not(findall(_, _, _)).
 
-builtin_literal(not(Goal)) :- !, builtin_literal(Goal).
-builtin_literal(Goal) :- builtin(Goal).
+builtin_literal(not(Goal)) => builtin_literal(Goal).
+builtin_literal(Goal) => builtin(Goal).
 
-%!  shown(+Terms, -Specs) is det.
+%!  shown(@Terms, -Specs) is det.
 %
 %   What `#show` asks the model to show, as a list of `Name/Arity`,
 %   `not(Name/Arity)`, `-(Name/Arity)` and `not(-(Name/Arity))`.  Empty
@@ -431,14 +483,14 @@ show_spec(not(Spec0), Spec) =>
     Spec = not(Spec1).
 show_spec((-Name)/Arity, Spec) =>
     Spec = -(Name/Arity).
-show_spec(-(Name/Arity), Spec) =>
-    Spec = -(Name/Arity).
-show_spec(Name/Arity, Spec), atom(Name), integer(Arity) =>
-    Spec = Name/Arity.
+show_spec(Spec0, Spec), Spec0 = -(_/_) =>
+    Spec = Spec0.
+show_spec(Spec0, Spec), Spec0 = Name/Arity, atom(Name), integer(Arity) =>
+    Spec = Spec0.
 show_spec(Spec0, _) =>
     type_error(scasp_show_spec, Spec0).
 
-%!  check_sources(+Groups, +Olon, +Constraints, -Sources) is det.
+%!  check_sources(@Groups, @Olon, @Constraints, -Sources) is det.
 %
 %   Everything the NMR check has to check, in the order it will call
 %   them: the rules on an odd loop, the program's global constraints, and
@@ -449,6 +501,14 @@ show_spec(Spec0, _) =>
 %   a program deriving both.  It is generated only where both polarities
 %   have clauses — if either has none it is false of everything, and the
 %   conjunction could not hold anyway.
+%
+%   @arg Groups is the `Key-Clauses` list of predicate_groups/2.
+%   @arg Olon is the source clauses on an odd loop, from
+%       `graph.pl:olon_clauses/3`.
+%   @arg Constraints is a list of global constraint bodies, guarded.
+%   @arg Sources is a list of `olon(Clause)`, `constraint(Body)` and
+%       `consistency(Name/Arity, Denial)`, as `nmr.pl:denial/2` reads
+%       them.
 
 check_sources(Groups, Olon, Constraints, Sources) :-
     maplist(olon_source, Olon, OlonSources),
@@ -482,9 +542,10 @@ constraint_source(Body, constraint(Body)).
 %   the check left out `?- -p.` was answered with the model `[-p]`.
 %   `test_abducible.pl` pins that against `stable_models.pl`.
 
-consistency_source(Groups, consistency(Name/Arity, Denial)) :-
-    member(key(neg, Name/Arity)-Negative, Groups),
-    memberchk(key(plain, Name/Arity)-Positive0, Groups),
+consistency_source(Groups, consistency(PI, Denial)) :-
+    PI = Name/Arity,
+    member(key(neg, PI)-Negative, Groups),
+    memberchk(key(plain, PI)-Positive0, Groups),
     \+ ( abduced_only(Negative),
          abduced_only(Positive0)
        ),
@@ -497,80 +558,86 @@ abduced_only(Clauses) :-
 abduced(-(Head) :- abducible(-(Head))).
 abduced(Head :- abducible(Head)).
 
-%!  compile_predicate(+Module, +Annotations, +Group, -Clauses) is det.
+%!  compile_predicate(+Module, +Annotations, @Group, -Clauses) is det.
 %
 %   The translated clauses of one predicate, then its duals.
+%
+%   @arg Annotations is the annotation table of
+%       `annotations.pl:program_annotations/2` with the key
+%       `fact_predicates` added, holding fact_predicates/2's result.
+%   @arg Group is `key(Polarity, Name/Arity)-Clauses`, one element of
+%       predicate_groups/2.
 
-compile_predicate(Module, Annotations, key(Polarity, PI)-Clauses, Compiled) :-
+compile_predicate(Module, Annotations, key(Polarity, PI)-Clauses, Compiled) =>
     maplist(translate_clause(Module), Clauses, Translated),
     maplist(strip_polarity, Clauses, Bare),
     predicate_duals(Module, Annotations, Polarity, PI, Bare, Duals),
     append(Translated, Duals, Compiled).
 
-%!  strip_polarity(+Clause, -Bare) is det.
+%!  strip_polarity(@Clause, -Bare) is det.
 %
 %   `-p(X) :- Body' has `-'/1 for its functor, which is not the predicate
 %   being defined.  The dual is built from `p(X) :- Body'; that it proves
 %   the negation of *classical* `-p' rather than of `p' is carried by the
 %   `dualneg' kind, not by the term.
 
-strip_polarity((abducible(-(Head)) :- Body), (Head :- Body)) :- !.
-strip_polarity((abducible(Head) :- Body), (Head :- Body)) :- !.
-strip_polarity(abducible(-(Head)), Head) :- !.
-strip_polarity(abducible(Head), Head) :- !.
-strip_polarity((-(Head) :- Body), (Head :- Body)) :- !.
-strip_polarity(-(Head), Head) :- !.
-strip_polarity(Clause, Clause).
+strip_polarity((Head0 :- Body), Bare) =>
+    literal_parts(Head0, _, Head),
+    Bare = (Head :- Body).
+strip_polarity(Fact, Bare) =>
+    literal_parts(Fact, _, Bare).
 
-%!  translate_clause(+Module, +Clause, -Translated) is det.
+%!  translate_clause(+Module, @Clause, -Translated) is det.
 %
 %   Head and body both go through `translate_goal/3`, so a clause of `p`
 %   becomes a clause of `m$plain$p$1` calling `m$plain$q$1`.  The head is
 %   *not* abstracted: only the dual needs head unification made explicit,
 %   and the positive clause is better left as the author wrote it.
 
-translate_clause(Module, (Head :- Body), (NewHead :- NewBody)) :-
-    !,
+translate_clause(Module, (Head :- Body), Translated) =>
+    Translated = (NewHead :- NewBody),
     translate_goal(Module, Head, NewHead),
     translate_body(Module, Body, NewBody).
-translate_clause(Module, Fact, NewFact) :-
+translate_clause(Module, Fact, NewFact) =>
     translate_goal(Module, Fact, NewFact).
 
-translate_body(Module, Body, NewBody) :-
-    (   Body = (A, B)
-    ->  translate_body(Module, A, NA),
-        translate_body(Module, B, NB),
-        NewBody = (NA, NB)
-    ;   translate_goal(Module, Body, NewBody)
-    ).
+translate_body(Module, (A, B), NewBody) =>
+    NewBody = (NA, NB),
+    translate_body(Module, A, NA),
+    translate_body(Module, B, NB).
+translate_body(Module, Body, NewBody) =>
+    translate_goal(Module, Body, NewBody).
 
 		 /*******************************
 		 *        READING A PROGRAM	*
 		 *******************************/
 
-%!  program_clauses(+Terms, -Clauses) is det.
+%!  program_clauses(@Terms, -Clauses) is det.
 %
 %   The clauses, leaving out the directives — annotations and global
 %   constraints alike.
 
 program_clauses(Terms, Clauses) :-
-    findall(Term, (member(Term, Terms), \+ Term = (:- _)), Clauses).
+    exclude(directive, Terms, Clauses).
 
-%!  constraints(+Terms, -Constraints) is det.
+directive((:- _)).
+
+%!  constraints(@Terms, -Constraints) is det.
 %
 %   The global constraints: a `:- Body` that is not an annotation.
+%
+%   @arg Constraints is a list of the bodies, without the `:-`.
 
 constraints(Terms, Constraints) :-
-    findall(Body,
-            ( member((:- Body), Terms),
-              \+ annotation(Body, _),
-              \+ Body = abducible(_),
-              \+ Body = sld(_),
-              \+ Body = show(_)
-            ),
-            Constraints).
+    convlist(constraint_body, Terms, Constraints).
 
-%!  abducible_clauses(+Terms, -Clauses) is det.
+constraint_body((:- Body), Body) :-
+    \+ annotation(Body, _),
+    Body \= abducible(_),
+    Body \= sld(_),
+    Body \= show(_).
+
+%!  abducible_clauses(@Terms, -Clauses) is det.
 %
 %   `#abducible p(X)` says p(X) may be assumed, either way, with nothing
 %   to prove.  Written out:
@@ -608,7 +675,7 @@ abducible_clause(Head, (-(Head) :- abducible(-(Head)))).
 abducible_clause(Head, (abducible(Head) :- not(abducible(-(Head))))).
 abducible_clause(Head, (abducible(-(Head)) :- not(abducible(Head)))).
 
-%!  sld_bridges(+Module, +Terms, -Clauses) is det.
+%!  sld_bridges(+Module, @Terms, -Clauses) is det.
 %
 %   `:- sld p/2.` says p/2 is proved by SLD resolution rather than by the
 %   solver.  It gets no clauses of its own and no dual generated from
@@ -629,24 +696,48 @@ abducible_clause(Head, (abducible(-(Head)) :- not(abducible(Head)))).
 
 sld_bridges(Module, Terms, Clauses) :-
     findall(Clause,
-            ( member((:- sld(Declaration)), Terms),
+            ( member((:- sld(Declarations)), Terms),
+              sld_declarations(Declarations, List),
+              member(Declaration, List),
               sld_declaration(Declaration, Where:Name/Arity, Type),
               sld_bridge(Module, Where, Name, Arity, Type, Clause)
             ),
             Clauses).
 
-%   The declaration may name the module the clauses are in —
+%   It may name the module the clauses are in —
 %   `:- sld lists:member/2.` — and `dyncall.pl` always does, because it
 %   knows.  A bare one means `user`, which is where a file read by
 %   `source.pl` puts its Prolog predicates.
 
-sld_declaration(Declaration, Where:PI, Type) :-
+%!  sld_declarations(@Declarations, -List) is det.
+%
+%   One `:- sld` may declare several, as `:- dynamic` does:
+%
+%       :- sld p/2, q/1.
+%       :- sld (p/2, q/1) as opaque.
+%       :- sld p/2, q/1 as opaque.      % only q/1 is opaque
+%
+%   `as` binds tighter than `,`, so without the parentheses it belongs to
+%   the last one only.  List has one `PI` or `PI as Type` per predicate.
+
+:- det(sld_declarations/2).
+
+sld_declarations(Conjunction as Type, List), Conjunction = (_, _) =>
+    comma_list(Conjunction, PIs),
+    maplist(typed(Type), PIs, List).
+sld_declarations(Declarations, List) =>
+    comma_list(Declarations, List).
+
+typed(Type, PI, PI as Type).
+
+sld_declaration(Declaration, Qualified, Type) :-
+    Qualified = Where:PI,
     (   Declaration = (Rest as Type0)
     ->  Type = Type0
     ;   Rest = Declaration,
         Type = justified
     ),
-    (   Rest = Where:PI
+    (   Rest = Qualified
     ->  true
     ;   Where = user,
         PI = Rest
@@ -663,11 +754,14 @@ sld_bridge(Module, Where, Name, Arity, Type, (Head :- sld(Where:Called, Type))) 
     mangle(pred(Module, Kind, Name, Arity), Mangled),
     Head =.. [Mangled|Args].
 
-%!  predicate_groups(+Clauses, -Groups) is det.
+%!  predicate_groups(@Clauses, -Groups) is det.
 %
 %   The clauses grouped by the predicate they define, in the order the
 %   predicates first appear.  The key carries the polarity, so `p` and
 %   `-p` are different predicates — which they are.
+%
+%   @arg Groups is a list of `Key-Clauses`, Key as in clause_key/2 and
+%       Clauses the source clauses of that predicate, in order.
 
 predicate_groups(Clauses, Groups) :-
     foldl(add_clause, Clauses, [], Groups).
@@ -684,34 +778,22 @@ select_group(Key, Groups, Before, Clauses, After) :-
     append(Before, [Key-Clauses|After], Groups),
     !.
 
-%!  clause_key(+Clause, -Key) is det.
+%!  clause_key(@Clause, -Key) is det.
+%
+%   @arg Key is `key(Polarity, Name/Arity)`, Polarity one of `plain`,
+%       `neg` (a `-p` head), `abducible` or `abducibleneg`; Name/Arity
+%       is that of the head with the wrappers taken off.
 
-clause_key((Head :- _), Key) :- !, head_key(Head, Key).
-clause_key(Fact, Key) :- head_key(Fact, Key).
+clause_key(Clause, Key) :-
+    clause_head(Clause, Head),
+    literal_key(Head, Key).
 
-head_key(abducible(-(Head)), key(abducibleneg, Name/Arity)) :-
-    !,
-    head_parts(Head, Name, Arity).
-head_key(abducible(Head), key(abducible, Name/Arity)) :-
-    !,
-    head_parts(Head, Name, Arity).
-head_key(-(Head), key(neg, Name/Arity)) :-
-    !,
-    head_parts(Head, Name, Arity).
-head_key(Head, key(plain, Name/Arity)) :-
-    head_parts(Head, Name, Arity).
-
-head_parts(Head, Name, Arity) :-
-    (   atom(Head)
-    ->  Name = Head, Arity = 0
-    ;   functor(Head, Name, Arity)
-    ).
 
 		 /*******************************
 		 *      CLOSING THE PROGRAM	*
 		 *******************************/
 
-%!  close_program(+Clauses, -Closure) is det.
+%!  close_program(@Clauses, -Closure) is det.
 %
 %   Closure defines the predicates Clauses call but do not define.  An
 %   undefined predicate is false of everything — `:- fail' — and its dual
@@ -720,14 +802,11 @@ head_parts(Head, Name, Arity) :-
 %   This is what makes the result a *closed* program: every call in it has
 %   a definition, so running it cannot raise an existence error and the
 %   solver need not treat "no clauses" as a case of its own.
+%
+%   @arg Clauses are translated clauses, their names mangled.
 
 close_program(Clauses, Closure) :-
-    findall(Name/Arity,
-            ( member(Clause, Clauses),
-              clause_head(Clause, Head),
-              functor(Head, Name, Arity)
-            ),
-            Defined0),
+    maplist(clause_pi, Clauses, Defined0),
     sort(Defined0, Defined),
     findall(Name/Arity,
             ( member(Clause, Clauses),
@@ -743,9 +822,9 @@ close_program(Clauses, Closure) :-
     sort(Called0, Called),
     maplist(closing_clause, Called, Closure).
 
-%   Only the two outermost kinds can be reached without being generated:
-%   the helpers (`dual.1', `dual.2.inner') are made by the same pass that
-%   makes the calls to them.
+%   Only a predicate and its dual, of either polarity, can be reached
+%   without being generated: the helpers (`dual.1', `dual.2.inner') are
+%   made by the same pass that makes the calls to them.
 
 closable(plain).
 closable(neg).
@@ -763,52 +842,35 @@ closing_clause(Name/Arity, Clause) :-
 closable_dual(dual).
 closable_dual(dualneg).
 
-%!  body_goal(+Body, -Goal) is nondet.
-%
-%   Every goal in Body, looking through the control constructs — the
-%   quantifiers included, since `for_domain/3' carries the generator that
-%   names the domain predicate.
-
-body_goal(Var, _) :-
-    var(Var),
-    !,
-    fail.
-body_goal((A, B), Goal) :- !, (body_goal(A, Goal) ; body_goal(B, Goal)).
-body_goal((A ; B), Goal) :- !, (body_goal(A, Goal) ; body_goal(B, Goal)).
-body_goal((A -> B), Goal) :- !, (body_goal(A, Goal) ; body_goal(B, Goal)).
-body_goal(\+(A), Goal) :- !, body_goal(A, Goal).
-body_goal(not(A), Goal) :- !, body_goal(A, Goal).
-body_goal(forall(_, A), Goal) :- !, body_goal(A, Goal).
-body_goal(for_domain(_, Gen, A), Goal) :-
-    !,
-    (body_goal(Gen, Goal) ; body_goal(A, Goal)).
-body_goal(findall(_, A, _), Goal) :- !, body_goal(A, Goal).
-body_goal(Goal, Goal).
 
 		 /*******************************
 		 *          THE REPORT		*
 		 *******************************/
 
-%!  unbounded(+Clauses, -Predicates) is det.
+%!  unbounded(@Clauses, @Checks, -Predicates) is det.
 %
-%   The predicates whose duals still carry a `forall/2`.  Since a
+%   The predicates with a clause — a dual, or one the program wrote with
+%   a quantifier of its own — still carrying a `forall/2`.  Since a
 %   quantifier with a domain is a `for_domain/3`, a surviving `forall/2`
 %   is one nothing bounds — so this is decision 5a's report, and it is a
 %   scan rather than an analysis.
+%
+%   @arg Checks is `Nmr.checks`, as in dcc_rules/3.
+%   @arg Predicates is a sorted list of user `Name/Arity` and, for a
+%       sub-check, `check(Index, What)` with What as in dcc_rules/3.
 
 unbounded(Clauses, Checks, Predicates) :-
-    findall(PI,
-            ( member(Clause, Clauses),
-              clause_head(Clause, Head),
-              functor(Head, Mangled, _),
-              unbounded_source(Mangled, Checks, PI),
-              clause_body(Clause, Body),
-              has_forall(Body)
-            ),
-            PIs),
+    convlist(unbounded_pi(Checks), Clauses, PIs),
     sort(PIs, Predicates).
 
-%!  unbounded_source(+Mangled, +Checks, -Source) is semidet.
+unbounded_pi(Checks, Clause, PI) :-
+    clause_head(Clause, Head),
+    functor(Head, Mangled, _),
+    unbounded_source(Mangled, Checks, PI),
+    clause_body(Clause, Body),
+    has_forall(Body).
+
+%!  unbounded_source(+Mangled, @Checks, -Source) is semidet.
 %
 %   What to call the predicate a quantifier was found in.  For one
 %   deriving from a user predicate that is the predicate; for a sub-check
@@ -826,11 +888,9 @@ unbounded_source(Mangled, Checks, check(Index, Source)) :-
     integer(Index),
     memberchk(check(Index, Source, _), Checks).
 
-clause_head((Head :- _), Head) :- !.
-clause_head(Fact, Fact).
-
-clause_body((_ :- Body), Body) :- !.
-clause_body(_, true).
+clause_pi(Clause, Name/Arity) :-
+    clause_head(Clause, Head),
+    functor(Head, Name, Arity).
 
 %   Structural, not sub_term/2: that unifies, so a pattern would match
 %   any unbound variable in the clause and find a quantifier everywhere.

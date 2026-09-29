@@ -97,9 +97,6 @@ gap_(sscasp, dyncall_errors,
      [ undefined_predicate_is_reported ],
      missing("scasp/2's unknown(error) option: the program is closed")).
 gap_(sscasp, dyncall_errors,
-     [ compiled_predicate_is_refused ],
-     differs("a static system predicate raises clause/2's permission error")).
-gap_(sscasp, dyncall_errors,
      [ two_calls_in_one_conjunction_fail ],
      pinned("the old solver's determinism error, which the new one has not")).
 

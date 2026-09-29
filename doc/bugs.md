@@ -495,6 +495,28 @@ built-in, so `body_calls/3` refuses it. Whether `once/1`, `forall/2` and
 friends should be supported is a design question; at present the diagnosis is
 at least accurate.
 
+### 21. A loop through `findall/3` is answered, in both implementations
+
+    q.
+    p :- findall(X, r(X), []).
+    r(1) :- p.
+
+has no answer set: `p` needs `r/1` to have no solutions, and `r(1)` holds
+whenever `p` does.  Both implementations answer `?- p.` with the model `[p]`
+and `?- r(1).` with `[p, r(1)]`, a model whose `p` its own `r(1)` refutes.
+
+A collection is a *non-monotone* dependency — more solutions of its goal can
+make it false — and neither call graph sees it as one: the new tree's
+`clauses.pl:body_literal/2` looks through `findall/3` with the polarity
+outside it, so the loop is a positive one and no NMR sub-check is made.
+Counting the arc as negative too would generate one, but it is not clear it
+would be enough: the `findall/3` was answered `[]` before `r(1)` was proved,
+and nothing re-checks a collection against what was proved after it.  What
+ASP means by an aggregate in a loop is itself a choice (stratification, or
+one of the non-stratified semantics), so this waits on deciding which.
+`test/test_builtins.pl:builtin_findall` pins it, with the semantics branch
+asking for no answer.
+
 ---
 
 ## Fixed

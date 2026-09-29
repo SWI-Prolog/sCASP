@@ -147,9 +147,9 @@ test(a_set_meeting_a_disjunction_keeps_both,
     store(X, Goals),
     assertion(memberchk('∉'(_, [a]), Goals)),
     assertion(memberchk(dif(_, b), Goals)),
-    assertion(\+ X = a),
-    assertion(\+ X = b),
-    assertion(\+ \+ X = c).
+    assertion(X \= a),
+    assertion(X \= b),
+    assertion(\+ X \= c).
 
 %   The case the hook exists for.  A variable bound to a term that is
 %   **not ground** cannot keep a set of prohibited values, because
@@ -161,8 +161,8 @@ test(a_set_handed_to_a_non_ground_term) :-
     X = f(Y),
     store(X, Goals),
     assertion(Goals = [dif(_, _)]),
-    assertion(\+ Y = a),
-    assertion(\+ \+ Y = b).
+    assertion(Y \= a),
+    assertion(\+ Y \= b).
 
 :- end_tests(herbrand_unification).
 
@@ -207,7 +207,7 @@ test(reading_leaves_the_answer_alone) :-
     apart(p(X), p(a)),
     apart(q(X, _), q(1, 2)),
     \+ \+ read_store([X], _),
-    assertion(\+ X = a),
+    assertion(X \= a),
     store(X, Goals),
     assertion(memberchk(dif(_, _), Goals)).
 
@@ -277,8 +277,8 @@ test(and_it_still_constrains) :-
     apart(p(X), p(Y)),
     Y = a,
     normalise(X),
-    assertion(\+ X = a),
-    assertion(\+ \+ X = b).
+    assertion(X \= a),
+    assertion(\+ X \= b).
 
 :- end_tests(herbrand_normalising).
 

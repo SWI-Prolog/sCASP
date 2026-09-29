@@ -332,16 +332,16 @@ test(the_unbound_answer_admits_only_the_f_shape,
 
 test(the_unbound_answer_never_admits_the_one_that_holds, fail) :-
     scasp(not wrap(T)),
-    \+ \+ T = f(a).
+    \+ T \= f(a).
 
 %!  admits(+Term, -Shape) is nondet.
 %
 %   Shape is each of the shapes Term can still be bound to.  Called
 %   inside the solution so the constraints on Term are still live.
 
-admits(T, same_functor)  :- \+ \+ T = f(b).
-admits(T, other_functor) :- \+ \+ T = g(a).
-admits(T, atom)          :- \+ \+ T = b.
+admits(T, same_functor)  :- \+ T \= f(b).
+admits(T, other_functor) :- \+ T \= g(a).
+admits(T, atom)          :- \+ T \= b.
 
 :- end_tests(compound_negation).
 
@@ -399,10 +399,10 @@ test(all_three_give_the_same_single_negative_answer,
     assertion(L == [only_f]).
 
 shape(T, Shape) :-
-    (   \+ \+ T = f(b),
-        \+ T = f(a),
-        \+ T = g(a),
-        \+ T = b
+    (   \+ T \= f(b),
+        T \= f(a),
+        T \= g(a),
+        T \= b
     ->  Shape = only_f
     ;   Shape = other
     ).

@@ -38,8 +38,7 @@
             scasp_query_clauses/2,     % :Query, -Terms
             scasp_query_clauses/3,     % :Query, -Terms, +Options
             scasp_directive/1,         % :Directive
-            scasp_constraint/2,        % +Module, +Body
-            constraint_clauses/2,      % +Body, -Clauses
+            constraint_clauses/2,      % @Body, -Clauses
             scasp_show/2,              % :Query, +What
             scasp_json/2,              % :Query, -Dict
             scasp_json/3,              % :Query, -Dict, +Options
@@ -67,16 +66,17 @@
             op(1150, fx, scasp_dynamic)
           ]).
 :- use_module(ops).
-:- use_module(run,    [scasp_run/3, scasp_program/2]).
+:- use_module(run,    [scasp_run/3]).
 :- use_module(emit,   [builtin/2]).
 :- use_module(describe, [deprecated_description/1]).
+:- use_module(mangle, [literal_kind/3]).
+:- use_module(compile, [sld_declarations/2]).
 :- use_module(annotations, [program_annotations/2]).
-:- use_module(listing,  [portray_listing/3, titled/2, commented/2]).
+:- use_module(listing,  [portray_program/3]).
 :- use_module(json,     [answer_json/3, answers_json/2]).
-:- use_module(library(lists), [member/2, append/3, subtract/3]).
-:- use_module(library(apply), [maplist/2, maplist/3, exclude/3, include/3]).
-:- use_module(library(option), [option/2, option/3, merge_options/3]).
-:- use_module(library(assoc), [empty_assoc/1, get_assoc/3, put_assoc/4]).
+:- use_module(library(lists), [member/2, append/2, append/3]).
+:- use_module(library(apply), [maplist/3, exclude/3, include/3]).
+:- use_module(library(option), [option/2, option/3]).
 :- use_module(library(error), [instantiation_error/1, type_error/2,
                                permission_error/3, domain_error/2]).
 :- use_module(library(ordsets), [ord_intersect/2, ord_union/3]).
@@ -180,7 +180,13 @@ choosing — see `check_one_definition/1`.
 %   A copy is compiled because the compiler checks singleton-marked
 %   variables against the names of the term being loaded, and `:- describe
 %   flies(_X) :: ...` stores `_X` twice: in the literal and in its bindings.
+%
+%   @arg Directive is one of `abducible(Head)`, `domain(Name = Values)`,
+%       `pred(Signature)`, `show(Spec)`, or what sld/1, describe/1 and
+%       pred/1 make: `sld(Module:PI)`, `sld(Module:PI as Type)`,
+%       `describe(Spec, Bindings)` and `pred(Spec, Bindings)`.
 
+:- det(scasp_directive/1).
 scasp_directive(Module:Directive) :-
     (   directive(Module, Seen),
         Seen =@= Directive
@@ -220,16 +226,27 @@ directive(Module, Directive) :-
 %   `:- scasp_directive(sld(p/2)).` reads worse than the directive it
 %   stands for.  The old implementation exports `(prolog)/1` for the same
 %   reason.
+%
+%   @arg Declaration is `Name/Arity` or `Name/Arity as Type`, Type being
+%       `justified` (the default) or `opaque`, or several of them as
+%       `compile.pl:sld_declarations/2` reads them — `:- sld (p/2, q/1)
+%       as opaque.` — each stored on its own.
 
-sld(Module:Declaration) :-
-    qualify_declaration(Module, Declaration, Qualified),
-    scasp_directive(Module:sld(Qualified)).
+:- det((sld)/1).
+sld(Module:Declarations) :-
+    sld_declarations(Declarations, List),
+    forall(member(Declaration, List),
+           ( qualify_declaration(Module, Declaration, Qualified),
+             scasp_directive(Module:sld(Qualified))
+           )).
 
 %   The module goes into the declaration, because the goal has to be
 %   called where its clauses are and the compiler has no way to find out.
 
-qualify_declaration(Module, (PI as Type), (Module:PI as Type)) :- !.
-qualify_declaration(Module, PI, Module:PI).
+qualify_declaration(Module, (PI as Type), Qualified) =>
+    Qualified = (Module:PI as Type).
+qualify_declaration(Module, PI, Qualified) =>
+    Qualified = Module:PI.
 
 %!  describe(:Description) is det.
 %!  pred(:Specification) is det.
@@ -247,7 +264,14 @@ qualify_declaration(Module, PI, Module:PI).
 %   template names the literal's variables and a read term does not carry
 %   their names: `prolog_load_context/2` does, while this is being
 %   loaded, and nothing downstream would.
+%
+%   @arg Description is `Literal :: Text`, Literal `p(...)`, `not p(...)`,
+%       `-p(...)` or `not -p(...)`, and Text a string or atom with
+%       `@(Var)` placeholders, or `html(Spec)`.
+%   @arg Specification is a Description, or a signature `p(Dom, ...)`
+%       naming the domain of each argument.
 
+:- det((describe)/1).
 describe(Module:Description) :-
     load_bindings(Bindings),
     scasp_directive(Module:describe(Description, Bindings)).
@@ -256,6 +280,7 @@ describe(Module:Description) :-
 %   signature and stays; `:- pred p(X) :: "..."` is a description and
 %   warns.  Only the second needs the names.
 
+:- det((pred)/1).
 pred(Module:Spec) :-
     (   nonvar(Spec),
         Spec = (_ :: _)
@@ -271,7 +296,11 @@ pred(Module:Spec) :-
 %   over.  Here because `domain` is a prefix operator and would not fit
 %   inside `scasp_directive/1`'s argument, the same reason `sld/1` and
 %   `describe/1` exist.
+%
+%   @arg Definition is `Name = Values`, Values a list of elements or a
+%       range `Low..High`.
 
+:- det((domain)/1).
 domain(Module:Definition) :-
     scasp_directive(Module:domain(Definition)).
 
@@ -281,8 +310,8 @@ load_bindings(Bindings) :-
     ;   Bindings = []
     ).
 
-%!  constraint_clauses(+Body, -Clauses) is det.
-%!  scasp_constraint(+Module, +Body) is det.
+%!  constraint_clauses(@Body, -Clauses) is det.
+%!  scasp_constraint(+Module, @Body) is det.
 %
 %   A global constraint is kept **in its module**, as a clause of the
 %   dynamic predicate `'scasp$constraint'/1`.  `false :- Body` in a file
@@ -300,13 +329,20 @@ load_bindings(Bindings) :-
 %   Compiled rather than asserted by a directive, because a reload
 %   wipes only what the file compiled: a directive asserting the same
 %   clause would add it again on every reload.
+%
+%   @arg Body is the constraint's body, the `Body` of `false :- Body`.
+%   @arg Clauses is the list of terms to compile in its place: the
+%       `dynamic` and `discontiguous` declarations of
+%       `'scasp$constraint'/1` and the clause `'scasp$constraint'(Body)`.
 
+:- det(constraint_clauses/2).
 constraint_clauses(Body,
                    [ (:- dynamic('scasp$constraint'/1)),
                      (:- discontiguous('scasp$constraint'/1)),
                      'scasp$constraint'(Body)
                    ]).
 
+:- det(scasp_constraint/2).
 scasp_constraint(Module, Body) :-
     (   current_predicate(Module:'scasp$constraint'/1),
         Module:'scasp$constraint'(Seen),
@@ -341,12 +377,18 @@ scasp_constraint(Module, Body) :-
 %       Leave the compiled program in Module rather than in a temporary
 %       module, for the profiler and for looking at.  See
 %       `run.pl:scasp_run/3`.
+%     - show_model(+How)
+%     - show_justification(+How)
+%       Have the toplevel show the model or the justification after
+%       the bindings; How is `true`, `human` or `false`.  This is what
+%       the `?`-shortcuts of `library(sscasp)` pass.
 
 scasp(Query) :-
     scasp(Query, []).
 
-scasp(Module:Query, Options) :-
-    scasp_query_clauses(Module:Query, Terms, Options),
+scasp(Qualified, Options) :-
+    Qualified = _:Query,
+    scasp_query_clauses(Qualified, Terms, Options),
     ignore(option(program(Terms), Options)),
     (   option(annotations(Annotations), Options)
     ->  program_annotations(Terms, Annotations)
@@ -357,7 +399,7 @@ scasp(Module:Query, Options) :-
     ignore(option(tree(Justification), Options)),
     remember(Model, Justification, Terms, Options).
 
-%!  remember(+Model, +Justification, +Terms, +Options) is det.
+%!  remember(@Model, @Justification, @Terms, +Options) is det.
 %
 %   Leave the answer where the toplevel can find it.  `sscasp.pl`
 %   registers a `residual_goals//0` hook that reads it, so that `?- ? Q.`
@@ -369,7 +411,11 @@ scasp(Module:Query, Options) :-
 %   Backtrackable, so the next answer replaces it and a failed one
 %   leaves nothing behind.  The old implementation does the same, in
 %   `scasp/embed.pl:save_stack/1`.
+%
+%   @arg Terms is the program that was run, as scasp_query_clauses/2
+%       returns it.
 
+:- det(remember/4).
 remember(Model, Justification, Terms, Options) :-
     b_setval(scasp_answer,
              scasp_answer(Model, Justification, Terms, Options)).
@@ -410,6 +456,7 @@ remember(Model, Justification, Terms, Options) :-
 %
 %   @error domain_error(scasp_show, What) for anything else.
 
+:- det(scasp_show/2).
 scasp_show(Query, What) :-
     (   compound(What),
         compound_name_arguments(What, code, Options0)
@@ -421,40 +468,13 @@ scasp_show(Query, What) :-
     maplist(show_option, Options0, Options),
     strip_module_goal(Query, Plain),
     scasp_query_clauses(Query, Terms),
-    show_source(Terms, Options),
-    portray_listing(Terms, Plain, Options),
-    show_compiled(Terms, Options).
+    portray_program(Terms, Plain,
+                    [source_title('Program as collected')|Options]).
 
 show_option(Name, Option), atom(Name) =>
     Option =.. [Name, true].
 show_option(Option0, Option) =>
     Option = Option0.
-
-show_source(Terms, Options) :-
-    (   option(source(true), Options)
-    ->  titled('Program as collected', Options),
-        forall(member(Term, Terms), show_term(Term))
-    ;   true
-    ).
-
-show_compiled(Terms, Options) :-
-    (   option(compiled(true), Options)
-    ->  titled('Emitted clauses', Options),
-        commented('run in a module importing sscasp_solve, \c
-                   sscasp_herbrand and clpq', Options),
-        scasp_program(Terms, Clauses),
-        forall(member(Clause, Clauses), show_term(Clause))
-    ;   true
-    ).
-
-%   With `sscasp/ops.pl`'s operator table, not the caller's.  A caller
-%   that has not imported them — a plunit unit, say, or a module that
-%   only uses `scasp/2` — would otherwise be shown `not(penguin(X))`
-%   where the program says `not penguin(X)`, which is the same term and
-%   not the same answer to "what would this run".
-
-show_term(Term) :-
-    portray_clause(current_output, Term, [module(sscasp_ops)]).
 
 %!  scasp_json(:Query, -Dict) is det.
 %!  scasp_json(:Query, -Dict, +Options) is det.
@@ -481,23 +501,24 @@ show_term(Term) :-
 %   come along but they are about other variables.  A dict is plain
 %   data and copies without that question.
 
+:- det(scasp_json/2).
 scasp_json(Query, Dict) :-
     scasp_json(Query, Dict, []).
 
-scasp_json(Module:Query, Dict, Options) :-
+:- det(scasp_json/3).
+scasp_json(Query, Dict, Options) :-
     option(limit(Limit), Options, infinite),
-    answer_dicts(Limit, Module:Query, Dicts, Options),
+    answer_dicts(Limit, Query, Dicts, Options),
     answers_json(Dicts, Dict).
 
-answer_dicts(infinite, Query, Dicts, Options) :-
-    !,
+answer_dicts(infinite, Query, Dicts, Options) =>
     findall(D, answer_dict(Query, D, Options), Dicts).
-answer_dicts(Limit, Query, Dicts, Options) :-
-    findnsols(Limit, D, answer_dict(Query, D, Options), Dicts),
-    !.
+answer_dicts(Limit, Query, Dicts, Options) =>
+    once(findnsols(Limit, D, answer_dict(Query, D, Options), Dicts)).
 
-answer_dict(Module:Query, Dict, Options) :-
-    scasp(Module:Query, [model(Model), tree(Justification)]),
+answer_dict(Goal, Dict, Options) :-
+    Goal = _:Query,
+    scasp(Goal, [model(Model), tree(Justification)|Options]),
     answer_json(answer(Query, Model, Justification), Dict, Options).
 
 %!  scasp_query_clauses(:Query, -Terms) is det.
@@ -506,10 +527,17 @@ answer_dict(Module:Query, Dict, Options) :-
 %   The program `scasp/2` would run: the clauses reachable from Query,
 %   the global constraints overlapping them, and the module's directives.
 %   Useful on its own for seeing what a query drags in.
+%
+%   @arg Terms is a list of `(:- Directive)` terms, then `(:- Body)`
+%       global constraints, then the collected clauses stripped of
+%       their module.
+%   @arg Options is scasp/2's; only `collect(Goal)` is read.
 
+:- det(scasp_query_clauses/2).
 scasp_query_clauses(Query, Terms) :-
     scasp_query_clauses(Query, Terms, []).
 
+:- det(scasp_query_clauses/3).
 scasp_query_clauses(Module:Query, Terms, Options) :-
     (   option(collect(Extra), Options)
     ->  strip_module_goal(Extra, Collect0),
@@ -532,7 +560,7 @@ scasp_query_clauses(Module:Query, Terms, Options) :-
 
 as_directive(Directive, (:- Directive)).
 
-%!  about_collected(+Callees, +Directives, +Directive) is semidet.
+%!  about_collected(+Callees, @Directives, @Directive) is semidet.
 %
 %   A directive is kept when the program being assembled is the one it is
 %   about.  A module's directives are all of them; the clauses are only
@@ -546,37 +574,57 @@ as_directive(Directive, (:- Directive)).
 %   Whatever a directive does not name a predicate for is kept: a
 %   `domain` declares one rather than describing one, a `#show` is about
 %   the output, and an unrecognised directive is somebody else's.
+%
+%   A description of `-p` is about p/1, and where the query reaches only
+%   `-p` that is `neg(p/1)` among the callees, not p/1.  So a
+%   description is also kept for the classically negated predicate.  A
+%   signature is not: it is checked against p/1's own clauses, and there
+%   may be none.
+%
+%   @arg Callees is the collected predicates, as in query_callees/2.
+%   @arg Directives is every directive of the contributing modules, as
+%       recorded by scasp_directive/1 (without the `:-`).
 
 about_collected(Callees, Directives, Directive) :-
     (   subject(Directive, PI)
     ->  (   memberchk(_:PI, Callees)
+        ;   description_directive(Directive),
+            memberchk(_:neg(PI), Callees)
         ;   declares(Directives, PI)
         )
     ;   true
     ),
     !.
 
-%!  subject(+Directive, -PI) is semidet.
+description_directive(describe(_)).
+description_directive(describe(_, _)).
+description_directive(pred(Spec)) :-
+    subsumes_term(_ :: _, Spec).
+description_directive(pred(Spec, _)) :-
+    subsumes_term(_ :: _, Spec).
+
+%!  subject(@Directive, -PI) is semidet.
 %
 %   The predicate a directive is *about*, as opposed to one it declares.
 %   Read structurally rather than through `annotations.pl:annotation/2`,
-%   which is the same question asked properly: that one *parses* the
-%   directive, and parsing `:- pred p(X) :: "..."` prints the
-%   deprecation warning, which belongs to compiling the program and not
-%   to deciding whether to collect it.
+%   which is the same question asked properly but parses the whole
+%   directive, and deciding whether to collect one needs only its
+%   subject.  (The deprecation warning for `:- pred p(X) :: "..."` is
+%   the reader's, pred/1 below, and is not a reason either way.)
+%
+%   @arg PI is the unqualified `Name/Arity` of the literal's predicate,
+%       with any `not` and `-` taken off.
 
-subject(pred(Spec), PI) :-
-    !,
+subject(pred(Spec), PI) =>
     signature_or_description(Spec, PI).
-subject(pred(Spec, _), PI) :-
-    !,
+subject(pred(Spec, _), PI) =>
     signature_or_description(Spec, PI).
-subject(describe(Spec), PI) :-
-    !,
+subject(describe(Spec), PI) =>
     described_pi(Spec, PI).
-subject(describe(Spec, _), PI) :-
-    !,
+subject(describe(Spec, _), PI) =>
     described_pi(Spec, PI).
+subject(_, _) =>
+    fail.
 
 signature_or_description(Spec, PI) :-
     nonvar(Spec),
@@ -590,24 +638,20 @@ signature_or_description(Spec, PI) :-
 described_pi(Spec, Name/Arity) :-
     nonvar(Spec),
     Spec = (Literal :: _),
-    bare_literal(Literal, Head),
+    nonvar(Literal),
+    literal_kind(Literal, _, Head),
     callable(Head),
     functor(Head, Name, Arity).
 
-bare_literal(Literal, _) :-
-    var(Literal),
-    !,
-    fail.
-bare_literal(not(Inner), Head) :- !, bare_literal(Inner, Head).
-bare_literal(-(Inner), Head)   :- !, bare_literal(Inner, Head).
-bare_literal(Head, Head).
-
-%!  declares(+Directives, ?PI) is nondet.
+%!  declares(@Directives, ?PI) is nondet.
 %
 %   A predicate a directive *declares* — one with no clauses to collect,
 %   so `goal_callee/3` never reports it and it is never among the
 %   callees.  It is still part of the program, and a signature or
 %   description for it is still about this program.
+%
+%   @arg Directives is a list as in about_collected/3.
+%   @arg PI is an unqualified `Name/Arity`.
 
 declares(Directives, PI) :-
     member(Directive, Directives),
@@ -622,8 +666,10 @@ declared_pi(sld(Declaration), PI) :-
 declared_pi(sld(Declaration as _), PI) :-
     sld_pi(Declaration, PI).
 
-sld_pi(_:PI, PI) :- !.
-sld_pi(PI, PI).
+sld_pi(_:PI0, PI) =>
+    PI = PI0.
+sld_pi(PI0, PI) =>
+    PI = PI0.
 
 %!  contributing_modules(+Module, +Callees, -Modules) is det.
 %
@@ -632,20 +678,27 @@ sld_pi(PI, PI).
 %   are about, not with whoever happens to be asking — and the asker is
 %   often neither: plunit runs each test in a module of its own, which
 %   inherits the predicates and holds none of the declarations.
+%
+%   @arg Callees is the collected predicates, as in query_callees/2.
 
 %   The query's module is taken with everything it **inherits** from,
 %   which is how a declaration in a file is found from a goal that runs
 %   somewhere else: a plunit unit is a module of its own that inherits
 %   the file's predicates, and a directive in the file is not in it.
 
+:- det(contributing_modules/3).
 contributing_modules(Module, Callees, Modules) :-
-    findall(Source, member(Source:_, Callees), Sources),
+    maplist(qualifier, Callees, Sources),
     findall(Ancestor, default_module(Module, Ancestor), Ancestors),
     append(Sources, Ancestors, All),
     sort(All, Modules).
 
-strip_module_goal(_:Goal, Goal) :- !.
-strip_module_goal(Goal, Goal).
+qualifier(Module:_, Module).
+
+strip_module_goal(_:Goal0, Goal) =>
+    Goal = Goal0.
+strip_module_goal(Goal0, Goal) =>
+    Goal = Goal0.
 
 %!  check_one_definition(+Callees) is det.
 %
@@ -657,8 +710,11 @@ strip_module_goal(Goal, Goal).
 %   the name would refuse a program for using `member/2` next to
 %   `library(lists)`, which is not the problem this is about.
 %
+%   @arg Callees is the collected predicates, as in query_callees/2.
+%
 %   @error permission_error(collect, scasp_predicate, PI)
 
+:- det(check_one_definition/1).
 check_one_definition(Callees) :-
     (   member(A:PI, Callees),
         member(B:PI, Callees),
@@ -670,6 +726,8 @@ check_one_definition(Callees) :-
 %!  reachable_clause(+Callees, -Term) is nondet.
 %
 %   Each clause of each reachable predicate, stripped of its module.
+%
+%   @arg Callees is the collected predicates, as in query_callees/2.
 
 reachable_clause(Callees, Term) :-
     member(Module:PI, Callees),
@@ -686,20 +744,97 @@ reachable_clause(Callees, Term) :-
 %   its head built back here, which keeps `-p` and `-q` apart where the
 %   functor does not.
 
-callee_head(neg(Name/Arity), -(Inner)) :-
-    !,
-    functor(Inner, Name, Arity).
-callee_head(Name/Arity, Head) :-
+callee_head(neg(Name/Arity), Head) =>
+    functor(Inner, Name, Arity),
+    Head = -(Inner).
+callee_head(Name/Arity, Head) =>
     functor(Head, Name, Arity).
 
-clause_term(Head, true, Head) :- !.
-clause_term(Head, Body, (Head :- Body)).
+clause_term(Head, true, Term) =>
+    Term = Head.
+clause_term(Head, Body, Term) =>
+    Term = (Head :- Body).
 
 %   A multifile clause decompiles as `Module:Body`; the solver does not
 %   deal with that.
+%
+%   And under `-O` the compiler inlines `forall/2`, `once/1` and
+%   `ignore/1`, and clause/2 gives back what it made of them:
+%   `forall(Cond, Action)` is `\+ (Cond, \+ Action)` with the
+%   conjunctions flattened, `once(G)` is `(G->true)` and `ignore(G)` is
+%   `(G->true;true)`, a variable G wrapped in call/1.  Read as written,
+%   `\+` and `->` are built-ins the solver refuses, and a program that
+%   *redefines* `forall/2` would no longer be caught doing so — so they
+%   are put back, and the program reads the same whether it was loaded
+%   with `-O` or without.  The price is that the same shapes written by
+%   hand are read back too: a `\+ (C, \+ A)` reads as `forall(C, A)`,
+%   which is what it means to Prolog but not what `forall/2` means here.
 
-strip_body(Module, Module:Body, Body) :- !.
-strip_body(_, Body, Body).
+strip_body(Module, Body0, Body) :-
+    unqualified_body(Module, Body0, Body1),
+    decompiled(Body1, Body).
+
+unqualified_body(Module, Module:Body0, Body) =>
+    Body = Body0.
+unqualified_body(_, Body0, Body) =>
+    Body = Body0.
+
+%   A variable goal is tested for first, so every later head is matched
+%   against a term that is bound, where single sided unification and
+%   plain unification select the same clause.  A goal position inside a
+%   control construct decompiles as `call(Var)` rather than as a bare
+%   variable, so `(G0->true)` does not meet a variable where `true` is.
+
+decompiled(Var, Goal), var(Var) =>
+    Goal = Var.
+decompiled(\+ Conj, Goal), last_negated(Conj, Cond0, Action0) =>
+    Goal = forall(Cond, Action),
+    decompiled(Cond0, Cond),
+    decompiled(Action0, Action).
+decompiled((G0->true;true), Goal) =>
+    Goal = ignore(G),
+    inlined_goal(G0, G1),
+    decompiled(G1, G).
+decompiled((G0->true), Goal) =>
+    Goal = once(G),
+    inlined_goal(G0, G1),
+    decompiled(G1, G).
+decompiled((A0, B0), Goal) =>
+    Goal = (A, B),
+    decompiled(A0, A),
+    decompiled(B0, B).
+decompiled(not(A0), Goal) =>
+    Goal = not(A),
+    decompiled(A0, A).
+decompiled(findall(T, G0, L), Goal) =>
+    Goal = findall(T, G, L),
+    decompiled(G0, G).
+decompiled(forall(C0, A0), Goal) =>
+    Goal = forall(C, A),
+    decompiled(C0, C),
+    decompiled(A0, A).
+decompiled(M:G0, Goal) =>
+    Goal = M:G,
+    decompiled(G0, G).
+decompiled(Goal0, Goal) =>
+    Goal = Goal0.
+
+inlined_goal(call(G0), G), var(G0) =>
+    G = G0.
+inlined_goal(G0, G) =>
+    G = G0.
+
+%   `(C1, C2, \+ A)` is `Cond = (C1, C2)`, `Action = A`.
+
+last_negated((C, Rest), Cond, Action), nonvar(Rest) =>
+    (   Rest = (\+ Action0)
+    ->  Cond = C,
+        Action = Action0
+    ;   last_negated(Rest, Cond1, Action),
+        Cond = (C, Cond1)
+    ).
+last_negated(_, _, _) =>
+    fail.
 
 		 /*******************************
 		 *     GLOBAL CONSTRAINTS	*
@@ -711,7 +846,12 @@ strip_body(_, Body, Body).
 %   query reaches, and including it widens that — so a constraint reached
 %   only through another constraint comes too, and the walk repeats until
 %   nothing new arrives.
+%
+%   @arg Callees is what the query reaches, as in query_callees/2, and
+%       All the same widened by the included constraints' call trees.
+%   @arg Constraints is the included constraints, as `(:- Body)` terms.
 
+:- det(include_global_constraints/4).
 include_global_constraints(Module, Callees0, Constraints, Callees) :-
     include_global_constraints(Module, Callees0, Callees, [], Constraints).
 
@@ -763,7 +903,12 @@ global_constraint(Module, Body) :-
 %!  query_callees(:Goal, -Callees) is det.
 %
 %   Every predicate Goal can reach, as an ordered set of `Module:Name/Arity`.
+%
+%   @arg Callees is a sorted list of `Module:PI`, Module being where the
+%       clauses are and PI `Name/Arity`, or `neg(Name/Arity)` for the
+%       classically negated `-Name/Arity` (see callee_head/2).
 
+:- det(query_callees/2).
 query_callees(Module:Goal, Callees) :-
     findall(Callee, goal_callee(Goal, Module, Callee), Direct0),
     sort(Direct0, Direct),
@@ -808,20 +953,25 @@ closure_([PI|Agenda], Done, Reached0, Reached) :-
 %   This is not "collect the whole program" creeping back.  A global
 %   constraint the query cannot reach still does not constrain it; what
 %   this says is that the *rest of a predicate* is not somewhere else.
+%
+%   @arg PI is a qualified callee as in query_callees/2, and Called0
+%       the list of those it calls; Called adds PI's counterpart in
+%       front where that has clauses.
 
-add_counterpart(PI, Called, [Other|Called]) :-
-    counterpart(PI, Other),
-    !.
-add_counterpart(_, Called, Called).
+add_counterpart(PI, Called0, Called), counterpart(PI, Other) =>
+    Called = [Other|Called0].
+add_counterpart(_, Called0, Called) =>
+    Called = Called0.
 
-counterpart(Module:neg(Name/Arity), Module:Name/Arity) :-
-    !,
+counterpart(Module:neg(PI), Other), PI = Name/Arity =>
     functor(Head, Name, Arity),
-    has_clauses(Module, Head).
-counterpart(Module:Name/Arity, Where:neg(Name/Arity)) :-
+    has_clauses(Module, Head),
+    Other = Module:PI.
+counterpart(Module:PI, Other), PI = Name/Arity =>
     functor(Inner, Name, Arity),
     defined_somewhere(Module, (-)/1, Where),
-    has_clauses(Where, -(Inner)).
+    has_clauses(Where, -(Inner)),
+    Other = Where:neg(PI).
 
 has_clauses(Module, Head) :-
     functor(Head, Name, Arity),
@@ -842,10 +992,13 @@ predicate_callees(Module:PI, Callees) :-
             Callees0),
     sort(Callees0, Callees).
 
-%!  goal_callee(+Body, +Module, -PI) is nondet.
+%!  goal_callee(@Body, +Module, -PI) is nondet.
 %
 %   The predicates a body calls, skipping what the emitter turns into a
 %   constraint or an arithmetic test rather than a call.
+%
+%   @arg PI is `Where:Name/Arity` or `Where:neg(Name/Arity)`, as in
+%       query_callees/2.
 
 goal_callee(Goal, _, _), var(Goal) =>
     instantiation_error(Goal).
@@ -876,12 +1029,25 @@ goal_callee(Goal, _, _), callable(Goal), builtin(Goal, _) =>
     fail.
 goal_callee(Goal, Module, _), callable(Goal), declared(Module, Goal) =>
     fail.
+goal_callee(Goal, Module, _), callable(Goal), system_predicate(Module, Goal) =>
+    functor(Goal, Name, Arity),
+    permission_error(scasp, procedure, system:Name/Arity).
 goal_callee(Goal, Module, PI), callable(Goal) =>
     functor(Goal, Name, Arity),
     defined_somewhere(Module, Name/Arity, Where),
     PI = Where:Name/Arity.
 goal_callee(Goal, _, _) =>
     type_error(callable, Goal).
+
+%   A built-in the compiler does not know — `\+/1`, `atom_length/2`.
+%   It has no clauses to collect, or has the system's own, and neither is
+%   a program: `\+/1` is `\+ A :- \+ call(A)` in the system module, and
+%   collecting that made every query calling it loop.  Refused with the
+%   term `library(scasp)` refuses it with.
+
+system_predicate(Module, Goal) :-
+    predicate_property(Module:Goal, built_in),
+    \+ predicate_property(Module:Goal, dynamic).
 
 %!  #=(?A, ?B).
 %!  #<>(?A, ?B).
@@ -914,20 +1080,24 @@ A #>= B :- {A >= B}.
 %   The old implementation interns `-p` into a predicate `'-p'` that a
 %   module exports by name; here `-/1` holds every negated head of its
 %   module and cannot be exported per predicate.
+%
+%   @arg PI is the `Name/Arity` of `p`, the predicate under the `-`.
 
-negation_home(Module, Name/Arity, Where) :-
+:- det(negation_home/3).
+negation_home(Module, PI, Where) :-
+    PI = Name/Arity,
     functor(Inner, Name, Arity),
     defined_somewhere(Module, (-)/1, Local),
     (   has_clauses(Local, -(Inner))
     ->  Where = Local
-    ;   defined_somewhere(Module, Name/Arity, Home),
+    ;   defined_somewhere(Module, PI, Home),
         Home \== Local,
         has_clauses(Home, -(Inner))
     ->  Where = Home
     ;   Where = Local
     ).
 
-%!  reinterpreted(+Goal, -PI) is semidet.
+%!  reinterpreted(@Goal, -PI) is semidet.
 %!  redefined(+Module, +PI) is semidet.
 %
 %   Goal is one the compiler gives a meaning of **its own**, and the
@@ -971,15 +1141,16 @@ construct(findall(_, _, _)).
 construct(for_domain(_, _, _)).
 construct(sld(_, _)).
 
-redefined(Module, Name/Arity) :-
+redefined(Module, PI) :-
+    PI = Name/Arity,
     functor(Head, Name, Arity),
-    current_predicate(Module:Name/Arity),
+    current_predicate(Module:PI),
     \+ predicate_property(Module:Head, imported_from(_)),
     \+ predicate_property(Module:Head, built_in),
     predicate_property(Module:Head, number_of_clauses(Clauses)),
     Clauses > 0.
 
-%!  declared(+Module, +Goal) is semidet.
+%!  declared(+Module, @Goal) is semidet.
 %
 %   True when a directive already says what this predicate is, so that
 %   whatever clauses happen to be lying around are not it:
@@ -1007,23 +1178,9 @@ redefined(Module, Name/Arity) :-
 declared(Module, Goal) :-
     functor(Goal, Name, Arity),
     default_module(Module, Ancestor),
-    (   sld_declaration(Ancestor, Name/Arity)
-    ;   directive(Ancestor, abducible(Head)),
-        functor(Head, Name, Arity)
-    ;   Arity =:= 1,
-        directive(Ancestor, domain(Name = _))
-    ),
+    directive(Ancestor, Directive),
+    declared_pi(Directive, Name/Arity),
     !.
-
-sld_declaration(Module, Name/Arity) :-
-    (   directive(Module, sld(Declaration))
-    ;   directive(Module, sld(Declaration as _))
-    ),
-    (   Declaration = _:PI
-    ->  true
-    ;   PI = Declaration
-    ),
-    PI = Name/Arity.
 
 %!  defined_somewhere(+Module, +PI, -Where) is det.
 %
@@ -1040,11 +1197,13 @@ sld_declaration(Module, Name/Arity) :-
 %   own `distinct/1` had it resolved to that library, whose clauses the
 %   collector then could not read.
 
-defined_somewhere(Module, Name/Arity, Where) :-
+:- det(defined_somewhere/3).
+defined_somewhere(Module, PI, Where) :-
+    PI = Name/Arity,
     functor(Head, Name, Arity),
     (   predicate_property(Module:Head, imported_from(From))
     ->  Where = From
-    ;   current_predicate(Module:Name/Arity)
+    ;   current_predicate(Module:PI)
     ->  Where = Module
     ;   default_module(Module, Ancestor),
         Ancestor \== Module,
@@ -1078,8 +1237,9 @@ compiler writes for a file and what `callee_head/2` looks for, so
 `assertz/1` on the term as written is already right.
 
 **The second cannot be asserted at all.** `false/0` is a built-in, so a
-global constraint is *recorded* rather than compiled — `scasp_constraint/2`
-— exactly as the `false :- Body` term expansion does at load time.
+global constraint goes into `'scasp$constraint'/1` instead, through
+`scasp_constraint/2` — the predicate the load-time expansion of
+`false :- Body` compiles it into.
 */
 
 %!  scasp_dynamic(:Spec) is det.
@@ -1104,6 +1264,7 @@ global constraint is *recorded* rather than compiled — `scasp_constraint/2`
 %   price of not interning, and it buys a `-p(X)` that reads as itself
 %   everywhere else.
 
+:- det((scasp_dynamic)/1).
 scasp_dynamic(M:Spec) :-
     dynamic_spec(Spec, M).
 
@@ -1122,8 +1283,8 @@ dynamic_scoped(Var, _, _), var(Var) =>
 dynamic_scoped((A, B), M, Scope) =>
     dynamic_scoped(A, M, Scope),
     dynamic_scoped(B, M, Scope).
-dynamic_scoped(Name/Arity, M, Scope) =>
-    declare(M:Name/Arity, Scope),
+dynamic_scoped(PI, M, Scope), PI = _/_ =>
+    declare(M:PI, Scope),
     (   scoped_already(M:(-)/1)
     ->  true
     ;   declare(M:(-)/1, Scope)
@@ -1131,6 +1292,7 @@ dynamic_scoped(Name/Arity, M, Scope) =>
 dynamic_scoped(Spec, _, _) =>
     type_error(predicate_indicator, Spec).
 
+declare(_, Scope), var(Scope) => instantiation_error(Scope).
 declare(PI, shared) => dynamic(PI).
 declare(PI, private) => thread_local(PI).
 declare(_, Scope) => domain_error(scasp_dynamic_scope, Scope).
@@ -1151,10 +1313,15 @@ scoped_already(M:Name/Arity) :-
 %   source references at all (`doc/semantics.md`).  It is taken rather
 %   than refused so that a caller written against `library(scasp)`
 %   ports without losing an argument.
+%
+%   @arg Clause is a Prolog clause, one with a `-Head`, or a global
+%       constraint `:- Body` or `false :- Body`.
 
+:- det(scasp_assert/1).
 scasp_assert(Clause) :-
     scasp_assert(Clause, false).
 
+:- det(scasp_assert/2).
 scasp_assert(M:(:- Body), _Pos) =>
     scasp_constraint(M, Body).
 scasp_assert(M:(false :- Body), _Pos) =>
@@ -1175,6 +1342,7 @@ scasp_retract(M:(false :- Body)) =>
 scasp_retract(Clause) =>
     retract(Clause).
 
+:- det(scasp_retractall/1).
 scasp_retractall(M:(:- Body)) =>
     retractall(M:'scasp$constraint'(Body)).
 scasp_retractall(M:(false :- Body)) =>
@@ -1194,6 +1362,9 @@ scasp_retractall(Head) =>
 %   with it, and the next `scasp_assert/1` would create the predicate
 %   afresh in whatever scope it defaulted to.
 
+:- det(scasp_abolish/1).
+scasp_abolish(_:Spec), var(Spec) =>
+    instantiation_error(Spec).
 scasp_abolish(M:(Name/Arity)) =>
     functor(Head, Name, Arity),
     retractall(M:Head),

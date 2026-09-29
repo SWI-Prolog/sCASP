@@ -9,6 +9,7 @@
 :- use_module(library(sscasp/render), [portray_rule/2]).
 :- use_module(library(plunit)).
 :- use_module(library(lists), [member/2, memberchk/2, append/3]).
+:- use_module(library(apply), [convlist/3]).
 :- use_module(library(debug), [assertion/1]).
 
 /** <module> The compiled program, read back
@@ -204,7 +205,9 @@ test(a_predicate_with_no_clauses_is_false_of_nothing) :-
 titles(Terms, Titles) :-
     listing(Terms, Listing),
     Constraints = Listing.constraints,
-    findall(Title, member(title(Title)-_, Constraints), Titles).
+    convlist(title_of, Constraints, Titles).
+
+title_of(title(Title)-_, Title).
 
 %   The destructuring is outside `assertion/1`, which runs its goal in a
 %   double negation and lets no binding out.

@@ -33,13 +33,12 @@
 */
 
 :- module(sscasp_run,
-          [ scasp/3,                   % +Terms, ?Query, -Model
-            scasp/4,                   % +Terms, ?Query, -Model, -Justification
-            scasp_run/3,               % +Terms, ?Query, +Options
-            scasp_loaded/3,            % +Terms, -Loaded, :Goal
-            scasp_loaded/4,            % +Terms, -Loaded, :Goal, +Options
+          [ scasp/3,                   % @Terms, ?Query, -Model
+            scasp/4,                   % @Terms, ?Query, -Model, -Justification
+            scasp_run/3,               % @Terms, ?Query, +Options
+            scasp_loaded/4,            % @Terms, -Loaded, :Goal, +Options
             scasp_ask/4,               % +Loaded, ?Query, -Model, -Justification
-            scasp_program/2            % +Terms, -Clauses
+            scasp_program/2            % @Terms, -Clauses
           ]).
 :- use_module(ops).
 :- use_module(compile,  [compile_program/3, guarded_query/3]).
@@ -48,10 +47,11 @@
 :- use_module(solve,    [call_goal/4, model/2, justification/2,
                          children/3, empty_proof/1, table_begin/0]).
 :- use_module(herbrand, [normalise/1]).
-:- use_module(mangle,   [demangle/2]).
+:- use_module(runtime,  []).
+:- use_module(mangle,   [demangle/2, mangled/1]).
 :- use_module(library(modules), [in_temporary_module/3]).
-:- use_module(library(lists), [member/2]).
-:- use_module(library(apply), [include/3]).
+:- use_module(library(lists), [member/2, append/3]).
+:- use_module(library(apply), [include/3, maplist/3]).
 :- use_module(library(error), [instantiation_error/1, must_be/2]).
 :- use_module(library(option), [option/2]).
 :- use_module(library(gensym), [gensym/2]).
@@ -63,7 +63,6 @@
 %   pass an argument without saying so where the interface is stated.
 
 :- meta_predicate
-    scasp_loaded(+, -, 0),
     scasp_loaded(+, -, 0, +).
 
 /** <module> Answering a query
@@ -90,18 +89,25 @@ check needs are part of the same model.
 
 They are the same proof but not the same question, so the justification says
 which is which: the query's literals at the top, and everything the check
-needed under one `nmr` node.
+needed under one `'$nmr'` node — a name no program can give a
+predicate, so the node cannot be taken for a literal.
 */
 
-%!  scasp(+Terms, ?Query, -Model) is nondet.
+%!  scasp(@Terms, ?Query, -Model) is nondet.
 %
 %   Model is a partial stable model in which Query holds.  Terms is the
 %   program as a list, Query a literal or a conjunction of them.
+%
+%   @arg Terms is a list of clauses and facts, `(:- Body)` global
+%       constraints and `(:- Directive)` annotations, as
+%       compile_program/3 takes them.
+%   @arg Model is a sorted list of the literals proved: `p(...)`,
+%       `not p(...)`, `-p(...)` and `not -p(...)`.
 
 scasp(Terms, Query, Model) :-
     scasp(Terms, Query, Model, _).
 
-%!  scasp(+Terms, ?Query, -Model, -Justification) is nondet.
+%!  scasp(@Terms, ?Query, -Model, -Justification) is nondet.
 %
 %   Justification is why, as a forest of `Literal-Children`.  It is the
 %   same structure the solver threads, so asking for it costs nothing
@@ -110,7 +116,7 @@ scasp(Terms, Query, Model) :-
 scasp(Terms, Query, Model, Justification) :-
     scasp_run(Terms, Query, [model(Model), tree(Justification)]).
 
-%!  scasp_run(+Terms, ?Query, +Options) is nondet.
+%!  scasp_run(@Terms, ?Query, +Options) is nondet.
 %
 %   scasp/3,4 with options, which is what `scasp/2` over a Prolog
 %   module (`dyncall.pl`) hands its collected terms to.  Options:
@@ -127,7 +133,9 @@ scasp(Terms, Query, Model, Justification) :-
 %       remembers predicates, will not keep track of a module that may
 %       vanish, and the compiled program can be looked at with
 %       `listing/1` afterwards.  Only the mangled predicates are ever
-%       removed, so naming a module that holds anything else is safe.
+%       removed, so the module's own predicates survive — but
+%       `sscasp_runtime` is added to its import modules and stays
+%       there, so name a module of its own.
 
 scasp_run(Terms, Query, Options) :-
     scasp_loaded(Terms, Loaded,
@@ -136,7 +144,7 @@ scasp_run(Terms, Query, Options) :-
     ignore(option(model(Model), Options)),
     ignore(option(tree(Justification), Options)).
 
-%!  scasp_loaded(+Terms, -Loaded, :Goal) is nondet.
+%!  scasp_loaded(@Terms, -Loaded, :Goal, +Options) is nondet.
 %!  scasp_ask(+Loaded, ?Query, -Model, -Justification) is nondet.
 %
 %   Compile and load **once**, then ask any number of questions.  Goal
@@ -153,14 +161,13 @@ scasp_run(Terms, Query, Options) :-
 %   handed back a module the caller had to remember to free would be the
 %   other design, and `doc/bugs.md` #5 is what that costs when the
 %   caller forgets.
-
-scasp_loaded(Terms, Loaded, Goal) :-
-    scasp_loaded(Terms, Loaded, Goal, []).
-
-%!  scasp_loaded(+Terms, -Loaded, :Goal, +Options) is nondet.
 %
-%   As scasp_loaded/3.  Takes the option `module(?Module)` of
-%   scasp_run/3, with which the program outlives Goal.
+%   Options takes `module(?Module)` of scasp_run/3, with which the
+%   program outlives Goal.
+%
+%   @arg Loaded is `loaded(Module, Program)`, the module holding the
+%       program and the `program{...}` dict compile_program/3 made; it
+%       is for scasp_ask/4 only.
 
 scasp_loaded(Terms, loaded(Module, Program), Goal, Options) :-
     compile_program(scasp, Terms, Program),
@@ -181,13 +188,14 @@ scasp_loaded(Terms, loaded(Module, Program), Goal, Options) :-
 %   names, so those are what is removed; whatever else the module
 %   holds is not ours to touch.
 
+:- det(permanent_module/1).
 permanent_module(Module) :-
     (   var(Module)
     ->  gensym(sscasp_program_, Module)
     ;   must_be(atom, Module)
     ),
     forall(( current_predicate(Module:Name/Arity),
-             demangle(Name, _),
+             mangled(Name),
              functor(Head, Name, Arity),
              \+ predicate_property(Module:Head, imported_from(_))
            ),
@@ -196,12 +204,16 @@ permanent_module(Module) :-
 scasp_ask(loaded(Module, Program), Query, Model, Justification) :-
     answer(Module, Program, Query, Model, Justification).
 
-%!  scasp_program(+Terms, -Clauses) is det.
+%!  scasp_program(@Terms, -Clauses) is det.
 %
 %   The clauses `scasp/3` would run, as they would look in a module
 %   called `program`.  For looking at, and for a test that wants to name
 %   one.
+%
+%   @arg Clauses is the list of clauses runnable_program/3 emits, with
+%       mangled heads.
 
+:- det(scasp_program/2).
 scasp_program(Terms, Clauses) :-
     compile_program(scasp, Terms, Program),
     runnable_program(program, Program, Clauses).
@@ -210,25 +222,68 @@ scasp_program(Terms, Clauses) :-
 %   a quantifier holds as terms have to say which module to call them in
 %   and assertz/1 will not add that for us.
 %
-%   The imports are what let `emit.pl` write `check(...)` rather than
+%   The import is what lets `emit.pl` write `check(...)` rather than
 %   `sscasp_solve:check(...)`: a temporary module imports nothing by
-%   itself, so without them the emitted clauses would have to name the
-%   module of every goal they call.  Every asserted head is mangled
-%   (`scasp$plain$flies$1`), so nothing imported here can be shadowed.
-%
-%   `clpq` is among them because `library(clpr)` exports `{}/1` too and
-%   the emitted comparisons mean the rational one; importing it per
-%   module says which without qualifying each goal.
+%   itself, so without it the emitted clauses would have to name the
+%   module of every goal they call.  `runtime.pl` is everything they
+%   call, and nothing else.
 
+:- det(load_program/2).
 load_program(Module, Program) :-
-    add_import_module(Module, sscasp_solve, start),
-    add_import_module(Module, sscasp_herbrand, start),
-    add_import_module(Module, clpq, start),
+    add_import_module(Module, sscasp_runtime, start),
     runnable_program(Module, Program, Clauses),
     forall(member(Clause, Clauses),
-           assertz(Module:Clause)).
+           assert_clause(Module, Clause)).
 
-%!  answer(+Module, +Program, ?Query, -Model) is nondet.
+%   Under `-O` the compiler compiles arithmetic inline, and then refuses
+%   a clause whose arithmetic uses a variable nothing can have bound —
+%   `hardmath(X) :- X is A+1` — at **assert** time.  Without `-O` the
+%   clause is asserted and raises only if it is called, and one such
+%   clause in a predicate the query never reaches must not take the
+%   program with it.  So it is asserted again with its arithmetic called
+%   rather than compiled, which raises where it would have without `-O`.
+
+assert_clause(Module, Clause) :-
+    catch(assertz(Module:Clause), error(instantiation_error, _), fail),
+    !.
+assert_clause(Module, (Head :- Body0)) :-
+    called_arithmetic(Body0, Body),
+    assertz(Module:(Head :- Body)).
+
+called_arithmetic(Var, Body), var(Var) =>
+    Body = Var.
+called_arithmetic((A0, B0), Body) =>
+    Body = (A, B),
+    called_arithmetic(A0, A),
+    called_arithmetic(B0, B).
+called_arithmetic((A0 ; B0), Body) =>
+    Body = (A ; B),
+    called_arithmetic(A0, A),
+    called_arithmetic(B0, B).
+called_arithmetic((A0 -> B0), Body) =>
+    Body = (A -> B),
+    called_arithmetic(A0, A),
+    called_arithmetic(B0, B).
+called_arithmetic(\+ A0, Body) =>
+    Body = (\+ A),
+    called_arithmetic(A0, A).
+called_arithmetic(Goal, Body), arithmetic(Goal) =>
+    Body = call(Goal).
+called_arithmetic(Goal, Body) =>
+    Body = Goal.
+
+arithmetic(_ is _).
+arithmetic(_ < _).
+arithmetic(_ > _).
+arithmetic(_ =< _).
+arithmetic(_ >= _).
+arithmetic(_ =:= _).
+arithmetic(_ =\= _).
+
+%!  answer(+Module, +Program, ?Query, -Model, -Justification) is nondet.
+%
+%   @arg Module is the module the program is loaded into.
+%   @arg Program is the `program{...}` dict of compile_program/3.
 
 answer(Module, Program, Query, Model, Justification) :-
     guarded_query(Program, Query, Guarded),
@@ -245,9 +300,9 @@ answer(Module, Program, Query, Model, Justification) :-
     children(Proof, Proof0, Checked),
     justification(Proof0, Asked),
     justification(Checked, Because),
-    append(Asked, [nmr-Because], Justification).
+    append(Asked, ['$nmr'-Because], Justification).
 
-%!  shown_model(+Specs, +Model0, -Model) is det.
+%!  shown_model(+Specs, @Model0, -Model) is det.
 %
 %   Model is Model0 with only what `#show` asks for, or all of it when
 %   the program says nothing: `p/1` shows the literals `p(...)`,
@@ -256,6 +311,7 @@ answer(Module, Program, Query, Model, Justification) :-
 %   `model.pl:filter_shown/3`.  The justification is not filtered: it
 %   says why, and a step left out would leave the reason incomplete.
 
+:- det(shown_model/3).
 shown_model([], Model0, Model) =>
     Model = Model0.
 shown_model(Specs, Model0, Model) =>
@@ -283,7 +339,9 @@ solved(Module, Goals, Nmr, Empty, Proof0, Proof) :-
     call_goal(Module:Nmr, [], Proof0, Proof).       % the goal it appears in, and
                                                     % a meta-argument is one
 
-%!  rethrown(+Error) is det.
+%!  rethrown(@Error)
+%
+%   Never returns: raises Error, or the same error in the caller's words.
 %
 %   A query naming a predicate the program does not have reaches the
 %   solver as a call to a mangled name that was never emitted, and the
@@ -294,17 +352,15 @@ solved(Module, Goals, Nmr, Empty, Proof0, Proof) :-
 %   Which is true and no use to whoever typed it.  The name is put back
 %   into the caller's, and the error kind with it — `scasp_predicate` is
 %   what `library(scasp)` raises for the same mistake
-%   (`scasp/compile.pl:142`), so a caller catching one catches both.
+%   (`scasp/compile.pl:143`), so a caller catching one catches both.
 %
 %   Only a *mangled* name is rewritten.  Anything else the solver could
 %   not find is a bug in this tree rather than a typo in a query, and
 %   saying so in the compiler's language is then the right thing.
 
-rethrown(Error) :-
-    query_error(Error, Better),
-    !,
+rethrown(Error), query_error(Error, Better) =>
     throw(Better).
-rethrown(Error) :-
+rethrown(Error) =>
     throw(Error).
 
 query_error(error(existence_error(procedure, PI), _),
@@ -312,63 +368,52 @@ query_error(error(existence_error(procedure, PI), _),
     unqualified(PI, Mangled/_EmittedArity),
     demangle(Mangled, pred(_Module, _Kind, Name, Arity)).
 
-unqualified(_:PI, Plain) :-
-    !,
+unqualified(_:PI, Plain) =>
     unqualified(PI, Plain).
-unqualified(PI, PI).
+unqualified(PI, Plain) =>
+    Plain = PI.
 
+:- det(query_goals/2).
 query_goals(Query, Goals) :-
-    conjunction(Query, Literals),
-    findall(Goal,
-            ( member(Literal, Literals),
-              translate_goal(scasp, Literal, Goal)
-            ),
-            Goals0),
-    share_variables(Literals, Goals0, Goals).
-
-%   translate_goal/3 is called under findall/3, which copies, so the
-%   goals come back with fresh variables and no longer share with the
-%   query.  Re-unifying the arguments puts that back — the query must be
-%   bound by its own answer.
-
-share_variables([], [], []).
-share_variables([Literal|Literals], [Goal0|Goals0], [Goal|Goals]) :-
-    translate_goal(scasp, Literal, Goal),
-    Goal = Goal0,
-    share_variables(Literals, Goals0, Goals).
+    phrase(conjuncts(Query), Literals),
+    maplist(translate_goal(scasp), Literals, Goals).
 
 %   An unbound query has no literals to ask for, and saying so beats
 %   what it used to do: `(A, B)` unifies with a variable, so the query
 %   grew a conjunct per step and the stack ran out.
 
-conjunction(Query, _) :-
-    var(Query),
-    !,
-    instantiation_error(Query).
-conjunction((A, B), Literals) :-
-    !,
-    conjunction(A, As),
-    conjunction(B, Bs),
-    append(As, Bs, Literals).
-conjunction(Literal, [Literal]).
+conjuncts(Query), var(Query) ==>
+    { instantiation_error(Query) }.
+conjuncts((A, B)) ==>
+    conjuncts(A),
+    conjuncts(B).
+conjuncts(Literal) ==>
+    [Literal].
 
-%!  solve_goals(+Module, +Goals, +Anc, +Proof0, -Proof) is nondet.
+%!  solve_goals(+Module, ?Goals, ?Anc, ?Proof0, -Proof) is nondet.
 %
 %   The query is a clause body and is made runnable by the same pass, so
 %   that whatever may appear in a body may appear in a query.  Calling
 %   each literal instead works until one of them is a **constraint**:
 %   `?- T #< 40, holds(T, ...)` is an ordinary s(CASP) query, and `#<`
 %   is not a predicate to call but something to post.
+%
+%   @arg Goals is the list of query literals, translated by
+%       translate_goal/3.
+%   @arg Anc is the ancestor chain, a list of `a(Goal, Neg, Pol)`
+%       frames; `[]` for a query.
+%   @arg Proof0 is the proof so far, `proof(Forest, Index)`, and Proof
+%       the same extended by what Goals proved.
 
 solve_goals(Module, Goals, Anc, Proof0, Proof) :-
     body_conjunction(Goals, Body),
     body(Body, Module, Anc, Proof0, Proof, Runnable),
     call(Module:Runnable).
 
-body_conjunction([], true).
-body_conjunction([Goal|Goals], Body) :-
-    (   Goals == []
-    ->  Body = Goal
-    ;   Body = (Goal, Rest),
-        body_conjunction(Goals, Rest)
-    ).
+body_conjunction([], Body) =>
+    Body = true.
+body_conjunction([Goal], Body) =>
+    Body = Goal.
+body_conjunction([Goal|Goals], Body) =>
+    Body = (Goal, Rest),
+    body_conjunction(Goals, Rest).

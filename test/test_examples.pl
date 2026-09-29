@@ -3,7 +3,7 @@
           ]).
 :- use_module(under_test).
 :- use_module(scasp_plunit, []).        % sets the library search path
-:- use_module(library(lists), [member/2]).
+:- use_module(library(apply), [maplist/3]).
 :- use_module(library(plunit)).
 :- use_module(library(debug), [assertion/1]).
 
@@ -43,13 +43,12 @@ answers(File, Query, Answers) :-
     answer_set(Answers0, Answers).
 
 answer_set(Answers, Set) :-
-    findall(Key,
-            ( member(Answer, Answers),
-              copy_term(Answer, Key, _Constraints),
-              numbervars(Key, 0, _)
-            ),
-            Keys),
+    maplist(answer_key, Answers, Keys),
     sort(Keys, Set).
+
+answer_key(Answer, Key) :-
+    copy_term_nat(Answer, Key),
+    numbervars(Key, 0, _).
 
 %!  expect(+Answers, -Set) is det.
 %

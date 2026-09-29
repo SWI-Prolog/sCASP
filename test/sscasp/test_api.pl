@@ -48,6 +48,7 @@ test_api :-
                 api_human,
                 api_expansion,
                 api_dynamic,
+                api_sandbox,
                 api_hygiene
               ]).
 
@@ -114,6 +115,23 @@ next(Y) :- successor(1, Y).
 announce :- noisy(hello).
 small(1).
 small(2).
+:- sld api_anything/1.
+:- sld api_second_a/2.
+:- sld api_shaped/1.
+:- sld api_sign/2.
+:- sld api_calls_nowhere/1.
+:- sld (api_sld_one/1, api_sld_two/1) as opaque.
+:- sld api_sld_three/1, api_sld_four/1.
+api_sld_one(X) :- X is 0+1.
+api_sld_two(X) :- X is 1+1.
+api_sld_three(X) :- X is 2+1.
+api_sld_four(X) :- X is 3+1.
+api_sign(X, Y), X > 0 => Y = pos.
+api_sign(_, Y) => Y = other.
+api_calls_nowhere(X) :- api_nowhere(X).
+api_anything(_).
+api_second_a(_, a).
+api_shaped(f(_)).
 outside(X) :- colour_index(X), not small(X).
 colour_index(1).
 colour_index(3).
@@ -123,7 +141,12 @@ colour_index(3).
 %  interns it into `'-api_known_dead'/1` and the clause is lost to a name
 %  nothing looks for.
 -api_known_dead(X) :- api_buried(X).
+%  a description of a classically negated predicate with no positive
+%  clauses: the query reaches only -api_sinks/1
+-api_sinks(X) :- api_floater(X).
+:- describe -api_sinks(_X) :: "@(X) is known not to sink".
 api_buried(yorick).
+api_floater(cork).
 
 %  the program `api_dynamic` changes.  Here rather than inside the unit
 %  because plunit gives a unit a module of its own: a clause written
@@ -156,7 +179,7 @@ test(and_a_justification) :-
     scasp(flies(tweety), [tree(Tree)]),
     assertion(memberchk(flies(tweety)-Children, Tree)),
     assertion(memberchk(bird(tweety)-[], Children)),
-    assertion(memberchk(nmr-_, Tree)).
+    assertion(memberchk('$nmr'-_, Tree)).
 
 %   `module(?Module)` keeps the compiled program for the profiler.
 
@@ -181,6 +204,14 @@ test(and_one_that_does_not_overlap_is_ignored) :-
 test(collect_brings_in_what_the_query_cannot_reach) :-
     assertion(\+ \+ scasp(colour(red))),
     assertion(\+ scasp(colour(red), [collect(lonely(_))])).
+
+%   scasp_json/3 takes scasp/2's options, and has to pass them on.
+
+test(scasp_json_passes_the_options_on) :-
+    scasp_json(colour(red), Plain),
+    scasp_json(colour(red), Collected, [collect(lonely(_))]),
+    assertion(Plain.answers = [_]),
+    assertion(Collected.answers == []).
 
 %   An abducible may be assumed, so the query holds — and holds without
 %   it too, which is what `not perhaps` having an answer says.
@@ -341,8 +372,8 @@ test(a_shared_constraint_is_shown_once) :-
 test(rendering_leaves_the_answer_alone) :-
     dif(X, a),
     scasp_readable(f(X), _),
-    assertion(\+ X = a),
-    assertion(\+ \+ X = b).
+    assertion(X \= a),
+    assertion(\+ X \= b).
 
 %   The constrained answer, end to end.
 
@@ -359,6 +390,19 @@ test(a_constrained_answer_reads_back) :-
 %   The model and the justification have to be made readable *together*,
 %   or a variable they share is named twice and the two names mean
 %   different things.
+
+%   CLP(Q) reports its store as one goal.  Each constraint goes to a
+%   variable it is about, and a variable mentioned in another's store is
+%   named there, not inlined with its own.
+
+test(each_constraint_goes_to_a_variable_it_is_about) :-
+    {B > 0, A - B > 0},
+    scasp_readable(q(A, B), q(RA, RB)),
+    assertion(RA = '| '('$VAR'('A'), {_})),
+    assertion(RB = '| '('$VAR'('B'), {'$VAR'('B') > 0})),
+    RA = '| '(_, {StoreA}),
+    assertion(StoreA \= (_, _)),
+    assertion(\+ sub_term('| '(_, _), StoreA)).
 
 test(one_naming_for_the_model_and_the_tree) :-
     once(scasp(not window(V), [model(Model), tree(Tree)])),
@@ -418,9 +462,9 @@ test(negation_of_an_unbound_sld_goal_constrains) :-
             Answers),
     assertion(Answers = [_]),
     Answers = [Value-_],
-    assertion(\+ Value = 1),
-    assertion(\+ Value = 2),
-    assertion(\+ \+ Value = 3).
+    assertion(Value \= 1),
+    assertion(Value \= 2),
+    assertion(\+ Value \= 3).
 
 test(and_a_ground_one_is_simply_run) :-
     assertion(\+ \+ scasp(not small(3))),
@@ -428,6 +472,66 @@ test(and_a_ground_one_is_simply_run) :-
 
 test(so_a_program_over_it_answers, set(X == [3])) :-
     scasp(outside(X)).
+
+%   A solution that leaves a variable free holds for every value there.
+%   So `not api_anything(V)` has no answer at all, and `api_second_a/2`
+%   excludes only its second argument.  Kept apart from the free
+%   variable instead, `dif(V, _)` held by choosing the `_`.
+
+test(a_free_solution_leaves_nothing_to_negate) :-
+    assertion(\+ scasp(not api_anything(_))),
+    assertion(\+ scasp(not api_anything(3))).
+
+test(and_constrains_only_the_positions_it_binds) :-
+    findall(X-Y, scasp(not api_second_a(X, Y)), Answers),
+    assertion(Answers = [_]),
+    Answers = [X-Y],
+    assertion(var(X)),
+    assertion(\+ Y = a),
+    assertion(\+ \+ Y = b).
+
+%   A solution that fixes a *shape* excludes every instance of it, which
+%   no disequality can say.  Refused rather than answered wrongly.
+
+%   An SSU rule reaches the interpreter as `(Guard, !, Body)`, since
+%   clause/2 drops the `=>`.  The guard is part of the derivation, and a
+%   guard that fails passes the call on to the next rule.
+
+test(an_ssu_rule_is_interpreted) :-
+    scasp(api_sign(1, Y), [tree(Tree)]),
+    assertion(Y == pos),
+    assertion(memberchk(api_sign(1, pos)-[(1 > 0)-[], (pos = pos)-[]], Tree)),
+    scasp(api_sign(-1, Z)),
+    assertion(Z == other).
+
+%   A predicate the interpreted clauses call and nobody defines is an
+%   error, as it is under `as opaque` — not a failure that reads like an
+%   answer.
+
+test(an_undefined_callee_is_an_error,
+     [ error(existence_error(procedure, _:api_nowhere/1)) ]) :-
+    scasp(api_calls_nowhere(1)).
+
+%   One `:- sld` may declare several, and `as` covers them all when they
+%   are parenthesised.  Opaque shows the call and nothing under it;
+%   justified shows the `3 is 2+1` the interpreter took.
+
+test(a_declaration_may_list_several) :-
+    forall(member(G, [api_sld_one(_), api_sld_two(_),
+                      api_sld_three(_), api_sld_four(_)]),
+           ( scasp_query_clauses(G, Terms),
+             functor(G, Name, 1),
+             assertion(\+ ( member((H :- _), Terms),
+                             functor(H, Name, 1) ))
+           )),
+    scasp(api_sld_two(2), [tree(Opaque)]),
+    assertion(memberchk(api_sld_two(2)-[], Opaque)),
+    scasp(api_sld_three(3), [tree(Justified)]),
+    assertion(memberchk(api_sld_three(3)-[_|_], Justified)).
+
+test(a_solution_with_a_shape_is_refused,
+     [ error(representation_error(scasp_universal_disequality), _) ]) :-
+    scasp(not api_shaped(_)).
 
 :- end_tests(api_sld).
 
@@ -556,6 +660,13 @@ test(a_domain_declaration_needs_no_definition) :-
 test(a_description_changes_no_answer, all(X == [tweety])) :-
     scasp(flies(X)).
 
+%   The query reaches `neg(api_sinks/1)` and never api_sinks/1, which has
+%   no clauses; the description is about both.
+
+test(a_description_of_a_negated_predicate_travels_with_it) :-
+    annotations(-api_sinks(_), A),
+    assertion(described(A, -api_sinks(cork), 'cork is known not to sink')).
+
 :- end_tests(api_describe).
 
 		 /*******************************
@@ -581,6 +692,15 @@ test(an_answer_in_words) :-
 test(a_literal_with_no_description_falls_back) :-
     with_output_to(string(Text), once(scasp_human(flies(_)))),
     assertion(sub_string(Text, _, _, _, "bird holds for tweety")).
+
+%   It prints the answer and leaves nothing for the toplevel, which
+%   would otherwise print it a second time.
+
+test(it_leaves_nothing_for_the_toplevel) :-
+    once(( with_output_to(string(_), scasp_human(flies(_))),
+           phrase(sscasp:scasp_residuals, Residuals)
+         )),
+    assertion(Residuals == []).
 
 test(the_model_alone) :-
     with_output_to(string(Text),
@@ -1023,7 +1143,67 @@ test(as_is_something_that_is_not_a_predicate,
      [ error(type_error(predicate_indicator, tweety)) ]) :-
     scasp_dynamic(test_api:tweety).
 
+test(and_so_is_an_unbound_scope,
+     [ error(instantiation_error) ]) :-
+    scasp_dynamic(test_api:(api_dyn_scope/1 as _)).
+
+test(abolishing_a_variable_is_refused,
+     [ error(instantiation_error) ]) :-
+    scasp_abolish(test_api:_).
+
 :- end_tests(api_dynamic).
+
+		 /*******************************
+		 *           SANDBOX		*
+		 *******************************/
+
+/** What SWISH may run.  `module(M)` asserts into M and adds to its
+    imports for good, so an option list that carries it — or that is not
+    a proper list, and might — is not declared safe.
+*/
+
+:- begin_tests(api_sandbox).
+
+:- use_module(library(sandbox), [safe_goal/1]).
+
+test(a_query_with_ordinary_options_is_safe) :-
+    safe_goal(scasp(flies(_), [model(_), tree(_)])).
+
+test(naming_a_module_is_not,
+     [ error(permission_error(_, _, _), _) ]) :-
+    safe_goal(scasp(flies(_), [module(lists)])).
+
+test(nor_is_an_open_option_list,
+     [ error(_) ]) :-
+    safe_goal(scasp(flies(_), _)).
+
+%   A program SWISH loads is loaded sandboxed, and the directives an
+%   s(CASP) program writes have to get through: each writes only into
+%   the module being loaded.  They used to be refused as cross-module
+%   directives, every one of them.
+
+test(the_declarations_load_sandboxed,
+     [ setup(tmp_file_stream(text, File, Out)),
+       cleanup(delete_file(File))
+     ]) :-
+    format(Out, ":- use_module(library(sscasp)).~n\c
+                 :- abducible api_sbx_p.~n\c
+                 :- domain api_sbx_d = [1, 2].~n\c
+                 :- pred api_sbx_q(api_sbx_d).~n\c
+                 :- describe api_sbx_q(_X) :: \"@(X) is q\".~n\c
+                 :- show api_sbx_q/1.~n\c
+                 :- scasp_dynamic api_sbx_fact/1.~n\c
+                 api_sbx_q(1).~n", []),
+    close(Out),
+    Module = api_sandbox_program,
+    Module:load_files(File, [sandboxed(true), silent(true)]),
+    Module:scasp_query_clauses(api_sbx_q(_), Terms),
+    forall(member(D, [abducible(_), domain(_), pred(_), describe(_, _),
+                      show(_)]),
+           assertion(memberchk((:- D), Terms))),
+    assertion(predicate_property(Module:api_sbx_fact(_), dynamic)).
+
+:- end_tests(api_sandbox).
 
 :- begin_tests(api_hygiene).
 
@@ -1041,6 +1221,15 @@ queried(next(_)).
 queried(announce).
 queried(small(_)).
 queried(outside(_)).
+queried(api_anything(_)).
+queried(api_second_a(_, _)).
+queried(api_shaped(_)).
+queried(api_sign(_, _)).
+queried(api_calls_nowhere(_)).
+queried(api_sld_one(_)).
+queried(api_sld_two(_)).
+queried(api_sld_three(_)).
+queried(api_sld_four(_)).
 queried(window(_)).
 queried(api_dyn_flies(_)).
 queried(-api_known_dead(_)).

@@ -33,14 +33,15 @@
 */
 
 :- module(sscasp_nmr,
-          [ nmr_check/4,                % +Module, +Annotations, +Sources, -Nmr
-            denial/2                    % +Source, -Denial
+          [ nmr_check/4,                % +Module, +Annotations, @Sources, -Nmr
+            denial/2                    % @Source, -Denial
           ]).
 :- use_module(ops).
 :- use_module(dualise, [predicate_duals/6]).
 :- use_module(mangle,  [mangle/2]).
-:- use_module(library(lists), [append/3, numlist/3, member/2, memberchk/2]).
-:- use_module(library(apply), [maplist/3, maplist/4, maplist/5, exclude/3]).
+:- use_module(clauses, [clause_head/2, clause_body/2, body_list/2]).
+:- use_module(library(lists), [append/2, numlist/3, member/2]).
+:- use_module(library(apply), [maplist/4, maplist/5, exclude/3]).
 
 %   Upstream's names and defaults (`prolog/scasp/nmr_check.pl`), so that
 %   both trees in one process read one flag.  `keep(true)`: whichever
@@ -50,13 +51,6 @@
 :- create_prolog_flag(scasp_compile_olon, true, [keep(true)]).
 :- create_prolog_flag(scasp_compile_nmr,  true, [keep(true)]).
 
-%   Dynamic consistency checking (`compile.pl:dcc_rules/3`).  Not upstream's
-%   `scasp_dcc`: that is off by default and, set, also changes the old
-%   implementation, which with it has only been tested under
-%   `--forall=prev`.  One flag with two defaults would make the default
-%   depend on which library loaded first.
-
-:- create_prolog_flag(sscasp_dcc,         true, [keep(true)]).
 
 /** <module> The NMR check
 
@@ -111,12 +105,12 @@ being the one term in it that is not compiled.
 A sub-check derives from no user predicate — it is built from a rule, and for
 a global constraint from a rule with no head at all — so it takes the empty
 name field `mangle.pl` reserves for program-level predicates.  Which rule a
-sub-check came from is in the result's `sources` instead, where a report can
+sub-check came from is in the result's `checks` instead, where a report can
 use it; putting it in the name would mean naming a zero-arity predicate after
 a predicate of another arity.
 */
 
-%!  nmr_check(+Module, +Annotations, +Sources, -Nmr) is det.
+%!  nmr_check(+Module, +Annotations, @Sources, -Nmr) is det.
 %
 %   Nmr is
 %
@@ -125,12 +119,21 @@ a predicate of another arity.
 %            checks:  [check(1, p/0, not p), ...] }
 %
 %   A `check(Index, Source, Denial)` says what the Index-th sub-check is
-%   for: Source is the predicate whose rule is on a loop, or the atom
-%   `constraint`, and Denial is the body that must not hold.
+%   for: Source is the predicate whose rule is on a loop, the atom
+%   `constraint`, or `consistency(Name/Arity)` for the consistency of a
+%   classically negated predicate, and Denial is the body that must not
+%   hold.
 %
 %   A program with nothing to check still gets one — a check that
 %   succeeds — so that the solver has one goal to call rather than a case
 %   to test.
+%
+%   @arg Annotations is the annotation table with `fact_predicates`,
+%       as in `compile.pl:compile_predicate/4`.
+%   @arg Sources is a list of `constraint(Body)`, `olon(Clause)` and
+%       `consistency(Name/Arity, Denial)`, in source syntax.
+
+:- det(nmr_check/4).
 
 nmr_check(Module, Annotations, Sources0, Nmr) :-
     compiled_sources(Sources0, Sources),
@@ -145,7 +148,7 @@ nmr_check(Module, Annotations, Sources0, Nmr) :-
                clauses: [Check|Flat],
                checks:  Checks }.
 
-%!  compiled_sources(+Sources, -Compiled) is det.
+%!  compiled_sources(@Sources, -Compiled) is det.
 %
 %   The sub-checks the flags leave.  Both are the old implementation's,
 %   spelled and scoped the same way so that a caller setting one gets the
@@ -179,27 +182,38 @@ check_description(Index, Source, check(Index, What, Denial)) :-
     denial(Source, Denial),
     described(Source, What).
 
-described(constraint(_), constraint).
-described(consistency(PI, _), consistency(PI)).
-described(olon(Clause), PI) :-
+described(constraint(_), What) =>
+    What = constraint.
+described(consistency(PI, _), What) =>
+    What = consistency(PI).
+described(olon(Clause), PI) =>
     clause_head(Clause, Head),
     head_pi(Head, PI).
 
-numlist_or_empty(0, []) :- !.
-numlist_or_empty(Count, Indices) :- numlist(1, Count, Indices).
+numlist_or_empty(0, Indices) =>
+    Indices = [].
+numlist_or_empty(Count, Indices) =>
+    numlist(1, Count, Indices).
 
-check_clause(Goal, [], Goal) :- !.
-check_clause(Goal, Calls, (Goal :- Body)) :-
+check_clause(Goal, [], Check) =>
+    Check = Goal.
+check_clause(Goal, Calls, Check) =>
+    Check = (Goal :- Body),
     comma_list(Calls, Body).
 
-comma_list([Goal], Goal) :- !.
-comma_list([Goal|Goals], (Goal, Rest)) :-
+comma_list([Goal], Body) =>
+    Body = Goal.
+comma_list([Goal|Goals], Body) =>
+    Body = (Goal, Rest),
     comma_list(Goals, Rest).
 
-%!  sub_check(+Module, +Annotations, +Index, +Source, -Clauses, -Call) is det.
+%!  sub_check(+Module, +Annotations, +Index, @Source, -Clauses, -Call) is det.
 %
 %   Clauses are the duals of the Index-th sub-check; Call is what the NMR
 %   check calls, which is the outermost of them.
+%
+%   @arg Call is the mangled atom of the sub-check's dual,
+%       `Module$dualchk.Index$$0`.
 
 sub_check(Module, Annotations, Index, Source, Duals, Call) :-
     denial(Source, Denial),
@@ -208,7 +222,7 @@ sub_check(Module, Annotations, Index, Source, Duals, Call) :-
                     [(Name :- Denial)], Duals),
     mangle(prog(Module, dualchk(Index), 0), Call).
 
-%!  denial(+Source, -Denial) is det.
+%!  denial(@Source, -Denial) is det.
 %
 %   The body that must not hold.  A global constraint is one already; an
 %   OLON rule is violated when its body holds and its head does not.
@@ -217,9 +231,13 @@ sub_check(Module, Annotations, Index, Source, Duals, Call) :-
 %   p` is its own denial, and the duplicate would only make the dual
 %   generator produce a clause that cannot succeed.
 
-denial(constraint(Body), Body) :- !.
-denial(consistency(_, Body), Body) :- !.
-denial(olon(Clause), Denial) :-
+:- det(denial/2).
+
+denial(constraint(Body), Denial) =>
+    Denial = Body.
+denial(consistency(_, Body), Denial) =>
+    Denial = Body.
+denial(olon(Clause), Denial) =>
     clause_head(Clause, Head),
     clause_body(Clause, Body),
     (   body_denies(Body, Head)
@@ -229,24 +247,24 @@ denial(olon(Clause), Denial) :-
     ;   Denial = (Body, not(Head))
     ).
 
+%   Only a `not Head` of the body itself, not one under a quantifier:
+%   that is what makes the body alone the denial.
+
 body_denies(Body, Head) :-
-    body_literal(Body, not(Literal)),
+    body_list(Body, Goals),
+    member(not(Literal), Goals),
     Literal == Head,
     !.
 
-body_literal((A, B), L) :- !, (body_literal(A, L) ; body_literal(B, L)).
-body_literal(L, L).
+%   A classically negated head keeps its `-`: `-p :- not -p` is an odd
+%   loop over `-p`, and reporting it as one over `p` names the wrong
+%   predicate.
 
-clause_head((Head :- _), Head) :- !.
-clause_head(Fact, Fact).
-
-clause_body((_ :- Body), Body) :- !.
-clause_body(_, true).
-
-head_pi(-(Head), Name/Arity) :-
-    !,
-    head_pi(Head, Name/Arity).
-head_pi(Head, Name/Arity) :-
+head_pi(-(Head), PI) =>
+    PI = -(PI0),
+    head_pi(Head, PI0).
+head_pi(Head, PI) =>
+    PI = Name/Arity,
     (   atom(Head)
     ->  Name = Head, Arity = 0
     ;   functor(Head, Name, Arity)

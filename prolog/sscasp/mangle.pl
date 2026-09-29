@@ -35,10 +35,12 @@
 :- module(sscasp_mangle,
           [ mangle/2,                   % +Spec, -Mangled
             demangle/2,                 % +Mangled, -Spec
-            mangled/1                   % @Name
+            mangled/1,                  % @Name
+            literal_kind/3,             % @Literal, -Kind, -Head
+            kind_literal/3,             % ?Kind, ?Head, ?Literal
+            kind_truth/2                % ?Kind, ?Truth
           ]).
 :- use_module(library(error), [permission_error/3, type_error/2, must_be/2]).
-:- use_module(library(lists), [member/2]).
 :- use_module(library(apply), [maplist/3]).
 
 /** <module> Functor name mangling
@@ -62,7 +64,7 @@ m$dual.2.inner$flies$1     that clause's innermost dual, body variables added
 m$neg$cold$1               -cold/1
 m$dualneg$cold$1           not -cold
 m$nmr$$0                   the NMR check
-m$chk.1$$1                 its first sub-check, of arity 1
+m$dualchk.1$$0             its first sub-check
 ```
 
 `Name` is **the user predicate the thing derives from**, which is what makes a
@@ -72,10 +74,10 @@ arity — the innermost dual above has arity 2, not 1 — so anything wanting th
 real arity should ask `functor/3` rather than take it from the name.
 
 `Name` is **empty** when the predicate derives from no user predicate, which is
-the case for the program-level ones: the NMR check, its sub-checks, the head of
-a headless rule.  A predicate must have a name, so an empty field is
-unambiguous, and for those `Arity` is the generated predicate's own — a
-sub-check may well have arguments.
+the case for the program-level ones: the NMR check and its sub-checks.  A
+predicate must have a name, so an empty field is unambiguous, and for those
+`Arity` is the generated predicate's own, which is 0: a sub-check's variables
+are body-only variables its dual quantifies (`nmr.pl`).
 
 One field count rather than two, so demangling is a single clause.
 
@@ -102,17 +104,17 @@ is written `dual.2`, `dual(2,inner)` is `dual.2.inner`.
 %   does not.  Kind is an atom or a compound whose arguments are atoms or
 %   integers.
 
-mangle(pred(Module, Kind, Name, Arity), Mangled) :-
-    !,
+:- det(mangle/2).
+
+mangle(pred(Module, Kind, Name, Arity), Mangled) =>
     (   Name == ''
     ->  type_error(predicate_name, Name)
     ;   true
     ),
     mangle_fields(Module, Kind, Name, Arity, Mangled).
-mangle(prog(Module, Kind, Arity), Mangled) :-
-    !,
+mangle(prog(Module, Kind, Arity), Mangled) =>
     mangle_fields(Module, Kind, '', Arity, Mangled).
-mangle(Spec, _) :-
+mangle(Spec, _) =>
     type_error(mangle_spec, Spec).
 
 mangle_fields(Module, Kind, Name, Arity, Mangled) :-
@@ -154,16 +156,15 @@ mangled(Name) :-
 		 *            KINDS		*
 		 *******************************/
 
-%!  kind_atom(?Kind, ?Atom) is det.
+%!  kind_atom(+Kind, -Atom) is det.
+%!  kind_atom(-Kind, +Atom) is det.
 %
 %   `dual` is `dual`, `dual(2)` is `dual.2`, `dual(2,inner)` is
 %   `dual.2.inner`.  A component that reads as an integer comes back as
 %   one, which is safe because the field never holds user data: the
 %   components a compiler writes there are clause indices and tags.
 
-kind_atom(Kind, Atom) :-
-    var(Kind),
-    !,
+kind_atom(Kind, Atom), var(Kind) =>
     atomic_list_concat(Parts, '.', Atom),
     maplist(kind_component, Parts, Components),
     (   Components = [Single]
@@ -171,16 +172,12 @@ kind_atom(Kind, Atom) :-
     ;   Components = [Functor|Args],
         Kind =.. [Functor|Args]
     ).
-kind_atom(Kind, Atom) :-
-    atom(Kind),
-    !,
+kind_atom(Kind, Atom), atom(Kind) =>
     Atom = Kind.
-kind_atom(Kind, Atom) :-
-    compound(Kind),
-    !,
+kind_atom(Kind, Atom), compound(Kind) =>
     Kind =.. Parts,
     atomic_list_concat(Parts, '.', Atom).
-kind_atom(Kind, _) :-
+kind_atom(Kind, _) =>
     type_error(mangle_kind, Kind).
 
 kind_component(Part, Component) :-
@@ -200,3 +197,46 @@ reserved_free(Name) :-
     ->  permission_error(use, reserved_character($), Name)
     ;   true
     ).
+
+
+		 /*******************************
+		 *        THE FOUR KINDS	*
+		 *******************************/
+
+%!  literal_kind(@Literal, -Kind, -Head) is det.
+%
+%   Which of the four a literal is, in this module's vocabulary, so that
+%   the literal a renderer holds and the predicate that proved it are
+%   named alike.
+%
+%   @arg Kind is `plain`, `dual`, `neg` or `dualneg`.
+%   @arg Head is Literal without its `not` and `-`.
+
+:- det(literal_kind/3).
+
+literal_kind(not(-(Head0)), Kind, Head) => Kind = dualneg, Head = Head0.
+literal_kind(not(Head0),    Kind, Head) => Kind = dual,    Head = Head0.
+literal_kind(-(Head0),      Kind, Head) => Kind = neg,     Head = Head0.
+literal_kind(Head0,         Kind, Head) => Kind = plain,   Head = Head0.
+
+%!  kind_literal(?Kind, ?Head, ?Literal) is semidet.
+%
+%   The other direction: the literal of a Kind about Head.  Fails for a
+%   kind that is not one of the four — an abducible's halves, the
+%   helpers — which have no literal of their own.
+
+kind_literal(plain,   Head, Head).
+kind_literal(neg,     Head, -(Head)).
+kind_literal(dual,    Head, not(Head)).
+kind_literal(dualneg, Head, not(-(Head))).
+
+%!  kind_truth(?Kind, ?Truth) is nondet.
+%
+%   What a literal of Kind claims: `true`, `false` (known not to hold),
+%   `unlikely` (no evidence that it holds) or `likely` (no evidence that
+%   it does not).  The renderers colour by it and the JSON reports it.
+
+kind_truth(plain,   true).
+kind_truth(neg,     false).
+kind_truth(dual,    unlikely).
+kind_truth(dualneg, likely).

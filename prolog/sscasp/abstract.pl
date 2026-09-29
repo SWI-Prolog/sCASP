@@ -33,11 +33,12 @@
 */
 
 :- module(sscasp_abstract,
-          [ abstract_head/2,            % +Clause, -Abstracted
-            abstract_head/3             % +Clause, -Head, -Guards
+          [ abstract_head/2,            % @Clause, -Abstracted
+            abstract_head/3             % @Clause, -Head, -Guards
           ]).
 :- use_module(ops).
 :- use_module(library(lists), [append/3]).
+:- use_module(clauses, [clause_head/2, clause_goals/2, list_body/2]).
 
 /** <module> Head abstraction
 
@@ -70,9 +71,10 @@ P1 specifies this "recursively on the arguments of the terms", which would
 give `p(f(g(X)))` the body `A = f(B), B = g(X)` rather than `A = f(g(X))`.
 This does one level.
 
-The two were measured against each other in the current implementation, which
-has both — `abstract_structures/4` does one level and the unused
-`prep_args2/7` did the recursion — and they produce the same answers.  The
+The two were measured against each other in the old implementation, which
+had both — `abstract_structures/4` does one level and the unused
+`prep_args2/7`, since removed (`doc/bugs.md`), did the recursion — and they
+produce the same answers.  The
 recursive form generates a finer decomposition of the *dual*, one clause per
 level, and every extra clause is a disequality that fails for the same reason
 the first one does when the argument is unbound.  So the recursion buys
@@ -85,8 +87,8 @@ domain annotations are for — given `:- pred wrap(shape)`, the dual enumerates
 `shape` instead of trying to represent the complement.
 */
 
-%!  abstract_head(+Clause, -Abstracted) is det.
-%!  abstract_head(+Clause, -Head, -Guards) is det.
+%!  abstract_head(@Clause, -Abstracted) is det.
+%!  abstract_head(@Clause, -Head, -Guards) is det.
 %
 %   Abstracted is Clause with its head unification made explicit.  The
 %   three-argument form gives the new head and the guards as a list,
@@ -96,13 +98,16 @@ domain annotations are for — given `:- pred wrap(shape)`, the dual enumerates
 %   A head whose arguments are already distinct variables comes back
 %   unchanged, with no guards.
 
+:- det(abstract_head/2).
+:- det(abstract_head/3).
+
 abstract_head(Clause, Abstracted) :-
     abstract_head(Clause, Head, Guards),
-    clause_body(Clause, Body),
+    clause_goals(Clause, Body),
     append(Guards, Body, Goals),
     (   Goals == []
     ->  Abstracted = Head
-    ;   body_term(Goals, NewBody),
+    ;   list_body(Goals, NewBody),
         Abstracted = (Head :- NewBody)
     ).
 
@@ -116,27 +121,29 @@ abstract_head(Clause, Head, Guards) :-
         Guards = []
     ).
 
-%!  abstract_args(+Args, +Seen, -NewArgs, -Guards) is det.
+%!  abstract_args(@Args, @Seen, -NewArgs, -Guards) is det.
 %
 %   Seen carries the variables already used in the head, so that a
 %   repeated one is recognised.  Compared with ==/2 rather than unified
 %   against: two distinct variables are distinct arguments, however alike
 %   they look.
 
-abstract_args([], _, [], []).
-abstract_args([Arg|Args], Seen, [Arg|NewArgs], Guards) :-
-    var(Arg),
-    \+ seen(Arg, Seen),
-    !,
-    abstract_args(Args, [Arg|Seen], NewArgs, Guards).
-abstract_args([Arg|Args], Seen, [Fresh|NewArgs], [Guard|Guards]) :-
-    var(Arg),
-    !,
-    Guard = (Arg = Fresh),
-    abstract_args(Args, [Fresh|Seen], NewArgs, Guards).
-abstract_args([Arg|Args], Seen, [Fresh|NewArgs], [Guard|Guards]) :-
-    Guard = (Fresh = Arg),
-    abstract_args(Args, [Fresh|Seen], NewArgs, Guards).
+abstract_args([], _, NewArgs, Guards) =>
+    NewArgs = [],
+    Guards = [].
+abstract_args([Arg|Args], Seen, NewArgs, Guards),
+        var(Arg),
+        \+ seen(Arg, Seen) =>
+    NewArgs = [Arg|NewArgs1],
+    abstract_args(Args, [Arg|Seen], NewArgs1, Guards).
+abstract_args([Arg|Args], Seen, NewArgs, Guards), var(Arg) =>
+    NewArgs = [Fresh|NewArgs1],
+    Guards = [(Arg = Fresh)|Guards1],
+    abstract_args(Args, [Fresh|Seen], NewArgs1, Guards1).
+abstract_args([Arg|Args], Seen, NewArgs, Guards) =>
+    NewArgs = [Fresh|NewArgs1],
+    Guards = [(Fresh = Arg)|Guards1],
+    abstract_args(Args, [Fresh|Seen], NewArgs1, Guards1).
 
 seen(Var, Seen) :-
     member_eq(Var, Seen).
@@ -151,22 +158,4 @@ member_eq(X, [Y|T]) :-
 		 *           CLAUSES		*
 		 *******************************/
 
-clause_head((Head :- _), Head) :- !.
-clause_head(Fact, Fact).
 
-clause_body((_ :- Body), Goals) :-
-    !,
-    body_list(Body, Goals).
-clause_body(_, []).
-
-body_list((A, B), Goals) :-
-    !,
-    body_list(A, GA),
-    body_list(B, GB),
-    append(GA, GB, Goals).
-body_list(true, []) :- !.
-body_list(Goal, [Goal]).
-
-body_term([Goal], Goal) :- !.
-body_term([Goal|Goals], (Goal, Body)) :-
-    body_term(Goals, Body).

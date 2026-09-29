@@ -33,10 +33,10 @@
 */
 
 :- module(sscasp_domains,
-          [ annotation/2,               % +Directive, -Annotation
+          [ annotation/2,               % @Directive, -Annotation
             domain_clauses/2,           % +Annotation, -Clauses
             domain_elements/2,          % +Kind, -Elements
-            domain_goal/3,              % +Name, ?Arg, -Goal
+            domain_goal/3,              % +Name, @Arg, -Goal
 
             op(1150, fx, domain),
             op(1150, fx, pred),
@@ -88,13 +88,14 @@ scales to a range nobody would enumerate.
 
 ### Why a list, and not `;`
 
-`:- domain day = mon ; tue ; wed.` parses, and parses **wrongly**: `domain` is
-a prefix operator at 1150 and `;` is 1100, so the term is
-`;(domain(day=mon), ;(tue,wed))` -- not a `domain/1` term at all, and nothing
-would notice.  A list has no such reading.
+`:- domain day = mon ; tue ; wed.` parses — `domain` is a prefix operator at
+1150 and `;` is 1100, so the term is `domain((day = mon ; tue ; wed))` — but
+a disjunction reads as a choice between definitions rather than a set of
+values, so domain_spec/2 refuses it (`domain_definition`).  A list has no
+such reading.
 */
 
-%!  annotation(+Directive, -Annotation) is semidet.
+%!  annotation(@Directive, -Annotation) is semidet.
 %
 %   True when Directive is a domain annotation.  Fails -- rather than
 %   raising -- for any other directive, so a caller can use it as the
@@ -105,57 +106,58 @@ would notice.  A list has no such reading.
 %
 %     - `domain(Name, Kind)` with Kind `enum(Elements)` or `range(Low,High)`
 %     - `signature(Name/Arity, Domains)`, Domains a list of domain names
+%
+%   @arg Directive is the body of a `:- Directive` term, such as
+%       `domain(day = [mon, tue])` or `pred(meeting(day, hour))`.
+%   @arg Annotation holds `any` in Domains for a variable argument.
 
-annotation(Var, _) :-
-    var(Var),
-    !,
-    fail.
-annotation(domain(Spec), Annotation) :-
-    !,
+annotation(domain(Spec), Annotation) =>
     domain_spec(Spec, Annotation).
 %   Not `pred(_ :: _)`, which is a *description* and `describe.pl`'s.
 %   The two share a directive because the old implementation spelled a
 %   description that way; here `:- pred` is a signature, and a signature
 %   is the one that changes what is proved.
 
-annotation(pred(Head), _) :-
-    nonvar(Head),
-    Head = (_ :: _),
-    !,
+annotation(pred(_ :: _), _) =>
     fail.
-annotation(pred(Head), Annotation) :-
-    !,
+annotation(pred(Head), Annotation) =>
     signature(Head, Annotation).
+annotation(_, _) =>
+    fail.
 
 %!  domain_spec(+Spec, -Annotation) is det.
+%
+%   @arg Spec is the argument of `:- domain`, `Name = [...]` or
+%       `Name = Low..High`.
+%   @arg Annotation is `domain(Name, Kind)`, as annotation/2.
 
-domain_spec(Spec, _) :-
-    \+ Spec = (_ = _),
-    !,
-    domain_error(domain_definition, Spec).
-domain_spec(Name = Body, domain(Name, Kind)) :-
+:- det(domain_spec/2).
+
+domain_spec(Name = Body, Annotation) =>
+    Annotation = domain(Name, Kind),
     domain_name(Name),
-    domain_kind(Body, Name, Kind).
+    body_kind(Body, Name, Kind).
+domain_spec(Spec, _) =>
+    domain_error(domain_definition, Spec).
 
-domain_kind(Low..High, Name, range(Low, High)) :-
-    !,
+body_kind(Range, Name, Kind), Range = Low..High =>
+    Kind = range(Low, High),
     (   integer(Low), integer(High)
     ->  true
-    ;   type_error(integer_range, Name = Low..High)
+    ;   type_error(integer_range, Name = Range)
     ),
     (   Low =< High
     ->  true
-    ;   domain_error(non_empty_range, Name = Low..High)
+    ;   domain_error(non_empty_range, Name = Range)
     ).
-domain_kind(List, Name, enum(List)) :-
-    is_list(List),
-    !,
+body_kind(List, Name, Kind), is_list(List) =>
+    Kind = enum(List),
     (   List == []
     ->  domain_error(non_empty_domain, Name)
     ;   true
     ),
     maplist(ground_element(Name), List, _).
-domain_kind(Body, Name, _) :-
+body_kind(Body, Name, _) =>
     domain_error(domain_body, Name = Body).
 
 ground_element(Name, Element, Element) :-
@@ -164,31 +166,33 @@ ground_element(Name, Element, Element) :-
     ;   type_error(ground_domain_element, Name = Element)
     ).
 
-%!  signature(+Head, -Annotation) is det.
+%!  signature(@Head, -Annotation) is det.
 %
 %   `:- pred meeting(day, hour).` binds each argument to a domain.  `_`
 %   leaves an argument unconstrained, so a signature need not name a
 %   domain for every position.
+%
+%   @arg Annotation is `signature(Name/Arity, Domains)`, with `any` in
+%       Domains where the argument is a variable.
 
-signature(Head, _) :-
-    \+ compound(Head),
-    !,
-    type_error(predicate_signature, Head).
-signature(Head, signature(Name/Arity, Domains)) :-
+:- det(signature/2).
+
+signature(Head, Annotation), compound(Head) =>
+    Annotation = signature(Name/Arity, Domains),
     functor(Head, Name, Arity),
     domain_name(Name),
     Head =.. [_|Args],
     maplist(signature_argument(Name/Arity), Args, Domains).
+signature(Head, _) =>
+    type_error(predicate_signature, Head).
 
-signature_argument(_, Arg, any) :-
-    var(Arg),
-    !.
-signature_argument(PI, Arg, _) :-
-    \+ atom(Arg),
-    !,
+signature_argument(_, Arg, Domain), var(Arg) =>
+    Domain = any.
+signature_argument(_, Arg, Domain), atom(Arg) =>
+    domain_name(Arg),
+    Domain = Arg.
+signature_argument(PI, Arg, _) =>
     type_error(domain_name, PI-Arg).
-signature_argument(_, Arg, Arg) :-
-    domain_name(Arg).
 
 %!  domain_name(+Name) is det.
 %
@@ -216,14 +220,15 @@ domain_name(Name) :-
 %   A signature defines nothing -- it names domains rather than creating
 %   them -- so it yields no clauses.
 
-domain_clauses(domain(Name, enum(Elements)), Clauses) :-
-    !,
+:- det(domain_clauses/2).
+
+domain_clauses(domain(Name, enum(Elements)), Clauses) =>
     maplist(domain_fact(Name), Elements, Clauses).
-domain_clauses(domain(Name, range(Low, High)), [Clause]) :-
-    !,
+domain_clauses(domain(Name, range(Low, High)), Clauses) =>
     Head =.. [Name, X],
-    Clause = (Head :- X #>= Low, X #=< High).
-domain_clauses(signature(_, _), []).
+    Clauses = [(Head :- X #>= Low, X #=< High)].
+domain_clauses(signature(_, _), Clauses) =>
+    Clauses = [].
 
 domain_fact(Name, Element, Fact) :-
     Fact =.. [Name, Element].
@@ -235,11 +240,12 @@ domain_fact(Name, Element, Fact) :-
 %   listed only when asked, since the point of writing `0..23` rather
 %   than twenty-four facts is to *avoid* enumerating it.
 
-domain_elements(enum(Elements), Elements).
-domain_elements(range(Low, High), Elements) :-
+domain_elements(enum(Elements0), Elements) =>
+    Elements = Elements0.
+domain_elements(range(Low, High), Elements) =>
     numlist(Low, High, Elements).
 
-%!  domain_goal(+Name, ?Arg, -Goal) is det.
+%!  domain_goal(+Name, @Arg, -Goal) is det.
 %
 %   The goal that guards Arg with the domain.  This is what the compiler
 %   puts into a dual so that the quantifier over Arg has something finite

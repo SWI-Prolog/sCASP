@@ -93,8 +93,8 @@ what the other keeps internal, `under_test.pl` makes them agree: `scasp_query_cl
 is in `library(sscasp)`'s interface and only in `scasp/dyncall.pl` in the old tree.
 
 A suite belongs in `test/` when it tests what **both libraries export** — the question is
-the API, not how the answer is found. Cross-running decides it: `test_dyncall` passes 35
-of 41 against the new library (the other six are gaps), while `sscasp/test_api`
+the API, not how the answer is found. Cross-running decides it: `test_dyncall` passes 40
+of 43 against the new library (the other three are gaps), while `sscasp/test_api`
 passes 23 of 88 against the old one, being mostly about what only the new one has
 (`scasp_show`, JSON, `:- sld`, `:- describe`), so it stays. `make check` runs
 `test_all.pl` twice, once per value.
@@ -162,8 +162,8 @@ test(the_unbound_answer_admits_only_the_f_shape, ...) :- ...
 is `semantics`. Default is current behaviour, so `make check` stays green;
 `make check_semantics` runs the other branch and is **expected to fail** — its
 failures are the list of defects still outstanding, and each failure message states
-the answer that is wanted. Four are wired up today (`doc/bugs.md` #1, #15, the
-`∉` item and negated `findall/3`).
+the answer that is wanted. Five are wired up today (`doc/bugs.md` #1, #15,
+#21, the `∉` item and negated `findall/3`).
 
 A file using `:- if(expect_semantics)` **must import `scasp_plunit.pl`**. The
 condition is evaluated at *load* time, so a missing import makes the directive
@@ -404,15 +404,17 @@ namespaces, so nothing breaks, and the old one goes when the old tree does.
 | `domains.pl` | reading one domain annotation — `:- domain`, `:- pred` |
 | `describe.pl` | reading one description — `:- describe flies(X) :: "@(X) can fly"` |
 | `annotations.pl` | a program's annotation table, as a value rather than a store |
-| `mangle.pl` | functor names — `m$dual.2.inner$flies$1`, always four fields |
+| `mangle.pl` | functor names — `m$dual.2.inner$flies$1`, always four fields — and the four kinds of literal, with what each claims |
+| `clauses.pl` | taking a clause apart — head, body, the one walk over a body's literals, and a literal's polarity and predicate |
 | `abstract.pl` | head abstraction — making head unification explicit |
 | `dual.pl` | dualising a clause body — one clause per negated literal |
 | `dualise.pl` | dualising a predicate — where the pieces meet |
 | `graph.pl` | the call graph, and the odd loops over negation in it |
 | `nmr.pl` | denials → the NMR check |
-| `compile.pl` | the whole pipeline — terms in, `program{clauses, nmr, unbounded}` out |
+| `compile.pl` | the whole pipeline — terms in, `program{clauses, nmr, unbounded, ...}` out |
 | `emit.pl` | the backend — the logical program made runnable |
 | `solve.pl` | the runtime the emitted clauses call |
+| `runtime.pl` | what the emitted clauses may call, and all of it |
 | `run.pl` | `scasp/3,4` — compile, emit, load into a module, answer |
 | `source.pl` | reading an s(CASP) source file, `#include` and all |
 | `dyncall.pl` | `scasp/1,2` over the clauses of a Prolog module |
@@ -439,7 +441,10 @@ as well (see "Where the tests are"), and `make check` runs both.
 ```prolog
 program{ clauses:   [...],            % every clause, translated and dualised
          nmr:       nmr{goal, clauses, checks},
-         unbounded: [...] }
+         unbounded: [...],
+         shown:     [...],                % what #show asks for
+         dcc:       [...],                % the dynamic consistency rules
+         guard:     guard(...) }          % what guarded_query/3 needs
 ```
 
 Three things are worth knowing about it:
@@ -529,15 +534,20 @@ compiler's tests read.
 `{}/1` — is bare, because `run.pl:load_program/2` does
 
 ```prolog
-add_import_module(Module, sscasp_solve, start),
-add_import_module(Module, sscasp_herbrand, start),
-add_import_module(Module, clpq, start),
+add_import_module(Module, sscasp_runtime, start),
 ```
 
 before asserting, and `in_temporary_module/3` runs its Setup with the context
-module set to the new module, so that is the place to do it. Every asserted
-head is mangled, so nothing imported can be shadowed, and importing `clpq`
-says once which `{}/1` is meant where `library(clpr)` defines another.
+module set to the new module, so that is the place to do it.
+`prolog/sscasp/runtime.pl` re-exports exactly what the emitted clauses call —
+from `solve.pl`, `herbrand.pl` and `{}/1` from `library(clpq)` — so it is the
+whole interface between a compiled program and the solver, and a goal the
+emitter starts writing that it does not export is an existence error rather
+than a name that resolves by accident. It also makes those predicates visible
+to the cross referencer, which cannot see calls from asserted clauses. Every
+asserted head is mangled, so nothing imported can be shadowed, and taking
+`{}/1` from `clpq` says once which one is meant where `library(clpr)` defines
+another.
 
 A goal a quantifier *holds as a term* keeps its `M:`, because nothing resolves
 it until the runtime calls it and `meta_predicate` cannot help: it applies
@@ -548,9 +558,9 @@ when a clause is compiled, and these are `assertz/1`-ed. So
 **A `dif/2` is destroyed by reading it.** `dif:attribute_goals//1` calls
 `del_attr/2` on each or-node as it reports it, so that a node shared by
 several variables is not reported twice; `copy_term/3` and the toplevel undo
-that and a direct call does not. `solve.pl:disequality_goals/2` calls it
-inside `\+ \+` and carries the ground excluded values out with `nb_setarg/3`
-for that reason. Anything else reaching for a variable's constraints has the
+that and a direct call does not. `herbrand.pl:read_store/2` is the one
+reader, and must be called inside `\+ \+`; `solve.pl:disequalities/4` does,
+and carries positions and ground values out with `nb_setarg/3`. Anything else reaching for a variable's constraints has the
 same problem.
 
 **A loop is a variant, or an instance with no negation between.** Merely
@@ -562,8 +572,8 @@ positive loop — which is why `holdsAt(spilling, T)` had no proof in *any* of
 the event calculus programs. So `ancestor/4` walks past an ancestor that only
 unifies, and stops at one that is a variant of the goal, or that subsumes it
 with no negation on the path — the second being exactly "an instance of
-something already being proved from itself", hence unfounded.
-`solve.pl:check_parents/4` reads it the same way.
+something already being proved from itself", hence unfounded. Upstream's
+`prolog/scasp/solve.pl:check_parents/3` reads it the same way.
 
 **And a variant is a variant of the *question*, not of the store.** `=@=`
 and `subsumes_term/2` take attributes into account: `f(X) =@= f(_)` is false
@@ -575,15 +585,17 @@ program. `bec_loan` descends
 `not initiates(ends(1), is_liable_to_litigation(the_lender), T)` → the same
 pair one step earlier, and the ancestor chain reaches **6,677** frames of it.
 
-`solve.pl:same_question/2` compares the bare terms and then asks whether the
-goal is an *instance*: the ancestor's disequalities must be among the goal's
-(`herbrand_instance/2`) and its dense store must be entailed by the goal's
-(`dense_instance/2`). Both halves are needed, and simply ignoring the store
-is not the shortcut it looks like — `ancestor/4` unifies the goal with the
-ancestor it matched, so a goal that is *less* constrained would be narrowed
-by one that is more, and that unification then fails, leaving the loop
-unreported anyway. Upstream states the same rule as
-`prolog/scasp/clp/clpq.pl:entail_terms/2`.
+`solve.pl:same_question/2` compares the bare terms and then asks whether
+unifying the ancestor into the goal would add anything to either store: no
+disequality (`herbrand_instance/2`, by counting) and no dense constraint the
+goal's store does not already entail (`dense_instance/2`). The instance rule,
+`instance_of/2`, asks the same of `subsumes_term/2` on the bare terms. Simply
+ignoring the stores is not the shortcut it looks like — `ancestor/4` unifies
+the goal with the ancestor it matched, so a goal that is *less* constrained is
+narrowed to the ancestor's region and then failed as a loop, and every answer
+outside that region is lost: `p(1). p(X) :- X #> 3, q(X). q(_) :- p(_).`
+lost `X > 3` that way until both rules compared the stores. Upstream states
+the same rule as `prolog/scasp/clp/clpq.pl:entail_terms/2`.
 
 Order matters for cost, because this is asked once per ancestor per goal and
 the chain is long: functors first, then an ordinary `=@=`, and only then the
@@ -718,7 +730,7 @@ implementation has only `∉`.
 goal once, see from what the quantified variables are left constrained to
 **which part** of the domain that answer covered, then cover the rest the same
 way. The cases are not clauses any more — they fall out of what the store says
-when `snapshot/3` is asked (`residue/3`):
+when `snapshot/4` is asked (`residue/3`):
 
 | the answer left them alone | nothing is left — case 2 |
 | it left disequalities | the prohibited values, a finite set — case 3 |
@@ -814,8 +826,8 @@ what made the event-calculus family answer; the details, and the two things
 that did not work, are under the corpus below.
 
 Three things it needs. The commitment is to the covering of the whole
-**nest**, since `dualise.pl` nests one quantifier per body-only variable and
-the outermost's search runs through them all; committing at each level costs
+**nest** — a quantifier's goal is a dual that may open another — and the
+outermost's search runs through them all; committing at each level costs
 9.2 s of `make check` against 4.8 s for no answer either way. (Re-measured
 after `covered/7`: `once/1` at every nested `call_in/5` now keeps the whole
 suite green and the corpus's answer counts, and buys 0.395 s → 0.288 s on
@@ -1110,6 +1122,11 @@ and it avoids the obvious name: a prefix operator called `prolog` makes
 `prolog:message//1` a syntax error in every file that can see it, which
 is a wart `library(scasp)` has today.
 
+One declaration may list several, as `:- dynamic` does: `:- sld p/2,
+q/1.`, and `:- sld (p/2, q/1) as opaque.` — `as` binds tighter than `,`,
+so without the parentheses it applies to the last one only
+(`compile.pl:sld_declarations/2`).
+
 `:- sld p/2 as opaque.` runs it instead of interpreting it. The
 difference is only in the justification: `justified` shows the SLD
 derivation beneath the literal, `opaque` shows the call and no more.
@@ -1128,7 +1145,17 @@ small(1).  small(2).
 ?- scasp(not small(V), M).      % V is anything but 1 or 2
 ```
 
-A ground one is simply run and refused.
+A ground one is simply run and refused. A solution that leaves a variable
+free holds for every value there, so that position excludes nothing, and
+one binding nothing at all makes the negation fail; a solution that fixes a
+*shape* (`p(f(_))`) would exclude every instance of it, which no
+disequality can say, and is refused with
+`representation_error(scasp_universal_disequality)`.
+
+An SSU rule reaches the interpreter as `(Guard, !, Body)` — `clause/2`
+drops the `=>` — so `sld.pl:ssu_guard/3` splits the guard off at the
+first top-level cut. A callee nobody defines raises, under `justified` as
+under `opaque`.
 
 **A declaration is also how a program says a name is its own.** `maybe/0`
 is a predicate of `library(random)`, so a program declaring `maybe`
@@ -1141,8 +1168,8 @@ loaded library exports gets the library's clauses, because that is what
 the name resolves to.
 
 `render.pl` makes an answer readable, which means reading the stores,
-naming the variables and putting the two back together: `not p(A | {A =<
-3})` where the term alone says `not p(_123)`. One `copy_term/3` for the
+naming the variables and putting the two back together: `not p(A |
+{A=<3})` where the term alone says `not p(_123)`. One `copy_term/3` for the
 whole answer — never a direct `dif:attribute_goals//1`, and never
 `findall/3`, which copies the constraint away from the variable it is
 about. Model and justification are made readable **together**, or a
@@ -1291,7 +1318,7 @@ tail.
 ```prolog
 ?- scasp([(p :- not q), (q :- not p)], p, M, J).
 M = [p, not q],
-J = [p-[(not q)-[chs(p)-[]]], nmr-[]].
+J = [p-[(not q)-[chs(p)-[]]], '$nmr'-[]].
 ```
 
 `chs/1` marks a literal established by the coinductive hypothesis and
@@ -1299,8 +1326,9 @@ J = [p-[(not q)-[chs(p)-[]]], nmr-[]].
 a justification that dropped them would claim a literal was proved from
 nothing. Built-ins are not steps — `dif(X, 1)` is a constraint on the answer,
 already said on the variable. The query's literals are at the top and
-everything the NMR check needed is under one `nmr` node: same proof, different
-question.
+everything the NMR check needed is under one `'$nmr'` node: same proof,
+different question.  The `$` is so that a program's own `nmr/0` is not
+mistaken for it.
 
 The model is the literals of that forest, sorted, and nothing else — which is
 `doc/design-next.md` open question 5's property (the model is a function of
@@ -1467,7 +1495,7 @@ which is how `test_main.pl` drives it.
         flies(tweety)
             bird(tweety)
             not penguin(tweety)
-        nmr
+        global constraints
     % Bindings
     X = tweety
 
@@ -1526,7 +1554,7 @@ none of which the solver has either. `scasp_assert/1` and friends **are**
 there; see "A program that changes" above.
 
 **`-i` reads queries until end of input**, and differs from the old one
-twice on purpose. `run.pl:scasp_loaded/3` holds the compiled program open
+twice on purpose. `run.pl:scasp_loaded/4` holds the compiled program open
 for the length of the loop and `scasp_ask/4` asks in it, so the program is
 compiled **once** — 92 ms of setup against 1.8 ms per further query on
 `bec_tap_01_overflow`. And the solve is caught: the old `main_loop/1` has
@@ -1618,9 +1646,9 @@ moment, all answers enumerated:
 
 **20 of 21 match the old implementation's answer count.** The one that does
 not is the gap list below, and the three that used to be beside it are worth
-reading about: they answered in milliseconds until `disequality_goals/2`
-stopped **deleting**
-the disequalities it read. `dif:attribute_goals//1` calls `del_attr/2` on each
+reading about: they answered in milliseconds until the quantifier stopped
+**deleting** the disequalities it read (it reads them through
+`herbrand.pl:read_store/2` inside `\+ \+` now). `dif:attribute_goals//1` calls `del_attr/2` on each
 or-node as it reports it — `copy_term/3` and the toplevel undo that, a direct
 call does not — so a quantifier that read a variable's disequalities destroyed
 them, covered a domain it had not covered, and lost the narrowing a branch had
@@ -1789,7 +1817,7 @@ check off, 28 s here against 0.031 s for the old implementation: 821,656
 proofs resting on no assumption, of **138 distinct goals**. The work is
 re-proving the same literals, mostly inside quantifier complements that
 `covered/7` throws away. `doc/design-next.md` §7a is the tabling design
-that follows from it. Separately, domain inference (2026-09-26) made the
+that follows from it. Separately, domain inference (`82fcc34`) made the
 whole program slower still — no first answer in an hour, against 376 s
 before it and 385 s with inference switched off.
 

@@ -372,6 +372,27 @@ test(negated_findall_always_fails, fail) :-
 
 :- endif.
 
+% A loop through a collection: fa_loop_p needs fa_loop_r/1 to have no
+% solutions, and fa_loop_r(1) holds whenever fa_loop_p does, so there is
+% no answer set.  Both implementations answer it anyway (doc/bugs.md #21).
+
+fa_loop_p :- findall(X, fa_loop_r(X), []).
+fa_loop_r(1) :- fa_loop_p.
+
+:- if(expect_semantics).
+
+test(a_loop_through_a_collection_has_no_answer, fail) :-
+    scasp(fa_loop_p).
+
+:- else.
+
+test(a_loop_through_a_collection_is_answered_anyway) :-
+    scasp(fa_loop_r(1), [model(Model)]),
+    assertion(memberchk(fa_loop_p, Model)),
+    assertion(memberchk(fa_loop_r(1), Model)).
+
+:- endif.
+
 :- end_tests(builtin_findall).
 
 		 /*******************************

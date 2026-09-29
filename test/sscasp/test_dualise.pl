@@ -8,6 +8,7 @@
 :- use_module(library(plunit)).
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [member/2, nth1/3]).
+:- use_module(library(apply), [maplist/3]).
 
 /** <module> Dualising a predicate
 
@@ -44,9 +45,11 @@ head_of((Head :- _), Head) :- !.
 head_of(Fact, Fact).
 
 functor_names(Clauses, Names) :-
-    findall(Name,
-            ( member(C, Clauses), head_of(C, H), functor(H, Name, _) ),
-            Names).
+    maplist(head_name, Clauses, Names).
+
+head_name(Clause, Name) :-
+    head_of(Clause, Head),
+    functor(Head, Name, _).
 
 		 /*******************************
 		 *         STRUCTURE		*

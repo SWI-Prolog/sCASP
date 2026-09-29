@@ -4,7 +4,7 @@
 :- use_module('../scasp_plunit', []).        % sets the library search path
 :- use_module(library(sscasp/ops)).
 :- use_module(library(sscasp/html)).
-:- use_module(library(sscasp/html_text), [emit_as//2, fixup_layout/2]).
+:- use_module(library(sscasp/html_text), [emit_as//2, emit//1, fixup_layout/2]).
 :- use_module(library(sscasp/render), [scasp_readable/2]).
 :- use_module(library(sscasp/run), [scasp/4]).
 :- use_module(library(sscasp/annotations), [program_annotations/2]).
@@ -219,6 +219,15 @@ test(a_typed_placeholder_says_the_type) :-
               ], p(_), Text)),
     assertion(contains(Text, "the thing a is here")).
 
+%   A variable is not a value: "a thing", not "the thing A".
+
+test(a_typed_placeholder_over_a_variable_says_a) :-
+    once(said([ p(_),
+                (:- describe p('$VAR'('X')) :: "@(X:thing) is here")
+              ], p(_), Text)),
+    assertion(contains(Text, "a thing is here")),
+    assertion(\+ contains(Text, "the thing")).
+
 :- end_tests(html_text_descriptions).
 
 		 /*******************************
@@ -226,6 +235,16 @@ test(a_typed_placeholder_says_the_type) :-
 		 *******************************/
 
 :- begin_tests(html_text_structure).
+
+%   A term of arity two whose first argument is unbound is not an
+%   element whose attributes say it is the machine form: asking must not
+%   make the variable `class(machine)`.  The renderers hand emit//1
+%   readable terms, whose variables are named, so this asks emit//1
+%   directly.
+
+test(an_unbound_attribute_is_not_the_machine_class) :-
+    text(emit([span(_, "kept")]), Text),
+    assertion(contains(Text, "kept")).
 
 %   A justification is a tree and the text is an indented one: a literal
 %   with a body says "because" and its body is indented under it.
@@ -308,6 +327,17 @@ test(and_text_keeps_only_the_human_one) :-
     assertion(contains(Text, "bird holds for tweety")),
     assertion(\+ contains(Text, "bird(tweety)")).
 
+%   `not -p` is its own shape, "no evidence against", and carries both
+%   classes in both readings: the stylesheet colours `.not.neg` apart,
+%   and the text rendering leaves it plain, as `render.pl` does.  The
+%   human reading used to carry `not` alone, and read in red.
+
+test(not_neg_is_its_own_shape_in_both_readings) :-
+    markup(html_model([not(-(p(a)))], [show(human)]), Human),
+    assertion(contains(Human, "atom not neg")),
+    markup(html_model([not(-(p(a)))], [show(machine)]), Machine),
+    assertion(contains(Machine, "atom neg not")).
+
 test(show_machine_says_the_literal_itself) :-
     once(answer([bird(tweety)], bird(tweety), Model, _, A)),
     text(html_model(Model, [show(machine), annotations(A)]), Text),
@@ -387,5 +417,18 @@ test(and_stays_well_formed_in_html) :-
     markup(html_model(Model, [annotations(A)]), HTML),
     assertion(\+ contains(HTML, "$VAR")),
     assertion(\+ contains(HTML, "<| ")).
+
+%   A value that is a compound is still a value.  The template's
+%   variable is bound to `f(a)` by the time it is rendered, and read as
+%   markup that was `<b><f>a</f></b>`.
+
+test(a_compound_value_is_not_markup) :-
+    once(answer([ item(f(a)),
+                  (:- describe item('$VAR'('X')) :: html(['the item ', b('$VAR'('X'))]))
+                ], item(_), Model, _, A)),
+    markup(html_model(Model, [annotations(A)]), HTML),
+    assertion(\+ contains(HTML, "<f>")),
+    text(html_model(Model, [annotations(A)]), Text),
+    assertion(contains(Text, "the item f(a)")).
 
 :- end_tests(html_templates).

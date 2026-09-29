@@ -111,7 +111,7 @@ distinct(X) :- X #<> 7.
 test(clpq_constraint_survives_to_the_model) :-
     scasp_models(big(_), [[big(X)]|_]),
     assertion(get_attr(X, clpqr_itf, _)),
-    assertion(\+ X = 5),
+    assertion(X \= 5),
     assertion(X = 20).
 test(constrained_query_succeeds) :-
     scasp(big(20)).
@@ -159,13 +159,12 @@ test(transitively_reachable_is_collected) :-
 
 collected_heads(Query, PIs) :-
     scasp_query_clauses(Query, Clauses),
-    findall(Name/Arity,
-            ( member(source(_Ref, Qualified), Clauses),
-              strip_module(Qualified, _, (Head:-_Body)),
-              functor(Head, Name, Arity)
-            ),
-            PIs0),
+    convlist(source_pi, Clauses, PIs0),
     sort(PIs0, PIs).
+
+source_pi(source(_Ref, Qualified), Name/Arity) :-
+    strip_module(Qualified, _, (Head:-_Body)),
+    functor(Head, Name, Arity).
 
 :- end_tests(dyncall_collection).
 

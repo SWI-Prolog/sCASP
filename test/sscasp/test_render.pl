@@ -105,6 +105,15 @@ test(and_nothing_after_the_last_one) :-
     printed(portray_model(Model, [readable(true)]), Text),
     assertion(\+ sub_string(Text, _, _, 0, "\n")).
 
+%   In words too: it goes through `html_text.pl`, whose lines used to end
+%   the way print_message_lines/3 ends them, the last one included.
+
+test(and_nothing_after_the_last_one_in_words) :-
+    model(Model),
+    printed(portray_model(Model, [readable(true), human(true)]), Text),
+    assertion(Text \== ""),
+    assertion(\+ sub_string(Text, _, _, 0, "\n")).
+
 %   The same rule for the columns, and it is not cosmetic: a printer that
 %   ends with a newline cannot portray a term, because whatever the
 %   toplevel writes next — a comma, a full stop — lands on a line of its
@@ -162,8 +171,17 @@ test(an_empty_model_is_empty_braces) :-
 :- begin_tests(render_justification).
 
 tree([ p(1)-[ q(1)-[ r(1)-[] ] ],
-       nmr-[]
+       '$nmr'-[]
      ]).
+
+%   The NMR check's node is `'$nmr'`, a name no program gives a
+%   predicate, so a program's own `nmr` is a literal like any other.
+
+test(the_check_is_labelled_and_a_user_nmr_is_a_literal) :-
+    printed(portray_justification([nmr-[], '$nmr'-[]],
+                                  [readable(true), colour(false)]), Text),
+    split_string(Text, "\n", " ", Lines),
+    assertion(Lines == ["nmr", "global constraints"]).
 
 test(a_child_is_indented_under_its_parent) :-
     tree(Tree),
@@ -189,6 +207,12 @@ test(a_depth_limit_marks_what_it_cut) :-
 test(and_nothing_follows_the_last_line) :-
     tree(Tree),
     printed(portray_justification(Tree, [readable(true)]), Text),
+    assertion(\+ sub_string(Text, _, _, 0, "\n")).
+
+test(and_nothing_follows_the_last_line_in_words) :-
+    tree(Tree),
+    printed(portray_justification(Tree, [readable(true), human(true)]), Text),
+    assertion(Text \== ""),
     assertion(\+ sub_string(Text, _, _, 0, "\n")).
 
 indents([], []).

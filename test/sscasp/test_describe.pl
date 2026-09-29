@@ -12,6 +12,7 @@
 :- use_module(library(sscasp/run), [scasp/3]).
 :- use_module(library(sscasp/source), [read_program/2]).
 :- use_module(library(lists), [member/2, reverse/2]).
+:- use_module(library(apply), [exclude/3]).
 :- use_module(library(debug), [assertion/1]).
 
 /** <module> Saying a literal in words
@@ -173,6 +174,16 @@ test(the_later_description_is_the_more_specific_one) :-
     assertion(described(A, flies(tweety), 'the famous one flies')),
     assertion(described(A, flies(polly), 'polly can fly')).
 
+%   Asking must not bind what is asked about: the description of
+%   flies(tweety) says nothing about flies(X).
+
+test(a_description_does_not_bind_the_literal) :-
+    program(Terms),
+    program_annotations(Terms, A),
+    described(A, flies(V), Text),
+    assertion(var(V)),
+    assertion(Text \== 'the famous one flies').
+
 test(a_literal_nothing_describes_has_no_text) :-
     program(Terms),
     program_annotations(Terms, A),
@@ -199,11 +210,9 @@ test(a_description_changes_no_answer) :-
     assertion(With == Without).
 
 exclude_descriptions(Terms, Bare) :-
-    findall(Term,
-            ( member(Term, Terms),
-              \+ Term = (:- describe _)
-            ),
-            Bare).
+    exclude(description, Terms, Bare).
+
+description((:- describe _)).
 
 :- end_tests(describe_table).
 

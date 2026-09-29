@@ -162,7 +162,7 @@ test(the_tree_is_a_forest) :-
     assertion(( member(Node, Tree),
                 Root = Node.node,
                 Value = Root.value,
-                Value.get(value) == nmr
+                Value.get(value) == '$nmr'
               )).
 
 test(and_a_node_has_children) :-
@@ -253,6 +253,22 @@ test(both_stores_at_once) :-
            length(Constraints, N),
            N >= 2
          )).
+
+%   A constraint relating the variable to another one says nothing
+%   about it alone, and is reported whole.  Reading `A \= B` as `A`
+%   against a value said `A ∉ [A]`.
+
+test(a_constraint_between_variables_is_other) :-
+    once(answer([(r(X, Y) :- X \= Y)], r(_, _), Dict)),
+    get_dict('A', Dict.constraints, [C]),
+    assertion(C.type == other).
+
+test(and_so_is_a_dense_one) :-
+    once(answer([(p(X, Y) :- X #> 0, Y #> X)], p(_, _), Dict)),
+    get_dict('A', Dict.constraints, Cs),
+    findall(T, (member(C, Cs), T = C.type), Types),
+    msort(Types, Sorted),
+    assertion(Sorted == [>, other]).
 
 test(an_unconstrained_answer_has_none) :-
     once(answer([p(1)], p(_), Dict)),

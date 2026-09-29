@@ -50,7 +50,12 @@
 
 Every operator the language needs, in one place, so that a module wanting them
 says `:- use_module(ops)` and a module re-exporting them to *its* callers lists
-them in its own export list.
+them in its own export list, at the same priorities.  Two readers add their
+own on top: `source.pl` the directives of an s(CASP) file (`#`, `include`,
+`abducible`, `show`, ...), which only a file has, and `prolog/sscasp.pl` the
+`?`-shortcuts and the directives a Prolog file may write.  Where the two
+declare the same name — `abducible`, `show` — it is at the same priority, so
+`#abducible p` means one thing whichever reads it.
 
 | `not` | default negation |
 | `#=`, `#<>`, `#<`, `#>`, `#=<`, `#>=` | CLP(Q) comparison |
@@ -72,7 +77,7 @@ some other way to have its own word.
 
 `domain`, `pred` and `sld` are prefix operators at 1150, the priority directives use,
 which is worth knowing because it decides how their arguments parse.  In
-particular `:- domain day = mon ; tue.` is **not** a `domain/1` term: `;` is
-1100 and binds looser, so the term is `;(domain(day=mon), tue)` and nothing
-would notice.  Hence the list syntax -- see `domains.pl`.
+particular `:- domain day = mon ; tue.` is `domain((day = mon ; tue))`: `;`
+is 1100 and binds tighter, so the disjunction is the domain's body, and
+`domains.pl` refuses it with a domain error.  Hence the list syntax.
 */

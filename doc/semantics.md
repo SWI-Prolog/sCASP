@@ -478,6 +478,9 @@ twice:
   what a supported one means.
 - **`forall/2` written by the author** is solved by both and holds for no list
   pair in `test/min_programs/solve_forall.pl`; both answer 0.
+- **A loop through `findall/3`** is answered by both where there is no
+  answer set (`doc/bugs.md` #21): neither call graph reads a collection as
+  the non-monotone dependency it is.
 - **Negating a structured head is incomplete for an unbound query**
   (`doc/bugs.md` §15) in both.  It is a limitation of the published method —
   Marple et al. work the same case through for `p([X|T]) :- q(X), p(T).` and
