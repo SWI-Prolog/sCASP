@@ -101,8 +101,9 @@ sld_proof(Goal, opaque, Children) =>
     call(Goal),
     Children = [].
 sld_proof(Module:Goal, _, Children) =>
+    retractall(kind_cache(_, _, _)),
     prolog_current_choice(Choice),
-    phrase(interpret(Goal, Module, Choice), Tree),
+    interpret(Goal, Module, Choice, Tree, []),
     below(Goal, Tree, Children).
 
 %   The caller already has a node for the goal — it called a predicate to
@@ -152,39 +153,38 @@ interpret((A ; B), Module, Choice) ==>
     ).
 interpret(\+ Goal, Module, _) ==>
     { prolog_current_choice(Inner),
-      \+ phrase(interpret(Goal, Module, Inner), _)
+      \+ interpret(Goal, Module, Inner, _, [])
     },
     [not(Goal)-[]].
 interpret(!, _, Choice) ==>
     { prolog_cut_to(Choice) }.
-interpret(Goal, Module, _), opaque(Module:Goal) ==>
+interpret(Goal, Module, Choice) ==>
+    { callee_kind(Module:Goal, Kind) },
+    callee(Kind, Goal, Module, Choice).
+
+callee(opaque, Goal, Module, _) ==>
     [Goal-[]],
     { call(Module:Goal) }.
-interpret(Goal, Module, Choice),
-    predicate_property(Module:Goal, imported_from(From)) ==>
+callee(imported(From), Goal, _, Choice) ==>
     interpret(Goal, From, Choice).
-interpret(Goal, Module, _), \+ predicate_property(Module:Goal, defined) ==>
-    { functor(Goal, Name, Arity),
-      existence_error(procedure, Module:Name/Arity)
-    }.
-interpret(Goal, Module, _), predicate_property(Module:Goal, ssu) ==>
+callee(ssu, Goal, Module, _) ==>
     { most_general_goal(Goal, General),
       prolog_current_choice(Inner),
       (   clause(Module:General, Body0),
           subsumes_term(General, Goal),
           General = Goal,
           ssu_guard(Body0, Guard, Body),
-          phrase(interpret(Guard, Module, Inner), GuardNodes)
-      ->  phrase(interpret(Body, Module, Inner), BodyNodes),
+          interpret(Guard, Module, Inner, GuardNodes, [])
+      ->  interpret(Body, Module, Inner, BodyNodes, []),
           append(GuardNodes, BodyNodes, Children)
       ;   existence_error(matching_rule, Module:Goal)
       )
     },
     [Goal-Children].
-interpret(Goal, Module, _) ==>
+callee(clauses, Goal, Module, _) ==>
     { prolog_current_choice(Inner),
       clause(Module:Goal, Body),
-      phrase(interpret(Body, Module, Inner), Children)
+      interpret(Body, Module, Inner, Children, [])
     },
     [Goal-Children].
 
@@ -213,6 +213,44 @@ guard_split((G, Rest), Guard, Body) =>
     Guard = (G, Guard0).
 guard_split(_, _, _) =>
     fail.
+
+%!  callee_kind(:Goal, -Kind) is det.
+%
+%   How to prove Goal: `opaque`, `imported(From)`, `ssu` or `clauses`.
+%
+%   Asked of every goal the interpreter meets, and answering it takes up
+%   to six predicate_property/2 calls, which made them most of the time
+%   a proof over a large Prolog table took: 180 million on one query of
+%   a large rule base, for a few dozen distinct predicates.  So the answer is kept
+%   per predicate, for the duration of one sld_proof/3: the program does
+%   not change while a proof is under way, and between proofs it may.
+%   The one thing that can change during a proof is a dynamic predicate
+%   the proof itself asserts into.  One that had no clauses when it was
+%   first met stays `opaque` — it is called rather than interpreted, so
+%   the answer is the same and the justification holds only the call.
+
+:- thread_local kind_cache/3.
+
+callee_kind(Module:Goal, Kind) :-
+    functor(Goal, Name, Arity),
+    (   kind_cache(Module, Name/Arity, Kind0)
+    ->  Kind = Kind0
+    ;   kind(Module:Goal, Kind0),
+        assertz(kind_cache(Module, Name/Arity, Kind0)),
+        Kind = Kind0
+    ).
+
+kind(Goal, Kind), opaque(Goal) =>
+    Kind = opaque.
+kind(Module:Goal, Kind), predicate_property(Module:Goal, imported_from(From)) =>
+    Kind = imported(From).
+kind(Module:Goal, _), \+ predicate_property(Module:Goal, defined) =>
+    functor(Goal, Name, Arity),
+    existence_error(procedure, Module:Name/Arity).
+kind(Goal, Kind), predicate_property(Goal, ssu) =>
+    Kind = ssu.
+kind(_, Kind) =>
+    Kind = clauses.
 
 %!  opaque(:Goal) is semidet.
 %

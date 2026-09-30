@@ -57,7 +57,7 @@ closure's went on.
 
 A body here is a **source or translated** body: a conjunction of literals,
 `not/1` around a literal or a construct, and the control constructs the
-compiler knows — `forall/2`, `for_domain/3`, `findall/3` and Prolog's
+compiler knows — `forall/2`, `for_domain/3`, `findall/3`, `absent/1` and Prolog's
 `,`, `;`, `->`, `*->` and `\+`, which a program's own expansion may leave.
 */
 
@@ -167,6 +167,8 @@ literal(for_domain(_, Generator, A), P, L) =>
     ;   literal(A, P, L)
     ).
 literal(findall(_, A, _), P, L) =>
+    literal(A, P, L).
+literal(absent(A), P, L) =>
     literal(A, P, L).
 literal(Goal, +, L) =>
     L = Goal.

@@ -361,6 +361,9 @@ body_goal(for_domain(_, _, Inner), Goal) :-
 body_goal(findall(_, Inner, _), Goal) :-
     !,
     body_goal(Inner, Goal).
+body_goal(absent(Inner), Goal) :-
+    !,
+    body_goal(Inner, Goal).
 body_goal(not(Inner), Goal) :-
     !,
     body_goal(Inner, Goal).
@@ -415,6 +418,11 @@ expand_body(for_domain(V, D, Inner), Helpers, Seen, Expanded) =>
 expand_body(findall(T, Inner, L), Helpers, Seen, Expanded) =>
     Expanded = findall(T, EInner, L),
     expand_body(Inner, Helpers, Seen, EInner).
+
+%   `absent(Dual)` reads as the negation it records.
+
+expand_body(absent(Inner), Helpers, Seen, Expanded) =>
+    expand_body(Inner, Helpers, Seen, Expanded).
 
 %   `not` survives translation where its argument is a built-in —
 %   `not findall(T, G, L)` is one — so it is a wrapper here and not a

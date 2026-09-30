@@ -99,7 +99,7 @@ search-size difference and not a hang.  `CLAUDE.md` records the five
 hypotheses that have been measured and ruled out.  Nothing about the *answers*
 differs; when it finishes it agrees.
 
-### `not findall/3` is refused rather than failed
+### `not findall/3` is answered rather than failed
 
 ```prolog
 d(1). d(2).
@@ -111,10 +111,13 @@ p :- not all([1, 2]).
 | | |
 |---|---|
 | old | 0 answers, silently |
-| new | raises `scasp_error(negated_findall(...))` |
+| new | 0 answers: the list is `[1, 2]`, and `not all([1, 2])` is false |
 
-Neither answers it.  The new behaviour is louder, which is better for a
-program author and worse for one who was relying on the failure.
+The new implementation reads `findall(T, G, L)` as a function from the
+state to the list of solutions, so `not findall(T, G, L)` holds where L is
+apart from that list (`solve.pl:not_findall_/6`).  The old one fails it
+always, which makes `not p` succeed where p holds whenever the negation is
+reached through a dual.
 
 ### `findall/3` puts the collection's proof in the model
 
@@ -240,10 +243,13 @@ they mean in `library(scasp)`, but the old implementation *interns*
 functor on the way in; here `-p(X)` is a clause of `-/1` and the term is
 asserted as written. Two consequences:
 
-- `scasp_dynamic p/1` declares `p/1` and `-/1` — one predicate holding
-  every negated head in the module, so its scope is decided by the first
-  declaration to reach it rather than per predicate. The old one gives
-  each its own `'-p'/1` and can scope them separately.
+- `scasp_dynamic p/1` declares `p/1` and `'scasp$neg'/1`, which holds
+  every negated head `scasp_assert/1` adds in the module, so its scope is
+  decided by the first declaration to reach it rather than per predicate.
+  The old one gives each its own `'-p'/1` and can scope them separately.
+  It is not `-/1` because that also holds the program's static `-q :-
+  Body` rules, which a `thread_local` `-/1` would hide from every thread
+  but the one that loaded them.
 - `scasp_assert/2`'s position argument is accepted and ignored. This
   solver keeps no source references for a justification to point at.
 
@@ -276,9 +282,10 @@ compiler owns has written clauses that can never run, because the goal is
 intercepted before anything looks for them. Both libraries refuse, with
 the same error term.
 
-**Calling out to Prolog is spelled differently.** The old implementation
-declares `:- prolog p/2.`; the new one declares `:- sld p/2.`, naming the
-*resolution* rather than the language. Same two modes — `as opaque` runs
+**Calling out to Prolog is spelled `:- sld p/2.`**, naming the
+*resolution* rather than the language. The old implementation used to
+declare `:- prolog p/2.`; it now reads `:- sld` too, and `prolog` is no
+longer an operator there, so old declarations must be ported. Same two modes — `as opaque` runs
 it, the default interprets it and shows the derivation — and the same
 treatment of negation, which collects the solutions and constrains the
 variable away from them rather than testing. The rename is not cosmetic:
@@ -294,7 +301,9 @@ going forward is
 
     :- describe flies(X) :: "@(X) can fly".
 
-and `:- pred p(X) :: "..."` is deprecated and warns. The reason is that
+which the old implementation now reads as well, as a synonym of its
+`:- pred`. Here `:- pred p(X) :: "..."` is deprecated and warns (the old
+implementation does not warn). The reason is that
 `:- pred` already means something else here and something that changes
 what is proved: `:- pred wrap(day)` is a **signature**, saying which
 domain an argument ranges over, which is what lets the dual generator
@@ -314,9 +323,17 @@ which is the only kind worth writing, comes out as `<| $VAR="A">`. And the
 markup is dropped rather than printed when the same description is read as
 text.
 
-**What is not read** is the old `#pred`'s subtree matching: `-` collapsing
-what is under a literal, `^` gathering one from anywhere below, and a
-condition on a spec. Nothing in the corpus or the examples uses it.
+**A description may cover part of the subtree**, the old `#pred`'s
+subtree matching, spelled `:- describe Literal - Pattern :: Template`:
+where a justification node for Literal has children matching Pattern, the
+node is said by Template and the matched children are left out. The
+pattern language is the old one (`*`, `-`, `+Spec`, `^Spec`,
+`Spec - Pattern`; see `prolog/sscasp/describe.pl`), with one difference: a
+spec matches a node it *subsumes*, as a plain description does, so
+matching never binds a variable of the justification. Patterns are tried
+in declaration order, first match wins, as the old implementation did,
+where plain descriptions are tried latest first. What is not read is
+the old condition on a spec, `(Literal, Condition)`.
 
 ### `#abducible` and its negative half
 

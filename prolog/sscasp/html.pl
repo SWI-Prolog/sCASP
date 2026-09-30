@@ -41,7 +41,7 @@
 :- use_module(ops).
 :- use_module(lang,        [connector/2]).
 :- use_module(html_text,   [emit//1, emitting_as/1]).
-:- use_module(annotations, [described_actions/3]).
+:- use_module(annotations, [described_actions/3, described_tree/4]).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/term_html),  [term//2]).
 :- use_module(library(http/html_head),  [html_resource/2]).
@@ -92,11 +92,12 @@ so `html_text.pl` drops the machine half — see `is_machine/1` there.
 
 ## Not ported
 
-The old implementation's `#pred` may match a *subtree* — `p(X) :- [q(X), -]`
-collapses what is under it, `^` gathers a literal from anywhere below, and a
-spec may carry a condition.  None of the programs here use it, so none of it
-is here.  Neither is the program listing (`html_program//1`) or the source
-references, which need a `goal_origin/2` the new solver does not produce.
+A description may say a node together with part of its subtree, `:- describe
+Literal - Pattern :: Template` (see `describe.pl`): node//2 asks
+`annotations.pl:described_tree/4` first.  The old implementation's condition
+on a spec is not supported.  Neither is the program listing
+(`html_program//1`) or the source references, which need a `goal_origin/2`
+the new solver does not produce.
 */
 
 :- multifile user:file_search_path/2.
@@ -163,10 +164,27 @@ node('$nmr'-_, Options), option(nmr(false), Options) ==>
     leaf('$nmr', Options).
 node('$nmr'-Children, Options) ==>
     branch('$nmr', Children, ['scasp-global-constraints'], Options).
+node(Node, Options), tree_described(Node, Options, Actions, Children) ==>
+    described_node(Node, Actions, Children, Options).
 node(Literal-[], Options) ==>
     leaf(Literal, Options).
 node(Literal-Children, Options) ==>
     branch(Literal, Children, [], Options).
+
+%   A description of the subtree (`:- describe Literal - Pattern ::
+%   Template`) says the node and replaces the children it matched.  An
+%   empty description of a node left without children hides the node.
+
+tree_described(Node, Options, Actions, Children) :-
+    option(annotations(Annotations), Options),
+    described_tree(Annotations, Node, Actions, Children).
+
+described_node(_, html([]), [], _) ==>
+    [].
+described_node(Literal-_, Actions, [], Options) ==>
+    leaf(Literal, [described(Actions)|Options]).
+described_node(Literal-_, Actions, Children, Options) ==>
+    branch(Literal, Children, [], [described(Actions)|Options]).
 
 leaf(Literal, Options) ==>
     emit(li(div(class(node),
@@ -186,7 +204,8 @@ branch(Literal, Children, ExtraClasses, Options) ==>
             ])).
 
 deeper(Options0, Options) :-
-    select_option(connect(_), Options0, Options, _).
+    select_option(connect(_), Options0, Options1, _),
+    select_option(described(_), Options1, Options, _).
 
 connect(Options), option(connect(Connector), Options) ==>
     connective(Connector, Options).
@@ -322,7 +341,10 @@ html_atom(Literal, Options) ==>
 %   `chs/1` and `proved/1` are about the proof rather than about the
 %   literal, so they are peeled off above and described underneath.
 
-description_of(Literal, Options, Actions) :-
+description_of(_, Options, Actions),
+        option(described(Actions0), Options) =>
+    Actions = Actions0.
+description_of(Literal, Options, Actions) =>
     option(annotations(Annotations), Options),
     described_actions(Annotations, Literal, Actions).
 

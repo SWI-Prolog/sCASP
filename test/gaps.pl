@@ -55,9 +55,12 @@ gap_(sscasp, builtin_interval,
        the_constraint_survives_alongside_the_bound
      ],
      missing("inf/2 and sup/2 as built-ins")).
+gap_(sscasp, builtin_arithmetic_comparison,
+     [ an_unbound_argument_raises, and_so_does_its_negation ],
+     pinned("a comparison on an unbound argument constrains (doc/bugs.md #16)")).
 gap_(sscasp, builtin_findall,
      [ negated_findall_always_fails ],
-     differs("the negation of findall/3 raises rather than failing")).
+     pinned("the old implementation's negation of findall/3 always fails")).
 gap_(sscasp, diseq_not_in,
      [ the_constraint_excludes_the_list, a_value_in_the_list_is_refused,
        a_value_outside_the_list_is_admitted,
@@ -73,13 +76,6 @@ gap_(sscasp, compound_negation,
 gap_(sscasp, compound_head_rewriting_is_neutral,
      [ all_three_give_the_same_single_negative_answer ],
      pinned("doc/bugs.md #1: the old answer to not p(X) is incomplete")).
-gap_(sscasp, prolog_control,
-     [ if_then_else_takes_the_then_branch, if_then_else_takes_a_later_branch,
-       if_then_else_takes_the_else_branch, disjunction_gives_both,
-       cut_keeps_only_the_first, prolog_negation_inside_the_goal,
-       prolog_negation_inside_the_goal_fails
-     ],
-     differs("`:- prolog p/N` is spelled `:- sld p/N`; see load_errors/4")).
 gap_(sscasp, prolog_opaque,
      [ the_justification_is_still_a_tree ],
      differs("the justification is a forest, the query beside the NMR check")).
@@ -105,6 +101,8 @@ gap_(sscasp, dyncall_errors,
 %   Loading the shared suite File (a base name) against Library gives
 %   Count errors, for Reason.  A clause that does not load is a test that
 %   is not there, so these are counted rather than ignored.
+%
+%   There are none at present.
 
-load_errors(sscasp, 'test_prolog_calls.pl', 7,
-            differs("`prolog` is not a prefix operator; it is `sld`")).
+:- dynamic load_errors/4.
+

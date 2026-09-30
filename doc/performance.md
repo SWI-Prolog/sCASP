@@ -159,6 +159,41 @@ the quantifier enumerates the values (`for_domain/6`) where it used to
 search — the `:- domain` the program did not write.  Declaring it by hand
 took `hamiltonian_scasp` to 0.063 s, which is how this was found.
 
+**Unfolding fact literals** goes one step further, at compile time
+(`unfold.pl`).  A program compiled for the data it runs on — a rule base
+compiled once per request, the request's data being its facts — knows which
+facts a literal can match, so a positive literal of a fact predicate whose
+variables are all body-only is bound to its one fact, or the clause split
+over its few, before anything is dualised.  The dual then has no body-only
+variable and no quantifier.  A literal no fact matches, or whose predicate
+has no clauses at all, makes the clause's dual its negation alone, recorded
+without a search (`absent/1`): proving `not obs(Kind, V, Unit, current)`
+by searching for the values V does not take was the most expensive way to
+say that there is no such observation.  On a large rule base of that kind,
+without the `scasp_expand/4` rewriting it had used to do this by hand, the
+run went from 251 s (59 of 79 tests timing out) to 13 s, against 9.6 s with
+its own rewriting; the quantifier calls of one test went from 395k to a few
+hundred.  The generator of an inferred domain also keeps the literal's
+ground arguments now, so `state(Item, pause, duration, D, day)` enumerates
+the durations rather than the value of every state.
+
+**Derived predicates** are unfolded the same way when their answers are
+known at compile time.  `unfold.pl:answer_sets/3` computes what an ASP
+grounder computes for its domains: the least fixpoint of the program read
+bottom-up with every negated literal taken as true, ground built-ins
+evaluated, and constructs and `:- sld` predicates taken as true — an
+over-approximation of every stable model.  A predicate keeps its ground
+answers and the few heads it may prove with variables, so one clause with
+an open head does not hide the answers of the others.  In the same rule
+base a predicate giving the current dose of a drug has one answer, and
+binding it in every rule that compares the dose took a group of tests from
+11 s to 1.4 s, one of them from 9.7 s to 0.15 s — faster than the rule
+base's own rewriting, which needed a hand-picked list of predicates to do
+it.  Its whole suite went from 49 s to 34 s wall, 117 s to 62 s CPU.  The
+answers are only used to *bind*: a literal of a derived predicate with no
+answer is still proved false, as that proof is the explanation of why a
+rule does not apply.
+
 ## Where it is slower, and why
 
 The event-calculus programs `bec_tap_01`–`03` (0.3–0.4×), and `family` and

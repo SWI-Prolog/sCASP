@@ -236,11 +236,11 @@ test(classical_negation_is_collected,
 
 assert_negation :-
     assertz(test_api:alive(tweety)),
-    assertz(test_api:(-dead(X) :- alive(X))).
+    scasp_assert(test_api:(-dead(X) :- alive(X))).
 
 retract_negation :-
     retractall(test_api:alive(_)),
-    retractall(test_api:(-dead(_))).
+    scasp_retractall(test_api:(-dead(_))).
 
 :- end_tests(api_answers).
 
@@ -292,12 +292,12 @@ test(and_the_other_way_round,
 assert_inconsistency :-
     assertz(test_api:api_q),
     assertz(test_api:(api_p :- api_q)),
-    assertz(test_api:(-api_p :- api_q)).
+    scasp_assert(test_api:(-api_p :- api_q)).
 
 retract_inconsistency :-
     retractall(test_api:api_q),
     retractall(test_api:api_p),
-    retractall(test_api:(-api_p)).
+    scasp_retractall(test_api:(-api_p)).
 
 test(and_a_directive_as_one_too) :-
     scasp_query_clauses(day(_), Terms),
@@ -792,6 +792,25 @@ This test walks what each query actually collects and checks it.
     the guards the answer depended on which had loaded first.
 */
 
+%   Collect the load-time warnings about negations with local variables
+%   while Goal runs, for api_expansion.
+
+:- thread_local lint_warning/1.
+:- multifile user:message_hook/3.
+
+user:message_hook(scasp(Warning), warning, _) :-
+    Warning = local_negation_variables(_, _),
+    test_api:lint_warning(start),
+    assertz(test_api:lint_warning(Warning)).
+
+:- meta_predicate local_negation_warnings(0, -).
+
+local_negation_warnings(Goal, Warnings) :-
+    setup_call_cleanup(
+        assertz(lint_warning(start)),
+        once(Goal),
+        findall(W, (retract(lint_warning(W)), W \== start), Warnings)).
+
 :- begin_tests(api_expansion).
 
 %   A `-p(X)` head is a clause of `-/1` carrying `p(X)`.  The other
@@ -812,14 +831,20 @@ test(a_signature_is_read_as_a_signature) :-
     assertion(sscasp_dyncall:directive(test_api, pred(shading(shade)))),
     assertion(\+ current_predicate(test_api:pr_pred_predicate/4)).
 
-%   `:- scasp_dynamic p/1` declares `p/1` and `-/1`.  The old library
-%   declares the interned `'-p'/1` instead, which nothing here would
-%   ever put a clause in.
+%   `:- scasp_dynamic p/1` declares `p/1` and `'scasp$neg'/1`.  The old
+%   library declares the interned `'-p'/1` instead, which nothing here
+%   would ever put a clause in.
 
 test(a_dynamic_declaration_declares_our_negation_predicate) :-
     assertion(predicate_property(test_api:api_dyn_bird(_), (dynamic))),
-    assertion(predicate_property(test_api:(-(_)), (dynamic))),
+    assertion(predicate_property(test_api:'scasp$neg'(_), (dynamic))),
     assertion(\+ current_predicate(test_api:'-api_dyn_bird'/1)).
+
+%   `-p(X) :- Body` is a clause of `-/1`, which a program writes in as
+%   many places as it negates predicates, so it is discontiguous.
+
+test(the_classical_negation_is_discontiguous) :-
+    assertion(predicate_property(test_api:(-(_)), discontiguous)).
 
 %   `false :- Body` becomes a clause of `'scasp$constraint'/1` in its own
 %   module.  The old library makes it a clause of `-/0`.
@@ -827,6 +852,27 @@ test(a_dynamic_declaration_declares_our_negation_predicate) :-
 test(a_global_constraint_is_a_clause_of_its_module) :-
     assertion(test_api:'scasp$constraint'(_)),
     assertion(\+ current_predicate(test_api:(-)/0)).
+
+%   A negated literal with a variable of its own is existential outside
+%   the negation, which is rarely what `not obs(temperature, _)` meant: it
+%   warns at load time.  A variable shared with the head or another
+%   literal, or bound by a quantifier the program wrote, does not.
+
+test(a_local_variable_in_a_negation_warns,
+     [ setup(tmp_file_stream(text, File, Out)),
+       cleanup(delete_file(File))
+     ]) :-
+    format(Out, ":- use_module(library(sscasp)).~n\c
+                 api_lint_p :- not api_lint_obs(temperature, _Value).~n\c
+                 api_lint_q(X) :- not api_lint_obs(X, 1).~n\c
+                 api_lint_r :- api_lint_obs(a, V), not api_lint_obs(b, V).~n\c
+                 api_lint_s :- not forall(X, api_lint_obs(X, 1)).~n\c
+                 api_lint_obs(a, 1).~n", []),
+    close(Out),
+    local_negation_warnings(api_lint_program:load_files(File, [silent(true)]),
+                            Warnings),
+    assertion(Warnings = [local_negation_variables(not(api_lint_obs(temperature, _)),
+                                                   ['_Value'])]).
 
 :- end_tests(api_expansion).
 
@@ -1033,16 +1079,43 @@ test(a_position_is_accepted_and_ignored,
 
 /** The difference from `library(scasp)` worth knowing when porting: the
     old implementation interns `-p(X)` into a predicate named `'-p'`, so
-    its `scasp_assert/1` renames the functor.  Here `-p(X)` is a clause
-    of `-/1` carrying `p(X)`, so the term is asserted as written.
+    its `scasp_assert/1` renames the functor.  Here `-p(X)` in the
+    program text is a clause of `-/1` carrying `p(X)`, and one asserted
+    into a module with dynamic predicates is a clause of `'scasp$neg'/1`
+    carrying `p(X)`: `-/1` also holds the program's static rules, which
+    a `thread_local` declaration would hide from every other thread.
 */
 
-test(a_negated_head_is_asserted_as_written,
+test(a_negated_head_is_asserted_under_its_argument,
      [ setup(empty_program), cleanup(empty_program) ]) :-
     scasp_assert(test_api:api_dyn_bird(tweety)),
     scasp_assert(test_api:(-api_dyn_penguin(X) :- api_dyn_bird(X))),
     assertion(\+ current_predicate(test_api:'-api_dyn_penguin'/1)),
-    assertion(clause(test_api:(-(api_dyn_penguin(_))), _)).
+    assertion(clause(test_api:'scasp$neg'(api_dyn_penguin(_)), _)),
+    assertion(\+ \+ scasp(test_api:(-api_dyn_penguin(tweety)))).
+
+%   The static `-p :- Body` rules of a module with private dynamic
+%   predicates are the same program in every thread, while what one
+%   thread asserts about `-q` stays in that thread.
+
+test(static_negation_is_seen_by_every_thread,
+     [ setup(tmp_file_stream(text, File, Out)),
+       cleanup(delete_file(File))
+     ]) :-
+    format(Out, ":- use_module(library(sscasp)).~n\c
+                 :- scasp_dynamic api_thr_fact/1.~n\c
+                 -api_thr_p(X) :- api_thr_q(X).~n\c
+                 api_thr_q(a).~n", []),
+    close(Out),
+    Module = api_thread_program,
+    Module:load_files(File, [silent(true)]),
+    scasp_assert(Module:(-api_thr_fact(b))),
+    assertion(\+ \+ scasp(Module:(-api_thr_fact(b)))),
+    thread_create(( scasp(Module:(-api_thr_p(a))),
+                    \+ clause(Module:'scasp$neg'(_), _)
+                  ), Id),
+    thread_join(Id, Status),
+    assertion(Status == true).
 
 test(and_is_proved_under_its_own_name,
      [ setup(empty_program), cleanup(empty_program), set(X == [tweety]) ]) :-
@@ -1112,7 +1185,7 @@ test(and_it_can_be_retracted_again,
 */
 
 test(declaring_a_predicate_declares_the_negated_half) :-
-    assertion(predicate_property(test_api:(-(_)), (dynamic))).
+    assertion(predicate_property(test_api:'scasp$neg'(_), (dynamic))).
 
 %   And declares **only** that one.  `:- scasp_dynamic` is one of the
 %   four spellings both libraries claim (`sscasp.pl:claimed/3`), and the

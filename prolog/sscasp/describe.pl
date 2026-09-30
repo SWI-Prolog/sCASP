@@ -36,11 +36,14 @@
           [ annotation/2,               % @Directive, -Annotation
             deprecated_description/1,   % @Specification
             description_actions/3,      % @Description, @Literal, -Actions
+            description_literal/2,      % @Specification, -Literal
+            tree_description_actions/5, % @Description, @Literal, @Children,
+                                        % -Actions, -Children
             description_text/3          % @Description, @Literal, -Text
           ]).
 :- use_module(mangle, [literal_kind/3]).
 :- use_module(ops).
-:- use_module(library(lists), [member/2, append/3]).
+:- use_module(library(lists), [member/2, append/2, append/3]).
 :- use_module(library(apply), [maplist/3, foldl/5]).
 :- use_module(library(error), [domain_error/2, existence_error/2]).
 :- use_module(library(dcg/basics), [string//1]).
@@ -83,6 +86,45 @@ The leading underscore is ignored when a placeholder is resolved, so `@(X)`
 and `@(_X)` both find it.  (A program read by `source.pl` — an s(CASP) file
 rather than a Prolog one — is not checked for singletons and needs none of
 this.)
+
+## Describing a subtree
+
+A justification often proves a literal the same way every time, and a reader
+wants that said in one sentence rather than as the steps.  A description may
+therefore say which **children** it covers:
+
+    :- describe -contraindication(X) - [ aggressive,
+                                         not(contraindication(X)) -
+                                             [ not(danger(X)) ]
+                                       ]
+       :: "there is no contraindication for @(X)".
+
+Where the justification has a node for `-contraindication(X)` whose children
+match the pattern, the node is said by this description and the matched
+children are left out: what remains below it is what was below them.  The
+pattern after `-` is
+
+| `*` | any children, all kept |
+| `-` (or a variable) | any children, none kept |
+| `[Spec, ...]` | each Spec matches a child, in any order; the others are kept |
+| `[Spec, ...\|Tail]` | as above, with Tail (`*` or `-`) for the rest |
+
+and each Spec is
+
+| `Literal` | a child for Literal; it is replaced by its own children |
+| `Literal - Pattern` | the same, its children matched by Pattern |
+| `+Literal` | a child for Literal, kept as it is |
+| `^Literal` | every node for Literal anywhere below the matched child |
+
+A literal matches a node if it is at least as general, as for a plain
+description, looking through `proved/1` and `chs/1`.  A module qualification
+of a Spec is ignored: the justification does not say which module proved a
+goal, where the old implementation's did.  Unlike plain
+descriptions, patterns are tried in the order they are declared, as clauses
+are: write the one that matches more first.  A pattern that matches is used
+before a plain description.  The variables of the
+pattern are those of the template too, so a template can name a value that
+only a child has.  This is the old implementation's `:- pred Head - Children`.
 
 ## `:- pred` for this is deprecated
 
@@ -147,6 +189,16 @@ deprecated_description(Spec) :-
 
 :- det(description/3).
 
+description(Literal0 - Children0 :: Template0, Bindings, Annotation),
+        children_pattern(Children0) =>
+    Annotation = tree_description(Kind, PI, Literal, Children, Actions),
+    unmark(Literal0 - Children0 - Template0,
+           Literal - Children1 - Template, Marked),
+    normalise_pattern(Children1, Children),
+    literal_pi(Literal, Kind, PI),
+    named(Bindings, Named0),
+    append(Named0, Marked, Named),
+    template_actions(Template, Named, Actions).
 description(Literal0 :: Template0, Bindings, Annotation) =>
     Annotation = description(Kind, PI, Literal, Actions),
     unmark(Literal0 - Template0, Literal - Template, Marked),
@@ -161,6 +213,65 @@ description(Literal0 :: Template0, Bindings, Annotation) =>
     template_actions(Template, Named, Actions).
 description(Spec, _, _) =>
     domain_error(description, Spec).
+
+%!  description_literal(@Specification, -Literal) is semidet.
+%
+%   The literal a `Literal :: Template` or `Literal - Children ::
+%   Template` describes.
+
+description_literal(Spec, Literal) :-
+    nonvar(Spec),
+    Spec = (Described :: _),
+    nonvar(Described),
+    (   Described = (Literal0 - Children),
+        children_pattern(Children)
+    ->  Literal = Literal0
+    ;   Literal = Described
+    ).
+
+literal_pi(Literal, Kind, PI) :-
+    literal_kind(Literal, Kind, Head),
+    (   callable(Head)
+    ->  functor(Head, Name, Arity),
+        PI = Name/Arity
+    ;   domain_error(described_literal, Literal)
+    ).
+
+%!  children_pattern(@Term) is semidet.
+%
+%   Term is what follows `-` in `Literal - Children`.  `-p(X)` is the
+%   classical negation, which has one argument; this is the one with two
+%   whose right side reads as a pattern.
+
+children_pattern(Var), var(Var) => true.
+children_pattern(*) => true.
+children_pattern(-) => true.
+children_pattern(List), is_list_or_partial(List) => true.
+children_pattern(_) => fail.
+
+is_list_or_partial([]) => true.
+is_list_or_partial([_|T]) => is_list_or_partial(T).
+is_list_or_partial(_) => true.
+
+%!  normalise_pattern(@Pattern0, -Pattern) is det.
+%
+%   A variable for the children means none are kept, as `-` does.  So
+%   does a variable tail.
+
+normalise_pattern(Var, Pattern), var(Var) =>
+    Pattern = (-).
+normalise_pattern([H0|T0], Pattern) =>
+    Pattern = [H|T],
+    normalise_spec(H0, H),
+    normalise_pattern(T0, T).
+normalise_pattern(Pattern0, Pattern) =>
+    Pattern = Pattern0.
+
+normalise_spec(Literal - Pattern0, Spec), children_pattern(Pattern0) =>
+    Spec = (Literal - Pattern),
+    normalise_pattern(Pattern0, Pattern).
+normalise_spec(Spec0, Spec) =>
+    Spec = Spec0.
 
 named([], Named) =>
     Named = [].
@@ -412,6 +523,75 @@ description_actions(description(_, _, Literal, Actions0), Query, Actions) =>
     copy_term(Literal-Actions0, Copy-Actions),
     subsumes_term(Copy, Query),
     Copy = Query.
+
+%!  tree_description_actions(@Description, @Literal, @Children0,
+%!                           -Actions, -Children) is semidet.
+%
+%   As description_actions/3, for a node `Literal-Children0` of a
+%   justification and a `tree_description/5`, whose pattern must match
+%   Children0 too.  Children is what is left of them to show under the
+%   node.  Neither Literal nor Children0 is bound.
+
+tree_description_actions(tree_description(_, _, Literal, Pattern, Actions0),
+                         Query, Children0, Actions, Children) =>
+    copy_term(Literal-Pattern-Actions0, Copy-Pattern1-Actions),
+    subsumes_term(Copy, Query),
+    Copy = Query,
+    match_children(Pattern1, Children0, Children),
+    !.
+
+match_children(*, Children0, Children) =>
+    Children = Children0.
+match_children(-, _, Children) =>
+    Children = [].
+match_children([], Children0, Children) =>
+    Children = Children0.
+match_children([+Spec|Specs], Children0, Children) =>
+    append(Pre, [Node0|Post0], Children0),
+    match_node(Spec, Node0, Node),
+    !,
+    match_children(Specs, Post0, Post),
+    append(Pre, [Node|Post], Children).
+match_children([Spec|Specs], Children0, Children) =>
+    append(Pre, [Node0|Post0], Children0),
+    match_node(Spec, Node0, _-Below),
+    !,
+    append([Pre, Below, Post0], Children1),
+    match_children(Specs, Children1, Children).
+
+%   A matched node, with its children as the pattern leaves them.
+
+match_node(^(Spec), Node, Matched) =>
+    Node = Literal-_,
+    findall(Found, in_tree(Spec, Node, Found), Below),
+    Matched = Literal-Below.
+match_node(Spec - Pattern, Literal-Children0, Matched), children_pattern(Pattern) =>
+    match_literal(Spec, Literal),
+    match_children(Pattern, Children0, Children),
+    Matched = Literal-Children.
+match_node(Spec, Node, Matched) =>
+    Node = Literal-_,
+    match_literal(Spec, Literal),
+    Matched = Node.
+
+in_tree(Spec, Node, Found) :-
+    Node = Literal-Children,
+    (   \+ \+ match_literal(Spec, Literal),
+        Found = Node
+    ;   member(Child, Children),
+        in_tree(Spec, Child, Found)
+    ).
+
+match_literal(_:Spec, Literal) =>
+    match_literal(Spec, Literal).
+match_literal(Spec, Literal) =>
+    proof_literal(Literal, Plain),
+    subsumes_term(Spec, Plain),
+    Spec = Plain.
+
+proof_literal(proved(Literal), Plain) => Plain = Literal.
+proof_literal(chs(Literal), Plain) => Plain = Literal.
+proof_literal(Literal, Plain) => Plain = Literal.
 
 		 /*******************************
 		 *          MESSAGES		*

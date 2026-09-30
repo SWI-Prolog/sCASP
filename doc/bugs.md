@@ -339,9 +339,11 @@ The arithmetic comparisons have a different problem: `aeq(_, 2)` and
 `not aeq(_, 2)` *both* fail, because `exec_goal/1` catches the instantiation
 error and fails rather than reporting it (#17).
 
-**Resolution.** Two decisions, neither implemented yet.
+**Resolution.** Two decisions.  The arithmetic one is implemented in the
+new library (`solve.pl:compare_values/1`); standard order is not yet.
 
-*Arithmetic* (`=:=`, `=\=`) — **constrain**. `X =:= 2` on an unbound `X`
+*Arithmetic* (`=:=`, `=\=`, and for the same reason `<`, `>`, `=<`,
+`>=`, whose duals are each other) — **constrain**. `X =:= 2` on an unbound `X`
 constrains it exactly as `X #= 2` does, and the negation constrains the other
 way:
 

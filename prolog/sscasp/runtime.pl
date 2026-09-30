@@ -37,10 +37,13 @@
             [ check/7,
               proved/4,
               done/4,
+              absent/3,
               dcc/4,
               for_domain/6,
               forall/5,
               findall_/6,
+              not_findall_/6,
+              compare_values/1,
               domain_check/3,
               sld_goal/5
             ]).

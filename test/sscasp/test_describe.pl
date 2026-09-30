@@ -37,7 +37,8 @@ test_describe :-
                 describe_kinds,
                 describe_table,
                 describe_deprecated,
-                describe_errors
+                describe_errors,
+                describe_subtree
               ]).
 
 		 /*******************************
@@ -357,3 +358,32 @@ read_temp(Text, Source) :-
     setup_call_cleanup(true,
                        read_program(File, Source),
                        delete_file(File)).
+
+
+		 /*******************************
+		 *           SUBTREES		*
+		 *******************************/
+
+:- begin_tests(describe_subtree).
+
+test(a_pattern_is_a_tree_description) :-
+    annotation(describe(p('$VAR'('X')) - [q('$VAR'('X'))|-] :: "@(X) is p"),
+               Annotation),
+    Annotation = tree_description(plain, p/1, p(X), [q(Y)|-],
+                                  [@(Z:''), text(' is p')]),
+    assertion(X == Y),
+    assertion(X == Z).
+
+test(an_unbound_pattern_keeps_nothing) :-
+    annotation(describe(p(_) - _ :: "p"), Annotation),
+    assertion(Annotation = tree_description(plain, p/1, _, -, _)).
+
+test(classical_negation_is_not_a_pattern) :-
+    annotation(describe(-p(_) :: "not p"), Annotation),
+    assertion(Annotation = description(neg, p/1, _, _)).
+
+test(the_literal_of_a_pattern) :-
+    description_literal(p(a) - [q] :: "p", Literal),
+    assertion(Literal == p(a)).
+
+:- end_tests(describe_subtree).

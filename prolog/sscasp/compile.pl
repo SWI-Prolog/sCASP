@@ -47,6 +47,8 @@
 :- use_module(mangle,      [demangle/2, mangle/2]).
 :- use_module(graph,       [olon_clauses/3]).
 :- use_module(nmr,         [nmr_check/4]).
+:- use_module(unfold,      [fact_index/4, unfold_facts/3,
+                            unfold_denials/3]).
 :- use_module(clauses,     [clause_parts/3, clause_head/2, clause_body/2,
                             body_goal/2, list_body/2, literal_parts/3,
                             literal_key/2]).
@@ -154,11 +156,15 @@ compile_program(Module, Terms, Program) :-
     current_prolog_flag(scasp_domain_error, Error),
     Guard = guard(Module, Declared, Error),
     maplist(signature_guarded(Guard), Clauses0, Clauses1),
-    maplist(use_site_guarded(Guard), Clauses1, Clauses),
-    fact_predicates(Clauses, Facts),
-    Annotations = Declared.put(fact_predicates, Facts),
+    maplist(use_site_guarded(Guard), Clauses1, Clauses2),
+    fact_predicates(Clauses2, Facts),
+    sld_pis(Terms, SldPIs),
+    fact_index(Facts, Clauses2, SldPIs, Index),
+    unfold_facts(Index, Clauses2, Clauses),
+    Annotations = Declared.put(_{fact_predicates:Facts, fact_index:Index}),
     constraints(Terms, Constraints0),
-    maplist(guarded_body(Guard), Constraints0, Constraints),
+    maplist(guarded_body(Guard), Constraints0, Constraints1),
+    unfold_denials(Index, Constraints1, Constraints),
     predicate_groups(Clauses, Groups),
     maplist(compile_predicate(Module, Annotations), Groups, Compiled),
     append(Compiled, Translated0),
@@ -703,6 +709,20 @@ sld_bridges(Module, Terms, Clauses) :-
               sld_bridge(Module, Where, Name, Arity, Type, Clause)
             ),
             Clauses).
+
+%!  sld_pis(@Terms, -PIs) is det.
+%
+%   The predicates `:- sld` declares, as `Name/Arity`.  They have no
+%   clauses in the program, but are defined all the same.
+
+sld_pis(Terms, PIs) :-
+    findall(Name/Arity,
+            ( member((:- sld(Declarations)), Terms),
+              sld_declarations(Declarations, List),
+              member(Declaration, List),
+              sld_declaration(Declaration, _:Name/Arity, _)
+            ),
+            PIs).
 
 %   It may name the module the clauses are in —
 %   `:- sld lists:member/2.` — and `dyncall.pl` always does, because it

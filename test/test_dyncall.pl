@@ -24,7 +24,8 @@ test_dyncall :-
                 dyncall_directives,
                 dyncall_dynamic,
                 dyncall_errors,
-                dyncall_collect_option
+                dyncall_collect_option,
+                dyncall_expand
               ]).
 
 		 /*******************************
@@ -407,3 +408,33 @@ test(the_collected_goal_is_not_answered, [nondet]) :-
     assertion(\+ memberchk(nn_b, Model)).
 
 :- end_tests(dyncall_collect_option).
+
+
+		 /*******************************
+		 *      PROGRAM EXPANSION	*
+		 *******************************/
+
+%   scasp_expand/4 in the query's module rewrites the program the query
+%   runs.  The rewrite is by mapsubterms/3 because the two libraries
+%   hand the clauses over in different shapes.
+
+:- begin_tests(dyncall_expand).
+
+:- use_module(library(terms), [mapsubterms/3]).
+
+ex_a(X) :- ex_v(X).
+ex_v(1).
+
+scasp_expand(Terms0, Terms, Query, Query) :-
+    mapsubterms(ex_value, Terms0, Terms).
+
+ex_value(Term, ex_v(2)) :-
+    Term == ex_v(1).
+
+test(the_program_is_expanded, all(X == [2])) :-
+    scasp(ex_a(X)).
+test(the_listing_is_expanded) :-
+    with_output_to(string(Listing), scasp_show(ex_a(_), code)),
+    once(sub_string(Listing, _, _, _, "ex_v(2)")).
+
+:- end_tests(dyncall_expand).

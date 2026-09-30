@@ -31,7 +31,8 @@ test_html :-
                 html_text_descriptions,
                 html_text_structure,
                 html_markup,
-                html_templates
+                html_templates,
+                html_subtree_descriptions
               ]).
 
 		 /*******************************
@@ -432,3 +433,90 @@ test(a_compound_value_is_not_markup) :-
     assertion(contains(Text, "the item f(a)")).
 
 :- end_tests(html_templates).
+
+
+		 /*******************************
+		 *     SUBTREE DESCRIPTIONS	*
+		 *******************************/
+
+/** `:- describe Literal - Pattern :: Template` says a node *and* the part of
+its subtree the pattern matches in one sentence.
+*/
+
+:- begin_tests(html_subtree_descriptions).
+
+birds([ bird(tweety), tame(tweety),
+        (flies(X) :- bird(X), tame(X))
+      ]).
+
+justification_text(Program, Query, Text) :-
+    once(answer(Program, Query, _, Justification, A)),
+    text(html_justification(Justification, [annotations(A)]), Text).
+
+test(the_matched_children_are_said_by_the_node) :-
+    birds(P0),
+    X = '$VAR'('X'),
+    append(P0, [(:- describe flies(X) - [bird(X), tame(X)]
+                    :: "@(X) flies, being a tame bird")], P),
+    justification_text(P, flies(tweety), Text),
+    assertion(contains(Text, "tweety flies, being a tame bird")),
+    assertion(\+ contains(Text, "bird holds for")).
+
+test(a_plus_keeps_the_child) :-
+    birds(P0),
+    X = '$VAR'('X'),
+    append(P0, [(:- describe flies(X) - [+bird(X)|-] :: "@(X) flies")], P),
+    justification_text(P, flies(tweety), Text),
+    assertion(contains(Text, "tweety flies")),
+    assertion(contains(Text, "bird holds for tweety")),
+    assertion(\+ contains(Text, "tame holds for")).
+
+test(a_pattern_that_does_not_match_does_not_apply) :-
+    birds(P0),
+    X = '$VAR'('X'),
+    append(P0, [(:- describe flies(X) - [penguin(X)] :: "@(X) swims")], P),
+    justification_text(P, flies(tweety), Text),
+    assertion(\+ contains(Text, "swims")),
+    assertion(contains(Text, "flies holds for tweety")).
+
+test(an_empty_description_hides_the_node) :-
+    birds(P0),
+    append(P0, [(:- describe tame(_) - (-) :: html([]))], P),
+    justification_text(P, flies(tweety), Text),
+    assertion(\+ contains(Text, "tame")),
+    assertion(contains(Text, "bird holds for tweety")).
+
+test(the_first_matching_pattern_is_used) :-
+    birds(P0),
+    X = '$VAR'('X'),
+    append(P0, [ (:- describe flies(X) - [bird(X), tame(X)] :: "first"),
+                 (:- describe flies(X) - [bird(X)] :: "second")
+               ], P),
+    justification_text(P, flies(tweety), Text),
+    assertion(contains(Text, "first")),
+    assertion(\+ contains(Text, "second")).
+
+test(a_caret_gathers_from_below) :-
+    X = '$VAR'('X'),
+    P = [ species(tweety, canary), avian(canary),
+          (bird(B) :- species(B, S), avian(S)),
+          (flies(F) :- bird(F)),
+          (:- describe flies(X) - [^(avian(_))] :: "@(X) flies")
+        ],
+    justification_text(P, flies(tweety), Text),
+    assertion(contains(Text, "tweety flies")),
+    assertion(contains(Text, "avian holds for canary")),
+    assertion(\+ contains(Text, "species holds for")).
+
+test(a_module_in_a_spec_is_ignored) :-
+    X = '$VAR'('X'),
+    P = [ species(tweety, canary), avian(canary),
+          (bird(B) :- species(B, S), avian(S)),
+          (flies(F) :- bird(F)),
+          (:- describe flies(X) - [^(somewhere:avian(_))] :: "@(X) flies")
+        ],
+    justification_text(P, flies(tweety), Text),
+    assertion(contains(Text, "tweety flies")),
+    assertion(contains(Text, "avian holds for canary")).
+
+:- end_tests(html_subtree_descriptions).

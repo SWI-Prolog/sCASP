@@ -46,10 +46,12 @@
 :- use_module(mangle,      [mangle/2]).
 :- use_module(annotations, [argument_domain/4, domain_kind/3]).
 :- use_module(domains,     [domain_goal/3]).
+:- use_module(unfold,      [no_fact/2]).
 :- use_module(library(lists), [append/2, append/3, numlist/3, member/2,
                                 nth1/3]).
 :- use_module(library(apply), [maplist/3, maplist/4]).
-:- use_module(clauses, [clause_goals/2, list_body/2, literal_parts/3]).
+:- use_module(clauses, [clause_parts/3, clause_goals/2, list_body/2,
+                        literal_parts/3]).
 
 /** <module> Dualising a predicate
 
@@ -252,6 +254,25 @@ clause_dual_call(Module, Base, Name/Arity, Args, Index, Call) :-
 %       holding the quantifier followed by the `inner` clauses.
 
 clause_dual(Module, Annotations, Base, Name/Arity, Index, Clause, Duals) :-
+    get_dict(fact_index, Annotations, Facts),
+    Facts \== none,
+    clause_parts(Clause, ClauseHead, _),
+    clause_goals(Clause, Goals),
+    member(Literal, Goals),
+    no_fact(Facts, Literal),
+    \+ shares_variable(Literal, ClauseHead),
+    !,
+    abstract_head(Clause, Head, HeadGuards),
+    Head =.. [_|Args],
+    clause_duals(HeadGuards, GuardBodies),
+    append(HeadGuards, [not(Literal)], Absent0),
+    append(GuardBodies, [Absent0], DualBodies),
+    maplist(translate_body(Module), DualBodies, Translated0),
+    map_last(map_last(absent), Translated0, Translated),
+    indexed(Base, Index, Kind),
+    mangle_kind(Module, Kind, Name, Arity, DualName),
+    defined(DualName, Args, Translated, Duals).
+clause_dual(Module, Annotations, Base, Name/Arity, Index, Clause, Duals) :-
     abstract_head(Clause, Head, HeadGuards),
     clause_goals(Clause, Body0),
     append(HeadGuards, Body0, Body),
@@ -274,6 +295,52 @@ clause_dual(Module, Annotations, Base, Name/Arity, Index, Clause, Duals) :-
         defined(InnerName, InnerArgs, Translated, InnerClauses),
         Duals = [Bridge|InnerClauses]
     ).
+
+shares_variable(Term1, Term2) :-
+    term_variables(Term1, Vars1),
+    term_variables(Term2, Vars2),
+    member(V1, Vars1),
+    member(V2, Vars2),
+    V1 == V2,
+    !.
+
+%!  map_last(:Goal, +List0, -List) is det.
+%
+%   List is List0 with Goal applied to its last element.
+
+:- meta_predicate map_last(2, +, -).
+
+map_last(Goal, [X0], List) =>
+    call(Goal, X0, X),
+    List = [X].
+map_last(Goal, [H|T0], List) =>
+    List = [H|T],
+    map_last(Goal, T0, T).
+
+absent(Call, absent(Call)).
+
+%   **A clause no fact can make true** has a dual that holds wherever
+%   its head matches: one of its literals has no clause to prove it
+%   (`unfold.pl:no_fact/2`), so the body is false whatever its variables
+%   are.  Only a literal all of whose variables are body-only, as for
+%   unfolding: that is where the quantifier comes from, and a head
+%   variable is bound when the dual is called.  Recording the negation
+%   of one that holds a head variable was measured to make a proof in a
+%   large rule base 500 times slower, although the dual is the same.  The dual is that of the head's unifications followed by the
+%   literal alone, without the quantifier over the body-only variables.
+%   The head's unifications stay first because they are what rejects a
+%   call for another head cheaply — `not rule(r2)` should not
+%   look at the facts to dismiss the clause for `r1` — and the literal
+%   is the reason the clause does not hold, which the justification
+%   shows.
+%
+%   The literal's negation is **not proved, but recorded**:
+%   `absent(NotCall)`, which `emit.pl` makes a proof node without a
+%   search.  Proving it would be a search for values its variables do
+%   not take, and a fact that agrees in some arguments offers one way
+%   to differ per argument — nondeterminism for a negation that was
+%   decided at compile time.  Recording it posts no constraint either,
+%   which is right: it holds for every value.
 
 %!  indexed(+Base, +Index, -Kind) is det.
 %!  indexed(+Base, +Index, +Tag, -Kind) is det.
@@ -419,7 +486,12 @@ same_literal([Var|Vars], VarDomains, Literal, Same, Rest) =>
 
 %   The generator is the literal with every argument that is not one of
 %   the group made fresh: every tuple the facts hold at those positions,
-%   which is a superset of the ones that matter and so safe.
+%   which is a superset of the ones that matter and so safe.  A
+%   **ground** argument is kept: for a fact that disagrees with it the
+%   literal is false, so there is nothing to check, and it is what
+%   makes `obs(age, A, years)` enumerate the ages rather than the value
+%   of every observation.  Arguments holding other variables are made
+%   fresh, as they may not be bound yet when the generator runs.
 
 generator(Literal, Group, Generator) :-
     Literal =.. [Name|Args],
@@ -429,6 +501,8 @@ generator(Literal, Group, Generator) :-
 generator_arg(Group, Arg, GenArg) :-
     (   var(Arg),
         memberchk_eq_(Arg, Group)
+    ->  GenArg = Arg
+    ;   ground(Arg)
     ->  GenArg = Arg
     ;   true
     ).
@@ -707,6 +781,7 @@ builtin_indicator(Name/Arity) :-
 
 builtin_pi(true, 0).
 builtin_pi(fail, 0).
+builtin_pi(false, 0).
 builtin_pi(=, 2).
 builtin_pi(\=, 2).
 builtin_pi(#=, 2).

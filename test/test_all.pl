@@ -139,6 +139,7 @@ user:message_hook(_Term, error, _Lines) :-
 :- use_module(sscasp/test_dual,        []).
 :- use_module(sscasp/test_dualise,     []).
 :- use_module(sscasp/test_compile,     []).
+:- use_module(sscasp/test_unfold,      []).
 :- use_module(sscasp/test_graph,       []).
 :- use_module(sscasp/test_nmr,         []).
 :- use_module(sscasp/test_emit,        []).

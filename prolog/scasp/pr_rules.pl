@@ -353,8 +353,9 @@ insert_var('$VAR'(Name), Repl, Name, Var) =>
     Repl = Var.
 insert_var(V0, Repl, Name, Var), var(V0) =>
     (   prolog_load_context(variable_names, Bindings),
-        member(Name = V1, Bindings),
-        V0 == V1
+        member(VName = V1, Bindings),
+        V0 == V1,
+        placeholder_name(VName, Name)
     ->  Repl = Var
     ;   Repl = V0
     ).
@@ -366,6 +367,13 @@ insert_var(In, Out, Name, Var), compound(In) =>
     Out =.. [F|Args].
 insert_var(In, Out, _, _) =>
     Out = In.
+
+%   A placeholder `@(X)` names the variable X or _X, the latter to avoid
+%   a singleton warning.
+
+placeholder_name(Name, Name) :- !.
+placeholder_name(VarName, Name) :-
+    atom_concat('_', Name, VarName).
 
 insert_var_r(Name, Var, In, Out) :-
     insert_var(In, Out, Name, Var).

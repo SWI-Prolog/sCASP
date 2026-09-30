@@ -272,6 +272,7 @@ test(negating_equality_constrains) :-
 
 always :- true.
 never :- fail.
+not_ever :- false.
 
 test(true_succeeds) :-
     scasp(always).
@@ -281,6 +282,10 @@ test(fail_fails, fail) :-
     scasp(never).
 test(its_negation_holds) :-
     scasp(not never).
+test(false_fails, fail) :-
+    scasp(not_ever).
+test(its_negation_holds_too) :-
+    scasp(not not_ever).
 
 :- end_tests(builtin_constants).
 

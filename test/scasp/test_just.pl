@@ -10,7 +10,8 @@
     human(0, +).
 
 test_just :-
-    run_tests([ scasp_just_1
+    run_tests([ scasp_just_1,
+                scasp_describe
               ]).
 
 :- begin_tests(scasp_just_1).
@@ -32,6 +33,22 @@ test(pq) :-
 
 :- end_tests(scasp_just_1).
 
+%   `:- describe` is `:- pred`, spelled as library(sscasp) does.  A
+%   placeholder names a variable, which may be underscored.
+
+:- begin_tests(scasp_describe).
+
+sex(male).
+patient(S) :- sex(S).
+
+:- describe sex(_S) :: "the patient is {{S}}".
+:- describe patient(_S) :: "a patient who is @(S)".
+
+test(described) :-
+    human(patient(_), "a patient who is male, because the patient is male").
+
+:- end_tests(scasp_describe).
+
 
 		 /*******************************
 		 *            HARNASS		*
@@ -39,8 +56,9 @@ test(pq) :-
 
 human(G, Expected) :-
     once(scasp(G, [tree(Tree)])),
+    G = M:_,
     with_output_to(string(String0),
-                   human_justification_tree(Tree, [])),
+                   human_justification_tree(M:Tree, [])),
     split_string(String0, "\n", " \n\u220e", Strings),
     atomics_to_string(Strings, " ", String),
     assertion(Expected == String).

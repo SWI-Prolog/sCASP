@@ -98,8 +98,8 @@ details.
 ### Calling Prolog from s(CASP)
 
 The SWI-Prolog port allows sCASP to call out to Prolog.  This is achieved
-by declaring a predicate as `prolog`.  Prolog code may be executed in two
-modes:
+by declaring a predicate as `sld` (SLD resolution).  Prolog code may be
+executed in two modes:
 
   - `justified` (default) <br>
     In this case the predicate is handled by a meta-interpreter that
@@ -111,8 +111,13 @@ modes:
 
 Some example declarations:
 
-    :- prolog p/2.
-	:- prolog (p/2, q/1) as opaque.
+    :- sld p/2.
+	:- sld (p/2, q/1) as opaque.
+
+Older versions used `:- prolog p/2.`  `prolog` is no longer an operator
+because it makes `prolog:message//1` and similar hooks a syntax error, so
+such declarations must be changed to `:- sld`, which library(sscasp)
+accepts as well.
 
 If the Prolog call appears in  a s(CASP) negation, the following takes
 place:

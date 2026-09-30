@@ -163,7 +163,8 @@ test(a_coinductive_step_says_so) :-
 test(a_literal_an_earlier_branch_proved_says_so) :-
     Program = [ (flies(X) :- bird(X), not penguin(X)),
                 (penguin(X) :- bird(X), abnormal(X)),
-                bird(tweety)
+                bird(tweety),
+                abnormal(polly)
               ],
     why(Program, flies(tweety), Forest),
     assertion(Forest ==
@@ -1168,12 +1169,28 @@ test(and_in_the_justification) :-
     Justification = [_-Children|_],
     assertion(memberchk(member(1, [1, 2, 3])-_, Children)).
 
-%   Its negation is not implemented, and says so.  Failing instead would
-%   make `not p` succeed for a p that holds, which is the one answer a
-%   solver must never give.
+%   Its negation holds where the list is apart from the solutions.  Not
+%   where p holds: failing the negation outright, as the old
+%   implementation does, makes `not p` succeed for a p that holds.
 
-test(the_negation_is_refused, [throws(error(scasp_error(negated_findall(_)), _))]) :-
+test(the_negation_fails_where_the_collection_holds, fail) :-
     answers([(p :- findall(X, q(X), [X])), q(1)], not p).
+
+test(the_negation_holds_where_the_list_differs, nondet) :-
+    answers([(p :- findall(X, q(X), [X])), q(1), q(2)], not p).
+
+%   The list is usually a body variable, and so universally quantified in
+%   the dual: `not first_q(F)` needs every list to either not be the
+%   solutions or to start with something else.
+
+test(the_negation_of_a_function_of_the_list, nondet) :-
+    answers([ (first_q(F) :- findall(X, q(X), L), L = [F|_]),
+              q(3), q(1)
+            ], not first_q(1)).
+test(is_false_for_its_value, fail) :-
+    answers([ (first_q(F) :- findall(X, q(X), L), L = [F|_]),
+              q(3), q(1)
+            ], not first_q(3)).
 
 :- end_tests(solve_collecting).
 

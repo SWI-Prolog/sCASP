@@ -68,7 +68,7 @@
 :- use_module(ops).
 :- use_module(run,    [scasp_run/3]).
 :- use_module(emit,   [builtin/2]).
-:- use_module(describe, [deprecated_description/1]).
+:- use_module(describe, [deprecated_description/1, description_literal/2]).
 :- use_module(mangle, [literal_kind/3]).
 :- use_module(compile, [sld_declarations/2]).
 :- use_module(annotations, [program_annotations/2]).
@@ -382,13 +382,17 @@ scasp_constraint(Module, Body) :-
 %       Have the toplevel show the model or the justification after
 %       the bindings; How is `true`, `human` or `false`.  This is what
 %       the `?`-shortcuts of `library(sscasp)` pass.
+%
+%   If the query's module defines scasp_expand/4, the program is passed
+%   through it before it is run.  See expand_program/5.
 
 scasp(Query) :-
     scasp(Query, []).
 
 scasp(Qualified, Options) :-
-    Qualified = _:Query,
-    scasp_query_clauses(Qualified, Terms, Options),
+    Qualified = M:Query0,
+    scasp_query_clauses(Qualified, Terms0, Options),
+    expand_program(M, Terms0, Terms, Query0, Query),
     ignore(option(program(Terms), Options)),
     (   option(annotations(Annotations), Options)
     ->  program_annotations(Terms, Annotations)
@@ -398,6 +402,26 @@ scasp(Qualified, Options) :-
     ignore(option(model(Model), Options)),
     ignore(option(tree(Justification), Options)),
     remember(Model, Justification, Terms, Options).
+
+%!  expand_program(+Module, +Terms0, -Terms, +Query0, -Query) is det.
+%
+%   Give Module the chance to rewrite the program a query runs, and the
+%   query, as `Module:scasp_expand(Terms0, Terms, Query0, Query)`.  The
+%   hook sees the program for **this** query, which lets it use what it
+%   knows about the data: a program can, for example, bind calls to facts
+%   that have a single value.  The old implementation calls the same hook, at
+%   the same point.
+%
+%   @arg Terms0 is the program as scasp_query_clauses/2 returns it:
+%       clauses, facts and `(:- Body)` for a global constraint.
+
+expand_program(M, Terms0, Terms, Query0, Query) :-
+    current_predicate(M:scasp_expand/4),
+    M:scasp_expand(Terms0, Terms1, Query0, Query1),
+    !,
+    Terms = Terms1,
+    Query = Query1.
+expand_program(_, Terms, Terms, Query, Query).
 
 %!  remember(@Model, @Justification, @Terms, +Options) is det.
 %
@@ -422,7 +446,8 @@ remember(Model, Justification, Terms, Options) :-
 
 %!  scasp_show(:Query, +What) is det.
 %
-%   Write the program a query would run.  What is `code` or
+%   Write the program a query would run, after scasp_expand/4 (see
+%   expand_program/5).  What is `code` or
 %   `code(Option...)` — the options being the arguments, which is how the
 %   old implementation's `scasp_show/2` is spelled.  An option given as
 %   a bare name means `true`: `code(duals)` is `code(duals(true))`.
@@ -466,8 +491,10 @@ scasp_show(Query, What) :-
     ;   domain_error(scasp_show, What)
     ),
     maplist(show_option, Options0, Options),
-    strip_module_goal(Query, Plain),
-    scasp_query_clauses(Query, Terms),
+    strip_module_goal(Query, Plain0),
+    scasp_query_clauses(Query, Terms0),
+    Query = M:_,
+    expand_program(M, Terms0, Terms, Plain0, Plain),
     portray_program(Terms, Plain,
                     [source_title('Program as collected')|Options]).
 
@@ -636,8 +663,7 @@ signature_or_description(Spec, PI) :-
     ).
 
 described_pi(Spec, Name/Arity) :-
-    nonvar(Spec),
-    Spec = (Literal :: _),
+    description_literal(Spec, Literal),
     nonvar(Literal),
     literal_kind(Literal, _, Head),
     callable(Head),
@@ -732,7 +758,7 @@ check_one_definition(Callees) :-
 reachable_clause(Callees, Term) :-
     member(Module:PI, Callees),
     callee_head(PI, Head),
-    @(clause(Head, Body0), Module),
+    callee_clause(Module, Head, Body0),
     strip_body(Module, Body0, Body),
     clause_term(Head, Body, Term).
 
@@ -749,6 +775,46 @@ callee_head(neg(Name/Arity), Head) =>
     Head = -(Inner).
 callee_head(Name/Arity, Head) =>
     functor(Head, Name, Arity).
+
+%!  callee_clause(+Module, +Head, -Body) is nondet.
+%
+%   A clause of Head in Module.  For a classically negated Head, `-p(X)`,
+%   that is a clause of `-/1` or of `'scasp$neg'/1`: the first holds what
+%   the program text says, the second what scasp_assert/1 added to a
+%   predicate declared by scasp_dynamic/1.  See there for why they are
+%   two.
+
+callee_clause(Module, -(Inner), Body) =>
+    (   @(clause(-(Inner), Body), Module)
+    ;   dynamic_negation(Module),
+        @(clause('scasp$neg'(Inner), Body), Module)
+    ).
+callee_clause(Module, Head, Body) =>
+    @(clause(Head, Body), Module).
+
+%!  dynamic_negation(+Module) is semidet.
+%
+%   Module holds the classical negations of its dynamic predicates in
+%   `'scasp$neg'/1`.
+
+dynamic_negation(Module) :-
+    current_predicate(Module:'scasp$neg'/1),
+    \+ predicate_property(Module:'scasp$neg'(_), imported_from(_)).
+
+%!  check:trivial_fail_goal(:Goal) is semidet.
+%
+%   Tell list_trivial_fails/0 from library(check) that `-p(X)` can
+%   succeed at runtime if p is declared by scasp_dynamic/1: clauses of
+%   `-p` added by scasp_assert/1 go to `'scasp$neg'/1` rather than to
+%   `-/1`, so a program whose static `-/1` has no `-p` clauses is not
+%   wrong to call it.
+
+:- multifile check:trivial_fail_goal/1.
+
+check:trivial_fail_goal(Module:(-(Goal))) :-
+    callable(Goal),
+    dynamic_negation(Module),
+    predicate_property(Module:Goal, dynamic).
 
 clause_term(Head, true, Term) =>
     Term = Head.
@@ -973,6 +1039,10 @@ counterpart(Module:PI, Other), PI = Name/Arity =>
     has_clauses(Where, -(Inner)),
     Other = Where:neg(PI).
 
+has_clauses(Module, -(Inner)) :-
+    dynamic_negation(Module),
+    \+ \+ @(clause('scasp$neg'(Inner), _), Module),
+    !.
 has_clauses(Module, Head) :-
     functor(Head, Name, Arity),
     current_predicate(Module:Name/Arity),
@@ -985,7 +1055,7 @@ done(Done, PI) :-
 predicate_callees(Module:PI, Callees) :-
     callee_head(PI, Head),
     findall(Callee,
-            ( @(clause(Head, Body0), Module),
+            ( callee_clause(Module, Head, Body0),
               strip_body(Module, Body0, Body),
               goal_callee(Body, Module, Callee)
             ),
@@ -1004,6 +1074,7 @@ goal_callee(Goal, _, _), var(Goal) =>
     instantiation_error(Goal).
 goal_callee(true, _, _) => fail.
 goal_callee(fail, _, _) => fail.
+goal_callee(false, _, _) => fail.
 goal_callee(Goal, Module, _),
         callable(Goal),
         reinterpreted(Goal, PI),
@@ -1255,14 +1326,21 @@ global constraint goes into `'scasp$constraint'/1` instead, through
 %   makes it `dynamic` instead.
 %
 %   **The negative half is one predicate.**  Declaring `p/1` also
-%   declares `-/1`, which holds `-p(X)` — and `-q(X)`, and every other
-%   classically negated head in the module.  So its scope is decided
-%   once, by the first declaration that reaches it, rather than per
-%   predicate: a later `as shared` cannot make it shared for `-q` alone
-%   without making it shared for `-p` too.  The old implementation gives
-%   each one its own `'-p'/1` and can scope them separately; that is the
-%   price of not interning, and it buys a `-p(X)` that reads as itself
-%   everywhere else.
+%   declares `'scasp$neg'/1`, which holds what scasp_assert/1 adds as
+%   `-p(X)` — and `-q(X)`, and every other classically negated head
+%   asserted in the module.  So its scope is decided once, by the first
+%   declaration that reaches it, rather than per predicate: a later `as
+%   shared` cannot make it shared for `-q` alone without making it
+%   shared for `-p` too.  The old implementation gives each one its own
+%   `'-p'/1` and can scope them separately; that is the price of not
+%   interning, and it buys a `-p(X)` that reads as itself everywhere
+%   else.
+%
+%   It is not `-/1` itself, because that holds the `-q(X) :- Body` rules
+%   of the program text as well.  A `thread_local` `-/1` would make
+%   those clauses of the thread that loaded the file, and every other
+%   thread would run the program without them.  callee_clause/3 reads
+%   both.
 
 :- det((scasp_dynamic)/1).
 scasp_dynamic(M:Spec) :-
@@ -1285,9 +1363,9 @@ dynamic_scoped((A, B), M, Scope) =>
     dynamic_scoped(B, M, Scope).
 dynamic_scoped(PI, M, Scope), PI = _/_ =>
     declare(M:PI, Scope),
-    (   scoped_already(M:(-)/1)
+    (   scoped_already(M:'scasp$neg'/1)
     ->  true
-    ;   declare(M:(-)/1, Scope)
+    ;   declare(M:'scasp$neg'/1, Scope)
     ).
 dynamic_scoped(Spec, _, _) =>
     type_error(predicate_indicator, Spec).
@@ -1326,8 +1404,21 @@ scasp_assert(M:(:- Body), _Pos) =>
     scasp_constraint(M, Body).
 scasp_assert(M:(false :- Body), _Pos) =>
     scasp_constraint(M, Body).
-scasp_assert(Clause, _Pos) =>
-    assertz(Clause).
+scasp_assert(M:Clause, _Pos) =>
+    stored_clause(M, Clause, Stored),
+    assertz(M:Stored).
+
+%!  stored_clause(+Module, +Clause, -Stored) is det.
+%
+%   The clause as it is stored.  A classically negated clause goes into
+%   `'scasp$neg'/1` in a module that has one: see scasp_dynamic/1.
+
+stored_clause(M, (-(Inner) :- Body), Stored), dynamic_negation(M) =>
+    Stored = ('scasp$neg'(Inner) :- Body).
+stored_clause(M, -(Inner), Stored), dynamic_negation(M) =>
+    Stored = 'scasp$neg'(Inner).
+stored_clause(_, Clause, Stored) =>
+    Stored = Clause.
 
 %!  scasp_retract(:Clause) is nondet.
 %!  scasp_retractall(:Head) is det.
@@ -1339,16 +1430,18 @@ scasp_retract(M:(:- Body)) =>
     retract(M:'scasp$constraint'(Body)).
 scasp_retract(M:(false :- Body)) =>
     retract(M:'scasp$constraint'(Body)).
-scasp_retract(Clause) =>
-    retract(Clause).
+scasp_retract(M:Clause) =>
+    stored_clause(M, Clause, Stored),
+    retract(M:Stored).
 
 :- det(scasp_retractall/1).
 scasp_retractall(M:(:- Body)) =>
     retractall(M:'scasp$constraint'(Body)).
 scasp_retractall(M:(false :- Body)) =>
     retractall(M:'scasp$constraint'(Body)).
-scasp_retractall(Head) =>
-    retractall(Head).
+scasp_retractall(M:Head) =>
+    stored_clause(M, Head, Stored),
+    retractall(M:Stored).
 
 %!  scasp_abolish(:PredicateIndicator) is det.
 %
@@ -1368,6 +1461,6 @@ scasp_abolish(_:Spec), var(Spec) =>
 scasp_abolish(M:(Name/Arity)) =>
     functor(Head, Name, Arity),
     retractall(M:Head),
-    retractall(M:(-Head)).
+    scasp_retractall(M:(-Head)).
 scasp_abolish(_:Spec) =>
     type_error(predicate_indicator, Spec).

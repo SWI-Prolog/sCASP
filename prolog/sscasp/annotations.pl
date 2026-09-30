@@ -40,6 +40,7 @@
             description/3,              % +Annotations, @Literal, -Description
             described/3,                % +Annotations, @Literal, -Text
             described_actions/3,        % +Annotations, @Literal, -Actions
+            described_tree/4,           % +Annotations, @Node, -Actions, -Children
             annotation_clauses/2        % +Annotations, -Clauses
           ]).
 :- use_module(ops).
@@ -47,6 +48,7 @@
 :- use_module(domains,  [annotation/2 as domain_annotation]).
 :- use_module(describe, [annotation/2 as description_annotation,
                          description_actions/3,
+                         tree_description_actions/5,
                          description_text/3]).
 :- use_module(mangle, [literal_kind/3]).
 :- use_module(library(error), [existence_error/2, permission_error/3]).
@@ -105,7 +107,8 @@ program defines it, or `:- domain` declares it.  Exactly one, never both —
 
 program_annotations(Terms, Annotations) :-
     foldl(collect, Terms,
-          annotations{domains: #{}, signatures: #{}, descriptions: []},
+          annotations{domains: #{}, signatures: #{}, descriptions: [],
+                      tree_descriptions: []},
           Collected),
     program_predicates(Terms, Defined),
     check_annotations(Collected, Defined),
@@ -125,6 +128,10 @@ add_annotation(domain(Name, Kind), In, Out) =>
 add_annotation(Description, In, Out),
         Description = description(_Kind, _PI, _Literal, _Format) =>
     Out = In.put(descriptions, [Description|In.descriptions]).
+add_annotation(Description, In, Out),
+        Description = tree_description(_Kind, _PI, _Literal, _Pattern, _Format) =>
+    append(In.get(tree_descriptions, []), [Description], Descriptions),
+    Out = In.put(tree_descriptions, Descriptions).
 add_annotation(signature(PI, Domains), In, Out), PI = Name/Arity =>
     (   get_dict(Name, In.signatures, Arities)
     ->  true
@@ -197,6 +204,28 @@ described(Annotations, Literal, Text) :-
 described_actions(Annotations, Literal, Actions) :-
     description(Annotations, Literal, Description),
     description_actions(Description, Literal, Actions),
+    !.
+
+%!  described_tree(+Annotations, @Node, -Actions, -Children) is semidet.
+%
+%   Node, a `Literal-Children0` of a justification, is said by a
+%   description of the subtree, `:- describe Literal - Pattern ::
+%   Template` (see `describe.pl`).  Actions are as described_actions/3's
+%   and Children is what the pattern leaves of Children0.
+%
+%   Unlike description/3, the **first** declaration that matches is
+%   used.  A pattern is tried like a clause: the specific one, that
+%   matches more of the subtree, is written first, as it was for the
+%   old implementation's `#pred`.
+
+described_tree(Annotations, Literal-Children0, Actions, Children) :-
+    literal_kind(Literal, Kind, Head),
+    callable(Head),
+    functor(Head, Name, Arity),
+    Description = tree_description(Kind, Name/Arity, _, _, _),
+    member(Description, Annotations.get(tree_descriptions, [])),
+    tree_description_actions(Description, Literal, Children0,
+                             Actions, Children),
     !.
 
 %!  program_predicates(@Terms, -Defined) is det.

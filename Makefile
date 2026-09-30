@@ -30,10 +30,10 @@ prolog/scasp/main.qlf: $(SCASP_SOURCES)
 check:	check_load check_scasp check_sscasp
 
 check_scasp:
-	${SWIPL} -g test_all -t halt test/test_all.pl
+	${SWIPL} -f none -g test_all -t halt test/test_all.pl
 
 check_sscasp:
-	${SWIPL} -Dsscasp -g test_all -t halt test/test_all.pl
+	${SWIPL} -f none -Dsscasp -g test_all -t halt test/test_all.pl
 
 # Run the suite holding it to the *semantics* rather than to current
 # behaviour.  Tests wrapped in `:- if(expect_semantics)' switch to the
@@ -41,15 +41,15 @@ check_sscasp:
 # known defects still outstanding.  Expected to fail; it is a report, not
 # a gate, so its exit status is ignored.
 check_semantics:
-	-${SWIPL} -Dscasp_expect=semantics -g 'test_all([jobs(1)])' -t halt \
+	-${SWIPL} -f none -Dscasp_expect=semantics -g 'test_all([jobs(1)])' -t halt \
 		test/test_all.pl
 
 # Verify consistency of main load points
 check_load:
-	${SWIPL} -q -l prolog/scasp.pl -g check --on-warning=status -t halt
-	${SWIPL} -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
-	${SWIPL} -q -p library=prolog -l prolog/sscasp.pl -g check --on-warning=status -t halt
-	${SWIPL} -q -p library=prolog -l prolog/sscasp/main.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -l prolog/scasp.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -l prolog/scasp/main.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -p library=prolog -l prolog/sscasp.pl -g check --on-warning=status -t halt
+	${SWIPL} -f none -q -p library=prolog -l prolog/sscasp/main.pl -g check --on-warning=status -t halt
 
 ifneq ($(strip $(SWIPL_PREFIX)),)
 install:

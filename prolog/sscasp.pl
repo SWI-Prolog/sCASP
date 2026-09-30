@@ -128,8 +128,10 @@
 :- use_module(sscasp/annotations, [program_annotations/2]).
 :- use_module(library(ansi_term), [ansi_format/3]).
 :- use_module(library(option), [option/2, merge_options/3]).
-:- use_module(library(apply), [exclude/3]).
-:- use_module(library(lists), [member/2]).
+:- use_module(library(apply), [exclude/3, maplist/3]).
+:- use_module(library(lists), [member/2, select/3]).
+:- use_module(sscasp/clauses, [body_list/2]).
+:- use_module(sscasp/dualise, [builtin/1]).
 :- reexport(sscasp/render,
             [ scasp_readable/2, scasp_readable/3,
               portray_model/1, portray_model/2,
@@ -298,6 +300,17 @@ template(Spec, M, Goal) =>
 ours(Module) :-
     predicate_property(Module:scasp(_, _), imported_from(sscasp_dyncall)).
 
+%!  negated_clause(@Term) is semidet.
+%
+%   Term is a clause of `-/1`: a classically negated fact or rule.
+
+negated_clause((Head :- _)) =>
+    nonvar(Head),
+    Head = -(_).
+negated_clause(Head) =>
+    nonvar(Head),
+    Head = -(_).
+
 %   One expansion for all of them, and it is the table plus the guard.
 %
 %   Term first, because it discriminates and the other two are asked of
@@ -314,6 +327,104 @@ user:term_expansion(Term, Expanded) :-
     claimed(Term, Module, Expanded),
     prolog_load_context(module, Module),
     ours(Module).
+
+%   `-p(X) :- Body` is a clause of `-/1`, and so is `-q(X)`: one predicate
+%   whose clauses a program writes next to those of p and q, never
+%   together.  Declared discontiguous before the first of them, or every
+%   program that negates two predicates classically is warned about it.
+
+user:term_expansion(Clause, [(:- discontiguous((-)/1)), Clause]) :-
+    negated_clause(Clause),
+    prolog_load_context(module, Module),
+    ours(Module),
+    \+ predicate_property(Module:(-(_)), discontiguous).
+
+%   **A negated literal with a variable of its own** is almost always a
+%   mistake.  `not obs(temperature, _Value)` is read as Prolog's `\+`,
+%   "there is no temperature reading", but a variable that occurs nowhere
+%   else is existentially quantified *outside* the negation: the literal
+%   holds if obs(temperature, V) is false for **some** V, which it nearly
+%   always is.  What was meant needs an auxiliary predicate,
+%   `temperature_known :- obs(temperature, _)`, and
+%   `not temperature_known`.  Prolog's singleton warning does not help, as the
+%   variable is usually written `_` or `_Name`.  This only warns: the
+%   expansion fails.
+
+%!  local_negation(@Head, @Body, -Literal, -Local) is nondet.
+%
+%   Literal is a `not G` in Body's conjunction, G a user literal, and
+%   Local the variables of G that occur nowhere else in the clause,
+%   named as the reader named them, `_` for an anonymous one.
+
+local_negation(Head, Body, Literal, Local) :-
+    body_list(Body, Goals),
+    select(not(Goal), Goals, Others),
+    callable(Goal),
+    \+ builtin(Goal),
+    \+ memberchk_goal(Goal, [forall(_, _), findall(_, _, _)]),
+    term_variables(Goal, GoalVars),
+    term_variables(Head-Others, OtherVars),
+    exclude(var_member(OtherVars), GoalVars, LocalVars),
+    LocalVars \== [],
+    (   prolog_load_context(variable_names, Bindings)
+    ->  true
+    ;   Bindings = []
+    ),
+    maplist(var_name(Bindings), LocalVars, Local),
+    named(not(Goal), Bindings, Literal).
+
+%   The literal as written: its variables as '$VAR'(Name), `_` for
+%   an anonymous one.
+
+named(Term, Bindings, Named) :-
+    copy_term(Term+Bindings, Named+Bindings1),
+    maplist(bind_name, Bindings1),
+    term_variables(Named, Anonymous),
+    maplist(=('$VAR'('_')), Anonymous).
+
+bind_name(Name=Var) :-
+    (   var(Var)
+    ->  Var = '$VAR'(Name)
+    ;   true
+    ).
+
+memberchk_goal(Goal, Constructs) :-
+    member(Construct, Constructs),
+    subsumes_term(Construct, Goal),
+    !.
+
+var_member(Vars, Var) :-
+    member(V, Vars),
+    V == Var,
+    !.
+
+var_name(Bindings, Var, Name) :-
+    (   member(Name0=V, Bindings),
+        V == Var
+    ->  Name = Name0
+    ;   Name = '_'
+    ).
+
+:- multifile prolog:message//1.
+
+prolog:message(scasp(local_negation_variables(Literal, Names))) -->
+    { atomic_list_concat(Names, ', ', NameList) },
+    [ 's(CASP): ~w occur only in ~W'-
+      [NameList, Literal, [numbervars(true), quoted(true), portray(true)]], nl,
+      '  This holds if the literal is false for SOME value of them.'-[], nl,
+      '  For "there is no such ...", negate an auxiliary predicate.'-[]
+    ].
+
+%   Last, as it is live from the moment it is read.
+
+user:term_expansion((Head :- Body), _) :-
+    prolog_load_context(module, Module),
+    ours(Module),
+    forall(local_negation(Head, Body, Literal, Local),
+           print_message(warning,
+                         scasp(local_negation_variables(Literal, Local)))),
+    fail.
+
 
 ?    Query :- scasp(Query, [show_model(true)]).
 ??   Query :- scasp(Query, [show_model(true), show_justification(true)]).

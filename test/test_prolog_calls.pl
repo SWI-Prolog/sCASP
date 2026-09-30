@@ -9,7 +9,7 @@
 
 /** <module> Calling Prolog from s(CASP)
 
-`:- prolog p/2.` says a predicate is to be run by Prolog rather than
+`:- sld p/2.` says a predicate is to be run by Prolog rather than
 compiled into the s(CASP) program.  Two modes:
 
   - `justified` (the default) runs it under the meta-interpreter in
@@ -40,7 +40,7 @@ test_prolog_calls :-
 
 :- begin_tests(prolog_basic).
 
-:- prolog double/2.
+:- sld double/2.
 double(X, Y) :- Y is X*2.
 
 twice(X, Y) :- double(X, Y).
@@ -68,7 +68,7 @@ test(the_call_appears_in_the_justification) :-
 
 :- begin_tests(prolog_opaque).
 
-:- prolog triple/2 as opaque.
+:- sld triple/2 as opaque.
 triple(X, Y) :- Y is X*3.
 
 thrice(X, Y) :- triple(X, Y).
@@ -92,14 +92,14 @@ test(the_justification_is_still_a_tree) :-
 
 :- begin_tests(prolog_control).
 
-% Declared together: each `:- prolog` expands to a pr_prolog_predicate/2
+% Declared together: each `:- sld` expands to a pr_prolog_predicate/2
 % fact, and interleaving them with the clauses they describe makes those
 % facts discontiguous.
 
-:- prolog classify/2.
-:- prolog either/1.
-:- prolog first_only/1.
-:- prolog absent/1.
+:- sld classify/2.
+:- sld either/1.
+:- sld first_only/1.
+:- sld absent/1.
 
 classify(X, Sign) :-
     (   X > 0
@@ -150,7 +150,7 @@ test(prolog_negation_inside_the_goal_fails, fail) :-
 
 :- begin_tests(prolog_negation).
 
-:- prolog colour/1.
+:- sld colour/1.
 colour(red).
 colour(green).
 colour(blue).

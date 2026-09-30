@@ -35,8 +35,14 @@ test_compile :-
 
 %!  compiled(+Terms, -Program) is det.
 
+%   Without unfolding (`unfold.pl`): these programs leave predicates
+%   undefined for brevity, and a clause calling one would compile to a
+%   dual that says only that, which is not what the tests look at.
+%   `test_unfold.pl` tests what unfolding does.
+
 compiled(Terms, Program) :-
-    compile_program(m, Terms, Program).
+    with_scasp_flag(sscasp_unfold_facts, false,
+                    compile_program(m, Terms, Program)).
 
 %!  defines(+Program, ?Name/?Arity) is nondet.
 %

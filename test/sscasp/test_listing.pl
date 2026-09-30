@@ -147,15 +147,22 @@ test(a_body_dualises_to_a_disjunction) :-
 %   inside it.
 
 test(a_body_variable_becomes_a_quantifier) :-
-    section([p(1), t(a), (q(Z) :- t(Z)), (r(X) :- p(X), q(Y), not s(X, Y))],
-            duals, Text),
+    with_scasp_flag(
+        sscasp_unfold_facts, false,
+        section([p(1), t(a), (q(Z) :- t(Z)), (r(X) :- p(X), q(Y), not s(X, Y))],
+                duals, Text)),
     assertion(contains(Text, "forall(")),
     assertion(contains(Text, ";")).
 
-%   ... unless a fact predicate bounds it, when it is enumerated.
+%   ... unless a fact predicate bounds it, when it is enumerated.  That
+%   is where the literal is not unfolded (`unfold.pl'), which would bind
+%   Y to `a' at compile time and leave no quantifier at all.
 
 test(a_variable_a_fact_bounds_is_enumerated) :-
-    section([p(1), q(a), (r(X) :- p(X), q(Y), not s(X, Y))], duals, Text),
+    with_scasp_flag(
+        sscasp_unfold_facts, false,
+        section([p(1), q(a), (r(X) :- p(X), q(Y), not s(X, Y))],
+                duals, Text)),
     assertion(contains(Text, "for_domain(")),
     assertion(contains(Text, "q(")),
     assertion(\+ contains(Text, "scasp$")).

@@ -37,6 +37,7 @@
                                         %   -Anc1, -Action
             proved/4,                   % @Anc1, @S0, @S2, -S
             done/4,                     % @Goal, +Action, @S0, -S
+            absent/3,                   % @Goal, @S0, -S
             dcc/4,                      % @Goal, @Anc, @S, @Rules
             for_domain/6,               % @Var, :Gen, :Goal, ?Anc, ?S0, -S
             forall/5,                   % @Vars, :Goal, ?Anc, ?S0, -S
@@ -44,6 +45,9 @@
             domain_check/3,             % :Goal, +Domain, +PI
             findall_/6,                 % @Template, :Goal, ?List, @Anc,
                                         %   @S0, -S
+            not_findall_/6,             % @Template, :Goal, ?List, @Anc,
+                                        %   @S0, -S
+            compare_values/1,           % +Comparison
             sld_goal/5,                 % ?Goal, +Type, ?Anc, ?S0, -S
             model/2,                    % @Proof, -Model
             justification/2,            % @Proof, -Forest
@@ -693,6 +697,24 @@ done(Goal, Action, proof(Forest, Index0), proof([n(Goal, Action, [])|Forest], In
     ;   Status = proof
     ),
     index(Goal, Status, Index0, Index).
+
+%!  absent(@Goal, @S0, -S) is det.
+%
+%   Record the negation of a literal no clause can prove
+%   (`dualise.pl:clause_dual/7`, written `absent/1` in the compiled
+%   program): a node with no children, as done/4 makes, for the
+%   justification and the model — but **not in the index**, which is
+%   what check/7 reads for the coinductive hypothesis.  The literal's
+%   variables stand for every value, and check/7 would read them as
+%   some: every later call of the positive literal would be made to
+%   differ from them, which in a large rule base made a proof of 0.5 s
+%   take 250 s.
+%   The positive literal cannot be proved, so there is nothing for the
+%   check to find.
+
+:- det(absent/3).
+
+absent(Goal, proof(Forest, Index), proof([n(Goal, proof, [])|Forest], Index)).
 
 %!  dcc(@Goal, @Anc, @S, @Rules) is semidet.
 %
@@ -1929,6 +1951,43 @@ findall_(Template, Goal, List, Anc, S0, S) :-
     pairs_keys_values(Pairs, List, NodeLists),
     append(NodeLists, Forest),
     splice(Forest, S0, S).
+
+%!  compare_values(+Comparison) is semidet.
+%
+%   An arithmetic comparison, `A < B`, `A =:= B` and the like.  Where
+%   both sides are ground it is Prolog's.  Otherwise it is the CLP(Q)
+%   constraint it states, just like `A #< B`: raising would make an
+%   unbound query unanswerable, and the duals of the comparisons are
+%   comparisons, so `not (X >= 7)` constrains X to be below 7 rather
+%   than raising from under a `forall/2` that has not bound X yet.  This
+%   is the resolution of `doc/bugs.md` #16.
+
+compare_values(Comparison) :-
+    (   ground(Comparison)
+    ->  call(Comparison)
+    ;   {Comparison}
+    ).
+
+%!  not_findall_(@Template, :Goal, ?List, @Anc, @S0, -S) is semidet.
+%
+%   The negation of `findall/3`.  In a given state the collection has
+%   one list of solutions, the one findall_/6 finds, so `findall(T, G,
+%   L)` is a function from the state to that list and its negation holds
+%   where List is **apart** from it.  Posted as a disequality rather than
+%   tested, because List is typically unbound: in the dual of
+%
+%       min_rate(Min) :- findall(R, rate(R), Rs), min_list(Rs, Min).
+%
+%   `Rs` is universally quantified, and `forall/5` needs `Rs` apart from
+%   the solutions to try the other branch, where `Rs` is the list and
+%   `min_list/2` must fail.
+%
+%   The proof is the collection's, as for findall_/6: that is what the
+%   list was found to be.
+
+not_findall_(Template, Goal, List, Anc, S0, S) :-
+    findall_(Template, Goal, Found, Anc, S0, S),
+    apart(List, Found).
 
 %   A spliced node's descendants were never in this proof's index, so
 %   unlike proved/4 — whose children indexed themselves on the way up —

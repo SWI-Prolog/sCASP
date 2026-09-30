@@ -17,10 +17,12 @@
             (#)/1,                      % :Directive
             (#)/2,                      % :Directive, +Pos
             (pred)/1,
+            (describe)/1,
             (show)/1,
             (abducible)/1,
             (abducible)/2,
             (prolog)/1,                 % :PIs
+            (sld)/1,                    % :PIs
 
             (#=)/2,
             (#<>)/2,
@@ -33,7 +35,9 @@
             op(950, xfx, ::),           % pred not x :: "...".
             op(1200, fx, #),
             op(1150, fx, pred),
+            op(1150, fx, describe),
             op(1150, fx, show),
+            op(1150, fx, sld),
             op(1150, fx, abducible),
             op(1150, fx, scasp_dynamic),
             op(700, xfx, #=),
@@ -81,8 +85,11 @@
     scasp_retractall(:),
     scasp_abolish(:),
     pred(:),
+    describe(:),
     show(:),
-    abducible(:).
+    abducible(:),
+    prolog(:),
+    sld(:).
 
 /** <module>
 
@@ -689,6 +696,14 @@ pred(M:(Spec :: Template)) =>
     process_pr_pred(Spec :: Template, Atom, Children, Cond, Human),
     assertz(M:pr_pred_predicate(Atom, Children, Cond, Human)).
 
+%!  describe(:Template) is det.
+%
+%   Same as pred/1, using the name of library(sscasp), where `pred` is
+%   used for declaring the domain of arguments.
+
+describe(M:Spec) =>
+    pred(M:Spec).
+
 show(M:PIs) =>
     phrase(show(PIs), Clauses),
     maplist(assert_show(M), Clauses).
@@ -775,11 +790,24 @@ list([H|T]) --> [H], list(T).
 %   (default) or `opaque`, meaning that we   call  the predicate without
 %   creating a justification tree.
 %
-%       :- prolog PIs as Type.
+%   `prolog` is no longer a prefix operator.  Use `:- sld PIs as Type`,
+%   which library(sscasp) understands as well.
 
 prolog(M:PIs) =>
     phrase(prolog_decl(PIs), Clauses),
     maplist(assert_show(M), Clauses).
+
+%!  sld(:PIs) is det.
+%
+%   Same as prolog/1, using the name of library(sscasp):
+%
+%       :- sld PIs as Type.
+%
+%   `prolog` is not an operator, so `:- prolog p/1.` no longer reads.
+%   Use `:- sld p/1.`, which works with both libraries.
+
+sld(M:PIs) =>
+    prolog(M:PIs).
 
 prolog_decl(Var) -->
     { var(Var),
@@ -849,38 +877,46 @@ user:term_expansion((-Head :- Body), (MHead :- Body)) :-
     intern_negation(-Head, MHead).
 user:term_expansion((false :- Body), ((-) :- Body)) :-
     ours.
+user:term_expansion((:- describe(SpecIn)), Clauses) :-
+    user:term_expansion((:- pred(SpecIn)), Clauses).
+user:term_expansion((# describe(SpecIn)), Clauses) :-
+    user:term_expansion((# pred(SpecIn)), Clauses).
+user:term_expansion((:- sld(SpecIn)), Clauses) :-
+    user:term_expansion((:- prolog(SpecIn)), Clauses).
+user:term_expansion((# sld(SpecIn)), Clauses) :-
+    user:term_expansion((# prolog(SpecIn)), Clauses).
 user:term_expansion((:- pred(SpecIn)),
-                    [ (:- dynamic(pr_pred_predicate/4)),
+                    [ (:- dynamic(pr_pred_predicate/4)), (:- discontiguous(pr_pred_predicate/4)),
                       pr_pred_predicate(Atom, Children, Cond, Human)
                     ]) :-
     ours,
     process_pr_pred(SpecIn, Atom, Children, Cond, Human).
 user:term_expansion((:- show(SpecIn)),
-                    [(:- dynamic(pr_show_predicate/1))|Clauses]) :-
+                    [(:- dynamic(pr_show_predicate/1)), (:- discontiguous(pr_show_predicate/1))|Clauses]) :-
     ours,
     phrase(show(SpecIn), Clauses).
 user:term_expansion((:- abducible(SpecIn)), Clauses) :-
     ours,
     phrase(abducible(SpecIn), Clauses).
 user:term_expansion((# pred(SpecIn)),
-                    [ (:- dynamic(pr_pred_predicate/4)),
+                    [ (:- dynamic(pr_pred_predicate/4)), (:- discontiguous(pr_pred_predicate/4)),
                       pr_pred_predicate(Atom, Children, Cond, Human)
                     ]) :-
     ours,
     process_pr_pred(SpecIn, Atom, Children, Cond, Human).
 user:term_expansion((# show(SpecIn)),
-                    [(:- dynamic(pr_show_predicate/1))|Clauses]) :-
+                    [(:- dynamic(pr_show_predicate/1)), (:- discontiguous(pr_show_predicate/1))|Clauses]) :-
     ours,
     phrase(show(SpecIn), Clauses).
 user:term_expansion((# abducible(SpecIn)), Clauses) :-
     ours,
     phrase(abducible(SpecIn), Clauses).
 user:term_expansion((# prolog(SpecIn)),
-                    [(:- dynamic(pr_prolog_predicate/2))|Clauses]) :-
+                    [(:- dynamic(pr_prolog_predicate/2)), (:- discontiguous(pr_prolog_predicate/2))|Clauses]) :-
     ours,
     phrase(prolog_decl(SpecIn), Clauses).
 user:term_expansion((:- prolog(SpecIn)),
-                    [(:- dynamic(pr_prolog_predicate/2))|Clauses]) :-
+                    [(:- dynamic(pr_prolog_predicate/2)), (:- discontiguous(pr_prolog_predicate/2))|Clauses]) :-
     ours,
     phrase(prolog_decl(SpecIn), Clauses).
 

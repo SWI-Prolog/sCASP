@@ -262,8 +262,10 @@ rekind(prog(M, _, A), Kind, Name) => mangle(prog(M, Kind, A), Name).
 %!  body(@Body, +Module, @Anc, ?S0, ?S, -Runnable) is det.
 %
 %   @arg Body is a logical body: mangled calls, built-ins in program
-%       syntax, and the quantifiers, `findall/3`, `sld/2` and
-%       `'$domain_check'/3` the compiler writes.
+%       syntax, and the quantifiers, `findall/3`, `sld/2`, `absent/1` and
+%       `'$domain_check'/3` the compiler writes.  `absent(Dual)` is the
+%       negation of a literal no clause can prove
+%       (`dualise.pl:clause_dual/7`): recorded, not called.
 %   @arg Module is where the clause will be asserted, as in
 %       runnable_program/3; it qualifies only the goals held as terms.
 %   @arg Anc is the clause's ancestor chain variable, a list of
@@ -286,6 +288,8 @@ body(true, _, _, S0, S, Runnable) =>
     Runnable = true.
 body(fail, _, _, S0, S, Runnable) =>
     Runnable = (S = S0, fail).
+body(false, _, _, S0, S, Runnable) =>
+    Runnable = (S = S0, fail).
 body(for_domain(Var, Gen, Goal), M, Anc, S0, S, Runnable) =>
     Runnable = for_domain(Var, M:Gen, M:Goal, Anc, S0, S).
 body(forall(Vars, Goal), M, Anc, S0, S, Runnable) =>
@@ -293,19 +297,17 @@ body(forall(Vars, Goal), M, Anc, S0, S, Runnable) =>
 body(findall(Template, Goal, List), M, Anc, S0, S, Runnable) =>
     Runnable = findall_(Template, M:Goal, List, Anc, S0, S).
 
-%   A `findall/3` runs, but not its negation.  `not findall(T, G, L)`
-%   asks what the old implementation's `exec_neg_findall/5` asks and
-%   does not answer: which of the ways the collection could have gone
-%   differently is the one that makes the list wrong.  It is said here
-%   rather than left to fail, because failing means `not p` succeeds
-%   where p holds.
+%   `not findall(T, G, L)`: the list is apart from the solutions.  See
+%   `solve.pl:not_findall_/6`.  The old implementation's
+%   `exec_neg_findall/5` fails, which makes `not p` succeed where p
+%   holds.
 
-body(not(Findall), _, _, S0, S, Runnable), Findall = findall(_, _, _) =>
-    Runnable = ( S = S0,
-                 throw(error(scasp_error(negated_findall(Findall)), _))
-               ).
+body(not(findall(Template, Goal, List)), M, Anc, S0, S, Runnable) =>
+    Runnable = not_findall_(Template, M:Goal, List, Anc, S0, S).
 body('$domain_check'(Goal, Domain, PI), M, _, S0, S, Runnable) =>
     Runnable = (domain_check(M:Goal, Domain, PI), S = S0).
+body(absent(Goal), _, _, S0, S, Runnable) =>
+    Runnable = absent(Goal, S0, S).
 body(sld(Goal, Type), _, Anc, S0, S, Runnable) =>
     Runnable = sld_goal(Goal, Type, Anc, S0, S).
 body(Goal, _, Anc, S0, S, Runnable),
@@ -350,12 +352,13 @@ builtin((A \= B), Runnable) => Runnable = apart(A, B).
 builtin('∉'(X, Values), Runnable) => Runnable = not_in_list(X, Values).
 builtin(Goal, Runnable), Goal = '∈'(_, _) => Runnable = Goal.
 
-%   `true` and `fail` negate to each other.  `dual.pl` leaves them for
+%   `true` and `fail` (or `false`) negate to each other.  `dual.pl` leaves them for
 %   here rather than pairing them in `dual_operator/2`, because that
 %   table is about operators whose negation is another *operator*.
 
 builtin(not(true), Runnable) => Runnable = fail.
 builtin(not(fail), Runnable) => Runnable = true.
+builtin(not(false), Runnable) => Runnable = true.
 
 %   A domain check is `true` or an error (`compile.pl:guard_goals/6`), so
 %   its negation is `fail`.  Where a rule of the dynamic consistency
@@ -365,6 +368,8 @@ builtin(not('$domain_check'(_, _, _)), Runnable) => Runnable = fail.
 builtin('$domain_check'(_, _, _), Runnable) => Runnable = true.
 
 %   Prolog arithmetic evaluates and tests, so it passes straight through.
+%   A comparison does where it can be evaluated, and constrains where it
+%   cannot: see `solve.pl:compare_values/1`.
 %   `not (A is B)` is the one with something to say: evaluating the right
 %   side and disagreeing with the result *constrains* A, where
 %   `\+ (A is B)` would only fail on an unbound one.
@@ -377,7 +382,7 @@ builtin(Goal, Runnable),
         compound(Goal),
         compound_name_arity(Goal, Name, 2),
         arithmetic_comparison(Name) =>
-    Runnable = Goal.
+    Runnable = compare_values(Goal).
 builtin(Goal, Runnable),
         compound(Goal),
         compound_name_arguments(Goal, Name, [A, B]),
@@ -470,13 +475,3 @@ literal_wrapper(_-Arity-Spec, Dcc, Wrapper) =>
 
 dcc_triggered_by(Name/Arity, dcc(Trigger, _)) :-
     functor(Trigger, Name, Arity).
-
-
-		 /*******************************
-		 *          MESSAGES		*
-		 *******************************/
-
-:- multifile prolog:message//1.
-
-prolog:message(error(scasp_error(negated_findall(Goal)), _)) -->
-    [ 's(CASP): the negation of ~p is not implemented'-[Goal] ].

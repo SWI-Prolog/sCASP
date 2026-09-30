@@ -1084,9 +1084,13 @@ interns `-p(X)` into a predicate literally named `'-p'`, so its
 writes for a file and what `callee_head/2` looks for.
 
 The price is that `-/1` is **one predicate per module**, holding every
-negated head in it, so `scasp_dynamic p/1` declares `p/1` and `-/1` and
-the latter's scope is settled by the first declaration to reach it. The
-old one gives each its own `'-p'/1` and can scope them separately.
+negated head in it.  What `scasp_assert/1` adds to a module with dynamic
+predicates goes into `'scasp$neg'/1` instead, declared by `scasp_dynamic
+p/1` along with `p/1`, and `callee_clause/3` reads both: a `thread_local`
+`-/1` would make the file's static `-q :- Body` rules invisible to every
+thread but the loading one.  Its scope is settled by the first declaration
+to reach it. The old one gives each its own `'-p'/1` and can scope them
+separately.
 
 **A global constraint cannot be asserted at all.** `false/0` is a
 built-in, so `scasp_assert(M:(false :- Body))` — and the `:- Body`
