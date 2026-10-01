@@ -480,6 +480,188 @@ legitimate route to the same speed is decision 6a: give the quantified variable
 a domain, and case 1 or case 4 applies instead of case 3, with no search to cut
 short.
 
+### 5d. Keeping a quantifier's CLP(Q) class small — tried on paper, not adopted
+
+*Measured 2026-10-01; the instrumentation was wrappers loaded
+from outside the tree, nothing of it is committed.*
+
+`8edd644` made the pieces of a `forall` complement **keep their proofs**
+(`solve.pl:covered/7`), which they must: proved apart and thrown away they
+could rest on opposite choices of an even loop, and a program with no
+answer set was answered. The price is on the event-calculus programs alone
+— `bec_tap_01`–`03` from 0.05–0.11 s to 0.5–1.3 s — and it is all
+`dump/3`, the projection `residue/3` makes at every covering: as many
+projections as before (≈ 450 on `bec_tap_01`), each 15–18× dearer
+(0.054 → 0.8–1.0 ms). A program whose quantifiers range over Herbrand
+values does not pay it.
+
+**Why each projection got dearer.** The class the projected variables are
+in grew, and Fourier–Motzkin is superlinear in it. An average projection on
+`bec_tap_01`:
+
+| class members | before `8edd644` | after |
+|---|---:|---:|
+| kept by the projection | 1.25 | 1.59 |
+| live: variables of the proof so far | 0.53 | 2.83 |
+| dead: tuple copies from `renamed/4` | 0.55 | 1.60 |
+| dead: other temporaries and CLP(Q) slack | 1.36 | 4.36 |
+| **size** | **3.70** | **10.38** |
+
+58% dead. At the end of an answer the 211 dense variables the proof and query
+reach sit in 57 classes of 475 members, 264 of them dead. CLP(Q) cannot drop
+a member from a class, and nothing collects one that goes out of scope.
+
+**Ruled out first.**
+
+- *Tabling the projection.* 70% of the calls repeat a store already
+  projected (452 calls, 134 distinct, on `bec_tap_01`) but they are the
+  cheap ones: 20–23% of the projection time. A key has to describe the
+  class, which costs what the projection does. (SWI-Prolog's tables *do*
+  take attributed variables, CLP(Q)'s included, and recognise a variant by
+  them; an answer that carries CLP(Q) attributes comes back corrupt, which
+  a wrapper returning plain `{...}` terms would avoid. The cost argument
+  stands regardless.)
+- *Skipping projections* that do not change the answer. There are none to
+  skip: 3 of 1,310 projections on `bec_tap_01` and `_03` contribute
+  nothing to the complement; 40% give single-variable bounds and 60%
+  relate the tuple to the goal's other variables.
+
+**The design: compact after each complement.** Run the complement inside
+`discarded/3`, as `covered/7` did before `8edd644`, and carry out the new
+proof nodes, the new index entries and an exact description of the store
+over what outlives the run — the new nodes' variables, the goal's other
+variables and any older variable the run constrained — as plain terms over
+fresh names (`nb_setarg/3`). Rebuild outside: map the older variables back
+by name, post the constraints again, prepend the nodes. The proofs survive,
+and the dead members never reach the caller's class.
+
+**Two checks, and it fails both** (724 complement runs on `bec_tap_01`):
+
+1. *Older variables a run touches.* A run never **binds** one. It often
+   **constrains** them: older proof or ancestor variables share a CLP(Q)
+   class with a variable the run created in 93 runs (13%), up to 32 in one
+   run, and are in a disequality with one — `consistent/3`'s doing — in 110
+   (15%), up to 49. So the kept set is not "the new nodes and the goal's
+   variables". Collecting the older variables is cheap: `term_variables/2`
+   over the whole proof, ≈ 350 variables a run, 0.017 s in all.
+2. *What `dump/3` cannot eliminate.* 1,024 of 7,841 projected constraints
+   (13%, in 149 runs) still mention a variable outside the kept set —
+   `=\=` among them, which `dump/3` cannot eliminate a variable from.
+   Dropping them makes literals' constraints weaker than what was proved.
+   And the cost has a tail: the median projection is 0.1 ms, but 34 runs
+   (5%) take 15.0 s between them, up to 1.16 s each, because the older
+   variables to keep reach classes of ≈ 200 constraints that get projected
+   again although nothing in them changed.
+
+**What is left to try.** The Herbrand half needs no projection — a
+disequality can be carried out as it is, older variables mapped back by name.
+The trouble is all in the dense half, and there what has to be carried is the
+constraints the run **posted**, not a projection onto older variables: record
+the linear constraints a run adds and replay those whose variables outlive
+it. The hole in that is a constraint on a temporary that links two live
+variables, which a replay would lose; whether it occurs, and how often, is
+the first thing to measure.
+
+#### Why the old implementation stresses CLP(Q) so much less
+
+*Measured 2026-10-01, with `packages/clpqr` at `2f89d7f`.*
+
+On `bec_tap_01`, counted at CLP(Q)'s own interface:
+
+| | old | new |
+|---|---:|---:|
+| `dump/3` projections | 155 | 452 |
+| class variables per projection | 1.7 | 12.8 |
+| Fourier–Motzkin elimination steps | 39 | 1,807 |
+| constraints posted (`{}/1`) | 2,004 | 6,461 |
+| projection time | 0.006 s | 0.206 s |
+
+Three times the projections, each over a class seven times larger, with
+targets of the same size (1.2 against 1.7 variables). Not the copying: the
+old `my_copy_term/4` is `copy_term_nat/4`, a fresh quantified variable per
+piece, as `renamed/4` is.
+
+**It is the work the old implementation does not do.** Every quantifier the
+old one opens, the new one opens too, the same number of times (the NMR
+sub-check once, the `-holdsAt` dual 3 times, the two `stoppedIn` duals 7
+each). The new one opens 194 more, all inside `not holdsAt(F, T)`: the
+`holdsAt`, `trajectory` and `startedIn` duals. That is the goal the old one
+never calls — it covers `:- -holdsAt(F,T), holdsAt(F,T)` out of the first
+dual clause, `not -holdsAt(F,T)`, alone, which is unsound because
+`-holdsAt(filling, 25)` is true. Split at that line:
+
+| `bec_tap_01` | old | new, outside `not holdsAt` | new, inside |
+|---|---:|---:|---:|
+| projections | 155 | 157 | 295 |
+| projection time | 0.0059 s | 0.0067 s | 0.187 s |
+| constraints posted | 2,004 | 1,830 | 4,631 |
+
+Outside `not holdsAt` the two do the same CLP(Q) work to the call; inside is
+97% of the projection time. `bec_tap_03` splits the same way.
+
+**How much of that is inevitable.** Three parts:
+
+1. *Proving `not holdsAt(F, T)` where `-holdsAt(F, T)` holds* is what
+   soundness asks. Its dual quantifies over the time points an event could
+   happen at, relative to T, and covering that takes a projection per
+   covering — as the old implementation takes one per `forall` answer
+   (`check_unbound/2`). About 1.5 projections per quantifier entry: the
+   count per question is near its minimum.
+2. *The class size* is structural in part. Every constraint in this proof is
+   about time relative to the one T, so the proof's time variables end up
+   in T's class, and Fourier–Motzkin must eliminate every member it does not
+   keep. The live proof variables (≈ 27% of a class) stay while proofs are
+   kept; the dead ones (≈ 58%) would go if CLP(Q) could drop a member nothing
+   refers to, which it cannot, and compacting by projection does not work
+   (above).
+3. *Repetition* is not structural at all, and is the largest share.
+
+#### The same questions, asked again
+
+An entry is keyed by the quantified goal, its arguments other than the
+quantified variables, and every constraint on them, disequalities included
+— so a repeat is the same question in every respect the store can tell.
+Over the quantifiers inside `not holdsAt`:
+
+| | `bec_tap_01` | `bec_tap_02` | `bec_tap_03` |
+|---|---:|---:|---:|
+| entries | 194 | 194 | 484 |
+| distinct questions | 41 | 41 | 95 |
+| projections in all of them | 295 | 295 | 628 |
+| projections in repeats | 216 (73%) | 216 (73%) | 543 (86%) |
+| time in repeats | 43% | 36% | 65% |
+
+A repeat's work is counted only where no enclosing entry is itself a repeat,
+so nothing is counted twice; the times include the instrumentation's own
+cost of reading every entry's question, so the projection counts are the
+cleaner measure. The outermost entries do not repeat within an answer —
+four per answer, all distinct — the repetition is nested:
+`not holdsAt(level(10), T)` with T free is asked 24 times by the first
+`holdsAt` dual alone, 12 more with `T > 0` and 6 with `T > 5`. Across
+answers it is wholesale: `bec_tap_03`'s second answer re-proves the four
+outer questions, 0.30 s, half its time in these quantifiers, because the
+NMR check is proved again for each answer.
+
+This is an **upper bound** on what answer reuse could save, for the reasons
+§7a gives: a repeated question may deserve a different answer under a
+different coinductive hypothesis, which is what the dependency-height rule
+decides, and a reused answer has to bring its proof and its constraints with
+it ("The proof is part of the answer"). §7a's experiment 3 applies the rule:
+every one of these proofs rests on the coinductive hypothesis of an ancestor,
+typically the frame right above it, and only 12 of the 48 entries into the
+first `holdsAt` dual on `bec_tap_01` recur in the same context. So most of
+this repetition is the sound check doing work that depends on where it is
+asked; reuse could take perhaps a quarter of it.
+
+**And CLP(Q) itself** was made cheaper twice since: `2f89d7f` (choosing the
+variable to eliminate in one walk; checking only the new inequalities for
+redundancy) and `8209496` (the prefilter in one walk; the chosen variable's
+occurrences not computed twice). Together `bec_tap_01` 0.57 → 0.33 s and
+`bec_tap_03` 1.33 → 0.71 s. What is left in projection is mostly re-pivoting
+the targets after every elimination step; keeping the pivots instead halves
+the projection time but leaves redundant inequalities in 92 of 4,000 random
+projections, so it is not taken.
+
 ### 6. Annotations, optional
 
 Optional annotations avoid most `forall` problems and improve performance
@@ -690,6 +872,12 @@ It is repeated for two reasons, and the second is the one that matters:
   with it, and the next covering establishes it again. The recursion
   `holdsAt` → `initiates` → `not holdsAt` → `not initiates` over time
   then multiplies this at every level.
+
+  *No longer so for `covered/7`* (`8edd644`): proving the pieces apart was
+  unsound, and they are now proved in one proof, so what one piece
+  established is in the branch for the next. The runs that still throw
+  their work away are `elsewhere/7`'s second covering and `for_domain/6`'s
+  generator.
 
 So the question is not whether to table but **what a proof depended on**.
 
@@ -954,6 +1142,65 @@ So the next steps are failure tabling (a context-free failure of a
 variant, needing the height of the whole failed search) and complete
 answer sets (kind 3), in that order — the first is the larger share
 above and has no question of what an answer is.
+
+**The event-calculus programs that do answer repeat too** (§5d, "The same
+questions, asked again"): on `bec_tap_01`–`03`, 73–86% of the CLP(Q)
+projections are made inside a quantifier entry that asks a question already
+asked, `not holdsAt(level(10), T)` with T free 24 times over. Experiment 3
+asks whether the rule admits them; mostly it does not, and rightly.
+
+#### Experiment 3: the event-calculus repeats
+
+*2026-10-01, with `packages/clpqr` at `2f89d7f`, through
+wrappers loaded from outside the tree.*
+
+**Experiment 2's table on the current solver** catches none of them:
+
+| | table off | table on |
+|---|---|---|
+| `bec_tap_01` | 0.48 s, 212 quantifier entries | 2.00 s, 212 |
+| `bec_tap_03` | 1.05 s, 514 | 3.25 s, 511 |
+| `bec_light`, `queens` | | about the same |
+| `haplotype` | 8 answers | 5, as experiment 2 found |
+
+**Why** — the 48 proofs of `not holdsAt(...)` on `bec_tap_01`, each
+classified at `table_proved/2`:
+
+- *All 48 are `assumed`*: they rest on the coinductive hypothesis, the
+  recursion over time reaching a variant of an ancestor through an even
+  number of negations. The table takes `proof` only.
+- *All 48 consulted depth 0.* The source is reuse: `check_tabled/8`
+  counts a ground literal proved earlier in the branch as depth 0, since
+  where that literal was proved is not recorded. The consistency checks
+  against proved literals (the "strict" accounting) are not the cause —
+  turning them off changes nothing.
+- *Granting both refinements* — reuse and those checks consulting nothing,
+  the best that recording a literal's depth could give — the heights
+  become one below the proof's own depth, typically: each proof rests on
+  the frame right above it. 2 of 48 are self-contained (height at least
+  their own depth), and neither is a repeat.
+- *Status `assumed` is coarser than the rule needs.* A coinductive success
+  on an ancestor *inside* the subtree closes the loop within it — the goal
+  leads its own component, in SLG's terms — and the height tells that
+  apart where the status does not. Taking the height alone is what the
+  previous point already granted.
+
+**Reuse scoped to the context.** SLG's answer to a repeat inside a
+component is that the second call consumes the first's answers. Here that
+is a table entry valid for a lookup whose ancestors, down to the depth the
+proof consulted, are the same. Keyed on the goal with its store and the
+ancestor goals to that depth (their stores set aside, so that what siblings
+did to a shared ancestor does not separate them), **12 of the 48** are
+repeats — an upper bound, with every refinement above granted.
+
+So on these programs the repetition is mostly *legitimate*: 36 repeated
+goals, of which a third recur in the same context and two thirds under a
+different ancestor, where the answer may differ. What reuse could save is
+about a quarter of the entries into `not holdsAt`, and getting there needs
+the height refinements, a table scoped to an ancestor, accepting `assumed`
+proofs by height, and splicing the proofs. `bec_loan`, where experiment 1
+found two thirds of the proofs context-free, is a different case, and
+failure tabling remains its next step.
 
 ### 8. Output: HTML first, text derived
 

@@ -51,70 +51,69 @@ defaults, dynamic consistency checking included.
 
 | program | old answers | old s | new answers | new s | speed | answer | model | disposition |
 |---|---:|---:|---:|---:|---:|:-:|:-:|---|
-| all_programs/bec_light | 2 | 0.075 | 2 | 0.008 | 9.7× | ✓ | ✗ |  |
-| all_programs/bec_loan | 4 | 0.206 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
-| all_programs/bec_tap_01_overflow | 1 | 0.021 | 1 | 0.587 | 0.04× | ✓ | ✗ |  |
-| all_programs/bec_tap_02_no_overflow | 1 | 0.028 | 1 | 0.577 | 0.05× | ✓ | ✗ |  |
-| all_programs/bec_tap_03_two_models | 2 | 0.037 | 2 | 1.309 | 0.03× | ✓ | ✗ |  |
-| all_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.047 | 2 | 0.026 | 1.8× | ✓ | ✗ |  |
-| all_programs/birds | 1 | 0.003 | 1 | 0.002 | 1.8× | ✓ | ✗ |  |
+| all_programs/bec_light | 2 | 0.038 | 2 | 0.009 | 4.4× | ✓ | ✗ |  |
+| all_programs/bec_loan | 4 | 0.201 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
+| all_programs/bec_tap_01_overflow | 1 | 0.021 | 1 | 0.386 | 0.05× | ✓ | ✗ |  |
+| all_programs/bec_tap_02_no_overflow | 1 | 0.027 | 1 | 0.341 | 0.08× | ✓ | ✗ |  |
+| all_programs/bec_tap_03_two_models | 2 | 0.036 | 2 | 0.797 | 0.05× | ✓ | ✗ |  |
+| all_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.037 | 2 | 0.022 | 1.7× | ✓ | ✗ |  |
+| all_programs/birds | 1 | 0.003 | 1 | 0.002 | 1.6× | ✓ | ✗ |  |
 | all_programs/classic_negation_inconstistent | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/family | 1 | 0.003 | 1 | 0.003 | 1.0× | ✓ | ✗ |  |
 | all_programs/forall_arity | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
-| all_programs/hanoi | 1 | 0.039 | 1 | 0.007 | 5.5× | ✓ | ✓ |  |
-| all_programs/hanoi_7 | 1 | 0.012 | 1 | 0.003 | 3.6× | ✓ | ✓ |  |
-| all_programs/hanoi_scasp_7 | 1 | 0.015 | 1 | 0.004 | 3.6× | ✓ | ✓ |  |
+| all_programs/hanoi | 1 | 0.039 | 1 | 0.008 | 5.2× | ✓ | ✓ |  |
+| all_programs/hanoi_7 | 1 | 0.012 | 1 | 0.004 | 3.3× | ✓ | ✓ |  |
+| all_programs/hanoi_scasp_7 | 1 | 0.014 | 1 | 0.004 | 3.3× | ✓ | ✓ |  |
 | all_programs/haplotype | 8 | 0.001 | 8 | 0.002 | 0.7× | ✓ | ✓ |  |
 | all_programs/min_model | 4 | < 0.001 | 4 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/olon_unreachable | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
 | all_programs/pq | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
-| all_programs/queens | 2 | 0.966 | 2 | 0.104 | 9.3× | ✓ | ✗ |  |
+| all_programs/queens | 2 | 0.960 | 2 | 0.102 | 9.4× | ✓ | ✓ |  |
 | all_programs/rat | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
-| all_programs/solve_findall | 1 | < 0.001 | 1 | 0.003 | – | ✓ | ✓ |  |
+| all_programs/solve_findall | 1 | < 0.001 | 1 | 0.002 | – | ✓ | ✓ |  |
 | all_programs/vars | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
-| dcc/hamilton_c | 3 | 0.031 | 3 | 0.038 | 0.8× | ✓ | ✓ |  |
-| min_programs/bec_loan | 4 | 0.197 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
-| min_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.051 | 2 | 0.026 | 2.0× | ✓ | ✗ |  |
+| dcc/hamilton_c | 3 | 0.030 | 3 | 0.038 | 0.8× | ✓ | ✓ |  |
+| min_programs/bec_loan | 4 | 0.187 | timeout | > 60 | – | ✗ | ✗ | `gap(slow)` |
+| min_programs/bec_tap_04_abducible_infer_event_time | 2 | 0.037 | 2 | 0.022 | 1.7× | ✓ | ✗ |  |
 | min_programs/clpq_gt_gte_lt_lte_equal | 2 | 0.002 | 2 | 0.004 | 0.5× | ✓ | ✗ |  |
-| min_programs/clpq_intercept | 9 | 0.055 | 9 | 0.013 | 4.2× | ✓ | ✗ |  |
+| min_programs/clpq_intercept | 9 | 0.053 | 9 | 0.013 | 4.0× | ✓ | ✗ |  |
 | min_programs/ex01-dual | 3 | < 0.001 | 3 | < 0.001 | – | ✓ | ✗ |  |
-| min_programs/ex02-member | 1 | 0.003 | 1 | 0.003 | 0.9× | ✓ | ✗ |  |
-| min_programs/hamiltonian_scasp | 2 | 0.096 | 2 | 0.065 | 1.5× | ✓ | ✓ |  |
-| min_programs/nixon-diamond | 3 | 0.003 | 3 | 0.002 | 2.2× | ✓ | ✗ |  |
+| min_programs/ex02-member | 1 | 0.003 | 1 | 0.003 | 1.0× | ✓ | ✓ |  |
+| min_programs/hamiltonian_scasp | 2 | 0.092 | 2 | 0.065 | 1.4× | ✓ | ✓ |  |
+| min_programs/nixon-diamond | 3 | 0.003 | 3 | 0.002 | 2.0× | ✓ | ✗ |  |
 | min_programs/solve_findall_superset | 16 | 0.002 | 16 | 0.004 | 0.4× | ✓ | ✓ |  |
 | min_programs/solve_not_is | 2 | 0.002 | 1 | < 0.001 | – | ✗ | ✗ | `golden` |
 | min_programs/solve_not_true | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
-| min_programs/stream_reasoning | 4 | 0.025 | 3 | 0.034 | 0.8× | ✗ | ✗ | `golden` |
-| min_programs/yale_shooting_casp_v2 | 7 | 0.013 | 7 | 0.007 | 1.9× | ✓ | ✓ |  |
+| min_programs/stream_reasoning | 4 | 0.024 | 3 | 0.032 | 0.8× | ✗ | ✗ | `golden` |
+| min_programs/yale_shooting_casp_v2 | 7 | 0.013 | 7 | 0.008 | 1.6× | ✓ | ✓ |  |
 | sasp/abdbirds | 3 | 0.002 | 3 | 0.001 | 1.2× | ✓ | ✗ |  |
 | sasp/gpa | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✗ |  |
-| sasp/hamcycle | 1 | 0.008 | 1 | 0.003 | 2.4× | ✓ | ✗ |  |
-| sasp/hamcycle_two | 1 | 0.024 | 2 | 0.047 | 0.5× | ✓ | ✗ |  |
-| sasp/hanoi_7 | 1 | 0.012 | 1 | 0.003 | 3.6× | ✓ | ✓ |  |
+| sasp/hamcycle | 1 | 0.008 | 1 | 0.003 | 2.5× | ✓ | ✗ |  |
+| sasp/hamcycle_two | 1 | 0.024 | 2 | 0.046 | 0.5× | ✓ | ✗ |  |
+| sasp/hanoi_7 | 1 | 0.012 | 1 | 0.004 | 3.2× | ✓ | ✓ |  |
 | sasp/left-rec-succ_BAD | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
-| sasp/lion | 1 | 0.006 | 1 | 0.006 | 1.0× | ✓ | ✗ |  |
+| sasp/lion | 1 | 0.006 | 1 | 0.005 | 1.3× | ✓ | ✗ |  |
 | sasp/loop_pos | 0 | < 0.001 | 0 | < 0.001 | – | ✓ | ✓ |  |
 | sasp/loop_succ_pos | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✓ |  |
 | sasp/loopvar | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✗ |  |
 | sasp/loopvar2 | 1 | < 0.001 | 1 | < 0.001 | – | ✓ | ✗ |  |
 | sasp/natnum | 1 | < 0.001 | 1 | 0.006 | – | ✓ | ✓ |  |
-| sasp/path_loop | 3 | 0.007 | 3 | 0.002 | 3.3× | ✓ | ✗ |  |
+| sasp/path_loop | 3 | 0.007 | 3 | 0.002 | 2.7× | ✓ | ✗ |  |
 | sasp/queens_old | 2 | 0.009 | 2 | 0.011 | 0.8× | ✓ | ✓ |  |
 
 | | |
 |---|---|
 | agree on the answer | **45 of 49** |
-| agree on the model as well | 23 of 49 |
+| agree on the model as well | 25 of 49 |
 | same number of answers | 44 of 49 |
-| speed, geometric mean over the 29 measurable | **1.16×** |
-| faster / slower (by more than 10%) | 16 / 10 |
-| total, `bec_loan` excluded | old 1.60 s, new 2.9 s |
+| speed, geometric mean over the 29 measurable | **1.14×** |
+| faster / slower (by more than 10%) | 17 / 10 |
+| total, `bec_loan` excluded | old 1.53 s, new 1.96 s |
 
-Measured on 2026-10-01 at `badd1fd`, with fact and derived-predicate
-unfolding on (their defaults); `hamcycle_two`, `hamiltonian_scasp` and
-`lion` re-measured after `for_domain/6` started keeping the proofs of its
-values, and `bec_tap_01`–`03` and `hamilton_c` after `forall/5`'s complement
-did too — the only programs either change moves by more than noise.
+Measured on 2026-10-01 (the solver as at `8edd644`) with
+`packages/clpqr` at `2f89d7f`, with fact and derived-predicate unfolding on
+(their defaults), on an otherwise idle machine.  That CLP(Q) change speeds
+up both implementations, so it moves both columns: see below.
 
 **The four that do not agree on the answer** are all recorded.  `bec_loan`,
 in both corpora it is in, does not finish within the limit (`gap(slow)`); its
@@ -138,11 +137,14 @@ so a solver that reaches the same answer by another route carries a different
 model with it.  That is why agreement on the answer is the definition of
 agreeing and agreement on the model a regression test.  `hanoi_scasp_7` and
 `hamilton_c` say `#show`, and their golden models are the shown part only;
-since `#show` is implemented both agree on the model too.
+since `#show` is implemented both agree on the model too.  `queens` and
+`ex02-member` have agreed since the pieces of a quantifier's complement are
+kept in the proof (`8edd644`): the old implementation keeps them, so its
+models hold what they proved, and ours left it out.
 
 ## Where the new implementation is faster, and why
 
-`hanoi` (5.5×), `queens` (9×) and the other `hanoi` programs (3.6×) show
+`hanoi` (5.0×), `queens` (9.5×) and the other `hanoi` programs (3.3×) show
 it, and come from the same changes:
 
 - **Compiling to predicates instead of interpreting `pr_rule/3`.**  That is
@@ -156,8 +158,8 @@ complement branches — the proof reached 131,135 nodes holding 1.3M attributed
 variables where the answer has 53 literals, which is what exhausted a 4 GB
 stack.
 
-**Inferred domains** are the rest: `hamiltonian_scasp` (1.5×, from 0.15×),
-`bec_light` (9.7×, from 0.48×), `hamcycle` and `hamilton_c` (1.4–2.4×) and
+**Inferred domains** are the rest: `hamiltonian_scasp` (1.4×, from 0.15×),
+`bec_light` (4.4×, from 0.48×), `hamcycle` (2.5×) and
 `solve_not_is` (from 0.26 s to under a millisecond).  A body-only variable
 becomes a quantifier in the dual, and with nothing declared it ranges over
 every term: the quantifier covers that universe piece by piece, and each piece
@@ -207,7 +209,7 @@ rule does not apply.
 
 ## Where it is slower, and why
 
-The event-calculus programs `bec_tap_01`–`03` (0.03–0.05×), and a handful
+The event-calculus programs `bec_tap_01`–`03` (0.05–0.08×), and a handful
 of small programs by a few milliseconds.
 
 *The complement's pieces are proved in one proof.*  They used to be
@@ -221,8 +223,21 @@ variable a constraint reached in one class, and the class is projected
 (`dump/3`, Fourier–Motzkin) at every covering.  Kept, the class grows, and
 `bec_tap_01`–`03` went from 0.05–0.11 s to 1.2–2.8 s; half of that was the
 loop check walking the store with `term_attvars/2` and is back
-(`solve.pl:has_store/1`), leaving 0.6–1.3 s.  The projection is the rest,
-and winning it back without losing the proofs is open.
+(`solve.pl:has_store/1`), leaving 0.5–1.3 s.  The projection is the rest.
+`doc/design-next.md` §5d has what was measured and the design for keeping
+the class small that did not survive it.  `hamilton_c` (0.024 → 0.038 s,
+now 0.8×) pays a little of the same.
+
+*CLP(Q) itself was then made faster* (`packages/clpqr` `2f89d7f`), at the
+two places where Fourier–Motzkin's cost grew with the class rather than with
+the projection: choosing the variable to eliminate walked the whole class
+once per candidate, and every elimination step re-checked every bound in
+the class for redundancy, where only the inequalities the step adds can be
+redundant.  Neither the projections nor the stores held any redundant
+constraint to remove.  It takes `bec_tap_01`–`03` to 0.34–0.80 s, about
+40% off, and with identical answers; the old implementation gains on
+`bec_light` (0.075 → 0.038 s) and `bec_tap_04` (0.048 → 0.037 s).  What is
+left is still the projection, over classes the kept pieces make larger.
 
 Before that, for the event-calculus ones it
 was the NMR check, not the query: `bec_tap_01` answers each of its ten
@@ -298,9 +313,9 @@ supported one means.  `doc/semantics.md` treats it with the rest.
 ## The test suite
 
 `make check` is `check_load` and then `test/test_all.pl` twice, once per
-implementation: **524 tests and 432 sub-tests** against the old library,
-**1,180 and 1,246** against the new one, 35 of whose shared tests are recorded
-gaps.  About 7 and 9 s of CPU, 14 s wall for the whole target including the
+implementation: **525 tests and 433 sub-tests** against the old library,
+**1,188 and 1,249** against the new one, 35 of whose shared tests are recorded
+gaps.  About 7 and 13 s of CPU, 14 s wall for the whole target including the
 executables' load checks.  Units run concurrently with `jobs(4)`.
 
 The sweeps against the Gelfond–Lifschitz oracle are what the soundness claim
