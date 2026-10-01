@@ -64,6 +64,7 @@
 :- use_module(mangle, [demangle/2, kind_literal/3]).
 :- use_module(sld, [sld_proof/3]).
 :- use_module(library(lists), [member/2, append/2, append/3, same_length/2, nth1/3]).
+:- use_module(library(solution_sequences), [distinct/2]).
 :- use_module(library(occurs), [occurrences_of_var/3]).
 :- use_module(library(pairs), [pairs_keys_values/3]).
 :- use_module(library(clpq), [dump/3, entailed/1, inf/2, sup/2, {}/1]).
@@ -451,9 +452,8 @@ same_question(A, Goal) :-
     ->  true				% identical stores: nothing left to ask
     ;   functor(A, Name, Arity),	% quick prefilter
         functor(Goal, Name, Arity),
-        \+ \+ ( term_attvars(A-Goal, Vars),
-                maplist(del_attrs, Vars),
-                A =@= Goal ),
+        copy_term_nat(A-Goal, BareA-BareGoal),
+        BareA =@= BareGoal,
         term_variables(Goal, GoalVars),
         term_variables(A, AncestorVars),
         within(GoalVars, AncestorVars),
@@ -470,13 +470,10 @@ same_question(A, Goal) :-
 %   it is a more general question with answers of its own.
 
 instance_of(A, Goal) :-
-    term_attvars(A, AncestorVars),
-    (   AncestorVars == []
+    (   \+ has_store(A)
     ->  subsumes_term(A, Goal)		% nothing for A to add
-    ;   \+ \+ ( term_attvars(Goal, GoalVars),
-                maplist(del_attrs, AncestorVars),
-                maplist(del_attrs, GoalVars),
-                subsumes_term(A, Goal) ),
+    ;   copy_term_nat(A-Goal, BareA-BareGoal),
+        subsumes_term(BareA, BareGoal),
         herbrand_instance(A, Goal),
         dense_instance(A, Goal)
     ).
@@ -489,12 +486,25 @@ instance_of(A, Goal) :-
 %   set aside.
 
 store_instance(A, Goal) :-
-    term_attvars(A, Vars),
-    (   Vars == []
+    (   \+ has_store(A)
     ->  true				% the ancestor constrains nothing
     ;   herbrand_instance(A, Goal),
         dense_instance(A, Goal)
     ).
+
+%!  has_store(@Term) is semidet.
+%
+%   True when a variable of Term carries a constraint.  The stores are
+%   set aside by copy_term_nat/2 and asked about here, never through
+%   term_attvars/2: that walks the *attributes* as well, and a CLP(Q)
+%   attribute reaches every variable of its class, so on a long proof it
+%   was most of the time spent recognising loops.
+
+has_store(Term) :-
+    term_variables(Term, Vars),
+    member(Var, Vars),
+    attvar(Var),
+    !.
 
 %!  herbrand_instance(@A, @Goal) is semidet.
 %
@@ -728,11 +738,11 @@ absent(Goal, proof(Forest, Index), proof([n(Goal, proof, [])|Forest], Index)).
 %   **Only prunes.**  Everything the proof holds and every open ancestor
 %   ends up in the model if this branch succeeds, so a constraint whose
 %   literals are all there would fail the NMR check anyway.  That is not
-%   true inside a quantifier's complement, whose proof is thrown away,
-%   nor of the generator a `for_domain/6` runs to find a domain's values,
-%   whose proof `findall/3` throws away: pruning `d(2)` there removes a
-%   value from the domain, and the quantifier then covers too little.
-%   So the check is off in both: `sscasp_no_dcc`, which covered/7,
+%   true of a run whose proof is thrown away: elsewhere/7's second
+%   covering, and the generator a `for_domain/6` runs to find a domain's
+%   values, whose proof `findall/3` throws away — pruning `d(2)` there
+%   removes a value from the domain, and the quantifier then covers too
+%   little.  So the check is off in both: `sscasp_no_dcc`, which
 %   elsewhere/7 and for_domain/6 set for the length of the run.
 %
 %   Tried inside `\+ \+`: finding the others binds and constrains, and
@@ -814,9 +824,15 @@ forest_children(F2, F0, Children) :-
 %   which is the same machinery `forall/5` uses.  A value is the case
 %   where it has nothing left to do.
 %
-%   A covering **checks** and adds nothing to the proof, as a branch of
-%   forall/5 does (see cover/6): the literals the generator and the
-%   coverings needed are not in the model.
+%   The values are a **conjunction, proved in one proof**: each is
+%   covered from the proof the ones before it left, and that proof is
+%   the quantifier's, as the pieces of a forall/5 complement are (see
+%   covered/7).  Proving each from the caller's
+%   proof and keeping none was unsound: `ok(1)` could rest on `a` and
+%   `ok(2)` on `b` of an even loop between the two, so a check over
+%   `d(X), not ok(X)` passed for a program with no answer set, and the
+%   model held none of what the values needed.  `sasp/hamcycle_two`
+%   answered with a model holding one edge and no cycle.
 
 for_domain(Quantified, Generator, Goal, Anc, S0, S) :-
     quantified_list(Quantified, Vars),
@@ -827,12 +843,13 @@ for_domain(Quantified, Generator, Goal, Anc, S0, S) :-
               ),
               Restrictions0),
     distinct_restrictions(Restrictions0, Restrictions),
-    outer_variables(Goal, Vars, Others),
-    S = S0,
-    (   ground(Others)
-    ->  once(cover_each(Restrictions, Vars, Goal, [], Anc, S0))
-    ;   cover_each(Restrictions, Vars, Goal, [], Anc, S0)
-    ).
+    cover_values(Restrictions, Vars, Goal, Anc, S0, S).
+
+cover_values([], _, _, _, S0, S) =>
+    S = S0.
+cover_values([Restriction|Rest], Vars, Goal, Anc, S0, S) =>
+    cover(Vars, Goal, [Restriction], Anc, S0, S1),
+    cover_values(Rest, Vars, Goal, Anc, S1, S).
 
 %   One variable, or the tuple one fact literal bounds
 %   (`dualise.pl:enumerated/5`), each restriction then being one of the
@@ -844,15 +861,11 @@ quantified_list(Quantified, Vars) :-
     ;   Vars = Quantified
     ).
 
-%   **Committed to when nothing else could vary.**  The values are a
-%   conjunction, and with the goal's other variables ground a second way
-%   of covering them proves the same fact again — as `forall/5` argues —
-%   while backtracking into each value's covering for it is exponential:
-%   `sasp/hamcycle_two` never finished.  Where the other variables are
-%   free a covering may bind them, and another covering binding them
-%   differently is another answer, so there it is not committed to:
-%   committing there leaves `bec_loan` with no answer at all.  Every
-%   sub-check of the NMR check has arity zero, so there it always is.
+%   **Not committed to.**  It used to be, where the goal's other
+%   variables are ground — every sub-check of the NMR check — on the
+%   argument that a second covering proves the same fact again.  That
+%   held only while the coverings' proofs were thrown away: kept, a
+%   second covering is a second model, `hamcycle_two`'s other cycle.
 %
 %   An inferred domain (`dualise.pl:var_domain/4`) enumerates a value
 %   once per fact holding it, `edge(_, W)` giving each W as often as it is
@@ -1425,15 +1438,14 @@ flipped({Comparison}, {Flipped}) :-
 %   disequality, which is what `find_duals/4` does upstream.  It is not
 %   free: it took `queens.pl` from 0.063 s to 0.42 s when it was made.
 %
-%   A branch **checks**; it does not contribute to the proof.  Threading
-%   each branch's proof into the next made the proof double per level of
-%   the recursion — 131,135 nodes on `queens.pl`, where the old
-%   implementation answers with 53 literals — because every branch
-%   re-solves the same goal and most of what it proves repeats.  So the
-%   quantifier's proof is the one its first answer gave, which is what
-%   the old implementation keeps too (`solve_other_forall/11` copies the
-%   stack per branch and returns one).  The branches still run, still
-%   constrain the variables they share, and still have to succeed.
+%   The branches are **proved in one proof**, the first answer's and then
+%   each piece of the complement's in turn (covered/7), as the old
+%   implementation's `solve_var_forall_/11` threads its stack.  They
+%   once only checked, each from the proof the first answer left, which
+%   was unsound: see covered/7.  (Threading was what first made the
+%   proof double per level of the recursion — 131,135 nodes on
+%   `queens.pl` — but that was before ground literals were reused from
+%   the proof; it costs `queens.pl` nothing now.)
 %
 %   Where a variable's domain is finite it has to be declared, and then
 %   `for_domain/6` enumerates it — outside this, one quantifier of its
@@ -1489,39 +1501,29 @@ coverable([Instance|Instances]) :-
 
 %!  covered(@Rest, @Vars, ?Goal, @Narrowing, ?Anc, ?S0, -S) is semidet.
 %
-%   Cover the whole complement, and keep of it **only what it says about
-%   the variables the goal shares with its caller**.
+%   Cover the whole complement, each piece from the proof the ones
+%   before it left: the pieces are a conjunction, and what each proves
+%   is part of the answer.
 %
-%   A branch already contributes no proof, which is why a model holds
-%   only what the first answer established.  What it must also not
-%   contribute is a *constraint store*.  A branch invents variables of
-%   its own, and CLP(Q) keeps every variable a constraint ever reached in
-%   one class, with nothing to collect the ones that go out of scope —
-%   so the class grows by everything every branch ever touched, and
-%   `dump/3` is Fourier–Motzkin over that class, asked once per covering.
-%   The quantifier gets quadratically slower at the thing it does most:
-%   on `not holdsAt(level(10), T)` for `T > 5` the class reached 199
-%   variables, a projection cost 67 ms, and the goal did not finish in 20
-%   seconds.
+%   They used to be covered in a run that `fail` undid, carrying out only
+%   a snapshot of what they said about the goal's other variables.  That
+%   was unsound: a piece is proved against the coinductive hypothesis,
+%   and with nothing kept the next piece could rest on the opposite
+%   choice of an even loop.  `:- dom(Y), not ok(Y)` over `dom(1..2)`,
+%   with `ok(1) :- a`, `ok(2) :- b` and `a`, `b` an even loop, passed
+%   for a program with no answer set
+%   (`test_differential.pl:the_values_of_a_derived_domain_hold_together`).
 %
-%   What a branch *does* have to leave behind is its narrowing of the
-%   caller's variables: `not s(B)` for `s(B) :- u(X), X #> B, X #< B+3`
-%   over `u(5)` holds where 5 is outside the window, and that is said by
-%   the branch covering X = 5, not by the first answer.  Dropping it
-%   makes `not s(4)` succeed.
+%   The run was there for speed, and keeping the pieces costs it.  A
+%   piece invents variables, CLP(Q) keeps every variable a constraint
+%   reached in one class, and `dump/3` — Fourier–Motzkin over that class
+%   — is asked once per covering, so the class now grows with every
+%   piece: `bec_tap_01` 0.05 s → 0.6 s, `bec_tap_03` 0.11 s → 1.3 s.
+%   Half of what it first cost went on recognising loops and was won
+%   back there (has_store/1).
 %
-%   So the complement is covered inside a run that `fail` undoes, and one
-%   snapshot of the shared variables comes back out through
-%   `nb_setarg/3` over fresh plain names — the device `elsewhere/7`
-%   already uses to carry a description out of a run it is discarding.
-%   **One** snapshot for the whole complement, not one per branch: the
-%   branches are a conjunction, so what survives them is the projection
-%   of the store they leave, and taking it per branch costs a projection
-%   per branch for the same answer — which on `bec_tap_01` was 12.4 of
-%   the 20 seconds, and bought nothing the one snapshot does not.
-%
-%   The complement is covered **once**.  Without that the run is not a
-%   run but an enumeration of every way to cover it, and even
+%   The complement is covered **once**.  Without that the search is an
+%   enumeration of every way to cover it, and even
 %   `not holdsAt(level(10), T)`, which answers in 4 ms, does not finish.
 %   `forall_/6` already commits to the covering it found, for the reason
 %   its own comment gives; this is the same commitment one level in.
@@ -1532,22 +1534,13 @@ coverable([Instance|Instances]) :-
 covered([], _, _, _, _, S0, S) =>
     S = S0.
 covered(Rest, Vars, Goal, Narrowing, Anc, S0, S) =>
-    S = S0,
-    outer_variables(Goal, Vars, Shared),
-    discarded(( b_setval(sscasp_no_dcc, true),
-                cover_each(Rest, Vars, Goal, Narrowing, Anc, S0),
-                snapshot(Shared, Shared, Names, Constraints)
-              ),
-              Names-Constraints, Kept),
-    restrict(Kept, Shared).
+    once(cover_each(Rest, Vars, Goal, Narrowing, Anc, S0, S)).
 
-%   Each restriction is covered in turn, and none contributes a proof:
-%   a covering checks, so the caller's proof is S0 whatever happened.
-
-cover_each([], _, _, _, _, _).
-cover_each([Restriction|Rest], Vars, Goal, Narrowing, Anc, S0) :-
-    cover(Vars, Goal, [Restriction|Narrowing], Anc, S0, _),
-    cover_each(Rest, Vars, Goal, Narrowing, Anc, S0).
+cover_each([], _, _, _, _, S0, S) =>
+    S = S0.
+cover_each([Restriction|Rest], Vars, Goal, Narrowing, Anc, S0, S) =>
+    cover(Vars, Goal, [Restriction|Narrowing], Anc, S0, S1),
+    cover_each(Rest, Vars, Goal, Narrowing, Anc, S1, S).
 
 %!  outer_variables(@Goal, @Vars, -Others) is det.
 %
@@ -1866,6 +1859,15 @@ call_in(Goal, Module, Anc, S0, S) =>
 %   is what the interpreter found *under* it, which for `opaque` is
 %   nothing.
 %
+%   **One proof per answer.**  A positive goal yields each distinct
+%   instance once, with the first proof Prolog finds for it.  Which
+%   derivation proved `cond(c1)` does not matter to the answer, and
+%   backtracking into the others gave one s(CASP) answer per derivation:
+%   a subsumption hierarchy that reaches a condition along several paths
+%   made one query give 72 answers where 17 differ in anything but how a
+%   Prolog goal was proved.  With the old implementation a program gets
+%   the same by tabling the Prolog predicates it calls.
+%
 %   @arg Goal is `Module:p(...)` or `Module:not(p(...))`, unmangled.
 %   @arg Type is `justified` or `opaque`, as in sld_proof/3.
 
@@ -1879,7 +1881,7 @@ sld_goal(Module:not(Goal), Type, _Anc, S0, S) =>
     ),
     S = S0.
 sld_goal(Goal, Type, _Anc, S0, S) =>
-    sld_proof(Goal, Type, Children),
+    distinct(Goal, sld_proof(Goal, Type, Children)),
     maplist(sld_node, Children, Nodes),
     splice(Nodes, S0, S).
 

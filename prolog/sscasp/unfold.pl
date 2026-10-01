@@ -217,10 +217,9 @@ denial_bodies([('$denial' :- Body)|T], Bodies, Tail) =>
 %   no quantifier: `dualise.pl:clause_dual/7` makes it `not Literal`.
 %
 %   That is the case unfolding leaves: an observation the data does not
-%   have.  `dualise.pl:clause_dual/7` uses it only for a literal whose
-%   variables are all body-only.  Rules that read one into a variable
-%   and compare it made every `not rule(R)` quantify over the values of
-%   every observation that is not there.
+%   have.  Rules that read one into a variable and compare it made every
+%   `not rule(R)` quantify over the values of every observation that is
+%   not there.
 
 no_fact(index(Facts, _, Defined, _), Literal) :-
     user_literal(Literal),

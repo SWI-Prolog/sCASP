@@ -11,6 +11,7 @@
             set_scasp_flags/1,          % +Flags
             with_forall/2,              % +Algorithm, :Goal
             with_scasp_flag/3,          % +Flag, +Value, :Goal
+            without_unfolding/1,        % :Goal
             answers_admit/4,            % :Query, ?Var, +Candidates, -Admitted
             expect_semantics/0          % for :- if/1
           ]).
@@ -254,12 +255,27 @@ prolog:message(scasp_test(should_exclude(Term, Value))) -->
 
 :- meta_predicate
     with_forall(+, 0),
-    with_scasp_flag(+, +, 0).
+    with_scasp_flag(+, +, 0),
+    without_unfolding(0).
 
 with_forall(Algorithm, Goal) :-
     (   current_prolog_flag(scasp_forall, _)
     ->  with_scasp_flag(scasp_forall, Algorithm, Goal)
     ;   call(Goal)                      % one algorithm: nothing to select
+    ).
+
+%!  without_unfolding(:Goal) is nondet.
+%
+%   Run Goal with `library(sscasp)`'s compile-time unfolding off, so a
+%   quantifier over a small domain is solved as a quantifier rather than
+%   compiled away.  Where the flags do not exist, as in the old
+%   implementation, there is nothing to turn off and Goal is called.
+
+without_unfolding(Goal) :-
+    (   current_prolog_flag(sscasp_unfold_facts, _)
+    ->  with_scasp_flag(sscasp_unfold_facts, false,
+                        with_scasp_flag(sscasp_unfold_derived, false, Goal))
+    ;   call(Goal)
     ).
 
 %!  with_scasp_flag(+Flag, +Value, :Goal) is nondet.

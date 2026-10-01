@@ -4,7 +4,7 @@
 :- use_module(differential).
 :- use_module(stable_models, [stable_models/2, op(900, fy, not),
                               op(700, xfx, [#=, #<>, #<, #>, #=<, #>=])]).
-:- use_module(scasp_plunit, [expect_semantics/0]).
+:- use_module(scasp_plunit, [expect_semantics/0, without_unfolding/1]).
 :- use_module(library(plunit)).
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [member/2]).
@@ -120,6 +120,16 @@ example(clp_negated,      [ dom(1), dom(2), dom(3),
                             (p(X) :- dom(X), X #> 1),
                             (r(X) :- dom(X), not p(X)) ]).
 
+%   A domain defined by a rule rather than by facts, so the quantifier in
+%   the constraint's dual ranges over everything rather than over an
+%   enumerated domain.  `ok(1)` rests on `a`, `ok(2)` on `b`, and the even
+%   loop allows only one of them, so there is no answer set.
+
+example(derived_domain,   [ e(1), e(2), (dom(X) :- e(X)),
+                            (ok(1) :- a), (ok(2) :- b),
+                            (a :- not b), (b :- not a),
+                            (:- dom(Y), not ok(Y)) ]).
+
 test(agrees_with_the_definition, [forall(example(Name, Program))]) :-
     assertion(ground(Name)),
     agree(Program).
@@ -134,6 +144,19 @@ test(an_odd_loop_leaves_no_answer_set) :-
     assertion(Models == []),
     assertion(\+ scasp_brave([(p :- not p)], p)),
     assertion(\+ scasp_brave([(p :- not p)], not p)).
+
+%   `derived_domain` again, with `library(sscasp)`'s compile-time
+%   unfolding off, which would otherwise turn the quantifier into two
+%   literals proved in one proof.  Each value the quantifier covers has
+%   to hold *together* with the others: proved one at a time, `ok(1)`
+%   rests on `a` and `ok(2)` on `b`, and the constraint passes for a
+%   program with no answer set.  With the unfolding on the same happens
+%   over nine values, beyond its limit; the old implementation takes a
+%   minute over those, so the test uses two.
+
+test(the_values_of_a_derived_domain_hold_together) :-
+    example(derived_domain, Program),
+    without_unfolding(assertion(\+ scasp_brave([q|Program], q))).
 
 test(a_positive_loop_is_unfounded) :-
     Program = [(p :- q), (q :- p)],

@@ -291,16 +291,50 @@ answer(Module, Program, Query, Model, Justification) :-
     table_begin,
     Nmr = Program.nmr.goal,             % bound here: dict notation expands
     empty_proof(Empty),
+    seen_answers(Seen),
     catch(solved(Module, Goals, Nmr, Empty, Proof0, Proof),
           Error,
           rethrown(Error)),
     model(Proof, Model0),
     normalise(Query-Model0),
     shown_model(Program.shown, Model0, Model),
+    new_answer(Seen, Query-Model),
     children(Proof, Proof0, Checked),
     justification(Proof0, Asked),
     justification(Checked, Because),
     append(Asked, ['$nmr'-Because], Justification).
+
+%!  seen_answers(-Seen) is det.
+%!  new_answer(+Seen, @Answer) is semidet.
+%
+%   **An answer is its bindings and its model**, and one that has
+%   already been given is not given again, however differently it was
+%   proved.  The proof of the NMR check is where it differs most: a
+%   sub-check satisfied by either of two literals is two proofs of one
+%   answer, and a large rule base's checks made one query give 72
+%   answers that were 36 after `:- sld` goals stopped repeating, and 6
+%   different ones.
+%   The constraints on the answer's variables are part of it — `X ∉ [a]`
+%   and `X ∉ [b]` are two answers.
+%
+%   The flag `sscasp_distinct_answers` (default `true`) turns this off,
+%   giving every proof, as the old implementation does.
+%
+%   @arg Seen is a trie of the answers given, or `none`.
+
+:- create_prolog_flag(sscasp_distinct_answers, true, [keep(true)]).
+
+seen_answers(Seen) :-
+    (   current_prolog_flag(sscasp_distinct_answers, true)
+    ->  trie_new(Seen)
+    ;   Seen = none
+    ).
+
+new_answer(none, _) =>
+    true.
+new_answer(Seen, Answer) =>
+    copy_term(Answer, Copy, Constraints),
+    trie_insert(Seen, Copy-Constraints).
 
 %!  shown_model(+Specs, @Model0, -Model) is det.
 %

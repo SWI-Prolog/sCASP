@@ -819,6 +819,58 @@ test(a_range_with_no_gap_has_no_negation) :-
     assertion(\+ answers(P, not q(3))),
     assertion(\+ answers([(p :- not q(_))|P], p)).
 
+%   The values of a domain are a conjunction, proved in **one** proof.
+%   Each value used to be proved from the caller's proof and none was
+%   kept, so `ok(1)` could rest on `a` and `ok(2)` on `b` with nothing
+%   noticing that the two cannot both hold, and `q` was answered for a
+%   program with no answer set.  Fact unfolding hides it by compiling
+%   the quantifier away, so it is asked twice: two values with
+%   unfolding off, and nine, more than `sscasp_unfold_limit`, with the
+%   defaults.
+
+%!  choice_program(+N, +Last, -Program) is det.
+%
+%   `ok(1..N-1)` need `a`, `ok(N)` needs Last, and the constraint needs
+%   every `ok`.  With Last = `b` there is no answer set.
+
+choice_program(N, Last, Program) :-
+    findall(d(I), between(1, N, I), Ds),
+    N1 is N-1,
+    findall((ok(I) :- a), between(1, N1, I), Oks),
+    append([ Ds, Oks,
+             [ (ok(N) :- Last),
+               (a :- not b), (b :- not a),
+               (:- d(X), not ok(X)),
+               q
+             ]
+           ], Program).
+
+domain_case(2, false).
+domain_case(9, true).
+
+test(the_values_of_a_domain_hold_together,
+     [forall(domain_case(N, Unfold))]) :-
+    choice_program(N, b, P),
+    (   N =< 2                          % the oracle is exponential
+    ->  assertion(stable_models(P, []))
+    ;   true
+    ),
+    with_scasp_flag(sscasp_unfold_facts, Unfold,
+                    assertion(\+ answers(P, q))).
+
+%   And what they needed is in the model.
+
+test(and_what_they_needed_is_in_the_model,
+     [forall(domain_case(N, Unfold))]) :-
+    choice_program(N, a, P),
+    with_scasp_flag(sscasp_unfold_facts, Unfold,
+                    models(P, q, Models)),
+    assertion(Models \== []),
+    forall(member(M, Models),
+           ( assertion(memberchk(a, M)),
+             assertion(memberchk(ok(N), M))
+           )).
+
 :- end_tests(solve_domains).
 
 		 /*******************************

@@ -49,9 +49,8 @@
 :- use_module(unfold,      [no_fact/2]).
 :- use_module(library(lists), [append/2, append/3, numlist/3, member/2,
                                 nth1/3]).
-:- use_module(library(apply), [maplist/3, maplist/4]).
-:- use_module(clauses, [clause_parts/3, clause_goals/2, list_body/2,
-                        literal_parts/3]).
+:- use_module(library(apply), [maplist/3, maplist/4, include/3]).
+:- use_module(clauses, [clause_goals/2, list_body/2, literal_parts/3]).
 
 /** <module> Dualising a predicate
 
@@ -256,14 +255,13 @@ clause_dual_call(Module, Base, Name/Arity, Args, Index, Call) :-
 clause_dual(Module, Annotations, Base, Name/Arity, Index, Clause, Duals) :-
     get_dict(fact_index, Annotations, Facts),
     Facts \== none,
-    clause_parts(Clause, ClauseHead, _),
     clause_goals(Clause, Goals),
     member(Literal, Goals),
     no_fact(Facts, Literal),
-    \+ shares_variable(Literal, ClauseHead),
     !,
-    abstract_head(Clause, Head, HeadGuards),
+    abstract_head(Clause, Head, HeadGuards0),
     Head =.. [_|Args],
+    include(closed_guard(Head), HeadGuards0, HeadGuards),
     clause_duals(HeadGuards, GuardBodies),
     append(HeadGuards, [not(Literal)], Absent0),
     append(GuardBodies, [Absent0], DualBodies),
@@ -296,13 +294,23 @@ clause_dual(Module, Annotations, Base, Name/Arity, Index, Clause, Duals) :-
         Duals = [Bridge|InnerClauses]
     ).
 
-shares_variable(Term1, Term2) :-
-    term_variables(Term1, Vars1),
-    term_variables(Term2, Vars2),
-    member(V1, Vars1),
-    member(V2, Vars2),
-    V1 == V2,
-    !.
+%   A head unification whose variables are all the head's: `A = cloz-7`
+%   but not `A = message{value:V}`.  The dual of the other kind,
+%   `A \= message{value:V}`, is about every V, and without the
+%   quantifier the clause dual would otherwise have it says something
+%   about *some* V instead — a constraint on A and a fresh V that holds
+%   for nothing, but which a quantifier over A then reads and covers
+%   piece by piece.  The dual of a clause no fact can make true holds
+%   wherever its head matches *and* wherever it does not, so leaving a
+%   guard out only means the clause is not dismissed that early for a
+%   call whose arguments differ there.
+
+closed_guard(Head, Guard) :-
+    term_variables(Guard, Vars),
+    term_variables(Head, HeadVars),
+    \+ ( member(V, Vars),
+          \+ ( member(H, HeadVars), H == V )
+        ).
 
 %!  map_last(:Goal, +List0, -List) is det.
 %
@@ -322,11 +330,7 @@ absent(Call, absent(Call)).
 %   **A clause no fact can make true** has a dual that holds wherever
 %   its head matches: one of its literals has no clause to prove it
 %   (`unfold.pl:no_fact/2`), so the body is false whatever its variables
-%   are.  Only a literal all of whose variables are body-only, as for
-%   unfolding: that is where the quantifier comes from, and a head
-%   variable is bound when the dual is called.  Recording the negation
-%   of one that holds a head variable was measured to make a proof in a
-%   large rule base 500 times slower, although the dual is the same.  The dual is that of the head's unifications followed by the
+%   are, head variables included.  The dual is that of the head's unifications followed by the
 %   literal alone, without the quantifier over the body-only variables.
 %   The head's unifications stay first because they are what rejects a
 %   call for another head cheaply — `not rule(r2)` should not

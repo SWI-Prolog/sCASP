@@ -244,16 +244,28 @@ test(the_missing_fact_is_a_leaf) :-
     assertion(var(V)),
     assertion(\+ attvar(V)).
 
-%   Only where the literal's variables are all body-only: `q(X)' shares
-%   the head's X, which is bound when the dual is called.
+%   A clause whose literal has no clause to prove it has a dual that
+%   records that literal, head variables or not.  It keeps the head's
+%   unifications with a ground value, which dismiss a call for another
+%   head cheaply, but not one with a variable of its own:
+%   `A \= f(X)' would be about some X rather than every X, a constraint
+%   that a quantifier over A then has to cover piece by piece.
 
-test(a_literal_with_a_head_variable_is_proved) :-
+test(a_literal_with_a_head_variable_is_recorded) :-
     compile_program(m, [(p(X) :- q(X)), (r :- q(_))], Program),
     get_dict(clauses, Program, Clauses),
-    assertion(\+ ( member(('m$dual.1$p$1'(_) :- Body), Clauses),
-                   has_absent(Body) )),
+    assertion(( member(('m$dual.1$p$1'(_) :- Body), Clauses),
+                has_absent(Body) )),
     assertion(( member(('m$dual.1$r$0' :- Body2), Clauses),
                 has_absent(Body2) )).
+
+test(only_closed_head_unifications_are_kept) :-
+    compile_program(m, [(s(a, f(X)) :- q(X))], Program),
+    get_dict(clauses, Program, Clauses),
+    findall(B, member(('m$dual.1$s$2'(_, _) :- B), Clauses), Bodies),
+    assertion(member((_ \= a), Bodies)),
+    assertion(\+ ( member(B, Bodies), sub_term(T, B), nonvar(T),
+                   T = (_ \= F), nonvar(F), F = f(_) )).
 
 has_absent(Body) :-
     sub_term(Sub, Body),

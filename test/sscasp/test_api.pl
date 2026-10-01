@@ -1,7 +1,7 @@
 :- module(test_api,
           [ test_api/0
           ]).
-:- use_module('../scasp_plunit', []).        % sets the library search path
+:- use_module('../scasp_plunit', [with_scasp_flag/3]). % and the search path
 :- use_module(library(sscasp)).
 :- use_module(library(plunit)).
 :- use_module(library(dif), [dif/2]).
@@ -43,6 +43,7 @@ test_api :-
                 api_collection,
                 api_rendering,
                 api_sld,
+                api_distinct,
                 api_show,
                 api_describe,
                 api_human,
@@ -122,6 +123,18 @@ small(2).
 :- sld api_calls_nowhere/1.
 :- sld (api_sld_one/1, api_sld_two/1) as opaque.
 :- sld api_sld_three/1, api_sld_four/1.
+:- sld api_reach/1.
+api_reach(X) :- api_edge(X).
+api_reach(X) :- api_edge(Y), api_reach_via(Y, X).
+api_edge(a).
+api_reach_via(a, a).
+api_reached :- api_reach(a).
+api_either :- api_left.
+api_either :- api_right.
+api_left.
+api_right.
+api_twice :- api_left.
+api_twice :- api_left, api_left.
 api_sld_one(X) :- X is 0+1.
 api_sld_two(X) :- X is 1+1.
 api_sld_three(X) :- X is 2+1.
@@ -466,6 +479,13 @@ test(negation_of_an_unbound_sld_goal_constrains) :-
     assertion(Value \= 2),
     assertion(\+ Value \= 3).
 
+%   A goal Prolog proves in two ways is one answer, not two: the second
+%   derivation of `api_reach(a)` is the same instance.
+
+test(a_goal_proved_twice_is_one_answer) :-
+    findall(x, scasp(api_reached), Answers),
+    assertion(Answers == [x]).
+
 test(and_a_ground_one_is_simply_run) :-
     assertion(\+ \+ scasp(not small(3))),
     assertion(\+ scasp(not small(1))).
@@ -534,6 +554,26 @@ test(a_solution_with_a_shape_is_refused,
     scasp(not api_shaped(_)).
 
 :- end_tests(api_sld).
+
+:- begin_tests(api_distinct).
+
+%   An answer is its bindings and its model.  Two proofs of `api_either`
+%   give two models, and both are answers; the same model twice is one.
+
+test(two_models_are_two_answers) :-
+    findall(M, scasp(api_either, [model(M)]), Models),
+    assertion(length(Models, 2)).
+
+test(a_repeated_answer_is_given_once) :-
+    findall(x, scasp(api_twice), Answers),
+    assertion(Answers == [x]).
+
+test(unless_the_flag_says_otherwise) :-
+    with_scasp_flag(sscasp_distinct_answers, false,
+                    findall(x, scasp(api_twice), Answers)),
+    assertion(Answers == [x, x]).
+
+:- end_tests(api_distinct).
 
 		 /*******************************
 		 *          SHOWING		*

@@ -485,9 +485,9 @@ rule saying what else would complete the constraint; `emit.pl` adds
 literal in no constraint pays nothing. When a ground literal is established
 and the rest holds of the proof or the open ancestors, the goal fails there.
 The NMR check still runs, so it only prunes — a branch that completes a
-constraint fails anyway or ends in a model the check rejects — except inside a
-quantifier's complement, whose proof is thrown away: `covered/7` and
-`elsewhere/7` turn it off there with the backtrackable `sscasp_no_dcc`.
+constraint fails anyway or ends in a model the check rejects — except in a
+run whose proof is thrown away: `elsewhere/7` and `for_domain/6`'s generator
+turn it off there with the backtrackable `sscasp_no_dcc`.
 
 It was measured before it was made the default: the golden corpus answers the
 same with it, and so do the oracle sweeps; it takes 12% off the corpus's time,
@@ -814,7 +814,21 @@ decision was right that cutting alone loses answers — it leaves `family.pl`'s
 NMR check and `bec_tap_01`'s query with none — and wrong that the cut was
 therefore not transferable.
 
-**And the complement leaves nothing behind but its narrowing.** A branch
+**The complement's pieces are proved in one proof** (2026-10-01), each from
+the proof the ones before it left, as upstream's `solve_var_forall_/11`
+threads its stack. The paragraph below describes what came before: the
+pieces were covered in a run `fail` undid, which was fast and **unsound** — a
+piece rests on the coinductive hypothesis, and with nothing kept the next
+piece could rest on the opposite choice of an even loop, so
+`:- dom(Y), not ok(Y)` with `ok(1) :- a`, `ok(2) :- b` passed for a program
+with no answer set (`test_differential.pl:the_values_of_a_derived_domain_hold_together`).
+Keeping the pieces brings back the store growth it describes:
+`bec_tap_01` went from 0.05 s to 0.6 s, `bec_tap_03` from 0.11 s to 1.3 s,
+after the loop check stopped walking that store with `term_attvars/2`
+(`solve.pl:has_store/1`), which was half of it. Winning the rest back
+without losing the proofs is open.
+
+**It used to leave nothing behind but its narrowing.** A branch
 contributes no proof, and it must contribute no *constraint store* either:
 it invents variables, CLP(Q) keeps every variable a constraint ever reached
 in one class, and nothing collects the ones that go out of scope, so the
@@ -885,12 +899,20 @@ took `hamiltonian_scasp` from 0.6 s to 0.03 s, and `bec_light` from 0.15 s to
 0.01 s, and it made `not wrap(T)` for `wrap(f(X)) :- item(X)` answer
 `T ∉ [f(a)]` where it used to answer `dif(T, f(_))`, which admits `f(a)`.
 
-Two things it needed. `for_domain/6` now **commits** to its covering when the
-goal's other variables are ground — every NMR sub-check, arity zero —
-because backtracking into each value's covering for another is exponential
-(`sasp/hamcycle_two` never finished) and, with nothing else to vary, finds
-the same fact again; with free other variables it still backtracks. And
-duplicate values, which `edge(_, W)` gives, are dropped by `==` rather than
+**A domain's values are proved in one proof.** `for_domain/6` covers each
+value from the proof the ones before it left, and keeps the result, as a
+`forall` complement now does too. It used to prove every value
+from the caller's proof and keep none, which was unsound: `ok(1)` could rest
+on `a` and `ok(2)` on `b` of an even loop between them, so
+`:- d(X), not ok(X)` passed for a program with no answer set, and
+`hamcycle_two` answered with one edge and no cycle. Fact unfolding hid it
+wherever it compiled the quantifier away. It also used to **commit** to its
+covering when the goal's other variables were ground, on the argument that a
+second covering proves the same fact; with the proofs kept a second covering
+is a second model, so it no longer does. `test_solve.pl:solve_domains` pins
+both.
+
+One thing it needed: duplicate values, which `edge(_, W)` gives, are dropped by `==` rather than
 sorted: a restriction carries its constraints, and standard order over those
 hung. It also exposed that **dynamic consistency checking must not run in a
 `for_domain` generator**, whose proof `findall/3` throws away: it pruned
@@ -1879,12 +1901,10 @@ than reading, and both are worth knowing about before touching `solve.pl`:
   `queens.pl` holding 1.3M attributed variables, where the answer has 53
   literals. That is what exhausted a 4 GB stack — inside `term_attvars/2`, at
   frame depth 85, so a small search over enormous terms rather than a deep
-  one. Branches now **check** without contributing; the quantifier's proof is
-  the one its first answer gave, as `solve_other_forall/11` also keeps.
-
-A consequence worth stating: a model no longer contains what only a
-complement branch established, which is why the model comparison is the
-stricter of the corpus's two checks rather than the definition of agreement.
+  one. Branches then **checked** without contributing, which was later found
+  unsound and reversed: they are proved in one proof again, and with ground
+  literals reused from the proof `queens.pl` no longer grows (0.10 s either
+  way).
 
 **Still missing:** nothing in the renderers. `findall/3` solves its goal
 rather than calling it, so what the collection proved is in the model; its
