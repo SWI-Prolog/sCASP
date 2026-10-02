@@ -260,6 +260,9 @@ enumerates the values instead of searching the universe.
 :- pred open(day).                   % open/1 only holds of a day
 ```
 
+In an s(CASP) file, write `#domain day = [mon, tue, wed].`: there,
+`:- Body` is a global constraint (§3.3).
+
 A **signature** `:- pred open(day)` puts a `day(D)` guard in front of every
 clause of `open/1`, and in front of every `not open(T)` in a body or a
 query. Outside the domain, both `open(sat)` and `not open(sat)` are false,
@@ -279,10 +282,10 @@ takes those facts as the variable's domain without being told.
 |---|---|---|
 | `:- describe L :: Text.` | same, or `#pred L :: 'Text'.` | how to say literal `L` in words |
 | `:- pred p(d1, ...).` | same, or `#pred p(d1, ...).` | a signature (§3.5) |
-| `:- domain d = [...]` / `= Lo..Hi` | same | a domain |
+| `:- domain d = [...]` / `= Lo..Hi` | `#domain d = [...]` / `= Lo..Hi` | a domain |
 | `:- abducible p(X).` | `#abducible p(X).` | `p(X)` may be assumed, or not |
 | `:- show p/1.` | `#show p/1.` | restrict the printed model |
-| `:- sld p/2.` | same | prove `p/2` by Prolog's SLD resolution |
+| `:- sld p/2.` | `#sld p/2.` | prove `p/2` by Prolog's SLD resolution |
 | `:- scasp_dynamic p/1.` | — | `p/1` is changed at run time (§5.6) |
 | — | `#include(File).` | read another file here |
 | — | `?- Query.` | the query; the last one counts |
@@ -310,7 +313,9 @@ not dualised or collected. `:- sld p/2 as opaque` runs the goal and shows
 only the call in the justification. The default, `justified`, shows the
 derivation. Several predicates go in one declaration as
 `:- sld (p/2, q/1) as opaque`; without the parentheses, `as` applies to the
-last predicate only. A negated SLD goal is still constructive: the solutions
+last predicate only. In an s(CASP) file, the declaration is `#sld p/2`, and
+the clauses of `p/2` come from the file itself. They are run as Prolog and
+may call any other predicate the file defines. A negated SLD goal is still constructive: the solutions
 are collected and the variable is kept away from each of them.
 
 A program may not *redefine* something the compiler gives a meaning of its
@@ -667,9 +672,9 @@ which Ciao features arrived after the fork.
 | `#table`, `#table_once` | not supported |
 | `#abduce_Ntimes` | not supported |
 | `#pred p(X) :: 'text @(X:type)'` | still accepted, and read as `:- describe`; `:- describe` is the spelling going forward and also takes `not p`, `-p`, `not -p` and `html(...)` |
-| `#domain`: a ground call to a domain predicate that has no matching clause is reported as an error | `:- domain d = [..]` / `Lo..Hi` and `:- pred p(dom)` signatures, which bound the quantifiers and the negations as well (§3.5) |
+| `#domain`: a ground call to a domain predicate that has no matching clause is reported as an error | `#domain d = [..]` / `Lo..Hi` (`:- domain` in a module) and `#pred p(dom)` signatures, which bound the quantifiers and the negations as well (§3.5) |
 | — | `X ∉ [..]` and `X ∈ [..]` in bodies |
-| cut, `var/1`, `display/1`, `random/1,3`, `!display/1` and other debugging predicates | not built in; use `:- sld p/2` to call Prolog, where cut, if-then-else and all of Prolog are available |
+| cut, `var/1`, `display/1`, `random/1,3`, `!display/1` and other debugging predicates | not built in; use `#sld p/2` to call Prolog, where cut, if-then-else and all of Prolog are available |
 | CLP(Q) via `#=` etc. or `.=.` | `#=` etc., and `is`/`<`/… posted as constraints when not ground |
 | `\=` as constructive disequality | the same, in a store that also holds `∉` sets |
 | `not findall/3` fails | `not findall/3` is answered |

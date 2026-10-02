@@ -129,6 +129,22 @@ test(a_hash_pred_without_text_is_a_signature) :-
     assertion(S.templates == []),
     assertion(memberchk((:- pred p(day)), S.terms)).
 
+%   `#sld` and `#domain` are the file's spelling of `:- sld` and
+%   `:- domain`: in a file `:- Body` is a global constraint.
+
+test(a_hash_sld_is_a_declaration) :-
+    read_temp("#sld big/1.\n#sld (p/1, q/1) as opaque.\nbig(1).\n", S),
+    assertion(S.terms == [ (:- sld(big/1)),
+                           (:- sld((p/1, q/1) as opaque)),
+                           big(1)
+                         ]).
+
+test(a_hash_domain_is_a_declaration) :-
+    read_temp("#domain day = [mon, tue].\n#domain hour = 0..23.\n", S),
+    assertion(S.terms == [ (:- domain(day = [mon, tue])),
+                           (:- domain(hour = 0..23))
+                         ]).
+
 %   One that parses but is not implemented.  `#compute` is s(CASP)'s,
 %   and saying so beats treating it as a clause.
 

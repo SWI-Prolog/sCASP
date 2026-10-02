@@ -289,9 +289,23 @@ partition_terms([Term|Read], Terms, Templates, Shown, Abducible, Q0, Query) :-
     ;   Term = #(abducible(What))
     ->  Abducible = [What|Abducible1], Terms = [(:- abducible(What))|Terms1],
         Templates = Templates1, Shown = Shown1, Q1 = Q0
+    ;   Term = #(Directive),            % #sld p/2, #domain d = [a,b]
+        sharp_directive(Directive)
+    ->  Terms = [(:- Directive)|Terms1], Templates = Templates1,
+        Shown = Shown1, Abducible = Abducible1, Q1 = Q0
     ;   Term = #(Other)
     ->  existence_error(scasp_directive, Other)
     ;   Terms = [Term|Terms1], Templates = Templates1, Shown = Shown1,
         Abducible = Abducible1, Q1 = Q0
     ),
     partition_terms(Read, Terms1, Templates1, Shown1, Abducible1, Q1, Query).
+
+%   sharp_directive(+Directive)
+%
+%   A declaration an s(CASP) file writes with `#`, as Ciao's does, where a
+%   Prolog file writes `:-`.  In a file `:- Body` is a global constraint,
+%   so `#` is the spelling that cannot be mistaken for one; `:- sld` and
+%   `:- domain` are still read as declarations too.
+
+sharp_directive(sld(_)).
+sharp_directive(domain(_)).

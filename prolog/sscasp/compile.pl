@@ -151,7 +151,9 @@ once per answer, by calling `Program.nmr.goal`.
 compile_program(Module, Terms, Program) :-
     program_annotations(Terms, Declared),
     annotation_clauses(Declared, DomainClauses),
-    program_clauses(Terms, UserClauses),
+    sld_pis(Terms, SldPIs),
+    program_clauses(Terms, SldPIs, UserClauses),
+    sld_program(Terms, SldPIs, Prolog),
     abducible_clauses(Terms, Abducibles),
     append([DomainClauses, UserClauses, Abducibles], Clauses0),
     current_prolog_flag(scasp_domain_error, Error),
@@ -159,7 +161,6 @@ compile_program(Module, Terms, Program) :-
     maplist(signature_guarded(Guard), Clauses0, Clauses1),
     maplist(use_site_guarded(Guard), Clauses1, Clauses2),
     fact_predicates(Clauses2, Facts),
-    sld_pis(Terms, SldPIs),
     fact_index(Facts, Clauses2, SldPIs, Index),
     unfold_facts(Index, Clauses2, Clauses),
     head_index(Clauses, Heads),
@@ -187,6 +188,7 @@ compile_program(Module, Terms, Program) :-
                        unbounded: Unbounded,
                        shown:     Shown,
                        dcc:       Dcc,
+                       prolog:    Prolog,
                        guard:     Guard }.
 
 %!  signature_guarded(+Guard, @Clause0, -Clause) is det.
@@ -628,8 +630,50 @@ translate_body(Module, Body, NewBody) =>
 %   The clauses, leaving out the directives — annotations and global
 %   constraints alike.
 
-program_clauses(Terms, Clauses) :-
-    exclude(directive, Terms, Clauses).
+program_clauses(Terms, SldPIs, Clauses) :-
+    exclude(directive, Terms, Clauses0),
+    exclude(sld_clause(SldPIs), Clauses0, Clauses).
+
+%   A clause of a `:- sld` predicate is Prolog's, not the solver's: it is
+%   run by SLD resolution (sld_program/3) and has no place among the
+%   clauses that are dualised.
+
+sld_clause(SldPIs, Clause) :-
+    sld_head_pi(Clause, PI),
+    memberchk(PI, SldPIs).
+
+sld_head_pi(Clause, Name/Arity) :-
+    (   Clause = (Head :- _)
+    ->  true
+    ;   Head = Clause
+    ),
+    callable(Head),
+    Head \= -(_),
+    functor(Head, Name, Arity).
+
+%!  sld_program(@Terms, +SldPIs, -Prolog) is det.
+%
+%   The clauses SLD resolution runs when the program itself defines a
+%   `:- sld` predicate — an s(CASP) file, or a term list, as opposed to
+%   a Prolog module, whose `scasp/2` qualifies each declaration with the
+%   module that holds the clauses.  Then the program's clauses are loaded
+%   as Prolog, unmangled, beside the compiled ones (`run.pl`), and the
+%   bridge calls them there.  All of them, because an SLD predicate may
+%   call any other; the solver never sees these, its own heads being
+%   mangled.
+
+sld_program(Terms, SldPIs, Prolog) :-
+    (   member(PI, SldPIs),
+        local_sld(Terms, PI)
+    ->  exclude(directive, Terms, Prolog)
+    ;   Prolog = []
+    ).
+
+local_sld(Terms, Name/Arity) :-
+    member(Term, Terms),
+    \+ directive(Term),
+    sld_head_pi(Term, Name/Arity),
+    !.
 
 directive((:- _)).
 
@@ -710,7 +754,8 @@ sld_bridges(Module, Terms, Clauses) :-
             ( member((:- sld(Declarations)), Terms),
               sld_declarations(Declarations, List),
               member(Declaration, List),
-              sld_declaration(Declaration, Where:Name/Arity, Type),
+              sld_declaration(Declaration, Where0:Name/Arity, Type),
+              sld_where(Terms, Declaration, Where0, Name/Arity, Where),
               sld_bridge(Module, Where, Name, Arity, Type, Clause)
             ),
             Clauses).
@@ -731,8 +776,21 @@ sld_pis(Terms, PIs) :-
 
 %   It may name the module the clauses are in —
 %   `:- sld lists:member/2.` — and `dyncall.pl` always does, because it
-%   knows.  A bare one means `user`, which is where a file read by
-%   `source.pl` puts its Prolog predicates.
+%   knows.  A bare one whose clauses the program holds — an s(CASP) file
+%   — calls them in the module the program is loaded into, `'$program'`
+%   until `emit.pl` knows which (sld_program/3).  Any other bare one
+%   means `user`.
+
+sld_where(Terms, Declaration, Where0, PI, Where) :-
+    (   \+ qualified(Declaration),
+        local_sld(Terms, PI)
+    ->  Where = '$program'
+    ;   Where = Where0
+    ).
+
+qualified(_:_ as _) => true.
+qualified(_:_) => true.
+qualified(_) => false.
 
 %!  sld_declarations(@Declarations, -List) is det.
 %

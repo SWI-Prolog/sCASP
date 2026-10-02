@@ -163,6 +163,27 @@ test(or_a_given_number) :-
     assertion(contains(Out, "Answer 2")),
     assertion(\+ contains(Out, "Answer 3")).
 
+%   A file's `#sld` predicate is run by Prolog over the file's own
+%   clauses, here through a helper it calls.  Its clauses are not also
+%   compiled for the solver: they were, and backtracking into the bridge
+%   then found no Prolog definition and raised.
+
+test(a_file_may_define_an_sld_predicate,
+     [ setup(tmp_file_stream(text, File, Stream)),
+       cleanup(delete_file(File))
+     ]) :-
+    close(Stream),
+    write_file(File, "#sld big/1.\n#sld small/1 as opaque.\n\c
+                      big(X) :- above(X, 10).\nabove(X, L) :- X > L.\n\c
+                      small(1). small(2).\n\c
+                      p(X) :- q(X), not small(X).\nq(1). q(5).\n\c
+                      ?- big(11), p(X).\n"),
+    run_sscasp(['-n0', File], Status, Out),
+    assertion(Status == exit(0)),
+    assertion(contains(Out, "X = 5")),
+    assertion(\+ contains(Out, "Answer 2")),
+    assertion(\+ contains(Out, "ERROR")).
+
 test(a_query_may_be_given_instead) :-
     run_program(['--query', 'bird(X)'], 'birds.pl', Status, Out),
     assertion(Status == exit(0)),

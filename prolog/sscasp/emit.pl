@@ -312,7 +312,8 @@ body(absent(Goal), _, _, S0, S, Runnable) =>
 body('$heads'(_PI, Args, Patterns0, Mode), _, _, S0, S, Runnable) =>
     varnumbers(Patterns0, Patterns),        % fresh per call: the clause is
     Runnable = (head_guard(Args, Patterns, Mode), S = S0). % asserted
-body(sld(Goal, Type), _, Anc, S0, S, Runnable) =>
+body(sld(Goal0, Type), Module, Anc, S0, S, Runnable) =>
+    program_module(Goal0, Module, Goal),
     Runnable = sld_goal(Goal, Type, Anc, S0, S).
 body(Goal, _, Anc, S0, S, Runnable),
         Goal =.. [Name|Args],
@@ -323,6 +324,12 @@ body(Goal, _, _, S0, S, Runnable), builtin(Goal, Runnable0) =>
     Runnable = (Runnable0, S = S0).
 body(Goal, _, _, _, _, _) =>
     domain_error(scasp_body_goal, Goal).
+
+%   `'$program'` is the module the program is loaded into, where its own
+%   clauses of an SLD predicate are (`compile.pl:sld_program/3`).
+
+program_module('$program':Goal0, Module, Goal) => Goal = Module:Goal0.
+program_module(Goal0, _, Goal) => Goal = Goal0.
 
 %!  builtin(@Goal, -Runnable) is semidet.
 %

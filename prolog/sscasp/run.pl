@@ -234,6 +234,12 @@ load_program(Module, Program) :-
     add_import_module(Module, sscasp_runtime, start),
     runnable_program(Module, Program, Clauses),
     forall(member(Clause, Clauses),
+           assert_clause(Module, Clause)),
+    (   get_dict(prolog, Program, Prolog)
+    ->  true
+    ;   Prolog = []
+    ),
+    forall(member(Clause, Prolog),
            assert_clause(Module, Clause)).
 
 %   Under `-O` the compiler compiles arithmetic inline, and then refuses
