@@ -601,18 +601,30 @@ as they load:
 
 ## 10. Changes relative to s(CASP) for Ciao Prolog
 
-This compares ssCASP with the Ciao Prolog original as of commit
-`4d33909` (28 May 2021, version 0.21.05.28), the version the SWI-Prolog
-port was forked from.
+The SWI-Prolog port was forked from the Ciao Prolog original at commit
+`4d33909` (28 May 2021, version 0.21.05.28). Ciao s(CASP) has been
+developed further since. This section compares ssCASP with its current
+version, 0.25.08.14 (the last commit is from 24 February 2026), and says
+which Ciao features arrived after the fork.
+
+### What Ciao s(CASP) gained after the fork
+
+| | |
+|---|---|
+| 2021 | the s(ASP) `forall` (`--sasp_forall`); `#domain`; dynamic consistency checking (`--dcc`, which forces `--prev_forall`) |
+| 2022 | `--co`, coinductive success of positive loops; loop checks extended to CLP(Q) entailment; positive loops detected by unification with occurs check; cut, `var/1`, `display/1`, `nl/0`; `--machine`; `--timeout`; integration with the Ciao toplevel and the s(CASP) playground |
+| 2023 | `--bind`, `--txt`, `--quiet`; `#table_once` for ground subgoals; debugging predicates (`!display/1`, `!spy`, …) and `-v0` … `-v6`; `random/1,3` |
+| 2025 | forgetting (`--forget`); event-calculus support (`--ec`, `--incremental`, Zeno detection); stratification (`--strata`); warnings for missing predicates; `--json` |
+| 2026 | `#abduce_Ntimes`, which bounds how often an abducible may be assumed (like a choice rule in clingo) |
 
 ### Distribution and front end
 
 | Ciao s(CASP) | ssCASP |
 |---|---|
-| a Ciao bundle, `ciao get`, `scasp` executable | a SWI-Prolog pack, `library(sscasp)`, `sscasp` executable |
+| a Ciao bundle, `ciao get`, `scasp` executable, and a web playground | a SWI-Prolog pack, `library(sscasp)`, `sscasp` executable |
 | programs only from files; `load/1`, `solve/4` and the `?`/`??` shortcuts in a Ciao module | programs from files *and* as ordinary Prolog clauses in any module, queried with `scasp/1,2` or the `?` shortcuts, relevance-scoped (§4) |
 | its own tokenizer | the SWI-Prolog reader: `;`, `->`, quoted atoms and strings, `1/2` as a rational, and Unicode operators all work |
-| text, and `--html` | text, `--html`, `--json`, `--human`, and the same three from Prolog |
+| text, `--html`, `--json`, `--bind`, `--txt` | text, `--html`, `--json`, `--human`, and the same three from Prolog |
 
 ### Command line
 
@@ -620,14 +632,20 @@ port was forked from.
 |---|---|
 | `-sN`, `-nN` | `-s N`, `-n N`, `--answers=N` |
 | `-i` (leave with `exit.`) | `-i`; any error is reported and the session continues |
-| `--code`, `--tree`, `--human`, `--html[=name]` | the same; `--html` takes a file name, and `-` for standard output |
+| `--code`, `--tree`, `--human`, `--html[=name]`, `--json[=name]` | the same; the file is named in full, and `-` writes to standard output |
 | `--plain` | the default |
 | `--long`, `--mid`, `--short`, `--pos`, `--neg` | dropped; the justification has one form |
 | `-d`, `--plaindual` | dropped; duals are always as compiled |
 | `-r[=d]` | dropped; rationals print exactly |
-| `--all_c_forall`, `--prev_forall` | dropped; there is one quantifier (below) |
-| `-v`, `-f`/`--tracefails`, `--update`, `-c`/`--compiled` | dropped |
-| — | `--query`, `--json`, `--duals`, `--constraints`, `--source`, `--compiled`, `--no-nmr`, `--no-olon`, `--no-dcc`, `--no-commit-nmr`, `--domain-error`, `--module` |
+| `--prev_forall` (default), `--sasp_forall`, `--c_forall`, `--all_c_forall` | dropped; there is one quantifier (below) |
+| `--dcc`, off by default | `--dcc`, on by default, with the one quantifier; `--no-dcc` |
+| `--co` | dropped (below) |
+| `--no_nmr`, `--no_olon` | `--no-nmr`, `--no-olon` |
+| `--timeout[=MS]` | dropped |
+| `--bind`, `--txt`, `--quiet`, `--machine` | dropped |
+| `--forget`, `--strata`, `--ec`, `--incremental`, `--zeno_*` | not available |
+| `-v`, `-v0` … `-v6`, `-w`, `--update`, `-c`/`--compiled` | dropped |
+| — | `--query`, `--duals`, `--constraints`, `--source`, `--compiled`, `--no-commit-nmr`, `--domain-error`, `--module` |
 | exit status not significant | 0 answer, 1 none, 2 error |
 
 ### Language
@@ -635,36 +653,49 @@ port was forked from.
 | Ciao | ssCASP |
 |---|---|
 | `#compute N {Goals}` | not supported; use `?- Goals.` and `-s N` |
-| `#table` (accepted, disabled) | not supported |
+| `#table`, `#table_once` | not supported |
+| `#abduce_Ntimes` | not supported |
 | `#pred p(X) :: 'text @(X:type)'` | still accepted, and read as `:- describe`; `:- describe` is the spelling going forward and also takes `not p`, `-p`, `not -p` and `html(...)` |
-| — | `:- pred p(dom)` signatures and `:- domain` (§3.5) |
+| `#domain`: a ground call to a domain predicate that has no matching clause is reported as an error | `:- domain d = [..]` / `Lo..Hi` and `:- pred p(dom)` signatures, which bound the quantifiers and the negations as well (§3.5) |
 | — | `X ∉ [..]` and `X ∈ [..]` in bodies |
-| — | `:- sld p/2` to call Prolog |
+| cut, `var/1`, `display/1`, `random/1,3`, `!display/1` and other debugging predicates | not built in; use `:- sld p/2` to call Prolog, where cut, if-then-else and all of Prolog are available |
 | CLP(Q) via `#=` etc. or `.=.` | `#=` etc., and `is`/`<`/… posted as constraints when not ground |
 | `\=` as constructive disequality | the same, in a store that also holds `∉` sets |
 | `not findall/3` fails | `not findall/3` is answered |
-| undefined predicates fail | undefined predicates are false, and `not p` for them appears in the model (§3.1) |
+| undefined predicates fail; since 2025 `--code` and `-v` report them | undefined predicates are false, and `not p` for them appears in the model (§3.1) |
 
 ### Semantics
 
-- **The quantifier.** Ciao's default `forall` (`solve_c_forall`) is not
-  exhaustive, and there are options to select others. ssCASP has one. It covers the
+- **The quantifier.** Ciao has four `forall` algorithms. At the fork the
+  default was `c_forall`, which is not exhaustive; today it is
+  `prev_forall`, which `--dcc` also requires. ssCASP has one. It covers the
   quantified variables as a tuple, reads which part of the domain each
   answer covered from the constraints it left, and covers the rest. A
   declared or inferred domain is enumerated instead. It always covers the
   whole domain.
+- **Loops.** Since 2022 Ciao fails a goal as a positive loop when it merely
+  *unifies* with an ancestor (with occurs check), except in
+  event-calculus mode. ssCASP fails it only when it is a *variant* of the
+  ancestor, or an instance of it with no negation in between, with the
+  constraint stores taken into account. A goal that is more general than
+  its ancestor is a different question, and failing it loses answers.
+  While ssCASP was being developed, reading it the Ciao way left
+  `holdsAt(spilling, T)` without a proof in every event-calculus program.
 - **Coinduction** is four rules rather than six, counting polarity
-  transitions along the path.
+  transitions along the path. Ciao's `--co`, which lets a positive loop
+  succeed coinductively with a warning, has no counterpart: in ssCASP a
+  positive loop always fails, because that is what the stable model
+  semantics says.
 - **The CHS check constrains rather than refuses.** Asking `not d(X)` with
   `d(1)` proved posts `X ≠ 1` instead of failing.
 - **One answer, one model** by default (§4).
-- **Dynamic consistency checking**, which Ciao does not have, is on by
-  default.
+- **Dynamic consistency checking** is on by default. Ciao has had it since
+  2021, off by default and only with `--prev_forall`.
 
 ssCASP's answers are checked against a brute-force Gelfond–Lifschitz oracle
-on thousands of randomly generated programs. The cases where Ciao's
-answers, and the SWI-Prolog port's, differ from that oracle are listed in
-§11.
+on thousands of randomly generated programs. The cases where the
+SWI-Prolog port, which shares Ciao's design up to the fork, differs from
+that oracle are listed in §11.
 
 ---
 
