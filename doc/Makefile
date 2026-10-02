@@ -23,7 +23,7 @@ PANDOC_HTML  = -t html5 -s --embed-resources \
                --highlight-style=$(HIGHLIGHT)
 
 # Each document is named once; `make manual' builds both formats of it.
-DOCS = manual
+DOCS = manual performance design-next
 PDF  = $(DOCS:%=%.pdf)
 HTML = $(DOCS:%=%.html)
 
