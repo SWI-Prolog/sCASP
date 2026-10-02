@@ -711,8 +711,11 @@ which Ciao features arrived after the fork.
   succeed coinductively with a warning, has no counterpart: in ssCASP a
   positive loop always fails, because that is what the stable model
   semantics says.
-- **The CHS check constrains rather than refuses.** Asking `not d(X)` with
-  `d(1)` proved posts `X ≠ 1` instead of failing.
+- **The CHS check states its constraint between whole literals.** Both
+  constrain a goal against the opposite literals already proved rather than
+  failing: `not d(X)` with `d(1)` proved answers `X ≠ 1`. Ciao posts the
+  constraint argument by argument; ssCASP posts a disequality between the
+  literals, which says "they differ somewhere" without a choice point.
 - **One answer, one model** by default (§4).
 - **Dynamic consistency checking** is on by default. Ciao has had it since
   2021, off by default and only with `--prev_forall`.

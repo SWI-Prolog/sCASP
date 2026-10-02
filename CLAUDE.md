@@ -1890,7 +1890,7 @@ Five things ruled out by measurement, each of which looked likely:
 |---|---|
 | the complement being wide | 0.6 to 4.2 pieces per covering |
 | `coverable/1` rejecting a tuple member bound to a non-ground term | it never rejects here — 0 of 95,158 answers |
-| the **constraining CHS** | making `consistent/3` refuse instead, which is the old implementation's rule and prunes hugely on `bec_tap_01`, leaves `bec_loan` timing out just the same |
+| the **constraining CHS** | making `consistent/3` refuse instead prunes hugely on `bec_tap_01` and leaves `bec_loan` timing out just the same (the old implementation does not refuse either: it constrains argument by argument, `loop_term/2`, and fails only on an identical or variant negation) |
 | ground goals being re-proved | there are only 24 distinct ones, and the existing reuse already fires 7,542 times against 299 ground expansions |
 | committing per nested quantifier | see the note under the quantifier: green, and worth 0.395 s → 0.288 s on `bec_light` alone |
 

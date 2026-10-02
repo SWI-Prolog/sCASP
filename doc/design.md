@@ -186,21 +186,43 @@ assoc, the last two rebuilt from the first on entry (`stack_parents/2`,
 ### Coinduction: the six cases
 
 `check_goal/8` consults the coinductive hypothesis set — the candidate answer
-set — before expanding anything. `check_CHS_/6`, in clause order:
+set — before expanding anything. `check_CHS_/6`, in clause order. Note what
+"matches" means in each: **identity or variance, never mere unification**,
+which an earlier version of this text got wrong.
 
-1. **proved** — the goal is ground and already proved in the stack. Succeed
-   immediately; this is also what keeps the justification small.
-2. **co_success** — an ancestor unifies with the goal across an **even,
-   non-zero** number of negations. Succeed: the recursive call partially
-   supports the negations between.
-3. **co_failure** — the *negation* of the goal is in the stack. Fail;
-   succeeding would put a contradiction in the model.
-4. **co_failure** — a **positive** loop (no intervening negation). Fail, with
-   a warning. This is the restriction that makes goal-directed evaluation agree
-   with Gelfond–Lifschitz rather than computing the greatest fixpoint.
-5. a positive loop that is reported and then falls through to failure.
-6. **cont** — none of the above: continue inductively, constraining the goal
-   against the negations already visited.
+1. **proved** — the goal is ground and *identical* to a literal proved
+   earlier (or to its `chs/1`). Succeed immediately; this is also what keeps
+   the justification small.
+2. **co_success** — an even loop (`check_parents/3`, `even_loop/3`). A
+   positive goal *identical* to an ancestor across an **even, non-zero**
+   number of negations; or a negated goal that is a *variant* of a negated
+   ancestor, at any distance, which it is then unified with. Succeed: the
+   recursive call partially supports the negations between.
+3. **co_failure** — the *negation* of the goal is *identical* to a proved
+   literal or an ancestor, or a *variant* of one, which also warns
+   (`neg_in_stack/3`). Fail; succeeding would put a contradiction in the
+   model.
+4. **co_failure** — a **positive** loop: an ancestor with no negation in
+   between that is identical to the goal, a variant of it, or subsumes it
+   under the CLP(Q) store (`type_loop_fail_pos/2`, `entail_terms/2`). Fail,
+   with a warning under `scasp_warn_pos_loops`. This is the restriction that
+   makes goal-directed evaluation agree with Gelfond–Lifschitz rather than
+   computing the greatest fixpoint. Not for a tabled predicate, nor under
+   `scasp_no_fail_loop`.
+5. An ancestor with no negation in between that merely **unifies** with the
+   goal is *not* a loop: it is reported, the clause fails, and the next one
+   applies. A more general goal is a different question.
+6. **cont** — none of the above: continue inductively, **constraining**
+   rather than failing. A ground goal constrains the opposite literals on the
+   stack away from itself (`constrained_neg_in_stack/3`); a non-ground one is
+   constrained away from the opposite literals it unifies with
+   (`ground_neg_in_stack/3`). The constraint is posted argument by argument
+   (`clp/disequality.pl:loop_term/2`), so `not d(X)` with `d(1)` proved
+   answers `X ∉ [1]`.
+
+The new implementation arrived at the same reading of 2–5 independently,
+having first taken unification for a loop and lost answers to it
+(`CLAUDE.md`, "A loop is a variant").
 
 ### `forall`
 
@@ -221,19 +243,21 @@ P4's Algorithm 2 (remove what succeeded, re-run) rather than §2.3's
 substitute-each-value, which its own header concedes: *"It works different
 though."*
 
-**The four agree on answers and differ on partial models.** On `nixon-diamond`
-all of them give the same 3 bindings, but enumerate 3, 10000+, 5 and 3 *partial
-models* on the way; on `ex02-member`, 1 binding and 1, —, 8 and 2 models. Each
-model is consistent, and all four agree with the Gelfond–Lifschitz oracle on
-brave entailment — so this is redundant enumeration rather than disagreement.
-It is not free: `all_c` does not finish on `queens.pl`, where `prev` is 24×
-faster than the default.
+**Where the four agree on answers, they differ on partial models.** On
+`nixon-diamond` all of them give the same 3 bindings, but enumerate 3, 10000+,
+5 and 3 *partial models* on the way; on `ex02-member`, 1 binding and 1, —, 8
+and 2 models. Each model is consistent, and all four agree with the
+Gelfond–Lifschitz oracle on brave entailment over its random programs — so
+there this is redundant enumeration rather than disagreement. It is not free:
+`all_c` does not finish on `queens.pl`, where `prev` is 24× faster than the
+default.
 
 **And `prev` and `sasp` lose answers.** Both cuts sit in the disequality
 branch; `prev` commits to a solution before checking that its prohibited set
 can be completed. `bec_loan.pl` gives four answers by default and **none**
 under either, and `--dcc` inherits it by forcing `forall(prev)`
-(`doc/bugs.md` #18). The default is the only complete setting.
+(`doc/bugs.md` #18). The default is the most complete setting — but not
+complete either, see "Known wrong answers" below.
 
 `doc/design-next.md` §5c argues the flag should go entirely: the four values
 are one case-dispatch — which `check_unbound/2` already performs — plus two
@@ -247,7 +271,12 @@ Two, and both are attributed-variable solvers:
   which negates a whole store one constraint at a time keeping the earlier
   ones. This is what makes `not` constructive over a dense domain.
 - **`clp/disequality.pl`** — constructive disunification: `.=.`, `.\=.`, `∉`.
-  An attributed variable holds `neg(ProhibitedValues)`.
+  An attributed variable holds `neg(ProhibitedValues)`: ground values only.
+  A disequality between compound terms, `f(A, B) .\=. f(a, b)`, is resolved
+  by **backtracking**, choosing an argument to differ and leaving the others
+  as alternatives, so it costs a choice point and can repeat answers.
+  `∉` in a *program* body is not run: `predicates.pl` does not list it as a
+  built-in.
 
 They interact. `=`'s dual `\=` cannot be resolved at compile time, since it is
 not known whether it will be called on CLP(Q) or Herbrand variables, so it
@@ -316,12 +345,38 @@ is confined to the thread plunit runs that test in, so parallel jobs do not
 disturb each other; one set in a unit `setup/1` runs in the main thread and
 leaks into every job created afterwards.
 
+## Known wrong answers
+
+Found by the Gelfond–Lifschitz oracle and by the new implementation, and
+described with examples in `doc/semantics.md`:
+
+- **A positive loop closed by reuse.** `p :- not q, r. q :- not r. r :- p.`
+  has the single answer set `{q}`. This implementation answers `p`: `r` is
+  reused inside `p`'s own proof as already proved (case 1 above), closing a
+  loop with no negation in it — and then fails `r`, a literal of the model it
+  reported.
+- **A quantifier that covers too much.** In `bec_tap_01`,
+  `-holdsAt(filling, 25)` is true and is answered no. The NMR check is
+  covered from its first dual clause, `not -holdsAt(F, T)`, alone.
+- **A missing dual clause.** `min_programs/solve_not_is` answers
+  `invalid_value(2)` although `2 is 1+1`: under `not valid_value(2)` it tries
+  `2 is 2+1`, `2+2` and `2+3`, never `1+1`.
+- **A cancelled answer.** `min_programs/stream_reasoning` answers
+  `valid_stream(1, p(a))`, which a higher-priority stream cancels.
+- **Non-termination.** `clpq_equality.pl` (`test/scasp/known_issues.pl`).
+
 ## Where the behaviour is unspecified
 
 Worth knowing before relying on any of it:
 
-- **The four `forall` algorithms**, above: they disagree, and the cuts in
-  `prev`/`sasp` are documented only by two code comments naming test cases.
+- **The four `forall` algorithms**, above: they differ in the partial models
+  they enumerate, `prev` and `sasp` also lose answers, and their cuts are
+  documented only by two code comments naming test cases.
+- **`#abducible`'s negative half.** The two front ends disagree: the file
+  front end (`input.pl`) makes it a fresh predicate, so `#abducible p` is a
+  choice between `p` and not knowing `p`, and `?- -p.` reports `-p/0` as
+  undefined; the embedded one (`dyncall.pl`) makes it `-p`, a choice between
+  `p` and `-p` known.
 - **`--dcc`** (dynamic consistency checking): Marple and Gupta, "Dynamic
   Consistency Checking in Goal-Directed Answer Set Programming", TPLP 14(4-5),
   2014, from s(ASP); forces `--forall=prev`.
