@@ -157,6 +157,11 @@ user:message_hook(_Term, error, _Lines) :-
 :- use_module(sscasp/test_json,        []).
 :- use_module(sscasp/test_main,        []).
 
+% Last: it installs library(sscasp/compat)'s rewriting for the rest of
+% the process, which only touches files from outside this checkout.
+
+:- use_module(sscasp/test_compat,      []).
+
 :- endif.
 
 :- retractall(loading_suites).

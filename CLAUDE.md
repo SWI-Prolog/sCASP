@@ -428,6 +428,8 @@ namespaces, so nothing breaks, and the old one goes when the old tree does.
 | `html.pl` | an answer described once, as HTML |
 | `html_text.pl` | the same description read as plain text |
 | `lang.pl` | the words a justification is made of |
+| `compat.pl` | `library(sscasp/compat)`: run a program written for `library(scasp)` on this library |
+| `compat/` | what of the old library's interface such a program reaches: `scasp/1,2` with the old tree, the interned `'-p'` negation, `scasp/html`, `scasp/dyncall`, and stubs for the rest |
 
 and `prolog/sscasp.pl` beside them, the user-facing `library(sscasp)`:
 operators, the `?`-prefixed query shortcuts, and what the two above export.
@@ -957,6 +959,20 @@ Model:
     not penguin(tweety)
 X = tweety.
 ```
+
+**A program written for `library(scasp)`** runs unedited after
+`:- use_module(library(sscasp/compat))`, loaded before it. From then on
+its imports of `library(scasp)` and `library(scasp/Sub)` are rewritten to
+this library and `compat/`, clauses using the old interned negation
+`'-p'(X)` become `-p(X)`, a `:- table` of the old Prolog bridge tables
+`sscasp_sld:sld_proof/3`, and `::` and `pred` are operators. A bare
+import gets this library's `scasp/2` (the new justification); an import
+list naming `scasp/2` gets `compat/`'s, which returns the old
+`query-Forest` with `o_nmr_check`. The rewriting is `user:term_expansion/2`
+and leaves files inside this checkout alone, since the old implementation
+and the tests import `library(scasp)` meaning that; `test_compat.pl`
+writes its programs to a temporary directory for that reason, and
+`test_all.pl` loads it last.
 
 `dyncall.pl` collects the clauses **reachable from the query** plus the
 global constraints whose call tree overlaps them — not the whole module,
