@@ -139,6 +139,10 @@ test(a_hash_sld_is_a_declaration) :-
                            big(1)
                          ]).
 
+test(a_hash_describe_keeps_its_names) :-
+    read_temp("#describe flies(X) :: \"@(X) can fly\".\n", S),
+    assertion(S.terms = [(:- describe(flies(V) :: "@(X) can fly", ['X'=V]))]).
+
 test(a_hash_domain_is_a_declaration) :-
     read_temp("#domain day = [mon, tue].\n#domain hour = 0..23.\n", S),
     assertion(S.terms == [ (:- domain(day = [mon, tue])),

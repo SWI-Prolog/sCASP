@@ -222,6 +222,8 @@ named_term(Term, _, Named), var(Term) =>
     Named = Term.
 named_term((:- describe Spec), Bindings, Named) =>
     Named = (:- describe(Spec, Bindings)).
+named_term(#(describe(Spec)), Bindings, Named) =>
+    Named = (:- describe(Spec, Bindings)).
 named_term((:- pred Spec), Bindings, Named), nonvar(Spec), Spec = (_ :: _) =>
     deprecated_description(Spec),
     Named = (:- pred(Spec, Bindings)).
@@ -304,8 +306,9 @@ partition_terms([Term|Read], Terms, Templates, Shown, Abducible, Q0, Query) :-
 %
 %   A declaration an s(CASP) file writes with `#`, as Ciao's does, where a
 %   Prolog file writes `:-`.  In a file `:- Body` is a global constraint,
-%   so `#` is the spelling that cannot be mistaken for one; `:- sld` and
-%   `:- domain` are still read as declarations too.
+%   so `#` is the spelling that cannot be mistaken for one; `:- sld`,
+%   `:- domain` and `:- describe` are still read as declarations too, and
+%   a Prolog module accepts both spellings as well (`sscasp.pl:claimed/3`).
 
 sharp_directive(sld(_)).
 sharp_directive(domain(_)).

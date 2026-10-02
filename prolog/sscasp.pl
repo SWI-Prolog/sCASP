@@ -240,6 +240,7 @@ a program, use `scasp_human/1,2`, or `scasp/2` with `portray_model/2` and
 %   | `#pred Spec` | the spelling s(CASP) programs are written in — 84 in `test/le_programs/` alone |
 %   | `#abducible Spec`, `:- abducible Spec` | an abducible; the old tree calls its own `abducible/1` |
 %   | `#show Spec`, `:- show Spec` | what the model shows |
+%   | `#sld Spec`, `#domain Spec`, `#describe Spec` | the file spelling of `:- sld`, `:- domain`, `:- describe`, so a program reads the same in a module and in a file |
 %   | `false :- Body` | a global constraint; the old tree makes it a clause of `-/0` |
 %
 %   Qualified with `sscasp_dyncall` because what the guard establishes is
@@ -261,6 +262,12 @@ claimed((:- abducible Spec),     M, (:- sscasp_dyncall:scasp_directive(M:abducib
 claimed(#(show(Spec)),           M, (:- sscasp_dyncall:scasp_directive(M:show(Spec)))) :-
     nonvar(Spec).
 claimed((:- show Spec),          M, (:- sscasp_dyncall:scasp_directive(M:show(Spec)))) :-
+    nonvar(Spec).
+claimed(#(sld(Spec)),            M, (:- sscasp_dyncall:sld(M:Spec))) :-
+    nonvar(Spec).
+claimed(#(domain(Spec)),         M, (:- sscasp_dyncall:domain(M:Spec))) :-
+    nonvar(Spec).
+claimed(#(describe(Spec)),       M, (:- sscasp_dyncall:describe(M:Spec))) :-
     nonvar(Spec).
 claimed((false :- Body),         _, Clauses) :-
     constraint_clauses(Body, Clauses).

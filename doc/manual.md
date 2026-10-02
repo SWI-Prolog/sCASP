@@ -280,8 +280,8 @@ takes those facts as the variable's domain without being told.
 
 | Prolog module | s(CASP) file | |
 |---|---|---|
-| `:- describe L :: Text.` | same, or `#pred L :: 'Text'.` | how to say literal `L` in words |
-| `:- pred p(d1, ...).` | same, or `#pred p(d1, ...).` | a signature (§3.5) |
+| `:- describe L :: Text.` | `#describe L :: Text.`, or `#pred L :: 'Text'.` | how to say literal `L` in words |
+| `:- pred p(d1, ...).` | `#pred p(d1, ...).` | a signature (§3.5) |
 | `:- domain d = [...]` / `= Lo..Hi` | `#domain d = [...]` / `= Lo..Hi` | a domain |
 | `:- abducible p(X).` | `#abducible p(X).` | `p(X)` may be assumed, or not |
 | `:- show p/1.` | `#show p/1.` | restrict the printed model |
@@ -289,6 +289,15 @@ takes those facts as the variable's domain without being told.
 | `:- scasp_dynamic p/1.` | — | `p/1` is changed at run time (§5.6) |
 | — | `#include(File).` | read another file here |
 | — | `?- Query.` | the query; the last one counts |
+
+**Either spelling works in either place.** A Prolog module also reads
+`#describe`, `#pred`, `#domain`, `#abducible`, `#show` and `#sld`, and a
+file also reads the `:-` forms, so a program can be moved between the two
+unchanged. The table gives the spelling that reads naturally in each. In a
+file the `#` form is the safer one: there, a `:-` term that is not one of
+these declarations is a global constraint (§3.3), so a misspelt declaration
+would silently become a constraint. Three entries belong to one place only:
+`:- scasp_dynamic` to a module, `#include` and `?-` to a file.
 
 **`:- describe`.** `Text` is a string or an atom. In it, `@(X)` (or
 `{{X}}`) stands for the variable the directive calls `X`. `@(X:Type)`

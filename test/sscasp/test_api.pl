@@ -893,6 +893,32 @@ test(a_global_constraint_is_a_clause_of_its_module) :-
     assertion(test_api:'scasp$constraint'(_)),
     assertion(\+ current_predicate(test_api:(-)/0)).
 
+%   `#sld`, `#domain` and `#describe` are the s(CASP) file's spellings,
+%   and a module accepts them as it accepts `:- sld`, `:- domain` and
+%   `:- describe`, so one program reads the same in either.
+
+test(the_hash_spellings_are_declarations_in_a_module,
+     [ setup(tmp_file_stream(text, File, Out)),
+       cleanup(delete_file(File))
+     ]) :-
+    format(Out, ":- use_module(library(sscasp)).~n\c
+                 #describe api_hash_flies(_X) :: \"@(X) can fly\".~n\c
+                 #domain api_hash_kind = [tweety, sam].~n\c
+                 #sld api_hash_heavy/1.~n\c
+                 api_hash_bird(tweety). api_hash_bird(sam).~n\c
+                 api_hash_heavy(sam).~n\c
+                 api_hash_flies(X) :- api_hash_bird(X), \c
+                                      not api_hash_heavy(X).~n", []),
+    close(Out),
+    api_hash_program:load_files(File, [silent(true)]),
+    scasp_query_clauses(api_hash_program:api_hash_flies(_), Terms),
+    assertion(memberchk((:- describe(api_hash_flies(_) :: "@(X) can fly", _)),
+                        Terms)),
+    assertion(memberchk((:- domain(api_hash_kind = [tweety, sam])), Terms)),
+    assertion(memberchk((:- sld(api_hash_program:api_hash_heavy/1)), Terms)),
+    findall(X, scasp(api_hash_program:api_hash_flies(X), []), Xs),
+    assertion(Xs == [tweety]).
+
 %   A negated literal with a variable of its own is existential outside
 %   the negation, which is rarely what `not obs(temperature, _)` meant: it
 %   warns at load time.  A variable shared with the head or another
