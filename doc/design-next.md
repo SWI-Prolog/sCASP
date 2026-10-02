@@ -5,6 +5,13 @@ what measurement says about it, and the decisions taken so far — including the
 ones still open. `ssCASP.md` is the origin of most of the positions here;
 this file adds the evidence and the consequences.
 
+**Status, 2026-10-02.** The design is implemented, in `prolog/sscasp/`
+(`library(sscasp)`, the `sscasp` executable). The decisions below are
+written as they were taken, with a note where the implementation went
+another way; the open questions say what is settled. How to use the
+result is `doc/manual.md`; how it compares with the old implementation is
+`doc/performance.md` and `doc/semantics.md`.
+
 Companions: `doc/design.md` (how the *current* system works),
 `doc/literature.md` (what the papers specify), `doc/bugs.md` (what is broken),
 `doc/test-strategy.md` (what the tests guarantee, and what they do not).
@@ -146,10 +153,17 @@ cleanly:
 
 | Kind | | Example |
 |---|---|---|
-| `plain` | a user predicate | `user$plain$flies$1` |
-| `neg` | classical negation, `-p` | `user$neg$cold$1` |
-| `dual` | the dual, `not p` | `user$dual$flies$1` |
-| `dualneg` | the dual of `-p` | `user$dualneg$cold$1` |
+| `plain` | a user predicate | `m$plain$flies$1` |
+| `neg` | classical negation, `-p` | `m$neg$cold$1` |
+| `dual` | the dual, `not p` | `m$dual$flies$1` |
+| `dualneg` | the dual of `-p` | `m$dualneg$cold$1` |
+
+*As built* (`mangle.pl`), the `Module` field holds the module the program
+was **compiled for**, not a source module: `run.pl` compiles every program
+for `scasp`, so a name reads `scasp$plain$flies$1`. Two source modules
+defining the same predicate are therefore not told apart by the name;
+`dyncall.pl:check_one_definition/1` refuses such a program instead, which
+is simpler and has not been needed otherwise.
 
 **`o_` and `d_` disappear**: with the fields separated there is nothing to
 escape.
@@ -195,12 +209,14 @@ name, and keeps every mangled name to four fields:
 
 | | |
 |---|---|
-| `user$nmr$$0` | the NMR check |
-| `user$chk.1$$1` | its first sub-check, of arity 1 |
-| `user$false$$0` | the head of a headless rule |
+| `m$nmr$$0` | the NMR check |
+| `m$chk.1$$0` | its first sub-check; `m$dualchk.1$$0` is what the check calls |
 
-For these, `Arity` is the generated predicate's own — a sub-check may have
-arguments (P4 §2.4's `chk2(X)`). Demangling is then one clause: split on `$`,
+For these, `Arity` is the generated predicate's own. It was planned to let a
+sub-check have arguments (P4 §2.4's `chk2(X)`); as built every sub-check has
+arity 0, its variables being body-only ones its dual quantifies, and there is
+no `false` head: global constraints, odd loops and classical negation all
+become denials (`nmr.pl`). Demangling is then one clause: split on `$`,
 take four fields, and read an empty `Name` as "derives from no user
 predicate". An earlier draft used a two-field form for these and made the
 reader dispatch on field count for no gain.
@@ -222,6 +238,10 @@ The temporary module name is worth a second thought for the same reason: it is
 long, it appears in every functor of the compiled program, and it means nothing
 to anyone. An alias — `m1`, `m2` — mapped back for reporting would keep the
 mangled names short and readable without losing the distinction.
+
+*As built*: names carry the fixed compile module (above), never the
+temporary one, and `run.pl:query_error/2` turns an existence error on a
+mangled name into `existence_error(scasp_predicate, p/0)`.
 
 ### 3. State: the native stack, plus one dict
 
@@ -259,7 +279,7 @@ does. That was a paper decision and it does not survive contact:
 is the restriction, P2 §3.3.3: a coinductive call may succeed only if the path
 back to its ancestor crosses a negation. That stays.
 
-#### The six cases collapse to three
+#### The six cases collapse to four
 
 Compiling to predicates makes the polarity of a goal **static** — it is in the
 functor's `Kind` field — so a frame can record it, and the number of negations
@@ -269,15 +289,30 @@ the theory is about; counting `dual` frames instead undercounts, because
 dualising `q :- not p` turns `not q`'s body into a positive call to `p` and
 consumes one negation.
 
-Written that way, `check_CHS_/6`'s six clauses become three, and one of the six
+Written that way, `check_CHS_/6`'s six clauses become four, and one of the six
 turns out to be impossible:
 
 | | |
 |---|---|
 | the goal's **negation** unifies with an ancestor or a proved literal | fail |
-| an ancestor unifies with the goal, **0** transitions | fail — positive loop |
-| an ancestor unifies with the goal, **even, non-zero** | succeed coinductively |
-| the goal is ground and already proved | succeed |
+| an ancestor matches the goal, **0** transitions | by polarity: fail on `+` (a positive loop), succeed on `-` |
+| an ancestor matches the goal, **even, non-zero** | succeed coinductively |
+| the goal is ground and already proved, **from no assumption** | succeed |
+
+Three refinements came from the oracle and the corpus, not from this
+table's first version:
+
+- **A zero-transition loop succeeds on `-`.** `c :- c` leaves `c`
+  unfounded, which is exactly why `not c` holds; failing it made `not c`
+  unprovable for every unfounded `c`.
+- **"Matches" is a variant, or an instance with no negation between**, not
+  mere unification: a more general goal is a different question, and
+  failing it as a loop lost every `holdsAt(spilling, T)` in the event
+  calculus. And a variant is a variant **of the question**, compared with
+  the constraint stores taken into account (`solve.pl:same_question/2`).
+- **Reuse only a proof that rests on no assumption.** Reusing a literal
+  proved through the coinductive hypothesis closed a positive loop
+  unnoticed (`p :- not q, r. q :- not r. r :- p.`).
 
 There is no odd case. Two frames of the same polarity have an even number of
 transitions between them by construction, so an ancestor matching the goal is
@@ -321,6 +356,11 @@ of scope but because they change the *semantics* of `solve/4` and
 `generate_nmr_check/1` — and decision 5 is about removing that choice
 altogether rather than carrying it more tidily.
 
+*As built*: `scasp_forall` is gone. Dynamic consistency checking is the
+flag `sscasp_dcc`, on by default and the same in meaning either way; the
+other `sscasp_*` flags are optimisations or experiments, listed in
+`doc/manual.md` §7.
+
 ### 4. Constraints: keep both stores, replace the disequality solver
 
 Two stores stay, because two stores *is* s(CASP): CLP(Q) over a dense domain,
@@ -347,6 +387,15 @@ replacement rather than a simplification.
 It does **not** fix `doc/bugs.md` #15. `dif(A, f(_))` still allows `A = f(b)`,
 because "A is not of the form `f(_)`" is a *universally quantified*
 disequality, which neither solver can express. Decision 6 is where that goes.
+
+*As built* (`herbrand.pl`), the store has **two backings** behind one
+interface: `dif/2` for a disequality between whole terms, and a `∉` set of
+prohibited ground values per variable where that can say it. The set is
+idempotent, reading it does not destroy it (reading a `dif/2` does), and
+`X ∉ [a, b]` is how an answer reads. `∉` is also in the language, with `∈`
+as its dual. Domain inference (decision 5, case 1) closes the commonest
+instance of #15: `not wrap(T)` for `wrap(f(X)) :- item(X)` answers
+`T ∉ [f(a)]`.
 
 ### 5. `forall`: the criterion
 
@@ -385,6 +434,13 @@ That is decidable in exactly four cases, and undecidable outside them.
    on the signature being a guard in `t`'s clauses — open question 3 — and
    the guard it also puts in front of `not t(X, W)` is itself a positive
    literal, which is what bounds `W` there.
+
+   *Also inferred*: where nothing is declared, a positive literal of a
+   predicate defined by ground facts alone bounds the variable to the values
+   those facts give (`dualise.pl:var_domain/4`). And `for_domain/6` proves
+   the values in **one** proof, each from what the ones before it left;
+   proving them apart was unsound, since two values could rest on opposite
+   choices of an even loop.
 2. **Some answer leaves V wholly unconstrained.** Then G's success does not
    depend on V and that one answer covers the domain. Sound *provided every
    store is consulted* — `doc/bugs.md` #14 was precisely this check failing to
@@ -406,6 +462,13 @@ That is decidable in exactly four cases, and undecidable outside them.
    P1 documents it as a fatal error in the original implementation.
 6. **V comes back bound to a ground term** over the infinite Herbrand universe.
    One answer covers one point; no finite number of them covers the domain.
+
+   *As built*, the quantified variables are covered as one tuple (§5c), and
+   there a ground binding of one member is the ordinary case: it is
+   accepted, and its complement is the disequality, as in case 3. Rejecting
+   it cost `queens.pl` and `family.pl` every answer. What is rejected is a
+   binding to a **non-ground** term (`solve.pl:coverable/1`), whose
+   complement would be case 5.
 
 ### 5a. How to apply it
 
@@ -433,6 +496,10 @@ The compile-time report is the useful half: it tells an author *before they
 run anything* that negating `member/2` is incomplete if the list is unbound,
 and that a type declaration on the argument would fix it. That is the link
 between decisions 5 and 6, and the reason annotations are worth their cost.
+
+*Not built yet.* The compiler computes a scan, `program.unbounded`: the
+quantifiers no declared or inferred domain bounds. Nothing reports it to
+the author, and the run-time warning and the strict flag do not exist.
 
 ### 5c. There is no algorithm to choose
 
@@ -473,6 +540,20 @@ The remaining axis is real but small: `all` nests the quantifiers one variable
 at a time (`solve_other_forall/11`), `all_c` handles the whole tuple at once
 (`solve_var_forall_/11` directly). `all_c` fails to terminate on `queens.pl`
 and `bec_loan.pl`, so per-variable nesting wins on the evidence available.
+
+*Reversed in the implementation.* The new `forall/5` covers **all of a
+clause's body-only variables as one tuple**: covering a nest costs the
+*product* of the coverings, the tuple their sum. `bec_tap_02` made 83,593
+coverings of a three-variable nest and none of the event-calculus programs
+finished; with the tuple they answer in milliseconds. A variable with a declared
+domain keeps a `for_domain/6` of its own.
+
+*And the cut, in another place.* A covering, once found, is committed to:
+a second covering of the same ground is a second copy of the same answer
+(`bec_light` gave 500 answers with one model). The alternatives come from
+partitioning the goal's *other* variables, which is
+`solve_other_forall/11`'s shape. So cutting is right after all, where it
+cuts between proofs of one fact rather than between answers.
 
 And the performance worry does not go away — `prev`'s 24× on `queens.pl` was
 real. But it was bought with incompleteness, so it is not available. The
@@ -819,10 +900,14 @@ few and pays nothing back where they all unify.
 literal of a rule-defined predicate with at most 16 clauses whose heads are
 pairwise non-unifiable gets its projection, binding, in front of it, with a
 unification test for each later such literal it shares a variable with.
-Positive clauses only: a dual branch that required the guard would fail
-where the negation must hold, so the duals are made from the clause as
-written, and the guard is a native goal, in neither the model nor the
-justification nor the listing. The tap without `-holdsAt` then takes 4–6 ms
+At first in positive clauses only: a dual branch that required the guard
+would fail where the negation must hold, so the duals were made from the
+clause as written ("And in the duals" below lifts that). The guard is a
+native goal, in neither the model nor the justification; the listing shows
+only a negated one, as `not head(...)`. Heads that are instances of
+another head do not count as overlapping: the patterns are reduced to the
+most general ones first, which is what unfolding's split clauses need
+(`heads.pl:most_general/2`). The tap without `-holdsAt` then takes 4–6 ms
 for one to six cycles with the theory unchanged; the corpus gives the same
 answers and models (`bec_loan` 0.115 → 0.077 s); an 8,532-program oracle
 sweep is clean.
@@ -847,7 +932,9 @@ first answer comes in 0.03 s, V0 or V1. What never ended was enumerating the
 rest — one proof of the query and then thousands of proofs of the NMR check,
 35 models of the one answer in a minute. The flag `sscasp_commit_nmr`
 (`run.pl:committed_nmr/6`) takes the first proof of the check when it left the
-query's variables unchanged, and gives all four golden answers in 0.1 s.
+query's variables unchanged, and gives all four golden answers in 0.1 s. It
+is the default: what s(CASP) is for is an answer and a justification of it,
+not every answer set that contains it. `--no-commit-nmr` enumerates them.
 
 ### 6. Annotations, optional
 
@@ -944,8 +1031,8 @@ with sugar for the two cases `ssCASP.md` calls out, since writing them out is
 the tedious part:
 
 ```prolog
-:- domain day  = mon ; tue ; wed ; thu ; fri ; sat ; sun.   % → seven facts
-:- domain hour = 0..23.                                     % → a CLP region
+:- domain day  = [mon, tue, wed, thu, fri, sat, sun].   % → seven facts
+:- domain hour = 0..23.                                 % → a CLP region
 ```
 
 What the compiler does with it: it writes the domain goal where a programmer
@@ -989,6 +1076,12 @@ Proposed: **rename it `#describe`**, keeping `#pred` as a deprecated alias,
 which reads as what it is — *describe `shown(Thing)` as '…'*. `#template` and
 `#phrase` are the alternatives; the choice is taste, the rename is not.
 
+*Done.* `:- describe L :: Text` and `#describe L :: Text`, both accepted in a
+Prolog module and in a file, as are `:- domain` / `#domain` and the rest
+(`doc/manual.md` §3.6). `#pred L :: Text` is still read as a description;
+`:- pred L :: Text` is too, with a warning, since `:- pred` is the
+signature. A domain is written as a list or a range; `;` is refused.
+
 That frees `pred` for the signature above, where it matches both
 `library(type_check)` and Ciao. The collision is shallow in any case:
 `input.pl:directive/4` matches `pred(Pred::Template)`, so a signature without
@@ -997,7 +1090,8 @@ That frees `pred` for the signature above, where it matches both
 
 Adding these is small: `input.pl` declares `:- op(1150, fx, [table, show,
 pred])` and dispatches in `directive/4`; `domain` needs one more operator and
-one more clause each.
+one more clause each. (That is the old tree; in the new one the operators
+are in `ops.pl` and the file reader is `source.pl`.)
 
 ### 7. Tabling: probably not, and the reason is constraints
 
@@ -1025,6 +1119,12 @@ and pieces of a proof. This section is about a different question, which
 is what the new solver's measurements put on the table: not "how do we
 table like Prolog" but "**when may an answer found in one branch of the
 search be used in another?**"
+
+*Status.* The motivating program, `bec_loan`, now answers without a table:
+its first answer comes in 0.03 s, and what never ended was enumerating
+models of one answer, which committing to the first proof of the NMR check
+ended (§5e). The table below remains as an experiment, `sscasp_table`, off
+by default.
 
 #### What the search spends its time on
 
@@ -1396,15 +1496,21 @@ token stream as coloured plain text — so the two must change together whenever
 a CSS class or DOM node moves. Generating HTML and deriving text through
 `library(lynx)` removes that coupling.
 
+*Not taken.* The new tree ports the old arrangement: `html.pl` describes an
+answer once, and `html_text.pl` reads the same description as text, with
+the layout and colour as a second pass. The coupling stayed small because
+the terms arrive already readable (`render.pl` names the variables and
+inlines the stores once, for model and justification together).
+
 ## Open questions
 
 1. ~~**The `forall` criterion.**~~ **Settled** — decision 5. Four decidable
    cases, two undecidable ones, a static over-approximation for the common
    undecidable one, and a compile-time diagnostic rather than a refusal.
 2. ~~**`#pred` versus `:- pred`.**~~ **Settled** — §6a. The natural-language
-   template is renamed (`#describe` proposed, `#pred` kept as a deprecated
-   alias), which frees `pred` for an argument-domain signature. Domains are
-   unary predicates, not types.
+   template is renamed (`#describe`, done; `#pred` kept as an alias), which
+   frees `pred` for an argument-domain signature. Domains are unary
+   predicates, not types.
 3. ~~**How much of the language do annotations change?**~~ **Settled** —
    none, by construction. Optional, certainly — but a program that *needs* an
    annotation to be accepted (decision 5) has, in practice, a required one.
@@ -1489,8 +1595,9 @@ a CSS class or DOM node moves. Generating HTML and deriving text through
      is correct under C and raises under the check.
 4. ~~**Which `forall` algorithm, in the decidable region?**~~ **Settled** —
    §5c. There is no algorithm to choose: the flag is one case-dispatch plus two
-   cuts, and both cuts lose answers (`doc/bugs.md` #18). Remove the flag, keep
-   the dispatch, keep per-variable nesting.
+   cuts, and both cuts lose answers (`doc/bugs.md` #18). Remove the flag and
+   keep the dispatch. Per-variable nesting was *not* kept: the tuple won
+   (§5c).
    The oracle cannot help, since it agrees with all four.
 5. ~~**Which partial model should a query return?**~~ **Largely settled.**
    The model is a **function of the proof**: two answers whose proofs are equal
@@ -1516,6 +1623,12 @@ a CSS class or DOM node moves. Generating HTML and deriving text through
    proved, and the exact model-count/proof-count correspondence is the part
    most likely to have exceptions.
 
+   In the new tree the model is the literals of the proof by construction.
+   An answer found twice with the same bindings, model and constraints is
+   reported once (`sscasp_distinct_answers`), and by default each answer
+   carries **one** model: the first proof of the NMR check that leaves it
+   as it is (`sscasp_commit_nmr`).
+
 6. **Tabling: when may an answer be reused?** §7a. The measurements say
    almost all of `bec_loan`'s work is re-proving 144 distinct goals; the
    proposal is to table what a proof established without consulting
@@ -1523,9 +1636,12 @@ a CSS class or DOM node moves. Generating HTML and deriving text through
    way SLG decides a leader. Experiment 1 in §7a says the rule admits two
    thirds of `bec_loan`'s proofs; experiment 2 says reusing the ground and
    universal ones is 6× on the focused query and not enough on its own.
-   Next: tabling failures, then complete answer sets.
+   Next: tabling failures, then complete answer sets. Less pressing than it
+   was: `bec_loan` answers without it since the NMR check is committed to.
 
 ## Sequencing
+
+*As planned; all four steps are done.*
 
 1. `doc/design.md` — describe the current system. `ssCASP.md`'s first step, and
    still the gap: the `forall` disagreement above surfaced twice by accident,

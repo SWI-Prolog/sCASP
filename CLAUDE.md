@@ -879,12 +879,15 @@ the discarded run: the covering is run once more, `fail` undoes it and
 constraint store is copied. That second run is only paid when a second answer
 is asked for.
 
-An answer that **binds** the variable is rejected and the goal asked for
-another: it covers one point of an infinite domain, so no finite number of
-them could cover it, and any real covering contains an answer that leaves the
-variable free or in a region — the points then fall out of *that* answer's
-complement. Enumerating them instead is not a small waste: it took 37 s on a
-five-clause program the old implementation answers in 9 ms.
+An answer that binds a quantified variable to a **non-ground** term is
+rejected and the goal asked for another (`solve.pl:coverable/1`): its
+complement, "not of this shape", is nothing a store can say. A *ground*
+binding is accepted, its complement being the disequality (the tuple
+paragraph above). That was not always so: per variable, every binding was
+rejected, since one point covers nothing of an infinite domain, and
+enumerating points instead had taken 37 s on a five-clause program the old
+implementation answers in 9 ms; with the tuple, rejecting them cost
+`queens.pl` and `family.pl` every answer.
 
 Where the domain really is finite it has to be declared, and `for_domain/6`
 enumerates it — including a range, which compiles to a CLP(Q) region and is
