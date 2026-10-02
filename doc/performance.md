@@ -318,6 +318,44 @@ about 12% off the corpus when it was measured, most of it on
 the old implementation, where it is off by default, gets 7× from it on
 `hamilton_c`, which this one already answers without the pruning.
 
+## An external application
+
+The golden corpus is small programs. One external project, a
+decision-support rule base that is not part of this repository, has been
+measured with both libraries. Its suite runs against either one unedited, so
+it says what the difference is on a real program rather than on a benchmark.
+It is reported here in aggregate only.
+
+Its shape is unlike the corpus:
+
+- **One program per request.** The rules are compiled together with the
+  request's data, which arrive as facts, so every request pays a compile.
+  One request compiles to about 300 clauses (304 and 326 in the two domains
+  measured).
+- **One wide predicate.** The rules that draw conclusions are clauses of one
+  predicate, about 94 of them, and the messages they produce are clauses
+  whose heads overlap. Neither qualifies for a head guard (more than 16
+  clauses, or heads that unify), so `sscasp_head_guards` does nothing here.
+- **Negation over absent data.** Much of the reasoning is "there is no such
+  observation", that is, `not` of a fact predicate with variables not
+  bound by the head. The quantifiers range over Herbrand values, not over
+  CLP(Q) regions.
+
+Measured on 2026-10-01, wall and CPU time for the whole suite with 16 jobs:
+
+| | old library | sscasp | |
+|---|---:|---:|---:|
+| whole suite, wall | 145.5 s | 35.9 s | 4.1× |
+| whole suite, CPU | 777 s | 62.7 s | 12× |
+| the largest group of tests (79), wall | | | 34.8× |
+
+Most of the difference is compile-time unfolding, described above. Without
+fact unfolding the largest group took 251 s, with 59 of its 79 tests timing
+out. Binding derived predicates with a single answer took it from 11 s to
+1.4 s. Because the quantifiers range over Herbrand values, keeping the
+proofs of a quantifier's complement, which is what the event-calculus
+programs pay for (see "Where it is slower"), costs nothing measurable here.
+
 ## Programs the old implementation cannot do
 
 `test/scasp/known_issues.pl` lists three, and the new implementation answers two of
