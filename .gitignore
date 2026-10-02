@@ -10,8 +10,3 @@
 /TAGS
 buildenv.sh
 status.db
-# Generated from doc/*.md by doc/Makefile
-/doc/manual.pdf
-/doc/manual.html
-/doc/performance.pdf
-/doc/performance.html
