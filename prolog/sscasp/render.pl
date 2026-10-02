@@ -316,13 +316,13 @@ variable_name(N, Name) :-
 %   CLP(Q) has to say, so both come off: what is printed is the source
 %   language, not the store that happens to hold it.
 %
-%   A prohibited-value set of **one** is written `A \= b` rather than
-%   `A ∉ [b]`, because that is what the program said and a set of one is
-%   an implementation detail.  From two up the set is the shorter
-%   statement and keeps its own spelling.
+%   A prohibited-value set is written `A ∉ [b]` however many values it
+%   holds, as the old implementation writes it: one spelling for one
+%   thing, so a reader need not know that `A \= b` and `A ∉ [b, c]` are
+%   the same constraint with one value more.  `A \= B` is left for a
+%   `dif/2` the set cannot hold — between variables, or compound terms.
 
 readable_constraint(dif(A, B), Constraint) => Constraint = (A \= B).
-readable_constraint('∉'(A, [B]), Constraint) => Constraint = (A \= B).
 readable_constraint({Inner}, Constraint)   => Constraint = Inner.
 readable_constraint(_:{Inner}, Constraint) => Constraint = Inner.
 readable_constraint(Goal, Constraint)      => Constraint = Goal.

@@ -328,13 +328,13 @@ test(and_its_negation_is_the_constraint) :-
     assertion(scasp(P, not sel(d), _)),
     assertion(\+ scasp(P, not sel(a), _)).
 
-%   A set of one reads as the disequality the program wrote; from two up
-%   the set is the shorter statement and keeps its own spelling.
+%   A set of one is written as a set too, as the old implementation
+%   writes it: `\=` and `∉` are not two spellings of one constraint.
 
-test(a_set_of_one_reads_as_a_disequality) :-
+test(a_set_of_one_reads_as_a_set) :-
     scasp([(p(X) :- X \= a)], p(V), _),
     !,
     scasp_readable(V, Readable),
-    assertion(Readable = '| '(_, {_ \= a})).
+    assertion(Readable = '| '(_, {'∉'(_, [a])})).
 
 :- end_tests(herbrand_language).
