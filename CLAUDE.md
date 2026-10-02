@@ -412,6 +412,7 @@ namespaces, so nothing breaks, and the old one goes when the old tree does.
 | `graph.pl` | the call graph, and the odd loops over negation in it |
 | `nmr.pl` | denials → the NMR check |
 | `compile.pl` | the whole pipeline — terms in, `program{clauses, nmr, unbounded, ...}` out |
+| `heads.pl` | head guards — a rule literal's head projection checked before its body is proved, and negated in the duals where its arguments are body-only |
 | `emit.pl` | the backend — the logical program made runnable |
 | `solve.pl` | the runtime the emitted clauses call |
 | `runtime.pl` | what the emitted clauses may call, and all of it |
@@ -522,6 +523,25 @@ unbound, emptied of an earlier program's mangled predicates if given — instead
 of a temporary one. It is for debugging: the profiler will not keep track of
 predicates in a module that may vanish, and a kept program can be listed
 afterwards. The executable has it as `--module=Name`.
+
+**`sscasp_commit_nmr`** (default `true`; `--no-commit-nmr` in the executable
+turns it off) commits to the first proof of the NMR check
+(`run.pl:committed_nmr/6`). The query is proved first, so every
+further proof of the check is the same answer with another model:
+`bec_loan` proves its query once and its check 14,843 times a minute, 35
+models of one answer, and never reaches its other three answers; committed,
+all four in 0.1 s. The commitment is made only when the check left the
+query's variables as it found them — the projected CLP(Q) store and the
+Herbrand constraints among them entailed by what they were before
+(`entails_state/2`, which counts `T ∉ [1, 2]` as nothing new under `T > 2`) —
+because two proofs narrowing them differently are two answers. What it loses
+is alternative models of one answer (`hamcycle_two`'s second cycle), and that
+is the right default for what s(CASP) is for: an answer and a justification
+of it, not every answer set containing it. It composes with
+`sscasp_distinct_answers`, which only hides the repeats the search still
+makes. Its cost is reading the query's state twice per answer, a projection
+over the proof's whole CLP(Q) class: `yale_shooting_casp_v2`, seven answers,
+0.012 s → 0.026 s; nothing else in the corpus moves.
 
 `emit.pl` is a pass of its own because it is the only place that knows how the
 solver carries state: three arguments (`Anc` down, `S0`/`S` up) and a wrapper
@@ -1668,7 +1688,7 @@ moment, all answers enumerated:
 | `bec_tap_01` | 1, 0.028 s | 1, **0.087 s** | 0.3× |
 | `bec_tap_02` | 1, 0.028 s | 1, **0.086 s** | 0.3× |
 | `bec_tap_03` | 2, 0.034 s | 2, **0.171 s** | 0.2× |
-| `bec_loan` | 4, ~0.03 s | **no answer in 120 s** | |
+| `bec_loan` | 4, ~0.03 s | 4, **0.07 s** (with `--no-commit-nmr` no end in 60 s) | |
 
 **20 of 21 match the old implementation's answer count.** The one that does
 not is the gap list below, and the three that used to be beside it are worth
@@ -1693,13 +1713,18 @@ work is real and the quantifier has to get cheaper at it.
 **Two strengths of agreement**, because models legitimately differ where
 proofs do (open question 5 again). `answers_agree/1` asks whether the two
 implementations bind the **query** the same way — that is what was asked for,
-and a difference in it means something about the program. `agrees/1`
+and a difference in it means something about the program. Ours are read off
+the query as each answer binds it; the golden data holds only models, so the
+old implementation's are read off the literals of the query's shape in them,
+and where there are none (a conjunctive query, a query literal `#show`
+leaves out) the comparison falls back to models on both sides and says
+little — `agrees/1` covers those. `agrees/1`
 additionally requires the models to match, which is a real regression test but
 not the definition of correct: a model carries what the proof that was found
 needed, and two correct proofs may need different things.
 
-**45 of 49 golden programs agree on the answer; 22 of those also on the
-model.** The rest are in `corpus.pl:disposition/2`, and their test asserts
+**47 of 49 golden programs agree on the answer; 25 also on the model.**
+The rest are in `corpus.pl:disposition/2`, and their test asserts
 they still *fail* — so an entry cannot outlive the problem it records,
 exactly as `known_issues.pl` works.
 
@@ -1717,9 +1742,9 @@ in two and `bec_loan` in two others — so a name is `Corpus/Base`:
 | `gap(Reason)` | the reimplementation does not match, and should |
 | `golden(Reason)` | the old implementation is wrong and the `.pass` records it |
 
-Only the first is a to-do list. Today:
+Only the first is a to-do list, and it is empty: `bec_loan`, the last
+`gap(slow)`, answers since the NMR check is committed to (below). Today:
 
-| `gap(slow)` | `bec_loan`, in both corpora it appears in — its query answers in 0.027 s; its NMR check opens a quantifier over a seven-variable tuple, measured below |
 | `golden(...)` | `min_programs/solve_not_is` and `min_programs/stream_reasoning` |
 
 **Widening the corpus from 21 programs to 49 found two answers the old
@@ -1795,6 +1820,16 @@ needs:
 at 0.21 s.
 
 ###### And what `bec_loan` is still waiting for
+
+**Since 2026-10-01: nothing, with `sscasp_commit_nmr`.** Its first answer
+now comes in 0.03 s — which of the day's changes did it is not traced — and
+what never ended was enumerating the rest: the query is proved once and the
+NMR check is then proved again and again, 14,843 proofs a minute giving 35
+models of the one answer `holdsAt(it_is(2), T)`, `T > 1`, and the other
+three answers never reached. Committing to the first proof of the check
+(above, under "The solver"), the default, gives all four golden answers in
+0.07 s, and the program is no longer a gap. The rest of this section is the
+history of the search before that.
 
 Not a descent any more — `same_question/2` (above) takes its ancestor chain
 from 6,677 frames to 21, and with the NMR check off its query

@@ -12,6 +12,10 @@
 :- use_module(library(plunit)).
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [member/2, memberchk/2, append/3]).
+:- use_module(library(sscasp/source), [read_program/2]).
+:- use_module(library(sscasp/compile), [compile_program/3]).
+:- use_module(library(filesex), [directory_file_path/3]).
+:- use_module(library(time), [call_with_time_limit/2]).
 
 /** <module> The solver
 
@@ -41,7 +45,9 @@ test_solve :-
                 solve_counting,
                 solve_differential,
                 solve_without_nmr,
-                solve_tabling
+                solve_tabling,
+                solve_commit_nmr,
+                solve_head_guards
               ]).
 
 %!  models(+Program, ?Query, -Models) is det.
@@ -1564,6 +1570,225 @@ answer_set(Program, Query, Set) :-
     sort(Keys, Set).
 
 :- end_tests(solve_dcc).
+
+		 /*******************************
+		 *     COMMITTING THE CHECK	*
+		 *******************************/
+
+%   `sscasp_commit_nmr`: once the query is proved, take the first proof
+%   of the NMR check when it left the query's variables as it found
+%   them, rather than backtracking into the check for other proofs of
+%   the same answer.  See run.pl:committed_nmr/6.
+
+:- begin_tests(solve_commit_nmr).
+
+%   The check can be passed with `c` or with `d`: two models of the one
+%   answer `p`, and with the commitment one.
+
+two_witnesses([ p, (c :- not d), (d :- not c), (:- not c, not d) ]).
+
+test(one_proof_of_the_check_per_answer) :-
+    two_witnesses(Program),
+    with_scasp_flag(sscasp_commit_nmr, false, models(Program, p, Off)),
+    with_scasp_flag(sscasp_commit_nmr, true,  models(Program, p, On)),
+    length(Off, NOff), length(On, NOn),
+    assertion(NOff == 2),
+    assertion(NOn == 1).
+
+%   A check that narrows the query's variable is not committed to, and
+%   the answer is the same either way: `:- p(b), p(c)` makes the check
+%   choose `q(b)` and so `X ∉ [b]`.  (The quantifier inside the check
+%   commits to its first covering already, so `X ∉ [c]` is not a second
+%   answer with the flag off either; what this pins is that the narrowed
+%   answer survives.)
+
+narrowing([ (p(X) :- not q(X)), (q(Y) :- not p(Y)), (:- p(b), p(c)) ]).
+
+test(a_check_that_narrows_the_query_is_kept) :-
+    narrowing(Program),
+    with_scasp_flag(sscasp_commit_nmr, false, answer_keys(Program, p(_), Off)),
+    with_scasp_flag(sscasp_commit_nmr, true,  answer_keys(Program, p(_), On)),
+    assertion(Off == On),
+    assertion(Off = [[p(_)-_]-[_|_]]).    % one answer, and it is constrained
+
+answer_keys(Program, Query, Keys) :-
+    findall(Key,
+            ( scasp(Program, Query, Model),
+              copy_term(Query-Model, Copy, Constraints),
+              Key0 = [Copy]-Constraints,
+              copy_term_nat(Key0, Key),
+              numbervars(Key, 0, _)
+            ),
+            Keys0),
+    sort(Keys0, Keys).
+
+%   `bec_loan` proves its query once and then its NMR check thousands of
+%   times, each a model of the same answer, and never reached its other
+%   three answers.  Committed, it gives the four the golden data has.
+
+test(bec_loan_gives_its_four_answers) :-
+    source_file(test_solve:test_solve, Here),
+    file_directory_name(Here, Dir),
+    directory_file_path(Dir, '../all_programs/bec_loan.pl', File),
+    read_program(File, Source),
+    with_scasp_flag(sscasp_commit_nmr, true,
+                    call_with_time_limit(20,
+                        findall(F, scasp(Source.terms, holdsAt(F, _), _), Fs))),
+    msort(Fs, Sorted),
+    assertion(Sorted == [ is_terminated(the_agreement),
+                          it_is(2), it_is(3),
+                          requested_on(the_borrower, 1000, 2)
+                        ]).
+
+:- end_tests(solve_commit_nmr).
+
+		 /*******************************
+		 *         HEAD GUARDS		*
+		 *******************************/
+
+%   `heads.pl`: in a positive clause, the head projection of a rule
+%   literal is checked before the literal is proved, with a unification
+%   test for the later literals it shares a variable with.  A cut-down
+%   tap from the event calculus: the overflow happens at every time, and
+%   its `initiates` rule asks when the level is 10, which no answer about
+%   a level needs, since spilling has a trajectory for `leak/1` only.
+
+tap([ initiates(on, filling, _),
+      (initiates(overflow, spilling, T) :- holdsAt(level(10), T)),
+      happens(on, 5),
+      happens(overflow, _),
+      (trajectory(filling, T1, level(X), T2) :-
+           T1 #< T2, X #= T2 - T1, X #=< 10),
+      (trajectory(spilling, T3, leak(Y), T4) :-
+           T3 #< T4, Y #= T4 - T3),
+      (holdsAt(F2, T5) :- initiates(E, F1, T6), happens(E, T6),
+                          trajectory(F1, T6, F2, T5))
+    ]).
+
+:- begin_tests(solve_head_guards).
+
+test(the_rule_literal_is_guarded) :-
+    tap(Program),
+    with_scasp_flag(sscasp_head_guards, true,
+                    compile_program(m, Program, Compiled)),
+    assertion(( member((_ :- Body), Compiled.clauses),
+                sub_term(G, Body), compound(G),
+                G = '$heads'(initiates/3, _, _, bind) )).
+
+%   Unfolding can split a clause into two with one head: here over the
+%   two answers of `lvl/1`, an even loop.  A pattern that is an instance
+%   of another adds nothing, so the predicate still gets its guard.
+
+test(a_head_unfolding_duplicated_is_still_guarded) :-
+    Program = [ (lvl(10) :- not lvl(16)), (lvl(16) :- not lvl(10)),
+                init(on, fill, _),
+                (init(over, spill, T) :- lvl(M), M #< T),
+                (traj(fill, A, level(X), B) :- A #< B, X #= B - A),
+                (traj(spill, C, leak(Y), D) :- C #< D, Y #= D - C),
+                (holds(F2, T2) :- init(_E, F1, T1), traj(F1, T1, F2, T2)) ],
+    with_scasp_flag(sscasp_head_guards, true,
+                    compile_program(m, Program, Compiled)),
+    assertion(( member((_ :- Body), Compiled.clauses),
+                sub_term(G, Body), compound(G),
+                G = '$heads'(init/3, _, _, bind) )).
+
+%   Heads that overlap would find a solution once per pattern it fits.
+
+test(overlapping_heads_get_no_guard) :-
+    Program = [ (p(a, _) :- q), (p(_, b) :- q), q, r(b),
+                (s(X) :- p(X, Y), r(Y)) ],
+    with_scasp_flag(sscasp_head_guards, true,
+                    compile_program(m, Program, Compiled)),
+    assertion(\+ ( member((_ :- Body), Compiled.clauses),
+                   sub_term(G, Body), compound(G),
+                   G = '$heads'(_, _, _, _) )).
+
+%   The dual is made from the guarded clause, so a negated guard is a
+%   branch of it: `not holdsAt(level(H), 8)` closes the overflow case on
+%   `trajectory`'s heads alone.
+
+test(the_dual_has_the_guards_negated) :-
+    tap(Program),
+    with_scasp_flag(sscasp_head_guards, true,
+                    compile_program(m, Program, Compiled)),
+    assertion(( member((_ :- Body), Compiled.clauses),
+                sub_term(G, Body), compound(G),
+                G = not('$heads'(trajectory/4, _, _, _)) )).
+
+%   A binding guard over a head variable stays out of the dual: with the
+%   variable free it binds it to the patterns and its negation fails, and
+%   no quantifier covers the values in between.
+
+%   Constrained heads, so that unfolding knows no answers and the
+%   literals keep their variables.
+
+test(a_guard_over_a_head_variable_is_not_dualised) :-
+    Program = [ (p(X) :- q(X, Y), r(Y)),
+                (q(a, B) :- B #> 1), (q(c, C) :- C #< 0),
+                (r(Y) :- Y #> 5) ],
+    with_scasp_flag(sscasp_head_guards, true,
+                    compile_program(m, Program, Compiled)),
+    assertion(( member((_ :- Body), Compiled.clauses),
+                sub_term(G, Body), compound(G),
+                G = '$heads'(q/2, _, _, bind) )),
+    assertion(\+ ( member((_ :- Body), Compiled.clauses),
+                   sub_term(G, Body), compound(G),
+                   G = not('$heads'(_, _, _, _)) )).
+
+%   With a `-holdsAt` rule the program has a consistency check, which
+%   proves `not holdsAt(...)`: the duals' guards are what it runs through.
+
+tap_neg(Program) :-
+    tap(Program0),
+    append(Program0,
+           [ initiallyN(nothing),
+             (-holdsAt(F, T) :- 0 #< T, initiallyN(F)) ],
+           Program).
+
+%   Every query that finishes without the guards gives the same answers
+%   with them.
+
+test(the_answers_do_not_change,
+     [forall(member(Query, [ holdsAt(level(_), 8),
+                             holdsAt(leak(_), 20),
+                             holdsAt(_, 8) ]))]) :-
+    tap(Program),
+    with_scasp_flag(sscasp_head_guards, false, keys(Program, Query, Off)),
+    with_scasp_flag(sscasp_head_guards, true,  keys(Program, Query, On)),
+    assertion(Off == On).
+
+keys(Program, Query, Keys) :-
+    findall(Key,
+            ( scasp(Program, Query, _),
+              copy_term(Query, Copy, Constraints),
+              copy_term_nat(Copy-Constraints, Key),
+              numbervars(Key, 0, _)
+            ),
+            Keys0),
+    sort(Keys0, Keys).
+
+%   Without the guards these do not finish in ten seconds — the
+%   consistency check proves `not holdsAt(...)`, and the overflow case
+%   proves `not holdsAt(level(10), T1)` — so they are checked against what
+%   the tap means: level 3 at time 8, a leak of 5 at time 20 (it spills
+%   from 15), nothing else at 8, and every level but 3.
+
+test(the_consistency_check_goes_through_the_guards) :-
+    tap_neg(Program),
+    call_with_time_limit(10,
+        ( keys(Program, holdsAt(level(_), 8), Level),
+          keys(Program, holdsAt(leak(_), 20), Leak),
+          keys(Program, holdsAt(_, 8), At8),
+          ( scasp(Program, not holdsAt(level(4), 8), _) -> Not4 = true ; Not4 = false ),
+          ( scasp(Program, not holdsAt(level(3), 8), _) -> Not3 = true ; Not3 = false )
+        )),
+    assertion(Level == [holdsAt(level(3), 8)-[]]),
+    assertion(Leak == [holdsAt(leak(5), 20)-[]]),
+    assertion(At8 == [holdsAt(level(3), 8)-[]]),
+    assertion(Not4 == true),
+    assertion(Not3 == false).
+
+:- end_tests(solve_head_guards).
 
 		 /*******************************
 		 *        A KEPT MODULE		*

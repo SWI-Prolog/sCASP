@@ -41,8 +41,8 @@
 :- use_module(ops).
 :- use_module(clauses, [clause_parts/3, body_list/2, list_body/2]).
 :- use_module(dualise, [builtin/1]).
-:- use_module(library(lists), [member/2, reverse/2]).
-:- use_module(library(apply), [include/3, foldl/4, partition/4]).
+:- use_module(library(lists), [member/2, reverse/2, append/3]).
+:- use_module(library(apply), [include/3, foldl/4, partition/4, maplist/3]).
 :- use_module(library(solution_sequences), [limit/2]).
 :- use_module(library(rbtrees), [rb_new/1, rb_insert_new/4, rb_lookup/3,
                                  rb_update/5, rb_update/4, rb_map/3,
@@ -109,11 +109,42 @@ several.
 The flag `sscasp_unfold_facts` (default `true`) turns it off, and
 `sscasp_unfold_limit` (default 8) is the most facts a clause is split over.
 Both are read at compile time.
+
+## And what is not unfolded goes first
+
+Unfolding also **reorders**, without saying so: a literal unfolded against
+its facts is resolved at compile time, so in effect it runs before
+everything else in the body.  A literal with more facts than the limit
+keeps the place the program gave it, and that difference is a cliff.  The
+event calculus writes
+
+```prolog
+holdsAt(F2, T2) :- initiates(E, F1, T1), happens(E, T1), ...
+```
+
+and with `happens/2` unfolded the clause exists only for events that
+happen; past the limit `initiates(overflow, spilling, T1)` is tried first,
+asks `holdsAt(level(10), T1)` and recurses through every earlier cycle
+before `happens(overflow, T1)` fails — 155,568 goals where unfolding needs
+34 (`doc/design-next.md` §5e).
+
+So after unfolding, facts_first/3 moves each literal of a fact predicate
+that is still there in front of the positive literals of rule-defined
+predicates before it — and no further: not past a built-in, which may bind
+its arguments (`X is ...`, `=`) so that it is a lookup rather than an
+enumeration, nor past a negation or another fact literal.  Only a literal
+whose variables are all body-only moves, as for unfolding: one holding a
+head variable is selective already when the head is bound, which is how a
+dual calls it.  Conjunction commutes, so no answer changes; what changes
+is the order of a clause's children in the justification, and which proof
+is found first.  The flag `sscasp_facts_first` (default `true`) turns it
+off.
 */
 
 :- create_prolog_flag(sscasp_unfold_facts, true, [keep(true)]).
 :- create_prolog_flag(sscasp_unfold_limit, 8,    [keep(true)]).
 :- create_prolog_flag(sscasp_unfold_derived, true, [keep(true)]).
+:- create_prolog_flag(sscasp_facts_first, true, [keep(true)]).
 :- create_prolog_flag(sscasp_answer_limit, 256, [keep(true)]).
 
 %!  fact_index(+FactPIs, @Clauses, +SldPIs, -Index) is det.
@@ -182,7 +213,61 @@ add_defined(Clause, Tree0, Tree) :-
 unfold_facts(none, Clauses0, Clauses) =>
     Clauses = Clauses0.
 unfold_facts(Index, Clauses0, Clauses) =>
-    foldl(unfold_clause(Index), Clauses0, Clauses, []).
+    foldl(unfold_clause(Index), Clauses0, Clauses1, []),
+    facts_first(Index, Clauses1, Clauses).
+
+%!  facts_first(+Index, @Clauses0, -Clauses) is det.
+%
+%   Move each remaining literal of a fact predicate in front of the
+%   positive literals of rule-defined predicates that precede it.  See
+%   "And what is not unfolded goes first" above.
+
+:- det(facts_first/3).
+
+facts_first(Index, Clauses0, Clauses) :-
+    (   current_prolog_flag(sscasp_facts_first, true)
+    ->  maplist(facts_first_clause(Index), Clauses0, Clauses)
+    ;   Clauses = Clauses0
+    ).
+
+facts_first_clause(Index, Clause0, Clause) :-
+    clause_parts(Clause0, Head, Body0),
+    Body0 \== true,
+    body_list(Body0, Goals0),
+    foldl(place_goal(Index, Head), Goals0, [], Reversed),
+    reverse(Reversed, Goals),
+    Goals \== Goals0,
+    !,
+    list_body(Goals, Body),
+    Clause = (Head :- Body).
+facts_first_clause(_, Clause, Clause).
+
+%   Done keeps the goals placed so far, last first.  A movable fact
+%   literal is put in front of the run of rule literals at the end of it.
+
+place_goal(Index, Head, Goal, Done0, Done) :-
+    (   movable_fact(Index, Head, Goal)
+    ->  rule_run(Index, Done0, Run, Before),
+        append(Run, [Goal|Before], Done)
+    ;   Done = [Goal|Done0]
+    ).
+
+rule_run(Index, [Goal|Goals], [Goal|Run], Before) :-
+    rule_literal(Index, Goal),
+    !,
+    rule_run(Index, Goals, Run, Before).
+rule_run(_, Goals, [], Goals).
+
+movable_fact(index(Facts, _, _, _), Head, Goal) :-
+    user_literal(Goal),
+    functor(Goal, Name, Arity),
+    rb_lookup(Name/Arity, _, Facts),
+    body_only(Goal, Head).
+
+rule_literal(index(Facts, _, _, _), Goal) :-
+    user_literal(Goal),
+    functor(Goal, Name, Arity),
+    \+ rb_lookup(Name/Arity, _, Facts).
 
 %!  unfold_denials(+Index, +Bodies0, -Bodies) is det.
 %

@@ -429,6 +429,12 @@ expand_body(absent(Inner), Helpers, Seen, Expanded) =>
 %   literal.  Without this clause the goal under it keeps its mangled
 %   name, which `test_listing.pl:listing_corpus` is what noticed.
 
+%   A negated head guard: see the positive one below.
+
+expand_body(not('$heads'(Name/_, Args, _, _)), _, _, Expanded) =>
+    Goal =.. [Name|Args],
+    Expanded = not(head(Goal)).
+
 expand_body(not(Inner), Helpers, Seen, Expanded) =>
     Expanded = not(EInner),
     expand_body(Inner, Helpers, Seen, EInner).
@@ -437,6 +443,15 @@ expand_body(not(Inner), Helpers, Seen, Expanded) =>
 %   it does: raise unless the value is in the domain.  Only when ground,
 %   which `must_be/2` does not say, but a listing is not a program.
 
+%   A head guard (`heads.pl`) is the compiler's, not the program's: it
+%   only fails earlier than the literal it stands in front of would.  The
+%   listing says what the program means, so it leaves it out; the
+%   `compiled(true)` section, which shows what runs, keeps it.  Negated,
+%   in a dual, it is a branch of its own and reads as what it says: no
+%   clause head of the predicate unifies with these arguments.
+
+expand_body('$heads'(_, _, _, _), _, _, Expanded) =>
+    Expanded = true.
 expand_body('$domain_check'(Call, Domain, _PI), _, _, Expanded) =>
     arg(1, Call, Value),
     Expanded = must_be(Domain, Value).

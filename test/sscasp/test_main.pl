@@ -113,6 +113,7 @@ test(help_lists_the_flags, [forall(member(Flag, ["--tree", "--human",
                                                 "--json", "--code",
                                                 "--query", "--no-nmr",
                                                 "--dcc", "--domain",
+                                                "--commit",
                                                 "--version"]))]) :-
     run_sscasp(['--help'], _, Out),
     assertion(contains(Out, Flag)).
@@ -203,11 +204,25 @@ test(said_in_words) :-
     assertion(Status == exit(0)),
     assertion(contains(Out, "can fly")).
 
-:- end_tests(main_solving).
 
 		 /*******************************
 		 *          THE LISTING		*
 		 *******************************/
+
+%   `--commit-nmr`, the default: `hamcycle_two` asks for an edge both its
+%   Hamiltonian cycles use, so its two answers differ only in the model
+%   the NMR check leaves, and with the commitment there is one.
+%   `--no-commit-nmr` gives both.
+
+test(commit_nmr_gives_one_model_per_answer) :-
+    run_program(['-s0', '--no-commit-nmr'], 'sasp/hamcycle_two.pl', S0, Out0),
+    run_program(['-s0'], 'sasp/hamcycle_two.pl', S1, Out1),
+    assertion(S0 == exit(0)),
+    assertion(S1 == exit(0)),
+    assertion(contains(Out0, "Answer 2")),
+    assertion(\+ contains(Out1, "Answer 2")).
+
+:- end_tests(main_solving).
 
 :- begin_tests(main_listing).
 

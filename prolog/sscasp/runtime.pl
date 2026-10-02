@@ -47,6 +47,9 @@
               domain_check/3,
               sld_goal/5
             ]).
+:- reexport(heads,
+            [ head_guard/3
+            ]).
 :- reexport(herbrand,
             [ apart/2,
               not_in_list/2,

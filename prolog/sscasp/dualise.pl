@@ -807,6 +807,7 @@ builtin_pi(for_domain, 3).
 %   when domain errors are on.  Its goal is already translated.
 
 builtin_pi('$domain_check', 3).
+builtin_pi('$heads', 4).          % heads.pl
 
 %   Prolog arithmetic.  Distinct from the CLP(Q) comparisons above: these
 %   evaluate their arguments and test, so they need them bound, where

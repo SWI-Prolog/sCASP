@@ -482,7 +482,7 @@ short.
 
 ### 5d. Keeping a quantifier's CLP(Q) class small — tried on paper, not adopted
 
-*Measured 2026-10-01; the instrumentation was wrappers loaded
+*Measured 2026-10-01 at `6c66382`; the instrumentation was wrappers loaded
 from outside the tree, nothing of it is committed.*
 
 `8edd644` made the pieces of a `forall` complement **keep their proofs**
@@ -564,7 +564,7 @@ the first thing to measure.
 
 #### Why the old implementation stresses CLP(Q) so much less
 
-*Measured 2026-10-01, with `packages/clpqr` at `2f89d7f`.*
+*Measured 2026-10-01 at `6c66382`, with `packages/clpqr` at `2f89d7f`.*
 
 On `bec_tap_01`, counted at CLP(Q)'s own interface:
 
@@ -661,6 +661,193 @@ occurrences not computed twice). Together `bec_tap_01` 0.57 → 0.33 s and
 the targets after every elimination step; keeping the pivots instead halves
 the projection time but leaves redundant inequalities in 92 of 4,000 random
 projections, so it is not taken.
+
+### 5e. The event calculus as written, and as it could be written
+
+*Measured 2026-10-01 at `6c66382`, `packages/clpqr` at `8209496`; the
+programs are generated in a scratch directory, not committed.*
+
+§5d puts the event-calculus cost in one place: the consistency check
+`:- -holdsAt(F,T), holdsAt(F,T)`, over every fluent and every rational time,
+which the BEC theory's two `-holdsAt` rules (BEC5, BEC7) bring with them. So
+the question is whether the event calculus is affordable at all, or this
+formulation of it is not. Three versions of each program:
+
+- **V0** — as written;
+- **V1** — the theory without BEC5 and BEC7: no `-holdsAt`, so no check;
+- **V2** — V0 with integer time, `:- domain time = [0, ..., H]` and
+  `:- pred holdsAt(_, time)`, so the check enumerates instead of covering.
+
+**Generated scenarios.** *lights*: k lights, each switched on and off n
+times, pure BEC; *tap*: `bec_tap_01` with n tap-on/tap-off cycles, with
+trajectories. Time to the first answer, 60 s limit:
+
+| scenario | V0 | V1 | V2 |
+|---|---:|---:|---:|
+| lights k=1, n = 1 / 4 / 8 | 0.009 / 0.019 / **16.0 s** | 0.002 / 0.004 / 0.002 s | 0.004 / 0.016 / 40 s |
+| lights k=2, n = 4 / 8 | 0.12 s / **> 60 s** | 0.002 / 0.003 s | 0.29 s / > 60 s |
+| lights k=3, n = 4 / 8 | 0.59 s / **> 60 s** | 0.003 / 0.004 s | 2.2 s / stack overflow |
+| tap, n = 1 / 2 / 3 / 4 / 6 | 0.41 s / stack overflow from n=2 / > 60 s | 0.005 / 0.019 / 0.085 / 0.82 / > 60 s | > 60 s at n=1 |
+
+Wherever V0 finishes, V1 gives the same answers — the query's bindings and
+the CLP(Q) store projected onto them. V2 gives the integer points of those
+answers, repeated (16 copies for k=2, n=1), and enumerating time blows up.
+
+**The corpus programs.** V1 against V0, the same answers throughout:
+`bec_tap_01` 0.37 → 0.004 s, `bec_tap_02` 0.35 → 0.007 s, `bec_tap_03` (all
+answers) 0.76 → 0.014 s, `bec_light` 0.012 → 0.004 s, `bec_tap_04` unchanged.
+
+**So the event calculus is affordable; this formulation's check is not.**
+Without the check, pure BEC stays flat in the number of events. What V1 gives
+up is detecting an inconsistent narrative (a fluent both initially true and
+false, an event that both initiates and terminates it) and asking `-holdsAt`
+at all. The same rules under a plain name, `neg_holdsAt`, keep both and make
+the check a query to ask when it is wanted:
+`?- neg_holdsAt(F, T), holdsAt(F, T).`
+
+**What still grows in V1: the tap.** About tenfold per cycle although the
+query, `holdsAt(level(H), 8)`, is about the first cycle. Almost all of it is
+`not happens/2` and `releases/3` goals — 4, 150, 1,032, 10,706 `not happens`
+checks for n = 1..4 — from the duals of `stoppedIn` and `startedIn`, which
+quantify over the time of an event. Two causes, separable:
+
+- **`happens(overflow, T).`**, a fact with a variable, makes `happens/2` a
+  predicate not defined by ground facts, so neither fact unfolding nor
+  domain inference applies and every event time is covered as a region of
+  the rationals, split around every event, under the `holdsAt` recursion
+  the trajectories make. Without that one fact (which changes the program:
+  nothing overflows) the work is linear: 14, 19, 24, 29 checks for n = 1..4.
+- **Past `sscasp_unfold_limit`** (8 facts; five cycles is ten `happens`
+  facts) the literal is no longer unfolded and an inferred domain takes
+  over, and that path is a cliff: 155,568 checks and 6.2 s at n=5 against 34
+  checks unfolded (`sscasp_unfold_limit` 20). The two `stoppedIn` duals
+  enter `for_domain/6` 3,503 times each and most of the time is the loop
+  check over long ancestor chains (`ancestor/4` → `same_question/2`). It is
+  older than `for_domain/6` keeping its values' proofs (`8edd644`): 147,078
+  checks at `badd1fd`.
+
+  **It is goal order, not the quantifier.** BEC3 and BEC6 call
+  `initiates(Event, …)` before `happens(Event, T1)`. Unfolded, `happens/2`
+  is split over its facts at compile time, so a clause exists only for the
+  events that happen and `initiates(overflow, …)` is never tried. Past the
+  limit the body runs in source order: `initiates(overflow, spilling, T1)`
+  asks `holdsAt(level(10), T1)`, a recursion back through the trajectories
+  of the earlier cycles (the deepest ancestor chain grows 18 → 26 → 36 for
+  three to five cycles), before `happens(overflow, T1)` fails — this
+  variant has no overflow events, only the `initiates` rule. With the two
+  literals swapped in the theory and the limit at 4, five and six cycles
+  take 29 and 32 goal checks, 7 ms. Unfolding was silently putting the
+  selective fact literal first; the enumerated path keeps the order the
+  program wrote.
+
+  **So the compiler now does what unfolding did** (`unfold.pl:facts_first/3`,
+  flag `sscasp_facts_first`, default `true`): a fact literal left after
+  unfolding moves in front of the rule-defined positive literals before it,
+  and no further — not past a built-in that may bind it, a negation or
+  another fact literal. Five and six cycles take 29 and 32 checks at the
+  default limit; the corpus answers the same, with the same models.
+
+  With `happens(overflow, T).` back the swap does not help (1,289, 10,166,
+  137,763 checks for two to four cycles): `happens` then selects nothing for
+  an overflow, and the recursion through `holdsAt(level(10), T)` is what
+  deciding when the tap overflows takes.
+
+**What the tap's overflow costs.** With fact literals first, the tap without
+`-holdsAt` still grows tenfold per cycle (546, 3,356, 33,522 goals for two to
+four cycles), and all of it is the rule `initiates(overflow, spilling, T) :-
+max_level(Max), holdsAt(level(Max), T)`: without it the same programs take
+24–26 goals. The query `holdsAt(level(H), 8)` goes through BEC3,
+
+```prolog
+holdsAt(F2, T2) :- happens(E, T1), initiates(E, F1, T1),
+                   trajectory(F1, T1, F2, T2), not stoppedIn(T1, F1, T2).
+```
+
+`happens(overflow, T1)` holds for every T1, so the search proves
+`initiates(overflow, spilling, T1)` — `holdsAt(level(10), T1)` with T1 free,
+which has a solution in every cycle, each needing the level's history through
+the cycles before it — and only then finds `trajectory(spilling, T1,
+level(H), 8)` impossible: spilling has a trajectory for `leak/1` only. All of
+that work is avoidable: no clause head of `trajectory/4` unifies with
+`trajectory(spilling, _, level(_), _)`, which could be known before
+`initiates`' body is proved. Checking `trajectory` before `initiates` instead
+does not finish at all: the overflow's free T1 reaches `holdsAt(level(X), T1)`
+inside `trajectory` with nothing to bound it.
+
+**A head test removes it** (prototype, written by hand). Each rule-defined
+literal implies that some clause head of its predicate unifies with it, so a
+**head projection** — a fact predicate holding the argument patterns of the
+heads, `initiates_head(tapOn, filling)`, `initiates_head(overflow, spilling)`,
+`trajectory_head(filling, level(_))`, `trajectory_head(spilling, leak(_))` —
+may be checked before the literal is proved, and changes no answer:
+
+```prolog
+holdsAt(F2, T2) :- happens(E, T1), initiates_head(E, F1), trajectory_head(F1, F2),
+                   initiates(E, F1, T1), trajectory(F1, T1, F2, T2),
+                   not stoppedIn(T1, F1, T2).
+```
+
+`initiates_head(overflow, F1)` binds F1 to `spilling` from the head alone and
+`trajectory_head(spilling, level(H))` fails before `holdsAt(level(10), T1)`
+is asked. Without `-holdsAt`, same answers throughout:
+
+| tap cycles | 1 | 2 | 3 | 4 | 6 |
+|---|---:|---:|---:|---:|---:|
+| `holdsAt(level(H), 8)`, all answers | 0.008 → 0.006 s | 0.041 → 0.006 s | 0.26 → 0.004 s | 4.4 → 0.005 s | > 60 → 0.016 s |
+| `holdsAt(spilling, T)` | 0.044 → 0.039 s | 0.062 → 0.032 s | 0.36 → 0.038 s | 5.3 → 0.043 s | |
+| `holdsAt(leak(L), 19)` | 0.005 → 0.005 s | 0.027 → 0.010 s | 0.25 → 0.014 s | 4.2 → 0.020 s | |
+
+The spilling query needs the overflow and still gains: no trajectory yields
+`spilling`, so BEC3 is skipped at once and BEC6 answers. With `-holdsAt`
+back the test helps (two cycles 0.26 s instead of a stack overflow) and the
+consistency check still dominates (4.9 s at four cycles).
+
+*In the compiler* this would be a transformation over rule-defined
+literals: generate the head projection of each predicate (the arguments of
+its clause heads, renamed apart), and in a body insert the projection of a
+literal before it, so that its head binds what the later literals' head
+tests read — or, cheaper, only where a later literal shares a variable that
+the earlier literal's head can bind. It is sound for the reason fact
+unfolding is (the literal implies its head projection under the completion),
+it is the static half of what an SLD engine's first-argument indexing does
+dynamically, and it changes the justification only by the projection
+literals, which could be left out of it as built-ins are. Its cost is one
+extra fact lookup per guarded literal, which is cheap where the heads are
+few and pays nothing back where they all unify.
+
+**Built** (`heads.pl`, flag `sscasp_head_guards`, default `true`): a positive
+literal of a rule-defined predicate with at most 16 clauses whose heads are
+pairwise non-unifiable gets its projection, binding, in front of it, with a
+unification test for each later such literal it shares a variable with.
+Positive clauses only: a dual branch that required the guard would fail
+where the negation must hold, so the duals are made from the clause as
+written, and the guard is a native goal, in neither the model nor the
+justification nor the listing. The tap without `-holdsAt` then takes 4–6 ms
+for one to six cycles with the theory unchanged; the corpus gives the same
+answers and models (`bec_loan` 0.115 → 0.077 s); an 8,532-program oracle
+sweep is clean.
+
+**And in the duals.** The theory as written pays in the consistency check,
+which proves `not holdsAt(...)` through the duals. A guarded body says what
+the body said, so its dual is made from the guarded clause, and a guard's
+negation is that its arguments unify with no pattern *now* — decided at
+the call, binding and posting nothing, the pattern's variables fresh. A
+test is decided either way; a binding guard is complete in a dual only
+where its arguments are body-only, since then the quantifier's complement
+calls again with them apart from the patterns, so only those groups go into
+the dual. `not holdsAt(level(H), 8)` then closes the overflow case on
+`not head(trajectory(spilling, _, level(H), 8))`. The theory as written,
+same answers: tap one cycle 0.45 → 0.026 s, two to four cycles 0.21, 0.74
+and 5.1 s where they overflowed the stack (the check's own work still
+grows); corpus `bec_tap_01` 0.358 → 0.025 s, `bec_tap_02` 0.301 → 0.021 s,
+nothing else moves; the 8,532-program sweep is clean.
+
+**`bec_loan` is a different case** and no longer waits on the check: its
+first answer comes in 0.03 s, V0 or V1. What never ended was enumerating the
+rest — one proof of the query and then thousands of proofs of the NMR check,
+35 models of the one answer in a minute. The flag `sscasp_commit_nmr`
+(`run.pl:committed_nmr/6`) takes the first proof of the check when it left the
+query's variables unchanged, and gives all four golden answers in 0.1 s.
 
 ### 6. Annotations, optional
 
@@ -1151,7 +1338,7 @@ asks whether the rule admits them; mostly it does not, and rightly.
 
 #### Experiment 3: the event-calculus repeats
 
-*2026-10-01, with `packages/clpqr` at `2f89d7f`, through
+*2026-10-01, at `6c66382` with `packages/clpqr` at `2f89d7f`, through
 wrappers loaded from outside the tree.*
 
 **Experiment 2's table on the current solver** catches none of them:

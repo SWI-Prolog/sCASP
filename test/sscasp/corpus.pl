@@ -137,15 +137,13 @@ comparable(Name, File) :-
 %   | `slow`       | not answered within the time a test may take |
 %   | `incomplete` | finishes, and misses answers it should have found |
 
-%   One of the event calculus family is left.  `bec_loan`'s query
-%   `?- holdsAt(F, T).` answers in 0.027 s with the NMR check off, where
-%   it used to spend 6,677 ancestor frames walking backwards in time;
-%   with the check on it answers in **376 s** against 0.85 s for the old
-%   implementation, so what is left is a factor of 440 and not a hang.
-%   `CLAUDE.md` has the measurements.  It is in two corpora.
-
-disposition(all_programs/bec_loan, gap(slow)).
-disposition(min_programs/bec_loan, gap(slow)).
+%   `bec_loan`, in two corpora, used to be here as `gap(slow)`.  Its
+%   first answer came quickly once `same_question/2` stopped a descent of
+%   6,677 ancestor frames, but enumerating the rest backtracked into the
+%   NMR check for ever: one proof of the query, thousands of proofs of
+%   the check, all the same answer.  Committing to the first proof of the
+%   check (`run.pl:committed_nmr/6`, the default) gives the four golden
+%   answers in 0.1 s.  `CLAUDE.md` has the history.
 
 %   `all_programs/hanoi_scasp_7` and `dcc/hamilton_c` used to be here.
 %   Both say `#show`, and the golden model is the shown part only, which
@@ -267,9 +265,37 @@ answers_agree(File) :-
     Query \== none,
     golden_models(File, Golden),
     model_answers(Golden, Query, Theirs),
-    corpus_models(File, Ours),
-    model_answers(Ours, Query, Ours1),
-    Theirs == Ours1.
+    (   Theirs == []
+    ->  corpus_models(File, OurModels),
+        model_answers(OurModels, Query, Ours)
+    ;   query_answers(Source.terms, Query, Ours)
+    ),
+    Theirs == Ours.
+
+%   Ours are read off the query as each answer binds it, not off the
+%   model: a model also holds every literal its proof established, and
+%   on `bec_loan` those include `holdsAt(it_is(2), 2)`, which unifies
+%   with the query `holdsAt(F, T)` and is not an answer to it.  The golden
+%   data has only models, so the old implementation's answers are still
+%   read off those.
+%
+%   Where those say nothing about the query — a conjunction, which no
+%   literal of a model unifies with, or a query literal `#show` leaves
+%   out (`hanoi_scasp_7`, `haplotype`, `loopvar`, `loopvar2`,
+%   `yale_shooting_casp_v2`, `hamilton_c`) — there is nothing to compare
+%   bindings with, and ours are read off the models too.  That comparison
+%   is empty on both sides and says only that neither model holds a
+%   literal of the query's shape; the model comparison (`agrees/1`) is
+%   what checks those programs.
+
+query_answers(Terms, Query, Answers) :-
+    findall(Key,
+            ( scasp(Terms, Query, _),
+              copy_term(Query, Copy),
+              model_key([Copy], Key)
+            ),
+            Keys),
+    sort(Keys, Answers).
 
 model_answers(Models, Query, Answers) :-
     findall(Key,

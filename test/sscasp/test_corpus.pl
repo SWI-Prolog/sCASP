@@ -99,8 +99,8 @@ test(every_disposition_names_a_program, [forall(disposition(Name, _))]) :-
     assertion(corpus_program(Name, _)).
 
 %   A `slow` one is not run at all: a test has a time limit and there is
-%   nothing to learn from watching it expire.  `bec_loan` is the only one
-%   left, and `corpus.pl` says what is known about it.
+%   nothing to learn from watching it expire.  None is left: `bec_loan`,
+%   the last, answers since the NMR check is committed to (`corpus.pl`).
 %
 %   What closed the rest of the event calculus family is in `CLAUDE.md`
 %   under the quantifier: three readings of one mistake — negating a
@@ -157,14 +157,16 @@ expected(holdsAt(leak(_L), 14),  []).
 expected(holdsAt(leak(_L), 19),  [4]).
 expected(holdsAt(leak(_L), 22),  []).
 
-%   `bec_loan` is the remaining gap, and it is worth a test of its own:
-%   its query is `?- holdsAt(F, T).` with both arguments free, and what
-%   used to happen to it was not a search but a descent —
+%   `bec_loan` was the last gap, and this test stays as the record of one
+%   of its two problems: its query is `?- holdsAt(F, T).` with both
+%   arguments free, and what used to happen to it was not a search but a
+%   descent —
 %   `not holdsAt(requested_on(the_borrower, 1000, 2), T)` calling
 %   `not initiates(ends(1), is_liable_to_litigation(the_lender), T)`
 %   calling the same pair one step earlier in time, 6,677 frames deep.
-%   `solve.pl:same_question/2` stops it; what is left is the size of the
-%   search its NMR check opens, which is a different problem.
+%   `solve.pl:same_question/2` stops it.  The other was enumerating its
+%   answers, which backtracked into the NMR check for ever, and
+%   `run.pl:committed_nmr/6` stops that.
 
 test(the_loan_query_is_a_search_and_no_longer_a_descent) :-
     once(corpus_program(all_programs/bec_loan, File)),

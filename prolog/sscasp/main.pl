@@ -129,6 +129,7 @@ opt_type(color,    colour,        boolean).
 opt_type(nmr,      nmr,           boolean).
 opt_type(olon,     olon,          boolean).
 opt_type(dcc,      dcc,           boolean).
+opt_type(commit_nmr, commit_nmr,  boolean).
 opt_type(module,   module,        atom).
 opt_type(domain_error, domain_error, boolean).
 
@@ -155,6 +156,9 @@ opt_help(olon,     "Compile rules on odd loops (--no-olon to skip them)").
 opt_help(dcc,      "Check the global constraints as literals are proved \c
                     (dynamic consistency checking; --no-dcc to leave \c
                     them to the end)").
+opt_help(commit_nmr, "Take the first proof of the NMR check that leaves \c
+                    the answer as it is: one model per answer \c
+                    (--no-commit-nmr for every model)").
 opt_help(module,   "Load the program into MODULE and keep it, for \c
                     debugging and profiling").
 opt_help(domain_error, "Raise a domain error for a value outside a \c
@@ -273,6 +277,10 @@ compile_flags(Options) :-
     ),
     (   option(domain_error(Error), Options)
     ->  set_prolog_flag(scasp_domain_error, Error)
+    ;   true
+    ),
+    (   option(commit_nmr(Commit), Options)
+    ->  set_prolog_flag(sscasp_commit_nmr, Commit)
     ;   true
     ).
 

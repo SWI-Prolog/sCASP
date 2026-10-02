@@ -41,6 +41,7 @@
           ]).
 :- use_module(ops).
 :- use_module(mangle, [mangle/2, demangle/2, mangled/1]).
+:- use_module(library(varnumbers), [varnumbers/2]).
 :- use_module(library(lists), [append/3, member/2]).
 :- use_module(library(apply), [maplist/3, convlist/3, include/3]).
 :- use_module(library(error), [domain_error/2]).
@@ -308,6 +309,9 @@ body('$domain_check'(Goal, Domain, PI), M, _, S0, S, Runnable) =>
     Runnable = (domain_check(M:Goal, Domain, PI), S = S0).
 body(absent(Goal), _, _, S0, S, Runnable) =>
     Runnable = absent(Goal, S0, S).
+body('$heads'(_PI, Args, Patterns0, Mode), _, _, S0, S, Runnable) =>
+    varnumbers(Patterns0, Patterns),        % fresh per call: the clause is
+    Runnable = (head_guard(Args, Patterns, Mode), S = S0). % asserted
 body(sld(Goal, Type), _, Anc, S0, S, Runnable) =>
     Runnable = sld_goal(Goal, Type, Anc, S0, S).
 body(Goal, _, Anc, S0, S, Runnable),
@@ -366,6 +370,17 @@ builtin(not(false), Runnable) => Runnable = true.
 
 builtin(not('$domain_check'(_, _, _)), Runnable) => Runnable = fail.
 builtin('$domain_check'(_, _, _), Runnable) => Runnable = true.
+
+%   A head guard (`heads.pl`).  Its negation, in a dual, is that the
+%   arguments unify with no pattern now: decided at the call, binding
+%   nothing and posting nothing.
+
+builtin('$heads'(_PI, Args, Patterns0, Mode), Runnable) =>
+    varnumbers(Patterns0, Patterns),
+    Runnable = head_guard(Args, Patterns, Mode).
+builtin(not('$heads'(_PI, Args, Patterns0, _)), Runnable) =>
+    varnumbers(Patterns0, Patterns),
+    Runnable = (\+ head_guard(Args, Patterns, test)).
 
 %   Prolog arithmetic evaluates and tests, so it passes straight through.
 %   A comparison does where it can be evaluated, and constrains where it

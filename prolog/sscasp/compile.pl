@@ -49,6 +49,7 @@
 :- use_module(nmr,         [nmr_check/4]).
 :- use_module(unfold,      [fact_index/4, unfold_facts/3,
                             unfold_denials/3]).
+:- use_module(heads,       [head_index/2, head_guarded/4]).
 :- use_module(clauses,     [clause_parts/3, clause_head/2, clause_body/2,
                             body_goal/2, list_body/2, literal_parts/3,
                             literal_key/2]).
@@ -161,7 +162,9 @@ compile_program(Module, Terms, Program) :-
     sld_pis(Terms, SldPIs),
     fact_index(Facts, Clauses2, SldPIs, Index),
     unfold_facts(Index, Clauses2, Clauses),
-    Annotations = Declared.put(_{fact_predicates:Facts, fact_index:Index}),
+    head_index(Clauses, Heads),
+    Annotations = Declared.put(_{fact_predicates:Facts, fact_index:Index,
+                                 head_index:Heads}),
     constraints(Terms, Constraints0),
     maplist(guarded_body(Guard), Constraints0, Constraints1),
     unfold_denials(Index, Constraints1, Constraints),
@@ -575,8 +578,10 @@ abduced(Head :- abducible(Head)).
 %       predicate_groups/2.
 
 compile_predicate(Module, Annotations, key(Polarity, PI)-Clauses, Compiled) =>
-    maplist(translate_clause(Module), Clauses, Translated),
-    maplist(strip_polarity, Clauses, Bare),
+    get_dict(head_index, Annotations, Heads),
+    maplist(head_guarded(Heads), Clauses, Guarded, ForDual), % heads.pl
+    maplist(translate_clause(Module), Guarded, Translated),
+    maplist(strip_polarity, ForDual, Bare),
     predicate_duals(Module, Annotations, Polarity, PI, Bare, Duals),
     append(Translated, Duals, Compiled).
 

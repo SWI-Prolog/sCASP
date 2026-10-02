@@ -46,7 +46,7 @@
 :- use_module(dualise,  [translate_goal/3]).
 :- use_module(solve,    [call_goal/4, model/2, justification/2,
                          children/3, empty_proof/1, table_begin/0]).
-:- use_module(herbrand, [normalise/1]).
+:- use_module(herbrand, [normalise/1, read_store/2]).
 :- use_module(runtime,  []).
 :- use_module(mangle,   [demangle/2, mangled/1]).
 :- use_module(library(modules), [in_temporary_module/3]).
@@ -55,6 +55,7 @@
 :- use_module(library(error), [instantiation_error/1, must_be/2]).
 :- use_module(library(option), [option/2]).
 :- use_module(library(gensym), [gensym/2]).
+:- use_module(library(clpq), [dump/3, entailed/1, {}/1]).
 
 %   Before the first clause, with the imports, because a meta-predicate
 %   mode is part of the module's **signature**: a reader — or a tool —
@@ -370,8 +371,118 @@ literal_spec(Goal, Spec) =>
 
 solved(Module, Goals, Nmr, Empty, Proof0, Proof) :-
     solve_goals(Module, Goals, [], Empty, Proof0),  % dict notation expands into
-    call_goal(Module:Nmr, [], Proof0, Proof).       % the goal it appears in, and
-                                                    % a meta-argument is one
+    (   current_prolog_flag(sscasp_commit_nmr, true) % the goal it appears in,
+    ->  term_variables(Goals, Vars),                % and a meta-argument is one
+        query_state(Vars, Before),
+        committed_nmr(Module, Nmr, Vars, Before, Proof0, Proof)
+    ;   call_goal(Module:Nmr, [], Proof0, Proof)
+    ).
+
+%!  committed_nmr(+Module, +Nmr, @Vars, +Before, ?Proof0, -Proof) is nondet.
+%
+%   Prove the NMR check, and commit to its first proof when that proof
+%   left the query's variables as it found them.
+%
+%   The query has been proved when the check runs, so every other proof
+%   of the check is the same answer with another justification — and it
+%   can be very many: `bec_loan` proves its query once and then its check
+%   14,843 times in a minute, 35 different models of one answer and none
+%   of the other three answers reached.  With the commitment it gives the
+%   four in 0.12 s.
+%
+%   What may not be thrown away is a proof that says something different
+%   about the query.  The check can narrow the query's variables — the
+%   consistency check posts a disequality, a quantifier narrows a region
+%   — and two proofs narrowing them differently are two answers.  So the
+%   commitment is only made when the stores say nothing about Vars after
+%   the check that they did not entail before it (entails_state/2): every
+%   other proof can then only narrow an answer this one already gives.
+%   A check that does narrow keeps its alternatives.
+%
+%   On by default; the flag `sscasp_commit_nmr` turns it off.  What it
+%   loses is alternative models of the same answer — `hamcycle_two`'s
+%   second cycle, both through the edge the query asks about.  That is
+%   the right default for what s(CASP) is used for: an answer and a
+%   justification of it, not an enumeration of the answer sets that
+%   contain it — and with the flag off the search may never get past
+%   the first answer, as `bec_loan`'s did.
+
+:- create_prolog_flag(sscasp_commit_nmr, true, [keep(true)]).
+
+committed_nmr(Module, Nmr, Vars, Before, Proof0, Proof) :-
+    call_goal(Module:Nmr, [], Proof0, Proof),
+    (   query_state(Vars, After),
+        entails_state(Before, After)
+    ->  !
+    ;   true
+    ).
+
+%!  query_state(@Vars, -State) is det.
+%
+%   What the stores say about Vars alone, as plain terms over fresh
+%   variables: `Bindings-Dense-Herbrand`, the bindings, the CLP(Q) store
+%   projected onto them and the Herbrand constraints among them.
+%   Projected, because the class the variables are in grows during the
+%   check by variables the query never sees.  Read inside a run that
+%   `fail` undoes, as `read_store/2` must be.
+
+query_state(Vars, State) :-
+    Box = state(-),
+    \+ \+ ( include(dense, Vars, Dense),
+            (   Dense == []
+            ->  Region = []
+            ;   dump(Dense, Dense, Region)
+            ),
+            read_store(Vars, Herbrand0),
+            term_variables(Vars, Free),
+            include(only_about(Free), Herbrand0, Herbrand1),
+            msort(Herbrand1, Herbrand),
+            copy_term_nat(Vars-Region-Herbrand, Copy),
+            nb_setarg(1, Box, Copy) ),
+    arg(1, Box, State).
+
+dense(Var) :-
+    var(Var),
+    get_attr(Var, clpqr_itf, _).
+
+only_about(Vars, Goal) :-
+    term_variables(Goal, GoalVars),
+    forall(member(V, GoalVars), memberchk_eq(V, Vars)).
+
+memberchk_eq(X, [Y|Ys]) :-
+    (   X == Y
+    ->  true
+    ;   memberchk_eq(X, Ys)
+    ).
+
+%!  entails_state(+Before, +After) is semidet.
+%
+%   True when Before says all After says: the same bindings, every
+%   CLP(Q) constraint of After entailed by Before's region, and every
+%   Herbrand constraint of After among Before's or, excluding a number
+%   from a variable, entailed by the region — `T > 2` already says
+%   `T ∉ [1, 2]`, which the consistency check posts on `bec_loan`.
+
+entails_state(Bindings-Region-Herbrand, After) :-
+    After = AfterBindings-_-_,
+    Bindings =@= AfterBindings,         % the check bound nothing
+    \+ \+ ( After = Bindings-AfterRegion-AfterHerbrand,
+            maplist(post, Region),
+            forall(member(C, AfterRegion), entailed(C)),
+            forall(member(G, AfterHerbrand), herbrand_entailed(G, Herbrand)) ).
+
+post(Constraint) :-
+    {Constraint}.
+
+herbrand_entailed(Goal, Herbrand) :-
+    (   member(H, Herbrand),
+        H =@= Goal
+    ->  true
+    ;   Goal = apart(X, N), var(X), number(N)
+    ->  entailed(X =\= N)
+    ;   Goal = apart(N, X), var(X), number(N)
+    ->  entailed(X =\= N)
+    ).
 
 %!  rethrown(@Error)
 %
