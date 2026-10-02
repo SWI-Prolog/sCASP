@@ -9,6 +9,16 @@ arithmetic over the rationals (`T #> 3`). Every answer comes with the
 part of a stable model that supports it, and with a justification that
 says why.
 
+s(CASP) comes from two groups. Gopal Gupta's group at the University of
+Texas at Dallas developed goal-directed answer set programming: coinductive
+logic programming, the s(ASP) solver, the NMR check and dual rules
+[Simon et al. 2006; Marple 2014; Marple et al. 2017]. Joaquín Arias, with
+Manuel Carro in the Ciao group at IMDEA Software and the Universidad
+Politécnica de Madrid, extended it with constraints into s(CASP), built
+the system in Ciao Prolog, and added justifications and the event-calculus
+encoding [Arias et al. 2018, 2020, 2022]. The SWI-Prolog port followed
+[Wielemaker et al. 2021]. §12 lists the papers.
+
 ssCASP is a new implementation of the same language. It was written beside
 the SWI-Prolog port of s(CASP) (`library(scasp)`) and is meant to replace
 it. It ships in the same pack as `library(sscasp)` and as the `sscasp`
@@ -28,6 +38,7 @@ Contents:
 9. [Limitations](#9-limitations)
 10. [Changes relative to s(CASP) for Ciao Prolog](#10-changes-relative-to-scasp-for-ciao-prolog)
 11. [Changes relative to the SWI-Prolog port](#11-changes-relative-to-the-swi-prolog-port)
+12. [References](#12-references)
 
 ---
 
@@ -531,7 +542,7 @@ it. Flags are thread-local once set.
 |---|---|---|
 | `sscasp_commit_nmr` | `true` | one model per answer (§4) |
 | `sscasp_distinct_answers` | `true` | an answer found twice is reported once |
-| `sscasp_dcc` | `true` | dynamic consistency checking: a global constraint is checked as soon as the literals it names are proved, as well as at the end |
+| `sscasp_dcc` | `true` | dynamic consistency checking: a global constraint is checked as soon as the literals it names are proved, as well as at the end [Marple and Gupta 2014] |
 | `scasp_compile_nmr` | `true` | compile the NMR check; diagnostic only |
 | `scasp_compile_olon` | `true` | compile the odd-loop part of it; diagnostic only |
 | `scasp_domain_error` | `false` | §3.5 |
@@ -810,3 +821,65 @@ Over the 49-program regression corpus (`doc/performance.md`):
 - The total time is 0.66 s, against 1.99 s for the port.
 - Every program in the corpus answers. The last one that did not was
   `bec_loan`, which now answers in 0.07 s.
+
+---
+
+## 12. References
+
+**The language and its semantics**
+
+- M. Gelfond and V. Lifschitz. The stable model semantics for logic
+  programming. In *Proceedings of the 5th International Conference and
+  Symposium on Logic Programming (ICLP/SLP)*, MIT Press, 1988. The
+  semantics s(CASP) computes, and the one ssCASP's test oracle implements.
+- J. Arias, M. Carro, E. Salazar, K. Marple and G. Gupta. Constraint
+  answer set programming without grounding. *Theory and Practice of Logic
+  Programming* 18(3–4), 2018 (ICLP 2018).
+  [arXiv:1804.11162](https://arxiv.org/abs/1804.11162). s(CASP) itself:
+  constraints, the `forall` algorithms, loop handling.
+- J. Arias, M. Carro, Z. Chen and G. Gupta. Justifications for
+  goal-directed constraint answer set programming. In *ICLP 2020
+  Technical Communications*, EPTCS 325, 2020.
+  [arXiv:2009.10238](https://arxiv.org/abs/2009.10238). Justification
+  trees and their rendering in natural language (`:- describe`, `--human`).
+- J. Arias, M. Carro, Z. Chen and G. Gupta. Modeling and reasoning in
+  event calculus using goal-directed constraint answer set programming.
+  *Theory and Practice of Logic Programming* 22(1), 2022 (LOPSTR 2019).
+  [arXiv:2106.14566](https://arxiv.org/abs/2106.14566). The source of the
+  `bec_*` event-calculus programs in the test corpus.
+
+**Goal-directed answer set programming (UT Dallas)**
+
+- L. Simon, A. Mallya, A. Bansal and G. Gupta. Coinductive logic
+  programming. In *ICLP 2006*, LNCS 4079, Springer, 2006. The coinduction
+  behind the coinductive hypothesis set (CHS).
+- R. Min and G. Gupta. Coinductive logic programming with negation. In
+  *LOPSTR 2009*, LNCS 6037, Springer, 2010.
+- K. Marple and G. Gupta. Galliwasp: a goal-directed answer set solver. In
+  *LOPSTR 2012*, LNCS 7844, Springer, 2013. The NMR check as a compiled
+  predicate.
+- K. Marple. *Goal-Directed Answer Set Programming.* PhD thesis, The
+  University of Texas at Dallas, 2014. The NMR check, and coinduction
+  restricted to agree with the stable model semantics.
+- K. Marple and G. Gupta. Dynamic consistency checking in goal-directed
+  answer set programming. *Theory and Practice of Logic Programming*
+  14(4–5), 2014. Dynamic consistency checking (`sscasp_dcc`).
+- K. Marple, E. Salazar and G. Gupta. Computing stable models of normal
+  logic programs without grounding. 2017.
+  [arXiv:1709.00501](https://arxiv.org/abs/1709.00501). s(ASP): dual rules
+  for programs with variables, head abstraction, `forall`, constructive
+  disequality.
+
+**The implementations**
+
+- s(CASP) for Ciao Prolog:
+  <https://gitlab.software.imdea.org/ciao-lang/sCASP>, and its manual,
+  <https://personal.utdallas.edu/~gupta/nfm-ex/scasp-manual.pdf>.
+- J. Wielemaker, J. Arias and G. Gupta. s(CASP) for SWI-Prolog. In
+  *Proceedings of the ICLP 2021 Workshops* (GDE'21), CEUR Workshop
+  Proceedings, 2021. The SWI-Prolog port, as a library that embeds
+  s(CASP) in Prolog programs.
+- The SWI-Prolog port and ssCASP: <https://github.com/SWI-Prolog/sCASP>.
+
+`doc/literature.md` says which of these ideas each part of the
+implementation follows, and where it departs from them.
