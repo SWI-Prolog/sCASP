@@ -1,5 +1,8 @@
 # SWI-Prolog port (swipl branch)
 
+> **ssCASP**, the new implementation in `prolog/sscasp/` (`library(sscasp)`,
+> the `sscasp` executable), is described in [doc/manual.md](doc/manual.md).
+
 > This is a fork from https://gitlab.software.imdea.org/ciao-lang/sCASP.
 > It provides a port of s(CASP) to SWI-Prolog.
 
