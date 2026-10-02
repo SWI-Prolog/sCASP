@@ -1278,8 +1278,8 @@ reader's — `dyncall.pl:pred/1` and `source.pl:named_term/3` — and not
 `annotation/2`'s, which is asked once per compile and would repeat it once
 per query.
 
-Nothing consumes a description yet: `--human` is the consumer, and is still
-to come.
+`--human`, `scasp_human/1,2` and the `??` shortcuts consume it, through
+`html.pl` (see "Saying an answer" below).
 
 **Each library reads only its own files.** The two trees read the same
 spellings and represent them differently — `-p(X)`, `:- pred`, `#pred`,
@@ -1495,12 +1495,15 @@ Three things `render.pl` does that are not obvious:
           there is no evidence that tweety is a penguin
        The global constraints hold
 
-**Not ported**, and deliberately: the old `#pred` may match a *subtree* —
-`-` collapses what is under a literal, `^` gathers one from anywhere below,
-and a spec may carry a condition. No program in the corpus or the examples
-uses any of it. Neither is the program listing (`html_program//1`), which
-needs the compiler's pr-representation, nor the source references, which
-need a `goal_origin/2` the new solver does not produce.
+**A description may cover a subtree**, as the old `#pred` may:
+`:- describe L - Pattern :: Text` says a node together with the children
+Pattern matches — `*`, `-`, `[Spec, ...]`, with `+Literal` to keep a child
+and `^Literal` to gather one from anywhere below (`describe.pl`, "Describing
+a subtree"). **Not ported**: a spec carrying a condition, which no program
+in the corpus or the examples uses; the program listing
+(`html_program//1`), which needs the compiler's pr-representation; and the
+source references, which need a `goal_origin/2` the new solver does not
+produce.
 
 #### As data
 

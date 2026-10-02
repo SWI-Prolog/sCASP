@@ -170,9 +170,9 @@ emit(span(Attrs, Content), M) ==>
     ;   emit(Content, M)
     ).
 emit(div(Attrs, Content), M), has_class(Attrs, 'scasp-query-literal') ==>
-    [indent(3)],
+    [nl(1), indent(3)],
     emit(Content, M),
-    [indent(-3), nl(1)].
+    [indent(-3)].
 emit(div(Attrs, Content), M) ==>
     (   classes_bullet(Attrs)
     ->  emit(Content, M),

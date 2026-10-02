@@ -48,6 +48,16 @@ the differential sweep and nothing measurable on the corpus.
 
 Found by the oracle, on a 4,410-program sweep.
 
+### `bec_loan` answers
+
+It used to take **376 s** for its first answer against 0.85 s for the old
+implementation, and never finished enumerating: the query is proved once and
+the NMR check was then proved again and again, 35 models of one answer
+before the other three were reached. With the check committed to — the
+first proof that leaves the answer as it is, `sscasp_commit_nmr`, the
+default — all four golden answers come in 0.07 s. `--no-commit-nmr` brings
+back the enumeration. `CLAUDE.md` has the history of the search.
+
 ### `clpq_equality.pl` terminates
 
 `test/scasp/known_issues.pl` records it as a hang for the old implementation — a
@@ -91,13 +101,6 @@ here because it is the shape `doc/bugs.md` §15 is about, and because the
 crossing suite is what found it.
 
 ## 2. Gaps open
-
-### `bec_loan` is 440× slower
-
-It answers — the first answer takes **376 s** against 0.85 s — so this is a
-search-size difference and not a hang.  `CLAUDE.md` records the five
-hypotheses that have been measured and ruled out.  Nothing about the *answers*
-differs; when it finishes it agrees.
 
 ### `not findall/3` is answered rather than failed
 
@@ -198,7 +201,6 @@ run rather than running differently:
 | | |
 |---|---|
 | the four `forall` algorithms | the new tree has one; `scasp_forall` selects nothing |
-| `--dcc` | disjunctive consistency checking |
 | `begin_scasp`/`end_scasp` | deliberately, per `doc/design-next.md` decision 2a |
 
 **The new tree stands on its own.** `prolog/sscasp/` loads nothing from
@@ -210,7 +212,11 @@ carries it.
 old one's flags where the solver has the feature: `--tree`, `--human`,
 `--code` (with `--duals`, `--constraints`, `--source`, `--compiled`),
 `--json`, `--html`, `--query`, `-s`/`-n`, `--width`, `--colour`,
-`--no-nmr`, `--no-olon`, `--version`. It exits 0 for an answer, 1 for
+`--no-nmr`, `--no-olon`, `--version`, `-i`. `--dcc` is dynamic
+consistency checking in both, but here it is on by default and works with
+the one quantifier there is, where the old one is off by default and
+forces `--forall=prev`; `--no-dcc` turns it off. New are
+`--no-commit-nmr`, `--domain-error` and `--module`. It exits 0 for an answer, 1 for
 none and 2 for an error, which the old one does not distinguish.
 
 `-i` is there and differs in two ways, both deliberate. The program is
@@ -419,8 +425,12 @@ Two consequences for an answer:
 - **`X ∉ [a, b]` where the old also says `X ∉ [a, b]`.** The spellings
   agree where both can say it, which is most of what appears in an answer.
 
-`X ∉ [a, b]` in a *program* works in both. Its dual is `X ∈ [a, b]` here,
-which the old implementation does not have.
+`X ∉ [a, b]` in a *program* works here, and its dual is `X ∈ [a, b]`. The
+old implementation does not run it through either front end: its
+`predicates.pl` does not list `∉` in `scasp_builtin/1`, so the file front end
+reports `(∉)/2` as an undefined predicate and `scasp/2` follows the name into
+`system` and refuses `ground/1`. Called directly as a Prolog goal it works
+in the old tree. `test_disequality.pl` pins the old behaviour.
 
 ### The listing shows the dual, not the generated predicates
 
@@ -480,12 +490,6 @@ and it gives three answers where the old gives four.
 Things that look like differences and are not, so that nobody reports them
 twice:
 
-- **`∉` in a program body** does not work in either.  The old
-  implementation's `predicates.pl` does not list it in `scasp_builtin/1`, so
-  `dyncall.pl` treats it as a user predicate; the new one has the operator
-  declared in `ops.pl` and no implementation behind it.  `test_disequality.pl`
-  pins the old behaviour.  Called directly as a Prolog goal it works in the
-  old tree.
 - **`call/1` is not a control construct** in either.  What differs is the
   consequence: `test/min_programs/solve_call.pl` gets 0 models from the old
   implementation and one answer from the new, because the closure makes
