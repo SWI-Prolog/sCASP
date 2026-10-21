@@ -172,7 +172,7 @@ scasp_run(Terms, Query, Options) :-
 
 scasp_loaded(Terms, loaded(Module, Program), Goal, Options) :-
     compile_program(scasp, Terms, Program),
-    (   option(module(Module), Options)
+    (   use_permanent_module(Module, Options)
     ->  permanent_module(Module),
         load_program(Module, Program),
         call(Goal)
@@ -180,6 +180,22 @@ scasp_loaded(Terms, loaded(Module, Program), Goal, Options) :-
             Module,
             load_program(Module, Program),
             Goal)
+    ).
+
+%!  use_permanent_module(-Module, +Options) uis semidet.
+%
+%   True when we want a permanent module
+
+use_permanent_module(Module, Options) :-
+    option(module(Module), Options),
+    !.
+use_permanent_module(Module, _Options) :-
+    current_prolog_flag(scasp_module, M),
+    !,
+    (   M == true
+    ->  true
+    ;   M \== false
+    ->  Module = M
     ).
 
 %!  permanent_module(?Module) is det.
