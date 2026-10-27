@@ -42,6 +42,9 @@ installing the pack, `scasp` can be executed as below, i.e., replacing
 
     swipl scasp [option ...] file ...
 
+`swipl -Dsscasp scasp ...` runs the new implementation instead, as does
+`swipl sscasp ...`; see [doc/migration.md](doc/migration.md).
+
 Using `scasp` as  an _app_ is more  portable, but as the  app needs to
 load  sCASP  at  runtime,  it  starts  considerably  slower  than  the
 executable generated above.

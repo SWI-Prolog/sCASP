@@ -1,16 +1,15 @@
 %   Under `swipl -Dsscasp`, library(scasp) is the new implementation
-%   (see prolog/scasp.pl), which has no counterpart of this module.
-%   Loading it would mix the old tree with the compat modules that
-%   then stand in for library(scasp/output) and friends, so refuse.
-%   Never while compiling to QLF, which would bake the refusal into
-%   main.qlf for every later load without the flag.
+%   (see prolog/scasp.pl) and library(scasp/json) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
 
 :- if(( current_prolog_flag(sscasp, true),
          \+ '$compilation_mode'(qlf) )).
 
 :- module(scasp_json, []).
-:- print_message(error, error(existence_error(library, scasp/json),
-                              context(_, 'not available under -Dsscasp; use scasp_json/2,3 of library(scasp)'))).
+:- reexport('../sscasp/compat/json').
 
 :- else.
 

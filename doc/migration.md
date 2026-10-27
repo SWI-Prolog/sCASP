@@ -66,6 +66,13 @@ building:
 swipl -p library=prolog prolog/sscasp/main.pl -- [option ...] file ...
 ```
 
+As a pack, s(CASP) is also a SWI-Prolog *app*: `swipl scasp [option ...]
+file ...` runs the old implementation, `swipl -Dsscasp scasp ...` the new
+one, and `swipl sscasp ...` the new one always. That needs no `make`, at the
+price of loading the solver at start-up. (Run it from a directory that does
+not hold a file named `scasp`, such as the checkout after `make`, or
+`swipl` takes that file for the script.)
+
 The options mostly agree. The ones that differ are listed in
 [manual §11](manual.md#11-changes-relative-to-the-swi-prolog-port); the
 important ones for scripts are:
@@ -103,9 +110,11 @@ The sub-libraries switch with it. Under the flag, `library(scasp/dyncall)`,
 `scasp/options` and `scasp/output` are the modules of the compatibility
 layer (§2.3), so a program that loads them keeps working, whether it
 loads them before or after `library(scasp)`.
-`library(scasp/json)`, `scasp/embed` and `scasp/main` have no counterpart
-and **refuse to load** with an error saying so. Use `scasp_json/2,3`,
-ordinary Prolog clauses and the `sscasp` executable instead.
+`library(scasp/json)` gives `scasp_results_json/2`, which takes the old
+results dict and writes ssCASP's JSON document (§4, *The output*).
+`library(scasp/main)` is the `sscasp` command line. `library(scasp/embed)`,
+the obsolete `begin_scasp/end_scasp` blocks, has no counterpart and
+**refuses to load** with an error saying so.
 
 Two predicates exist both in `library(sscasp)` and in an old sub-library,
 with different meanings. A module may import both `library(scasp)` and
@@ -152,7 +161,7 @@ From then on, as files are loaded:
 - An import list that names `scasp/2` gets a `scasp/2` that returns the old
   justification shape: `query-Forest`, with the check under `o_nmr_check`.
 - `library(scasp/Sub)` loads `library(sscasp/compat/Sub)`. `html`,
-  `dyncall`, `model` and `output` provide what programs use of them;
+  `dyncall`, `json`, `model` and `output` provide what programs use of them;
   `human`, `listing` and `options` exist so that loading them succeeds.
   Other sub-libraries are not provided.
 - Clauses using the old interned negation `'-p'(X)` are rewritten to
@@ -253,7 +262,7 @@ to measure your own.
 | `scasp(Q, [unknown(error)])` | not available: an undefined predicate is false |
 | `library(scasp/html)`: `html_model//2`, … | exported by `library(sscasp)` itself |
 | `library(scasp/human)`, `--human` | `scasp_human/1,2`, `??` shortcuts |
-| `library(scasp/json)` | `scasp_json/2,3` |
+| `library(scasp/json)`: `scasp_results_json/2` | `scasp_json/2,3`; the old predicate still works through `compat` |
 
 New in `library(sscasp)`: `scasp_readable/2,3`, `portray_model/1,2`,
 `portray_justification/1,2`, `scasp_query_clauses/2,3`,

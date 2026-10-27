@@ -40,7 +40,7 @@
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(filesex), [directory_file_path/3, delete_directory_and_contents/1]).
 :- use_module(library(process), [process_create/3, process_wait/2]).
-:- use_module(library(lists), [append/3]).
+:- use_module(library(lists), [append/3, member/2]).
 
 /** <module> library(sscasp/compat): a program written for library(scasp)
 
@@ -131,33 +131,52 @@ test(a_sub_library_and_the_operators) :-
 
 %!  switched(+Text, -Status, -Output) is det.
 %
-%   Write Text to a file and load it in `swipl -Dsscasp`: a copy of the
-%   running Prolog, from this checkout, with no packs, so that
-%   library(scasp) is this tree's, and with no init file, which might
-%   expand the import itself.  The file's check/0 is the goal.
-%   `--on-error=status` makes an error printed while loading count,
-%   which is how an import conflict shows.
+%   Write Text to a file and load it in `swipl -Dsscasp`, with check/0
+%   as the goal.  `--on-error=status` makes an error printed while
+%   loading count, which is how an import conflict shows.
 
 switched(Text, Status, Output) :-
-    checkout_dir(Root),
+    in_tmp_dir(program, Text, Dir, File),
+    run_prolog(Dir, ['-Dsscasp', '--on-error=status',
+                     '-g', check, '-t', halt, File], Status, Output),
+    delete_directory_and_contents(Dir).
+
+%!  in_tmp_dir(+Base, +Text, -Dir, -File) is det.
+%
+%   Write Text to Base.pl in a new temporary directory.
+
+in_tmp_dir(Base, Text, Dir, File) :-
     tmp_file(switch, Dir),
     make_directory(Dir),
-    directory_file_path(Dir, 'program.pl', File),
+    file_name_extension(Base, pl, Name),
+    directory_file_path(Dir, Name, File),
     setup_call_cleanup(open(File, write, Out),
                        format(Out, Text, []),
-                       close(Out)),
+                       close(Out)).
+
+%!  run_prolog(+Cwd, +Args, -Status, -Output) is det.
+%
+%   Run a copy of this Prolog in Cwd: from this checkout, with no packs,
+%   so that library(scasp) is this tree's, with this pack's `app`
+%   directory, and with no init file, which might expand the import
+%   itself.  Cwd is not the checkout, whose built `scasp` would be taken
+%   for a script by `swipl scasp`.
+
+run_prolog(Cwd, Args, Status, Output) :-
+    checkout_dir(Root),
     directory_file_path(Root, prolog, Lib),
+    directory_file_path(Root, app, App),
     atom_concat('library=', Lib, LibArg),
-    process_create(prolog(self),
-                   [ '-f', none, '--no-packs', '-Dsscasp', '--on-error=status',
-                     '-p', LibArg, '-g', check, '-t', halt, File ],
+    atom_concat('app=', App, AppArg),
+    append(['-f', none, '--no-packs', '-p', LibArg, '-p', AppArg],
+           Args, AllArgs),
+    process_create(prolog(self), AllArgs,
                    [ stdin(null), stdout(pipe(PO)), stderr(pipe(PO)),
-                     process(PID), cwd(Root)
+                     process(PID), cwd(Cwd)
                    ]),
     read_string(PO, _, Output),
     close(PO),
-    process_wait(PID, exit(Status)),
-    delete_directory_and_contents(Dir).
+    process_wait(PID, exit(Status)).
 
 checkout_dir(Root) :-
     source_file(checkout_dir(_), Here),
@@ -211,16 +230,37 @@ test(sub_libraries_before_library_scasp, Status == 0) :-
     switch_program(scasp_last, Text),
     switched(Text, Status, _).
 
-%   A sub-library compat does not provide is refused, rather than
-%   loaded beside the compat modules that now stand in for its own.
+%   library(scasp/json) takes the old results dict and writes the new
+%   document: the tree is a forest, the constraints a list per variable.
 
-test(json_is_refused, [Status-Refused == 1-true]) :-
+test(json, Status == 0) :-
     switched(":- use_module(library(scasp)).~n\c
               :- use_module(library(scasp/json)).~n\c
-              check.~n", Status, Output),
-    (   sub_string(Output, _, _, _, "not available under -Dsscasp")
-    ->  Refused = true
-    ;   Refused = false
-    ).
+              q(1).~n\c
+              p(X) :- q(Y), X #> Y.~n\c
+              check :-~n\c
+              once(scasp(p(X), [model(M), tree(T)])),~n\c
+              scasp_results_json(_{query:p(X), cpu:0.1,~n\c
+                                   answers:[_{answer:1, bindings:['X'=X],~n\c
+                                              model:M, tree:user:T}]}, D),~n\c
+              D.time == 0.1,~n\c
+              D.answers = [A],~n\c
+              is_list(A.tree),~n\c
+              A.constraints = _{'A':[_{type:(>), value:_}]}.~n",
+             Status, _).
+
+%   `swipl scasp`, the pack's app, is the old executable, and the new one
+%   under the flag.  Told apart by the exit status for a program with no
+%   answer, which the new one says is 1.
+
+test(app, Statuses == [0, 1, 1]) :-
+    in_tmp_dir(none, "q(1).~n?- q(2).~n", Dir, File),
+    findall(Status,
+            ( member(Args, [ [scasp], ['-Dsscasp', scasp], [sscasp] ]),
+              append(Args, [File], AllArgs),
+              run_prolog(Dir, AllArgs, Status, _)
+            ),
+            Statuses),
+    delete_directory_and_contents(Dir).
 
 :- end_tests(switch).

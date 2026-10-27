@@ -1,16 +1,16 @@
 %   Under `swipl -Dsscasp`, library(scasp) is the new implementation
-%   (see prolog/scasp.pl), which has no counterpart of this module.
-%   Loading it would mix the old tree with the compat modules that
-%   then stand in for library(scasp/output) and friends, so refuse.
-%   Never while compiling to QLF, which would bake the refusal into
-%   main.qlf for every later load without the flag.
+%   (see prolog/scasp.pl) and so is this: the `sscasp` command line,
+%   whose initialization(main, main) runs it.  Never while compiling
+%   to QLF: main.qlf includes this file, and a stale one recompiled
+%   under the flag would hold the wrong branch for every later load
+%   without it.  An up-to-date main.qlf is the old branch whatever the
+%   flag says, which is why app/scasp.pl chooses for itself.
 
 :- if(( current_prolog_flag(sscasp, true),
          \+ '$compilation_mode'(qlf) )).
 
 :- module(scasp_main, []).
-:- print_message(error, error(existence_error(library, scasp/main),
-                              context(_, 'not available under -Dsscasp; use the sscasp executable'))).
+:- reexport('../sscasp/main').
 
 :- else.
 

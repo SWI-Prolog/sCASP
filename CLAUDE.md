@@ -87,9 +87,11 @@ A shared suite loads **`under_test.pl`** instead of either library, and the flag
 The switch is `library(scasp)` itself: under `-Dsscasp`, `prolog/scasp.pl` re-exports
 `library(sscasp)` and defines nothing, so a program written for `library(scasp)` — a
 Logical English export, an example in `examples/` — runs against either unedited.
-The sub-libraries switch with it: `prolog/scasp/{dyncall,html,human,listing,model,
-options,output}.pl` are then `library(sscasp/compat)`'s modules, and `json`, `embed`
-and `main` refuse to load. Two exports are adjusted so a module importing both
+The sub-libraries switch with it: `prolog/scasp/{dyncall,html,human,json,listing,
+model,options,output}.pl` are then `library(sscasp/compat)`'s modules, `main.pl` is
+`sscasp/main.pl`, and `embed` refuses to load. `app/scasp.pl` (`swipl scasp ...`)
+chooses its `main.pl` itself, because an up-to-date `main.qlf` is the old branch
+whatever the flag says. Two exports are adjusted so a module importing both
 `library(scasp)` and one of those has no import conflict: `html_model//2` is
 `compat/html`'s (a superset of `library(sscasp)`'s), and `scasp_query_clauses/2` is
 left to `scasp/dyncall` (so `under_test.pl` takes it from `library(sscasp)`). Each
