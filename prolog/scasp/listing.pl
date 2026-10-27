@@ -1,3 +1,18 @@
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/listing) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_listing, []).
+:- reexport('../sscasp/compat/listing').
+
+:- else.
+
 :- module(scasp_listing,
           [ scasp_portray_program/1,   % :Options
             scasp_code_section_title/3 % +Section, -Default, -Title
@@ -347,3 +362,5 @@ nmr_eq([A,B|As],[A|Eq],Rest) :-
     \+ A \= B, !,
     nmr_eq([B|As],Eq,Rest).
 nmr_eq([A|As],[A],As).
+
+:- endif.

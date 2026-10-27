@@ -4,13 +4,32 @@
 %   export, a test -- runs against either without being edited, which is
 %   the switch sscasp promises: its predicates have the same names.
 %
+%   The sub-libraries a program loads by name switch with it: under the
+%   flag, library(scasp/html), scasp/dyncall, ... are the modules of
+%   library(sscasp/compat) (see the top of each).  Two names are exported
+%   both by library(sscasp) and by one of those, with a different
+%   meaning, and a program importing both would get an import conflict:
+%
+%     - html_model//2 is taken from compat/html.  It is the same
+%       renderer with what the old interface needs in front: it makes
+%       the model readable, which a readable model already is, and finds
+%       the descriptions in the caller's module unless annotations(_) is
+%       given.  So there is one html_model//2 and either route reaches it.
+%     - scasp_query_clauses/2 is not exported.  The old library(scasp)
+%       never did, and compat/dyncall's returns source(Ref, Clause) where
+%       library(sscasp)'s returns the terms, which no one predicate can
+%       do both of.  A program written for the old library imports it
+%       from library(scasp/dyncall); one written for the new imports
+%       library(sscasp).
+%
 %   Before the module declaration, because the two branches declare
 %   different exports.
 
 :- if(current_prolog_flag(sscasp, true)).
 
 :- module(scasp, []).
-:- reexport(sscasp).
+:- reexport(sscasp, except([html_model//2, scasp_query_clauses/2])).
+:- reexport('sscasp/compat/html', [html_model//2]).
 
 :- else.
 

@@ -35,7 +35,7 @@
 :- module(scasp_compat_dyncall,
           [ scasp_query_clauses/2       % :Query, -Clauses
           ]).
-:- use_module(library(sscasp), []).
+:- use_module('../../sscasp', []).
 :- use_module(library(apply), [convlist/3]).
 
 /** <module> library(scasp/dyncall) on top of library(sscasp)

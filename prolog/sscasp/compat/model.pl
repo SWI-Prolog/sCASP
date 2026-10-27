@@ -35,7 +35,7 @@
 :- module(scasp_compat_model,
           [ print_model/2               % +Model, +Options
           ]).
-:- use_module(library(sscasp), [portray_model/2]).
+:- use_module('../../sscasp', [portray_model/2]).
 
 /** <module> library(scasp/model) on top of library(sscasp)
 */

@@ -32,6 +32,21 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/html) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_just_html, []).
+:- reexport('../sscasp/compat/html').
+
+:- else.
+
 :- module(scasp_just_html,
           [ html_justification_tree//2,		% :Tree, +Options
             html_model//2,			% :Model, +Options
@@ -1029,3 +1044,5 @@ origin_annotated(Content, Options) -->
               ], Content)).
 origin_annotated(Content, _) -->
     emit(Content).
+
+:- endif.

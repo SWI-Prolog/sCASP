@@ -44,7 +44,7 @@
             legacy_tree/2,              % +Forest, -Tree
             sscasp_forest/2             % +Tree, -Forest
           ]).
-:- use_module(library(sscasp), [op(_,_,_)]).
+:- use_module('../../sscasp', [op(_,_,_)]).
 :- use_module(library(option), [select_option/3]).
 :- use_module(library(terms), [mapsubterms/3]).
 

@@ -39,13 +39,13 @@
             html_bindings//2,           % +Bindings, +Options
             html_term//2                % @Term, +Options
           ]).
-:- use_module(library(sscasp), []).
-:- use_module(library(sscasp/html), []).
-:- use_module(library(sscasp/render), [scasp_readable/2]).
+:- use_module('../../sscasp', []).
+:- use_module('../html', []).
+:- use_module('../render', [scasp_readable/2]).
 :- use_module(scasp, [sscasp_forest/2]).
 :- use_module(library(http/html_write), [html//1]).
 :- use_module(library(http/html_head), [html_resource/2]).
-:- use_module(library(sscasp/annotations), [program_annotations/2]).
+:- use_module('../annotations', [program_annotations/2]).
 :- use_module(library(apply), [maplist/3]).
 :- use_module(library(lists), [member/2]).
 

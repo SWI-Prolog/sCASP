@@ -31,6 +31,21 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/model) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_model, []).
+:- reexport('../sscasp/compat/model').
+
+:- else.
+
 :- module(scasp_model,
           [ canonical_model/2,          % +RawModel, -Canonical
             unqualify_model/3,          % +ModelIn, +Module, -ModelOut
@@ -276,3 +291,4 @@ longest([H|T], Sofar, M) :-
 longest([_|T], S, M) :-
     longest(T, S, M).
 
+:- endif.

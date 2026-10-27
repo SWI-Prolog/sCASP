@@ -31,6 +31,22 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl), which has no counterpart of this module.
+%   Loading it would mix the old tree with the compat modules that
+%   then stand in for library(scasp/output) and friends, so refuse.
+%   Never while compiling to QLF, which would bake the refusal into
+%   main.qlf for every later load without the flag.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_embed, []).
+:- print_message(error, error(existence_error(library, scasp/embed),
+                              context(_, 'not available under -Dsscasp; use ordinary Prolog clauses and scasp/2'))).
+
+:- else.
+
 :- module(scasp_embed,
           [ begin_scasp/1,              % +Unit
             begin_scasp/2,              % +Unit, +Exports
@@ -620,3 +636,5 @@ scasp_neg_atom(Pos, Neg) :-
 scasp_called(pr_pred_predicate(_,_,_,_)).
 scasp_called(scasp_expand_program(_,_,_,_)).
 scasp_called(-).
+
+:- endif.

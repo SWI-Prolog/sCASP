@@ -1,3 +1,18 @@
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/output) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_output, []).
+:- reexport('../sscasp/compat/output').
+
+:- else.
+
 :- module(scasp_output,
           [ print_model_term/2,
             inline_constraints/2,                % +Term, +Options
@@ -405,3 +420,5 @@ user:portray('| '(Var, Constraints)) :-
     format('~p | ~p', [Var, Constraints]).
 user:portray('\u2209'(Var, List)) :-
     format('~p \u2209 ~p', [Var, List]).
+
+:- endif.

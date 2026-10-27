@@ -31,6 +31,21 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/human) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_just_human, []).
+:- reexport('../sscasp/compat/human').
+
+:- else.
+
 :- module(scasp_just_human,
           [ human_justification_tree/2, % :Tree, +Options
             human_model/2,              % :Model, +Options
@@ -188,3 +203,5 @@ scasp_model:model_hook(Model, Options) :-
     option(human(true), Options),
     !,
     human_model(Model, Options).
+
+:- endif.

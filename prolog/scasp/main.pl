@@ -1,3 +1,19 @@
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl), which has no counterpart of this module.
+%   Loading it would mix the old tree with the compat modules that
+%   then stand in for library(scasp/output) and friends, so refuse.
+%   Never while compiling to QLF, which would bake the refusal into
+%   main.qlf for every later load without the flag.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_main, []).
+:- print_message(error, error(existence_error(library, scasp/main),
+                              context(_, 'not available under -Dsscasp; use the sscasp executable'))).
+
+:- else.
+
 :- module(scasp_main,
           [ main/1,                         % +Argv
 
@@ -528,3 +544,5 @@ allways_ask_for_more_models :-
         fail
     ;   true
     ).
+
+:- endif.

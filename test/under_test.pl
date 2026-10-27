@@ -24,11 +24,15 @@ resolves through the installed pack, which is a different checkout.
 */
 
 %   library(scasp) is the switch: under `-Dsscasp` it re-exports
-%   library(sscasp) (see prolog/scasp.pl).
+%   library(sscasp) (see prolog/scasp.pl) -- all but
+%   scasp_query_clauses/2, which the old library(scasp) does not export
+%   either, so it comes from the implementation under test directly.
 
 :- reexport('../prolog/scasp').
 :- if(\+ current_prolog_flag(sscasp, true)).
 :- reexport('../prolog/scasp/dyncall', [scasp_query_clauses/2]).
+:- else.
+:- reexport('../prolog/sscasp', [scasp_query_clauses/2]).
 :- endif.
 
 %!  library_under_test(-Library) is det.

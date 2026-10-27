@@ -1,3 +1,18 @@
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/dyncall) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_dyncall, []).
+:- reexport('../sscasp/compat/dyncall').
+
+:- else.
+
 :- module(scasp_dyncall,
           [ scasp/1,                    % :Query
             scasp/2,                    % :Query, +Options
@@ -978,3 +993,4 @@ prolog_clause:unify_goal(scasp(RGoal, Options),
 sandbox:safe_meta(scasp_dyncall:scasp(_), []).
 sandbox:safe_meta(scasp_dyncall:scasp(_, _), []).
 
+:- endif.

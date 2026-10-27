@@ -96,15 +96,35 @@ or in the program (or in `init.pl`), before anything loads `library(scasp)`:
 :- use_module(library(scasp)).
 ```
 
-Setting the flag after `library(scasp)` has been loaded has no effect. This
-is the quickest way to try an application on ssCASP, and the right one when
-the application only uses what both libraries export: `scasp/1,2`, the `?`
-shortcuts, `scasp_show/2`, the `scasp_assert/1` family and the
-directives. It is **not** enough when the program
+Setting the flag after `library(scasp)` has been loaded has no effect.
 
-- loads a sub-library such as `library(scasp/html)` or
-  `library(scasp/human)` — that loads the old implementation's module
-  beside the new one, and the two clash on the HTML renderers;
+The sub-libraries switch with it. Under the flag, `library(scasp/dyncall)`,
+`scasp/html`, `scasp/human`, `scasp/listing`, `scasp/model`,
+`scasp/options` and `scasp/output` are the modules of the compatibility
+layer (§2.3), so a program that loads them keeps working, whether it
+loads them before or after `library(scasp)`.
+`library(scasp/json)`, `scasp/embed` and `scasp/main` have no counterpart
+and **refuse to load** with an error saying so. Use `scasp_json/2,3`,
+ordinary Prolog clauses and the `sscasp` executable instead.
+
+Two predicates exist both in `library(sscasp)` and in an old sub-library,
+with different meanings. A module may import both `library(scasp)` and
+the sub-library, so under the flag:
+
+- `html_model//2` is the one from `library(scasp/html)`. It accepts the
+  model straight from `scasp/2`, as the old renderer did, and a model
+  already passed through `scasp_readable/2`, as the new one does. Given
+  the same input, it produces the same HTML as the one in
+  `library(sscasp)`.
+- `scasp_query_clauses/2` is not exported by `library(scasp)`, which it
+  never was. `library(scasp/dyncall)` gives it, returning
+  `source(Ref, Module:Clause)` terms as the old library did. A program
+  that wants the new form, the clauses as terms, imports it from
+  `library(sscasp)`.
+
+This is the quickest way to try an application on ssCASP. It is not
+enough when the program
+
 - calls something only the old library has: `begin_scasp/1,2`,
   `scasp_model/1`, `scasp_justification/2`, `scasp_stack/1`,
   `scasp_listing/2`, `scasp_trace/2`;
@@ -112,7 +132,8 @@ directives. It is **not** enough when the program
   `o_nmr_check`, `goal_origin/2`) or uses the interned negation
   `'-p'(X)`.
 
-For those, use §2.3.
+For those, use §2.3, which also rewrites the interned negation and gives
+an import list naming `scasp/2` the old justification shape.
 
 ### 2.3 The compatibility layer: `library(sscasp/compat)`
 
@@ -318,11 +339,11 @@ on the same program. Three things to know:
   `:- pred`, `#pred`, `:- scasp_dynamic` and `false :- Body` are expanded by
   the library the file imported, and by no other. A file that imports
   neither gets ordinary Prolog.
-- **`library(scasp)` decides once.** With `-Dsscasp` the name
-  `library(scasp)` is the new implementation for the whole process, so the
-  old one cannot then be loaded under that name. To compare the two, run
-  without the flag and import `library(sscasp)` in the files meant for the
-  new one.
+- **`library(scasp)` decides once.** With `-Dsscasp`, `library(scasp)`
+  and its sub-libraries are the new implementation for the whole process,
+  so the old one cannot then be loaded under those names. To compare the
+  two, run without the flag and import `library(sscasp)` in the files
+  meant for the new one.
 
 ---
 

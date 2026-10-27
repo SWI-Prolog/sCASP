@@ -1,3 +1,19 @@
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl), which has no counterpart of this module.
+%   Loading it would mix the old tree with the compat modules that
+%   then stand in for library(scasp/output) and friends, so refuse.
+%   Never while compiling to QLF, which would bake the refusal into
+%   main.qlf for every later load without the flag.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_json, []).
+:- print_message(error, error(existence_error(library, scasp/json),
+                              context(_, 'not available under -Dsscasp; use scasp_json/2,3 of library(scasp)'))).
+
+:- else.
+
 :- module(scasp_json,
           [ scasp_results_json/2        % +Results, -Dict
           ]).
@@ -269,3 +285,5 @@ order(scasp_answer,     [answer,time,bindings,model,tree]).
 order(scasp_model_term, [truth, value, chs, assume, proved]).
 order(prolog,           [type,functor,numerator,denominator,name,value]).
 order(constraint,       [type,set,constraints,value]).
+
+:- endif.

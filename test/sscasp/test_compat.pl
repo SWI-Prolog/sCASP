@@ -39,6 +39,8 @@
 :- use_module(library(plunit)).
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(filesex), [directory_file_path/3, delete_directory_and_contents/1]).
+:- use_module(library(process), [process_create/3, process_wait/2]).
+:- use_module(library(lists), [append/3]).
 
 /** <module> library(sscasp/compat): a program written for library(scasp)
 
@@ -49,7 +51,7 @@ process, which is why `test_all.pl` loads it last.
 */
 
 test_compat :-
-    run_tests([ compat ]).
+    run_tests([ compat, switch ]).
 
 %!  old_program(+Name, +Text, -Module) is det.
 %
@@ -125,3 +127,100 @@ test(a_sub_library_and_the_operators) :-
     assertion(current_op(950, xfx, user:(::))).
 
 :- end_tests(compat).
+
+
+%!  switched(+Text, -Status, -Output) is det.
+%
+%   Write Text to a file and load it in `swipl -Dsscasp`: a copy of the
+%   running Prolog, from this checkout, with no packs, so that
+%   library(scasp) is this tree's, and with no init file, which might
+%   expand the import itself.  The file's check/0 is the goal.
+%   `--on-error=status` makes an error printed while loading count,
+%   which is how an import conflict shows.
+
+switched(Text, Status, Output) :-
+    checkout_dir(Root),
+    tmp_file(switch, Dir),
+    make_directory(Dir),
+    directory_file_path(Dir, 'program.pl', File),
+    setup_call_cleanup(open(File, write, Out),
+                       format(Out, Text, []),
+                       close(Out)),
+    directory_file_path(Root, prolog, Lib),
+    atom_concat('library=', Lib, LibArg),
+    process_create(prolog(self),
+                   [ '-f', none, '--no-packs', '-Dsscasp', '--on-error=status',
+                     '-p', LibArg, '-g', check, '-t', halt, File ],
+                   [ stdin(null), stdout(pipe(PO)), stderr(pipe(PO)),
+                     process(PID), cwd(Root)
+                   ]),
+    read_string(PO, _, Output),
+    close(PO),
+    process_wait(PID, exit(Status)),
+    delete_directory_and_contents(Dir).
+
+checkout_dir(Root) :-
+    source_file(checkout_dir(_), Here),
+    file_directory_name(Here, Sscasp),
+    file_directory_name(Sscasp, Test),
+    file_directory_name(Test, Root).
+
+:- begin_tests(switch).
+
+%   Every sub-library library(sscasp/compat) provides, imported next to
+%   library(scasp) into one module.  html_model//2 is one predicate by
+%   either route, scasp_query_clauses/2 is the old one and comes only
+%   from scasp/dyncall, and nothing of the old solver is loaded.
+
+switch_program(Order, Text) :-
+    Imports0 = [ ":- use_module(library(scasp)).~n" ],
+    Subs = [ ":- use_module(library(scasp/dyncall)).~n",
+             ":- use_module(library(scasp/html)).~n",
+             ":- use_module(library(scasp/human)).~n",
+             ":- use_module(library(scasp/listing)).~n",
+             ":- use_module(library(scasp/model)).~n",
+             ":- use_module(library(scasp/options)).~n",
+             ":- use_module(library(scasp/output)).~n"
+           ],
+    (   Order == scasp_first
+    ->  append(Imports0, Subs, Imports)
+    ;   append(Subs, Imports0, Imports)
+    ),
+    atomic_list_concat(Imports, Header),
+    atomic_list_concat(
+        [ Header,
+          "q(a). q(b). r(b).~n",
+          "p(X) :- q(X), not r(X).~n",
+          "from(PI, M) :- PI = N/A, functor(H, N, A),~n",
+          "    predicate_property(user:H, imported_from(M)).~n",
+          "check :-~n",
+          "    from(scasp/2, sscasp_dyncall),~n",
+          "    from(html_model/4, scasp_compat_html),~n",
+          "    from(html_model_term/4, scasp_compat_html),~n",
+          "    from(scasp_query_clauses/2, scasp_compat_dyncall),~n",
+          "    from(ovar_analyze_term/1, scasp_compat_output),~n",
+          "    from(print_model/2, scasp_compat_model),~n",
+          "    \\+ current_module(scasp_solve),~n",
+          "    findall(X, scasp(p(X), []), [a]).~n"
+        ], Text).
+
+test(sub_libraries_after_library_scasp, Status == 0) :-
+    switch_program(scasp_first, Text),
+    switched(Text, Status, _).
+test(sub_libraries_before_library_scasp, Status == 0) :-
+    switch_program(scasp_last, Text),
+    switched(Text, Status, _).
+
+%   A sub-library compat does not provide is refused, rather than
+%   loaded beside the compat modules that now stand in for its own.
+
+test(json_is_refused, [Status-Refused == 1-true]) :-
+    switched(":- use_module(library(scasp)).~n\c
+              :- use_module(library(scasp/json)).~n\c
+              check.~n", Status, Output),
+    (   sub_string(Output, _, _, _, "not available under -Dsscasp")
+    ->  Refused = true
+    ;   Refused = false
+    ).
+
+:- end_tests(switch).

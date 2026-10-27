@@ -1,3 +1,18 @@
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/options) is what
+%   library(sscasp/compat) gives a program written for this one.
+%   Never while compiling to QLF: main.qlf includes this file, and a
+%   stale one recompiled under the flag would hold the wrong branch
+%   for every later load without it.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_options, []).
+:- reexport('../sscasp/compat/options').
+
+:- else.
+
 :- module(scasp_options,
           [ scasp_parse_args/3,            % +Argv, -Sources, -Options
             scasp_help/0,
@@ -388,3 +403,5 @@ info_option(Options) :-
     Patch is Num mod 100,
     atomic_list_concat([Major,Minor,Patch], '.', PlVersion),
     print_message(informational, scasp(version(Version, PlVersion))).
+
+:- endif.
