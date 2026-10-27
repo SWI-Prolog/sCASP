@@ -182,7 +182,7 @@ scasp_loaded(Terms, loaded(Module, Program), Goal, Options) :-
             Goal)
     ).
 
-%!  use_permanent_module(-Module, +Options) uis semidet.
+%!  use_permanent_module(-Module, +Options) is semidet.
 %
 %   True when we want a permanent module
 

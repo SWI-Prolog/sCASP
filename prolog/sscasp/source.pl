@@ -37,8 +37,11 @@
 
             op(1200, fx,  #),
             op(950,  xfx, ::),
-            op(1150, fx,  [include, compute, abducible]),
-            op(1150, fx,  [table, show])
+            op(1150, fx,  include),
+            op(1150, fx,  compute),
+            op(1150, fx,  abducible),
+            op(1150, fx,  table),
+            op(1150, fx,  show)
           ]).
 :- use_module(ops).
 :- use_module(describe, [deprecated_description/1]).

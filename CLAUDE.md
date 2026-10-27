@@ -88,7 +88,7 @@ The switch is `library(scasp)` itself: under `-Dsscasp`, `prolog/scasp.pl` re-ex
 `library(sscasp)` and defines nothing, so a program written for `library(scasp)` — a
 Logical English export, an example in `examples/` — runs against either unedited.
 The sub-libraries switch with it: `prolog/scasp/{dyncall,html,human,json,listing,
-model,options,output}.pl` are then `library(sscasp/compat)`'s modules, `main.pl` is
+model,options,output,swish}.pl` are then `library(sscasp/compat)`'s modules, `main.pl` is
 `sscasp/main.pl`, and `embed` refuses to load. `app/scasp.pl` (`swipl scasp ...`)
 chooses its `main.pl` itself, because an up-to-date `main.qlf` is the old branch
 whatever the flag says. Two exports are adjusted so a module importing both

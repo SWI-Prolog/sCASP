@@ -41,7 +41,12 @@
             op(1150, fx, domain),
             op(1150, fx, pred),
             op(200,  xfx, ..),
-            op(700,  xfx, [#=, #<>, #<, #>, #=<, #>=])
+            op(700,  xfx, #=),
+            op(700,  xfx, #<>),
+            op(700,  xfx, #<),
+            op(700,  xfx, #>),
+            op(700,  xfx, #=<),
+            op(700,  xfx, #>=)
           ]).
 :- use_module(ops).
 :- use_module(library(error), [type_error/2, domain_error/2, permission_error/3,

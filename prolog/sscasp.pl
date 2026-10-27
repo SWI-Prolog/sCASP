@@ -79,7 +79,12 @@
             html_atom//2,               % +Literal, +Options
 
             op(900,  fy,  not),
-            op(700,  xfx, [#=, #<>, #<, #>, #=<, #>=]),
+            op(700,  xfx, #=),
+            op(700,  xfx, #<>),
+            op(700,  xfx, #<),
+            op(700,  xfx, #>),
+            op(700,  xfx, #=<),
+            op(700,  xfx, #>=),
             op(700,  xfx, '∉'),
             op(700,  xfx, '∈'),
             op(700,  xfx, '| '),

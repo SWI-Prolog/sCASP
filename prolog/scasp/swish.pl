@@ -1,3 +1,16 @@
+%   Under `swipl -Dsscasp`, library(scasp) is the new implementation
+%   (see prolog/scasp.pl) and library(scasp/swish) is what
+%   library(sscasp/compat) gives SWISH.  Not included in main.qlf,
+%   but guarded like its neighbours for when it is.
+
+:- if(( current_prolog_flag(sscasp, true),
+         \+ '$compilation_mode'(qlf) )).
+
+:- module(scasp_swish, []).
+:- reexport('../sscasp/compat/swish').
+
+:- else.
+
 :- module(scasp_swish,
           []).
 :- use_module(library(http/html_write)).
@@ -85,3 +98,5 @@ html_string(Goal, HTML) :-
     phrase(Goal, Tokens),
     with_output_to(string(HTML0), print_html(Tokens)),
     split_string(HTML0, "", "\n ", [HTML]).
+
+:- endif.

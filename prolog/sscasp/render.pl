@@ -47,11 +47,11 @@
 :- use_module(mangle, [literal_kind/3, kind_truth/2]).
 :- use_module(html,      [html_model//2, html_justification//2]).
 :- use_module(html_text, [emit_text/1]).
-:- use_module(library(lists), [member/2, nth0/3]).
+:- use_module(library(lists), [member/2, nth0/3, reverse/2]).
 :- use_module(library(apply), [maplist/3, maplist/4, foldl/4, foldl/5,
                                 exclude/3]).
 :- use_module(library(listing), [portray_clause/3]).
-:- use_module(library(pairs), [pairs_keys_values/3]).
+:- use_module(library(pairs), [pairs_keys_values/3, pairs_values/2]).
 :- use_module(library(option), [option/2, option/3]).
 :- use_module(library(ansi_term), [ansi_format/3]).
 
@@ -102,6 +102,11 @@ name, because the constraint has to be attached to something.
 %     - constraints(Boolean)
 %       Inline the constraint stores.  Default `true`; `false` names the
 %       variables and says no more.
+%     - variable_names(+Bindings)
+%       `Name = Var` pairs, as the reader returns them: such a variable
+%       of Term is called Name, even where it occurs once, and no other
+%       is.  For a caller that shows the answer beside the query it was
+%       asked as, where `X` should not turn into `A`.
 
 :- det(scasp_readable/2).
 :- det(scasp_readable/3).
@@ -110,7 +115,8 @@ scasp_readable(Term, Readable) :-
     scasp_readable(Term, Readable, []).
 
 scasp_readable(Term, Readable, Options) :-
-    copy_term(Term, Readable, Goals0),
+    option(variable_names(Bindings0), Options, []),
+    copy_term(Term-Bindings0, Readable-Bindings, Goals0),
     (   option(constraints(false), Options)
     ->  Goals = []
     ;   phrase(separate(Goals0), Goals)
@@ -118,7 +124,24 @@ scasp_readable(Term, Readable, Options) :-
     term_variables(Readable-Goals, All),
     owners(Goals, All, Owned),
     singletons(Readable, Goals, Singletons),
-    name_variables(All, Singletons, Owned).
+    given_names(Bindings, Given),
+    name_variables(All, Singletons, Owned, Given).
+
+%!  given_names(+Bindings, -Given) is det.
+%
+%   The `Variable-Name` pairs of the bindings that are still variables,
+%   the first name winning where a variable has two.
+
+given_names(Bindings, Given) :-
+    foldl(given_name, Bindings, [], Given0),
+    reverse(Given0, Given).
+
+given_name(Name=Var, Given0, Given),
+    var(Var),
+    \+ ( member(V-_, Given0), V == Var ) =>
+    Given = [Var-Name|Given0].
+given_name(_, Given0, Given) =>
+    Given = Given0.
 
 %   CLP(Q) reports its whole store as **one** goal, `{B > 0, A-B > 0}`,
 %   so it would all be printed on whichever variable comes first.  Taken
@@ -243,21 +266,36 @@ mentioned(Mentioned, Variable) :-
 %
 %   @arg Owned is the `Variable-Goals` list of owners/3.
 
-name_variables(Variables, Singletons, Owned) :-
-    foldl(name_of(Singletons, Owned), Variables, Names, 0, _),
+name_variables(Variables, Singletons, Owned, Given) :-
+    pairs_values(Given, Taken),
+    foldl(name_of(Singletons, Owned, Given, Taken), Variables, Names, 0, _),
     pairs_keys_values(Named, Variables, Names),
     maplist(printed(Named, Owned), Variables, Names, Printed),
     maplist(=, Variables, Printed).
 
-name_of(Singletons, Owned, Variable, Name, N0, N) :-
+name_of(Singletons, Owned, Given, Taken, Variable, Name, N0, N) :-
     constraints_of(Owned, Variable, Goals),
-    (   Goals == [],
+    (   named(Given, Variable, Given1)
+    ->  Name = '$VAR'(Given1),
+        N = N0
+    ;   Goals == [],
         memberchk_eq(Variable, Singletons)
     ->  Name = '$VAR'('_'),
         N = N0
-    ;   variable_name(N0, Letter),
+    ;   free_name(N0, Taken, Letter, N1),
         Name = '$VAR'(Letter),
-        N is N0+1
+        N is N1+1
+    ).
+
+%   The first generated name from N0 on that no binding has taken.
+
+free_name(N0, Taken, Letter, N) :-
+    variable_name(N0, Letter0),
+    (   memberchk(Letter0, Taken)
+    ->  N1 is N0+1,
+        free_name(N1, Taken, Letter, N)
+    ;   Letter = Letter0,
+        N = N0
     ).
 
 printed(Named, Owned, Variable, Name, Printed) :-

@@ -107,7 +107,7 @@ Setting the flag after `library(scasp)` has been loaded has no effect.
 
 The sub-libraries switch with it. Under the flag, `library(scasp/dyncall)`,
 `scasp/html`, `scasp/human`, `scasp/listing`, `scasp/model`,
-`scasp/options` and `scasp/output` are the modules of the compatibility
+`scasp/options`, `scasp/output` and `scasp/swish` are the modules of the compatibility
 layer (§2.3), so a program that loads them keeps working, whether it
 loads them before or after `library(scasp)`.
 `library(scasp/json)` gives `scasp_results_json/2`, which takes the old
@@ -161,7 +161,7 @@ From then on, as files are loaded:
 - An import list that names `scasp/2` gets a `scasp/2` that returns the old
   justification shape: `query-Forest`, with the check under `o_nmr_check`.
 - `library(scasp/Sub)` loads `library(sscasp/compat/Sub)`. `html`,
-  `dyncall`, `json`, `model` and `output` provide what programs use of them;
+  `dyncall`, `json`, `model`, `output` and `swish` provide what programs use of them;
   `human`, `listing` and `options` exist so that loading them succeeds.
   Other sub-libraries are not provided.
 - Clauses using the old interned negation `'-p'(X)` are rewritten to
@@ -333,6 +333,16 @@ module. It does the same as the option `module(M)` of `scasp/2` and the
 Both libraries declare what SWISH may run. ssCASP allows the query
 shortcuts, `scasp/1,2`, `scasp_show/2`, `scasp_json/2,3` and
 `scasp_human/1,2`, and refuses the option `module(M)`.
+
+SWISH loads `library(scasp)` and `library(scasp/swish)`, its adapter for
+showing the model and the justification under an answer
+(`config-available/scasp.pl`). Started with `swipl -Dsscasp`, both are the
+new implementation, and SWISH needs no other change than serving
+`sscasp.js` and `sscasp.css` instead of `scasp.js` and `scasp.css`, which
+that config file decides by asking which library it got. The variables in
+the model and the justification are named as the query names them, as
+before. SWISH uses the pack in its own `pack/sCASP`, so that checkout has to
+be one with ssCASP in it.
 
 ---
 

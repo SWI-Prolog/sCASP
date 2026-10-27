@@ -34,7 +34,12 @@
 
 :- module(sscasp_ops,
           [ op(900,  fy,  not),
-            op(700,  xfx, [#=, #<>, #<, #>, #=<, #>=]),
+            op(700,  xfx, #=),
+            op(700,  xfx, #<>),
+            op(700,  xfx, #<),
+            op(700,  xfx, #>),
+            op(700,  xfx, #=<),
+            op(700,  xfx, #>=),
             op(700,  xfx, '∉'),            % ∉
             op(700,  xfx, '∈'),            % ∈
             op(700,  xfx, '| '),           % Var | {Constraints}

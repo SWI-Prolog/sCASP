@@ -422,6 +422,19 @@ test(one_naming_for_the_model_and_the_tree) :-
     scasp_readable(v(V, Model, Tree), v(Named, ReadableModel, _)),
     assertion(memberchk(not window(Named), ReadableModel)).
 
+%   variable_names/1 names the variables as the query did, also one that
+%   occurs once, and the generated names step around those it took.
+
+test(the_query_names_its_variables) :-
+    { X =< 3 },
+    scasp_readable(f(X, Y, Z, Z, _),
+                   f(RX, RY, RZ, _, R_),
+                   [variable_names(['A'=X, 'Y'=Y])]),
+    assertion(RX = '| '('$VAR'('A'), {'$VAR'('A') =< 3})),
+    assertion(RY == '$VAR'('Y')),
+    assertion(RZ == '$VAR'('B')),
+    assertion(R_ == '$VAR'('_')).
+
 :- end_tests(api_rendering).
 
 		 /*******************************
