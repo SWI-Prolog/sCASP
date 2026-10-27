@@ -2,6 +2,10 @@
 
 > **ssCASP**, the new implementation in `prolog/sscasp/` (`library(sscasp)`,
 > the `sscasp` executable), is described in [doc/manual.md](doc/manual.md).
+>
+> Both implementations ship in this pack.  `library(scasp)` remains the old
+> one by default; [doc/migration.md](doc/migration.md) explains how to switch
+> (`swipl -Dsscasp`, `library(sscasp/compat)`) and how to migrate an application.
 
 > This is a fork from https://gitlab.software.imdea.org/ciao-lang/sCASP.
 > It provides a port of s(CASP) to SWI-Prolog.
