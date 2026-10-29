@@ -6,6 +6,6 @@ keywords([scasp, asp]).
 author('Joaquin Arias', 'joaquin.arias@urjc.es' ).
 author('Kyle Marple', '' ).
 author('Jan Wielemaker', 'jan@swi-prolog.org' ).
-requires(prolog >= '9').
+requires(prolog >= '10').
 home('https://github.com/SWI-Prolog/sCASP' ).
 download( 'https://github.com/SWI-Prolog/sCASP.git' ).
