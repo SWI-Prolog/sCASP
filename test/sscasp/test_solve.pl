@@ -13,6 +13,7 @@
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(lists), [member/2, memberchk/2, append/3]).
 :- use_module(library(sscasp/source), [read_program/2]).
+:- use_module(library(sscasp/herbrand), [excluded_values/2]).
 :- use_module(library(sscasp/compile), [compile_program/3]).
 :- use_module(library(filesex), [directory_file_path/3]).
 :- use_module(library(time), [call_with_time_limit/2]).
@@ -1569,6 +1570,24 @@ answer_set(Program, Query, Set) :-
             Keys),
     sort(Keys, Set).
 
+%   `baby(tuesday)`, proved by the NMR check, triggers the rule asking
+%   for `opera(tuesday)`.  The proof holds `opera(D)` with D free, which
+%   unifies with it and is not it: the check constrains D apart from
+%   `tuesday` instead.  Taking unification for presence pruned the only
+%   answer.
+
+test(a_held_literal_must_be_an_instance,
+     [true(Excluded == [monday, tuesday])]) :-
+    Program = [ (opera(D1) :- not home(D1)),
+                (home(D2) :- not opera(D2)),
+                home(monday),
+                (:- baby(D3), opera(D3)),
+                baby(tuesday) ],
+    with_scasp_flag(sscasp_dcc, true,
+                    once(scasp(Program, opera(D), _))),
+    excluded_values(D, Excluded0),
+    msort(Excluded0, Excluded).
+
 :- end_tests(solve_dcc).
 
 		 /*******************************
@@ -1596,11 +1615,11 @@ test(one_proof_of_the_check_per_answer) :-
     assertion(NOn == 1).
 
 %   A check that narrows the query's variable is not committed to, and
-%   the answer is the same either way: `:- p(b), p(c)` makes the check
-%   choose `q(b)` and so `X ∉ [b]`.  (The quantifier inside the check
-%   commits to its first covering already, so `X ∉ [c]` is not a second
-%   answer with the flag off either; what this pins is that the narrowed
-%   answer survives.)
+%   the answers are the same either way: `:- p(b), p(c)` makes the check
+%   choose `q(b)`, so `X ∉ [b]`, or `q(c)`, so `X ∉ [c]`.  (Only the
+%   first used to come back, with the flag on or off: dynamic
+%   consistency checking took the `p(X)` in the proof for `p(c)` and
+%   pruned the second.)
 
 narrowing([ (p(X) :- not q(X)), (q(Y) :- not p(Y)), (:- p(b), p(c)) ]).
 
@@ -1609,7 +1628,7 @@ test(a_check_that_narrows_the_query_is_kept) :-
     with_scasp_flag(sscasp_commit_nmr, false, answer_keys(Program, p(_), Off)),
     with_scasp_flag(sscasp_commit_nmr, true,  answer_keys(Program, p(_), On)),
     assertion(Off == On),
-    assertion(Off = [[p(_)-_]-[_|_]]).    % one answer, and it is constrained
+    assertion(Off = [[p(_)-_]-[_|_], [p(_)-_]-[_|_]]). % two, both constrained
 
 answer_keys(Program, Query, Keys) :-
     findall(Key,

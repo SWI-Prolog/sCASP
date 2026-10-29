@@ -765,13 +765,20 @@ dcc_holds([Other|Others], Anc, S) :-
     dcc_other(Other, Anc, S),
     dcc_holds(Others, Anc, S).
 
+%   A literal held only *completes* the constraint if it is an instance
+%   of the one asked for: `opera(X)` in the proof says nothing about
+%   `opera(tuesday)`, and unifying the two would prune the branch where
+%   the NMR check constrains X apart from `tuesday` instead.
+
 dcc_other(lit(Literal), Anc, S) :-
     (   S = proof(_, Index),
         functor(Literal, Name, Arity),
         relatives(Name/Arity, Index, Relatives),
-        member(_-Literal, Relatives)
-    ;   member(a(Literal, _, _), Anc)
-    ).
+        member(_-Held, Relatives)
+    ;   member(a(Held, _, _), Anc)
+    ),
+    subsumes_term(Literal, Held),
+    Literal = Held.
 dcc_other(run(Goal), _, _) :-
     call(Goal).
 
