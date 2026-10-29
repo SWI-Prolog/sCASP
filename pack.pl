@@ -1,6 +1,6 @@
 pack_version(2).
 name(scasp).
-version('1.1.4').
+version('2.0.0').
 title('Goal directed ASP solver').
 keywords([scasp, asp]).
 author('Joaquin Arias', 'joaquin.arias@urjc.es' ).
