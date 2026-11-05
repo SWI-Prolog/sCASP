@@ -2,6 +2,8 @@
           [ test_all/0,
             test_all/1                          % +Options
           ]).
+:- use_module(library(plunit)).
+:- set_test_options([load(always)]).
 :- use_module(scasp_plunit, []).                % sets the library search path
 :- use_module(gaps, [gap/3, load_errors/4]).
 :- use_module(under_test, [library_under_test/1]).

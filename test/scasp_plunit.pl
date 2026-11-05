@@ -49,6 +49,18 @@ add_library_path(Dir) :-
 :- use_module(library(apply), [maplist/2, maplist/3, include/3]).
 :- use_module(library(lists), [member/2]).
 :- use_module(library(pairs), [pairs_keys_values/3, pairs_values/2, map_list_to_pairs/3]).
+:- use_module(library(debug), [assertion/1]).
+
+% Keep assertion/1 in the tests under `swipl -O`.  By default
+% library(debug) compiles it to `true` when the flag `optimise` is set,
+% and a test whose only check is an assertion then passes whatever the
+% answer: test_all/1 reported four gaps as fixed that were not.
+%
+% Set here, after under_test.pl has loaded the library, so the library
+% itself is still compiled optimised; what loads after this -- every
+% suite, and test_all.pl's own clauses -- keeps its assertions.
+
+:- set_prolog_flag(optimise_debug, false).
 
 %!  answers_admit(:Query, ?Var, +Candidates, -Admitted) is det.
 %
