@@ -170,7 +170,7 @@ run_prolog(Cwd, Args, Status, Output) :-
     atom_concat('app=', App, AppArg),
     append(['-f', none, '--no-packs', '-p', LibArg, '-p', AppArg],
            Args, AllArgs),
-    process_create(prolog(self), AllArgs,
+    process_create(prolog(swipl), AllArgs,
                    [ stdin(null), stdout(pipe(PO)), stderr(pipe(PO)),
                      process(PID), cwd(Cwd)
                    ]),
