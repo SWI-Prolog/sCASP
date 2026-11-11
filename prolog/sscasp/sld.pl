@@ -258,10 +258,18 @@ kind(_, Kind) =>
 %   clauses to read, and a meta-predicate's arguments are goals in
 %   modules the interpreter has no way to track — the old implementation
 %   says the same and for the same reason.
+%
+%   A tabled predicate is called as well.  clause/2 gives its clauses,
+%   but the tabling lives in a wrapper around them: interpreting the
+%   clauses bypasses the table, recomputing what it holds — for a
+%   `shared` table, what every thread has computed before — and loops
+%   on the left recursion tabling is used for.
 
 opaque(Goal), predicate_property(Goal, foreign) =>
     true.
 opaque(Goal), predicate_property(Goal, meta_predicate(_)) =>
+    true.
+opaque(Goal), predicate_property(Goal, tabled) =>
     true.
 opaque(Goal) =>
     \+ predicate_property(Goal, number_of_clauses(_)),
