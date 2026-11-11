@@ -171,12 +171,17 @@ reverse_list(List, Reversed) :-
     reverse(List, Reversed).
 
 %   An unusable predicate maps to `none`, so the lookup says why.
+%
+%   The clause count is tested first: most_general/2 and disjoint/1 are
+%   quadratic, and a predicate of patient data may have thousands of
+%   facts, which made computing patterns that are then not used most of
+%   the compile time of a query.
 
 usable(Max, Entries, Usable) :-
     length(Entries, N),
-    maplist(arg(1), Entries, Patterns0),
-    most_general(Patterns0, Patterns),
     (   N =< Max,
+        maplist(arg(1), Entries, Patterns0),
+        most_general(Patterns0, Patterns),
         disjoint(Patterns)
     ->  (   memberchk(rule(_), Entries)
         ->  Rules = true
